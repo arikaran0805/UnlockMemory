@@ -475,6 +475,8 @@ export default function ProblemDetail() {
               navigate(`/practice/${skillId}/predict/${slug}`);
             } else if (problemType === "fix-error") {
               navigate(`/practice/${skillId}/fix-error/${slug}`);
+            } else if (problemType === "eliminate-wrong") {
+              navigate(`/practice/${skillId}/eliminate/${slug}`);
             } else {
               navigate(`/practice/${skillId}/problem/${slug}`);
             }
@@ -588,6 +590,8 @@ export default function ProblemDetail() {
             navigate(`/practice/${skillId}/predict/${slug}`);
           } else if (problemType === "fix-error") {
             navigate(`/practice/${skillId}/fix-error/${slug}`);
+          } else if (problemType === "eliminate-wrong") {
+            navigate(`/practice/${skillId}/eliminate/${slug}`);
           } else {
             navigate(`/practice/${skillId}/problem/${slug}`);
           }

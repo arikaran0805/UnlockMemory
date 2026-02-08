@@ -220,6 +220,19 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
           .in("sub_topic_id", subTopicIds)
           .eq("fix_error_problems.status", "published")
           .order("display_order", { ascending: true });
+
+        // Fetch eliminate wrong mappings
+        const { data: eliminateWrongMappings } = await supabase
+          .from("eliminate_wrong_mappings")
+          .select(`
+            eliminate_wrong_problem_id,
+            sub_topic_id,
+            display_order,
+            eliminate_wrong_problems!inner(*)
+          `)
+          .in("sub_topic_id", subTopicIds)
+          .eq("eliminate_wrong_problems.status", "published")
+          .order("display_order", { ascending: true });
         
         if (sortedSubTopics) {
           // Create a map of sub-topic info with lesson order for sorting
@@ -249,6 +262,15 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
             for (const mapping of fixErrorMappings) {
               const existing = problemsBySubTopic.get(mapping.sub_topic_id) || [];
               existing.push({ ...mapping, problemType: "fix-error" as const });
+              problemsBySubTopic.set(mapping.sub_topic_id, existing);
+            }
+          }
+
+          // Group eliminate wrong mappings by sub-topic
+          if (eliminateWrongMappings) {
+            for (const mapping of eliminateWrongMappings) {
+              const existing = problemsBySubTopic.get(mapping.sub_topic_id) || [];
+              existing.push({ ...mapping, problemType: "eliminate-wrong" as const });
               problemsBySubTopic.set(mapping.sub_topic_id, existing);
             }
           }
@@ -311,6 +333,31 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
                   sub_topic_id: subTopic.id,
                   sub_topic_title: subTopic.title,
                   problemType: "fix-error",
+                });
+              } else if (mapping.problemType === "eliminate-wrong") {
+                const ewProblem = mapping.eliminate_wrong_problems;
+                problemsWithMappings.push({
+                  ...transformProblem({
+                    ...ewProblem,
+                    sub_topic: "",
+                    description: ewProblem.description || "",
+                    examples: [],
+                    constraints: [],
+                    starter_code: {},
+                    is_premium: ewProblem.is_premium || false,
+                    test_cases: [],
+                    input_format: "",
+                    output_format: "",
+                    time_limit: 0,
+                    memory_limit: 0,
+                    supported_languages: [ewProblem.language],
+                    function_signature: { name: "solution", parameters: [], return_type: "str" },
+                  }),
+                  lesson_id: subTopic.lesson_id,
+                  lesson_title: lesson?.title || "General",
+                  sub_topic_id: subTopic.id,
+                  sub_topic_title: subTopic.title,
+                  problemType: "eliminate-wrong",
                 });
               } else {
                 problemsWithMappings.push({

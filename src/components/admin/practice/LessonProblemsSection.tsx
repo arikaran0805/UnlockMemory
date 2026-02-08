@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, GripVertical, MoreHorizontal, Unlink, Eye, Code2, Bug } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, GripVertical, MoreHorizontal, Unlink, Eye, Code2, Bug, ListX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -373,9 +373,11 @@ function SortableSubTopic({
           ? "predict_output_mappings" 
           : problem.problemType === "fix-error" 
           ? "fix_error_mappings" 
-          : "problem_mappings") as "problem_mappings" | "predict_output_mappings" | "fix_error_mappings",
+          : problem.problemType === "eliminate-wrong"
+          ? "eliminate_wrong_mappings"
+          : "problem_mappings") as "problem_mappings" | "predict_output_mappings" | "fix_error_mappings" | "eliminate_wrong_mappings",
       };
-    }).filter(Boolean) as { id: string; display_order: number; table: "problem_mappings" | "predict_output_mappings" }[];
+    }).filter(Boolean) as { id: string; display_order: number; table: "problem_mappings" | "predict_output_mappings" | "fix_error_mappings" | "eliminate_wrong_mappings" }[];
 
     if (updates.length > 0) {
       reorderMappings.mutate(updates);
@@ -513,6 +515,7 @@ function SortableProblemRow({
 
   const isPredictOutput = problem.problemType === "predict-output";
   const isFixError = problem.problemType === "fix-error";
+  const isEliminateWrong = problem.problemType === "eliminate-wrong";
 
   return (
     <div
@@ -538,6 +541,8 @@ function SortableProblemRow({
         <Eye className="h-4 w-4 text-amber-500 shrink-0" />
       ) : isFixError ? (
         <Bug className="h-4 w-4 text-destructive shrink-0" />
+      ) : isEliminateWrong ? (
+        <ListX className="h-4 w-4 text-violet-500 shrink-0" />
       ) : (
         <Code2 className="h-4 w-4 text-primary/70 shrink-0" />
       )}

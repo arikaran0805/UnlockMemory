@@ -138,19 +138,33 @@ import { cn } from "@/lib/utils";
           .in("sub_topic_id", subTopicIds)
           .order("display_order", { ascending: true });
 
-        // Get fix error mappings
-        const { data: fixErrorMappings } = await supabase
-          .from("fix_error_mappings")
-          .select(`
-            fix_error_problem_id,
-            sub_topic_id,
-            display_order,
-            fix_error_problems (
-              id, title, slug, difficulty, is_premium, status, language
-            )
-          `)
-          .in("sub_topic_id", subTopicIds)
-          .order("display_order", { ascending: true });
+         // Get fix error mappings
+         const { data: fixErrorMappings } = await supabase
+           .from("fix_error_mappings")
+           .select(`
+             fix_error_problem_id,
+             sub_topic_id,
+             display_order,
+             fix_error_problems (
+               id, title, slug, difficulty, is_premium, status, language
+             )
+           `)
+           .in("sub_topic_id", subTopicIds)
+           .order("display_order", { ascending: true });
+
+         // Get eliminate wrong mappings
+         const { data: eliminateWrongMappings } = await supabase
+           .from("eliminate_wrong_mappings")
+           .select(`
+             eliminate_wrong_problem_id,
+             sub_topic_id,
+             display_order,
+             eliminate_wrong_problems (
+               id, title, slug, difficulty, is_premium, status, language
+             )
+           `)
+           .in("sub_topic_id", subTopicIds)
+           .order("display_order", { ascending: true });
   
         // Build sub-topic title lookup
         const subTopicMap = new Map(subTopics.map(st => [st.id, { title: st.title, id: st.id }]));
@@ -197,6 +211,21 @@ import { cn } from "@/lib/utils";
                 subTopicTitle: subTopicMap.get(m.sub_topic_id)?.title || "General",
                 subTopicId: m.sub_topic_id,
                 problemType: "fix-error",
+                displayOrder: m.display_order,
+              });
+            });
+        }
+
+        // Add eliminate wrong problems
+        if (eliminateWrongMappings) {
+          eliminateWrongMappings
+            .filter((m: any) => m.eliminate_wrong_problems?.status === "published")
+            .forEach((m: any) => {
+              results.push({
+                ...m.eliminate_wrong_problems,
+                subTopicTitle: subTopicMap.get(m.sub_topic_id)?.title || "General",
+                subTopicId: m.sub_topic_id,
+                problemType: "eliminate-wrong",
                 displayOrder: m.display_order,
               });
             });
@@ -266,6 +295,8 @@ import { cn } from "@/lib/utils";
         navigate(`/practice/${skillId}/predict/${problem.slug}`);
       } else if (problem.problemType === "fix-error") {
         navigate(`/practice/${skillId}/fix-error/${problem.slug}`);
+      } else if (problem.problemType === "eliminate-wrong") {
+        navigate(`/practice/${skillId}/eliminate/${problem.slug}`);
       } else {
         navigate(`/practice/${skillId}/problem/${problem.slug}`);
       }
