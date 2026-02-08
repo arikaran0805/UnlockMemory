@@ -26,7 +26,7 @@ export function useReorderProblemMappings() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (items: { id: string; display_order: number; table: "problem_mappings" | "predict_output_mappings" | "fix_error_mappings" }[]) => {
+    mutationFn: async (items: { id: string; display_order: number; table: "problem_mappings" | "predict_output_mappings" | "fix_error_mappings" | "eliminate_wrong_mappings" }[]) => {
       for (const item of items) {
         const { error } = await supabase
           .from(item.table)
@@ -39,6 +39,7 @@ export function useReorderProblemMappings() {
       queryClient.invalidateQueries({ queryKey: ["problem-mappings-by-skill"] });
       queryClient.invalidateQueries({ queryKey: ["predict-output-mappings-by-skill"] });
       queryClient.invalidateQueries({ queryKey: ["fix-error-mappings-by-skill"] });
+      queryClient.invalidateQueries({ queryKey: ["eliminate-wrong-mappings-by-skill"] });
       queryClient.invalidateQueries({ queryKey: ["problem-mappings"] });
     },
   });

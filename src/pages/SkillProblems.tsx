@@ -149,6 +149,8 @@ export default function SkillProblems() {
       navigate(`/practice/${skillId}/predict/${problem.slug}`);
     } else if (problem.problemType === "fix-error") {
       navigate(`/practice/${skillId}/fix-error/${problem.slug}`);
+    } else if (problem.problemType === "eliminate-wrong") {
+      navigate(`/practice/${skillId}/eliminate/${problem.slug}`);
     } else {
       navigate(`/practice/${skillId}/problem/${problem.slug}`);
     }
