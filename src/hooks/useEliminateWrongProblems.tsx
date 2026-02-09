@@ -145,6 +145,8 @@ export function useSubmitEliminateWrongAttempt() {
     }) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Must be logged in");
+
+      // Insert attempt
       const { data, error } = await supabase
         .from("eliminate_wrong_attempts")
         .insert({
@@ -157,10 +159,27 @@ export function useSubmitEliminateWrongAttempt() {
         .select()
         .single();
       if (error) throw error;
+
+      // Update learner_problem_progress for checkmark tracking
+      const progressData: any = {
+        user_id: userData.user.id,
+        problem_id: input.problem_id,
+        status: input.is_correct ? "solved" : "attempted",
+        attempts: 1,
+        updated_at: new Date().toISOString(),
+      };
+      if (input.is_correct) {
+        progressData.solved_at = new Date().toISOString();
+      }
+      await supabase
+        .from("learner_problem_progress")
+        .upsert(progressData, { onConflict: "user_id,problem_id" });
+
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eliminate-wrong-attempts", data.problem_id] });
+      queryClient.invalidateQueries({ queryKey: ["learner-progress"] });
     },
   });
 }
