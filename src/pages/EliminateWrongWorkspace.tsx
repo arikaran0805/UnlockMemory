@@ -32,7 +32,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-type ExpandedPanel = "description" | "options" | null;
+type ExpandedPanel = "description" | "code" | "options" | null;
 
 export default function EliminateWrongWorkspace() {
   const { skillId, slug } = useParams<{ skillId: string; slug: string }>();
@@ -73,6 +73,7 @@ export default function EliminateWrongWorkspace() {
 
   // Panel expand handlers
   const handleExpandDescription = () => setExpandedPanel(expandedPanel === "description" ? null : "description");
+  const handleExpandCode = () => setExpandedPanel(expandedPanel === "code" ? null : "code");
   const handleExpandOptions = () => setExpandedPanel(expandedPanel === "options" ? null : "options");
 
   const handleToggleCollapseOptions = () => {
@@ -215,6 +216,19 @@ export default function EliminateWrongWorkspace() {
               />
             </div>
           )}
+          {expandedPanel === "code" && (
+            <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+              <EliminateWrongCodePanel
+                code={problem.context_code}
+                language={problem.language}
+                problemId={problem.id}
+                problemTitle={problem.title}
+                isExpanded
+                onToggleExpand={handleExpandCode}
+                onCommentClick={handleCommentClick}
+              />
+            </div>
+          )}
           {expandedPanel === "options" && (
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <EliminateWrongOptionsPanel
@@ -270,6 +284,7 @@ export default function EliminateWrongWorkspace() {
                   problemTitle={problem.title}
                   isCollapsed={isCodeCollapsed}
                   onToggleCollapse={handleToggleCollapseCode}
+                  onToggleExpand={handleExpandCode}
                   onCommentClick={handleCommentClick}
                 />
               </div>
@@ -331,6 +346,8 @@ export default function EliminateWrongWorkspace() {
                         problemTitle={problem.title}
                         isCollapsed={isCodeCollapsed}
                         onToggleCollapse={handleToggleCollapseCode}
+                        isExpanded={false}
+                        onToggleExpand={handleExpandCode}
                         onCommentClick={handleCommentClick}
                       />
                     </div>
