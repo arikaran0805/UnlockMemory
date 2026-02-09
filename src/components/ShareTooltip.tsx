@@ -3,16 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { Share2, Linkedin, Copy } from "lucide-react";
-import { trackPostShare } from "@/lib/shareAnalytics";
+import { trackPostShare, trackProblemShare } from "@/lib/shareAnalytics";
+import type { ProblemType } from "@/hooks/useProblemReactions";
 
 interface ShareTooltipProps {
   title: string;
   url: string;
   postId?: string;
+  problemId?: string;
+  problemType?: ProblemType;
   children?: React.ReactNode;
 }
 
-const ShareTooltip = ({ title, url, postId, children }: ShareTooltipProps) => {
+const ShareTooltip = ({ title, url, postId, problemId, problemType, children }: ShareTooltipProps) => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -78,6 +81,9 @@ const ShareTooltip = ({ title, url, postId, children }: ShareTooltipProps) => {
       if (postId) {
         trackPostShare(postId, "copy_link");
       }
+      if (problemId) {
+        trackProblemShare(problemId, "copy_link", problemType);
+      }
       toast({
         title: "Link copied!",
         description: "The link has been copied to your clipboard.",
@@ -90,6 +96,9 @@ const ShareTooltip = ({ title, url, postId, children }: ShareTooltipProps) => {
     if (link) {
       if (postId) {
         trackPostShare(postId, platform);
+      }
+      if (problemId) {
+        trackProblemShare(problemId, platform, problemType);
       }
       window.open(link, "_blank", "noopener,noreferrer");
     }

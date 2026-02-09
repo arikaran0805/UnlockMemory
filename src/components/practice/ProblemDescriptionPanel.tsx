@@ -651,6 +651,8 @@ export function ProblemDescriptionPanel({
               <ShareTooltip
                 title={title}
                 url={window.location.href}
+                problemId={problemId}
+                problemType="solve"
               >
                 <Button
                   variant="ghost"

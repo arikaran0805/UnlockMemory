@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import ShareTooltip from "@/components/ShareTooltip";
 import ReportSuggestDialog from "@/components/ReportSuggestDialog";
 import type { FixErrorProblem } from "@/hooks/useFixErrorProblems";
+import { useProblemReactions } from "@/hooks/useProblemReactions";
+import { useProblemBookmarks } from "@/hooks/useProblemBookmarks";
 
 const difficultyColors: Record<string, string> = {
   Easy: "bg-green-500/10 text-green-600 dark:text-green-500 border-green-500/20",
@@ -37,57 +39,32 @@ export function FixErrorDescriptionPanel({
 }: FixErrorDescriptionPanelProps) {
   const [showHints, setShowHints] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
-  const [likes, setLikes] = useState(0);
-  const [dislikes, setDislikes] = useState(0);
-  const [saved, setSaved] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  // Real DB hooks
+  const { likes, dislikes, userReaction, react } = useProblemReactions(problem.id, "fix");
+  const { isBookmarked, toggleBookmark } = useProblemBookmarks("fix");
+  const saved = isBookmarked(problem.id);
 
   // Derive sample output from available data
   const sampleOutput = useMemo(() => {
     // Priority: explicit sample_output > expected_output > first visible test case
     if ((problem as any).sample_output) return (problem as any).sample_output as string;
     if (problem.expected_output) return problem.expected_output;
-    if (problem.test_cases?.length > 0) {
-      const visibleCase = problem.test_cases.find((tc) => !tc.is_hidden);
-      return visibleCase?.expected_output || null;
+    if (problem.test_cases.length > 0) {
+      const first = problem.test_cases[0] as any;
+      return first?.expected_output || null;
     }
     return null;
   }, [problem]);
 
-  const handleLike = useCallback(() => {
-    if (liked) {
-      setLiked(false);
-      setLikes((v) => v - 1);
-    } else {
-      setLiked(true);
-      setLikes((v) => v + 1);
-      if (disliked) {
-        setDisliked(false);
-        setDislikes((v) => v - 1);
-      }
+  const handleSave = useCallback(async () => {
+    try {
+      await toggleBookmark(problem.id);
+    } catch {
+      toast.error("Login required to save");
     }
-  }, [liked, disliked]);
-
-  const handleDislike = useCallback(() => {
-    if (disliked) {
-      setDisliked(false);
-      setDislikes((v) => v - 1);
-    } else {
-      setDisliked(true);
-      setDislikes((v) => v + 1);
-      if (liked) {
-        setLiked(false);
-        setLikes((v) => v - 1);
-      }
-    }
-  }, [liked, disliked]);
-
-  const handleSave = useCallback(() => {
-    setSaved((v) => !v);
-    toast.success(saved ? "Removed from saved" : "Saved");
-  }, [saved]);
+  }, [toggleBookmark, problem.id]);
 
   const handleFeedback = useCallback(() => {
     setReportDialogOpen(true);
@@ -284,10 +261,10 @@ export function FixErrorDescriptionPanel({
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost" size="sm"
-                    className={cn("h-8 px-2 gap-1.5", liked && "text-primary")}
-                    onClick={handleLike}
+                    className={cn("h-8 px-2 gap-1.5", userReaction === "like" && "text-primary")}
+                    onClick={() => react("like")}
                   >
-                    <ThumbsUp className={cn("h-4 w-4", liked && "fill-current")} />
+                    <ThumbsUp className={cn("h-4 w-4", userReaction === "like" && "fill-current")} />
                     <span className="text-xs">{likes}</span>
                   </Button>
                 </TooltipTrigger>
@@ -297,17 +274,17 @@ export function FixErrorDescriptionPanel({
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost" size="sm"
-                    className={cn("h-8 px-2 gap-1.5", disliked && "text-destructive")}
-                    onClick={handleDislike}
+                    className={cn("h-8 px-2 gap-1.5", userReaction === "dislike" && "text-destructive")}
+                    onClick={() => react("dislike")}
                   >
-                    <ThumbsDown className={cn("h-4 w-4", disliked && "fill-current")} />
+                    <ThumbsDown className={cn("h-4 w-4", userReaction === "dislike" && "fill-current")} />
                     <span className="text-xs">{dislikes}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top"><p>Dislike</p></TooltipContent>
               </Tooltip>
               <div className="w-px h-5 bg-border mx-1" />
-              <ShareTooltip title={problem.title} url={window.location.href}>
+              <ShareTooltip title={problem.title} url={window.location.href} problemId={problem.id} problemType="fix">
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Share2 className="h-4 w-4" />
                 </Button>
