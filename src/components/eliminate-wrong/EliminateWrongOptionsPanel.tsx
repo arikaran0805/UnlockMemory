@@ -4,7 +4,7 @@
  */
 import { useState, useMemo, useCallback } from "react";
 import {
-  Expand, Shrink, PanelTopClose, PanelTopOpen, PanelLeftOpen,
+  Expand, Shrink, PanelTopClose, PanelTopOpen, PanelLeftOpen, Maximize,
   Check, X, Send, RotateCcw, Loader2, Info, ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -189,6 +189,10 @@ export function EliminateWrongOptionsPanel({
               {isExpanded ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
             </Button>
           )}
+          <Button variant="ghost" size="icon" className="h-7 w-7"
+            onClick={() => document.documentElement.requestFullscreen?.()} title="Browser fullscreen">
+            <Maximize className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
