@@ -124,6 +124,8 @@ export default function FixErrorWorkspace() {
       navigate(`/practice/${skillId}/predict/${p.slug}`);
     } else if (p.problemType === "fix-error") {
       navigate(`/practice/${skillId}/fix-error/${p.slug}`);
+    } else if (p.problemType === "eliminate-wrong") {
+      navigate(`/practice/${skillId}/eliminate/${p.slug}`);
     } else {
       navigate(`/practice/${skillId}/problem/${p.slug}`);
     }
