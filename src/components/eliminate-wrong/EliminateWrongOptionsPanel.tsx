@@ -4,7 +4,7 @@
  */
 import { useState, useMemo, useCallback } from "react";
 import {
-  Expand, Shrink, PanelTopClose, PanelTopOpen, PanelLeftOpen, Maximize,
+  Expand, Shrink, PanelRightClose, PanelTopOpen, PanelLeftOpen, Maximize,
   Check, X, Send, RotateCcw, Loader2, Info, ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -180,7 +180,7 @@ export function EliminateWrongOptionsPanel({
         >
           {onToggleCollapse && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse} title="Hide options">
-              <PanelTopClose className="h-4 w-4" />
+              <PanelRightClose className="h-4 w-4" />
             </Button>
           )}
           {onToggleExpand && (
