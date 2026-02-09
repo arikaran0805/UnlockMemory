@@ -2916,6 +2916,36 @@ export type Database = {
         }
         Relationships: []
       }
+      problem_shares: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          problem_id: string
+          problem_type: string
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          problem_id: string
+          problem_type?: string
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          problem_id?: string
+          problem_type?: string
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active_role: Database["public"]["Enums"]["app_role"] | null

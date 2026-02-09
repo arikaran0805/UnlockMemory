@@ -287,7 +287,7 @@ export function ReadOnlyCodePanel({
                 </TooltipTrigger>
                 <TooltipContent side="top"><p>Comments</p></TooltipContent>
               </Tooltip>
-              <ShareTooltip title={problemTitle} url={window.location.href}>
+              <ShareTooltip title={problemTitle} url={window.location.href} problemId={problemId} problemType={problemType}>
                 <Button variant="ghost" size="icon" className="h-7 w-7">
                   <Share2 className="h-3.5 w-3.5" />
                 </Button>
