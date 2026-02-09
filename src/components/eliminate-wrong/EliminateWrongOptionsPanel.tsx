@@ -121,8 +121,8 @@ export function EliminateWrongOptionsPanel({
     // Vertical sidebar-style collapse (left direction)
     if (collapseDirection === "left") {
       return (
-        <div className="h-full w-full flex flex-col items-center py-4 gap-3">
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onToggleCollapse} title="Show options">
+        <div className="h-full w-full flex flex-col items-center py-4 gap-3 group">
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={onToggleCollapse} title="Show options">
             <PanelLeftOpen className="h-4 w-4" />
           </Button>
           <div className="flex-1 flex items-center justify-center">
@@ -134,7 +134,7 @@ export function EliminateWrongOptionsPanel({
               {alreadySolved ? " · Solved" : ""}
             </span>
           </div>
-          <ListChecks className="h-4 w-4 text-muted-foreground shrink-0" />
+          <ListChecks className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       );
     }
