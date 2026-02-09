@@ -2,11 +2,12 @@
  * EliminateWrongCodePanel
  * Displays read-only context code with syntax highlighting.
  */
-import { Maximize2, Minimize2, ChevronUp, ChevronDown, Code2 } from "lucide-react";
+import { Expand, Shrink, PanelTopClose, PanelTopOpen, Code2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface Props {
   code: string;
@@ -38,6 +39,7 @@ export function EliminateWrongCodePanel({
   onToggleCollapse,
 }: Props) {
   const { resolvedTheme } = useTheme();
+  const [isHovered, setIsHovered] = useState(false);
 
   if (isCollapsed) {
     return (
@@ -46,8 +48,8 @@ export function EliminateWrongCodePanel({
           <Code2 className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">Context Code</span>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse}>
-          <ChevronDown className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse} title="Show code">
+          <PanelTopOpen className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -56,10 +58,10 @@ export function EliminateWrongCodePanel({
   if (!code.trim()) {
     return (
       <div className="h-full flex flex-col">
-        <div className="h-11 flex items-center justify-between px-4 border-b border-border/50 shrink-0">
+        <div className="h-11 flex items-center justify-between px-4 border-b border-border/50 bg-muted/40 shrink-0">
           <div className="flex items-center gap-2">
             <Code2 className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold">Context Code</span>
+            <span className="text-sm font-medium">Context Code</span>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -70,23 +72,33 @@ export function EliminateWrongCodePanel({
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className="h-full flex flex-col"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Header */}
       <div className="h-11 flex items-center justify-between px-4 border-b border-border/50 shrink-0 bg-muted/40">
         <div className="flex items-center gap-2">
           <Code2 className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Context Code</span>
+          <span className="text-sm font-medium">Context Code</span>
           <span className="text-xs text-muted-foreground capitalize">({language})</span>
         </div>
-        <div className="flex items-center gap-1 opacity-0 hover:opacity-100 transition-opacity">
+        <div
+          className={cn(
+            "flex items-center gap-0.5 transition-opacity",
+            isHovered || isExpanded ? "opacity-100" : "opacity-0"
+          )}
+        >
           {onToggleCollapse && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse}>
-              <ChevronUp className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse} title="Hide code">
+              <PanelTopClose className="h-4 w-4" />
             </Button>
           )}
           {onToggleExpand && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleExpand}>
-              {isExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleExpand}
+              title={isExpanded ? "Exit fullscreen" : "Fullscreen"}>
+              {isExpanded ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
             </Button>
           )}
         </div>

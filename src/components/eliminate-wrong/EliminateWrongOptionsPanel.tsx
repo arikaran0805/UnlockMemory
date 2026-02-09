@@ -4,8 +4,8 @@
  */
 import { useState, useMemo, useCallback } from "react";
 import {
-  Maximize2, Minimize2, ChevronUp, ChevronDown,
-  Check, X, Send, RotateCcw, Loader2, Info,
+  Expand, Shrink, PanelTopClose, PanelTopOpen,
+  Check, X, Send, RotateCcw, Loader2, Info, ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -112,24 +112,33 @@ export function EliminateWrongOptionsPanel({
   };
 
   const alreadySolved = pastAttempts.some((a) => a.is_correct);
+  const [isHovered, setIsHovered] = useState(false);
 
   if (isCollapsed) {
     return (
       <div className="h-full flex items-center justify-between px-4">
-        <span className="text-sm font-medium text-muted-foreground">Answer Options</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse}>
-          <ChevronDown className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          <ListChecks className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Answer Options</span>
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse} title="Show options">
+          <PanelTopOpen className="h-4 w-4" />
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className="h-full flex flex-col"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Header */}
-      <div className="h-11 flex items-center justify-between px-4 border-b border-border/50 shrink-0">
+      <div className="h-11 flex items-center justify-between px-4 border-b border-border/50 bg-muted/40 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">
+          <ListChecks className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">
             {problem.selection_mode === "single" ? "Select One" : "Select All Correct"}
           </span>
           {alreadySolved && (
@@ -138,15 +147,21 @@ export function EliminateWrongOptionsPanel({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1 opacity-0 hover:opacity-100 transition-opacity">
+        <div
+          className={cn(
+            "flex items-center gap-0.5 transition-opacity",
+            isHovered || isExpanded ? "opacity-100" : "opacity-0"
+          )}
+        >
           {onToggleCollapse && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse}>
-              <ChevronUp className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse} title="Hide options">
+              <PanelTopClose className="h-4 w-4" />
             </Button>
           )}
           {onToggleExpand && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleExpand}>
-              {isExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleExpand}
+              title={isExpanded ? "Exit fullscreen" : "Fullscreen"}>
+              {isExpanded ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
             </Button>
           )}
         </div>
