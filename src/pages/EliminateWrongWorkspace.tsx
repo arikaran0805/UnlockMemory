@@ -32,7 +32,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-type ExpandedPanel = "description" | "code" | "options" | null;
+type ExpandedPanel = "description" | "options" | null;
 
 export default function EliminateWrongWorkspace() {
   const { skillId, slug } = useParams<{ skillId: string; slug: string }>();
@@ -40,11 +40,13 @@ export default function EliminateWrongWorkspace() {
   const isMobile = useIsMobile();
   const descriptionPanelRef = useRef<ImperativePanelHandle>(null);
   const codePanelRef = useRef<ImperativePanelHandle>(null);
+  const optionsPanelRef = useRef<ImperativePanelHandle>(null);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
   const [isDescriptionCollapsed, setIsDescriptionCollapsed] = useState(true);
   const [isCodeCollapsed, setIsCodeCollapsed] = useState(false);
+  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(false);
   const [descriptionActiveTab, setDescriptionActiveTab] = useState("description");
 
   // Fetch skill info
@@ -71,8 +73,13 @@ export default function EliminateWrongWorkspace() {
 
   // Panel expand handlers
   const handleExpandDescription = () => setExpandedPanel(expandedPanel === "description" ? null : "description");
-  const handleExpandCode = () => setExpandedPanel(expandedPanel === "code" ? null : "code");
   const handleExpandOptions = () => setExpandedPanel(expandedPanel === "options" ? null : "options");
+
+  const handleToggleCollapseOptions = () => {
+    if (isMobile) { setIsOptionsCollapsed((v) => !v); return; }
+    if (isOptionsCollapsed) optionsPanelRef.current?.expand();
+    else optionsPanelRef.current?.collapse();
+  };
 
   const handleToggleCollapseDescription = () => {
     if (isMobile) { setIsDescriptionCollapsed((v) => !v); return; }
@@ -208,19 +215,6 @@ export default function EliminateWrongWorkspace() {
               />
             </div>
           )}
-          {expandedPanel === "code" && (
-            <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-              <EliminateWrongCodePanel
-                code={problem.context_code}
-                language={problem.language}
-                problemId={problem.id}
-                problemTitle={problem.title}
-                isExpanded
-                onToggleExpand={handleExpandCode}
-                onCommentClick={handleCommentClick}
-              />
-            </div>
-          )}
           {expandedPanel === "options" && (
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <EliminateWrongOptionsPanel
@@ -276,7 +270,6 @@ export default function EliminateWrongWorkspace() {
                   problemTitle={problem.title}
                   isCollapsed={isCodeCollapsed}
                   onToggleCollapse={handleToggleCollapseCode}
-                  onToggleExpand={handleExpandCode}
                   onCommentClick={handleCommentClick}
                 />
               </div>
@@ -338,7 +331,6 @@ export default function EliminateWrongWorkspace() {
                         problemTitle={problem.title}
                         isCollapsed={isCodeCollapsed}
                         onToggleCollapse={handleToggleCollapseCode}
-                        onToggleExpand={handleExpandCode}
                         onCommentClick={handleCommentClick}
                       />
                     </div>
@@ -349,9 +341,28 @@ export default function EliminateWrongWorkspace() {
               <ResizableHandle />
 
               {/* Right Panel: Options */}
-              <ResizablePanel defaultSize={55} minSize={35} className="min-h-0">
+              <ResizablePanel
+                ref={optionsPanelRef}
+                defaultSize={55}
+                minSize={25}
+                collapsible
+                collapsedSize={3}
+                className="min-h-0"
+                onCollapse={() => setIsOptionsCollapsed(true)}
+                onExpand={() => setIsOptionsCollapsed(false)}
+              >
                 <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-                  <EliminateWrongOptionsPanel problem={problem} onToggleExpand={handleExpandOptions} onSubmit={handleSubmitAttempt} isSubmitting={submitMutation.isPending} pastAttempts={attempts} />
+                  <EliminateWrongOptionsPanel
+                    problem={problem}
+                    isExpanded={false}
+                    onToggleExpand={handleExpandOptions}
+                    isCollapsed={isOptionsCollapsed}
+                    onToggleCollapse={handleToggleCollapseOptions}
+                    collapseDirection="left"
+                    onSubmit={handleSubmitAttempt}
+                    isSubmitting={submitMutation.isPending}
+                    pastAttempts={attempts}
+                  />
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
