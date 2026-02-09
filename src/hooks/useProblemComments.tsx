@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import type { ProblemType } from "./useProblemReactions";
 
 export interface ProblemComment {
   id: string;
@@ -19,13 +20,12 @@ export interface ProblemComment {
   replies?: ProblemComment[];
 }
 
-export function useProblemComments(problemId: string | undefined) {
+export function useProblemComments(problemId: string | undefined, problemType: ProblemType = "solve") {
   const { user } = useAuth();
   const [comments, setComments] = useState<ProblemComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch comments for the problem
   const fetchComments = useCallback(async () => {
     if (!problemId) {
       setComments([]);
@@ -38,22 +38,15 @@ export function useProblemComments(problemId: string | undefined) {
       const { data, error } = await supabase
         .from("problem_comments")
         .select(`
-          id,
-          problem_id,
-          user_id,
-          parent_id,
-          content,
-          status,
-          created_at,
-          updated_at
+          id, problem_id, user_id, parent_id, content, status, created_at, updated_at
         `)
         .eq("problem_id", problemId)
+        .eq("problem_type", problemType)
         .eq("status", "approved")
         .order("created_at", { ascending: true });
 
       if (error) throw error;
 
-      // Fetch author profiles
       const userIds = [...new Set((data || []).map((c) => c.user_id).filter(Boolean))];
       let profiles: Record<string, { id: string; full_name: string | null; avatar_url: string | null }> = {};
       
@@ -69,7 +62,6 @@ export function useProblemComments(problemId: string | undefined) {
         }, {} as typeof profiles);
       }
 
-      // Build comment tree
       const commentMap = new Map<string, ProblemComment>();
       const rootComments: ProblemComment[] = [];
 
@@ -100,7 +92,7 @@ export function useProblemComments(problemId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [problemId]);
+  }, [problemId, problemType]);
 
   useEffect(() => {
     fetchComments();
@@ -119,14 +111,14 @@ export function useProblemComments(problemId: string | undefined) {
             user_id: user.id,
             parent_id: parentId || null,
             content: content.trim(),
-            status: "approved", // Auto-approve for now
+            status: "approved",
+            problem_type: problemType,
           })
           .select()
           .single();
 
         if (error) throw error;
 
-        // Refetch to get updated tree
         await fetchComments();
         return data;
       } catch (err) {
@@ -136,7 +128,7 @@ export function useProblemComments(problemId: string | undefined) {
         setSubmitting(false);
       }
     },
-    [problemId, user, fetchComments]
+    [problemId, problemType, user, fetchComments]
   );
 
   const deleteComment = useCallback(
