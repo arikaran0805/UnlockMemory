@@ -33,6 +33,7 @@ export function EliminateWrongCodePanel({
       language={language}
       problemId={problemId}
       problemTitle={problemTitle}
+      problemType="eliminate"
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
       isCollapsed={isCollapsed}

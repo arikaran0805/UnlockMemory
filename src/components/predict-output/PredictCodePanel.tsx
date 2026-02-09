@@ -28,6 +28,7 @@ export function PredictCodePanel({
       language={problem.language}
       problemId={problem.id}
       problemTitle={problem.title}
+      problemType="predict"
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
       isCollapsed={isCollapsed}

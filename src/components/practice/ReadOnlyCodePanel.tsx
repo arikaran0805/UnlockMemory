@@ -9,14 +9,6 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -30,7 +22,6 @@ import {
   Shrink,
   PanelTopOpen,
   PanelTopClose,
-  Settings,
   Maximize,
   ThumbsUp,
   ThumbsDown,
@@ -44,6 +35,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ShareTooltip from "@/components/ShareTooltip";
 import ReportSuggestDialog from "@/components/ReportSuggestDialog";
+import { PracticeEditorSettingsPopover } from "@/components/practice/PracticeEditorSettingsPopover";
+import { usePracticeEditorSettings } from "@/hooks/usePracticeEditorSettings";
+import { useProblemReactions, type ProblemType } from "@/hooks/useProblemReactions";
+import { useProblemBookmarks } from "@/hooks/useProblemBookmarks";
 
 const LANGUAGE_MAP: Record<string, string> = {
   python: "python",
@@ -58,41 +53,12 @@ const LANGUAGE_MAP: Record<string, string> = {
   mysql: "sql",
 };
 
-interface EditorSettings {
-  fontSize: number;
-  tabSize: number;
-  wordWrap: boolean;
-  minimap: boolean;
-  lineNumbers: boolean;
-}
-
-const DEFAULT_SETTINGS: EditorSettings = {
-  fontSize: 14,
-  tabSize: 4,
-  wordWrap: true,
-  minimap: false,
-  lineNumbers: true,
-};
-
-const loadSettings = (): EditorSettings => {
-  try {
-    const saved = localStorage.getItem("readonly-code-panel-settings");
-    if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-  } catch {}
-  return DEFAULT_SETTINGS;
-};
-
-const saveSettings = (s: EditorSettings) => {
-  try {
-    localStorage.setItem("readonly-code-panel-settings", JSON.stringify(s));
-  } catch {}
-};
-
 interface ReadOnlyCodePanelProps {
   code: string;
   language: string;
   problemId: string;
   problemTitle: string;
+  problemType?: ProblemType;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   isCollapsed?: boolean;
@@ -105,6 +71,7 @@ export function ReadOnlyCodePanel({
   language,
   problemId,
   problemTitle,
+  problemType = "solve",
   isExpanded = false,
   onToggleExpand,
   isCollapsed = false,
@@ -115,17 +82,17 @@ export function ReadOnlyCodePanel({
   const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
   const [copied, setCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [settings, setSettings] = useState<EditorSettings>(loadSettings);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const editorRef = useRef<any>(null);
 
-  // Engagement state
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
-  const [likes, setLikes] = useState(0);
-  const [dislikes, setDislikes] = useState(0);
-  const [saved, setSaved] = useState(false);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  // Shared editor settings
+  const { settings, updateSetting } = usePracticeEditorSettings();
+
+  // Real DB hooks
+  const { likes, dislikes, userReaction, react } = useProblemReactions(problemId, problemType);
+  const { isBookmarked, toggleBookmark } = useProblemBookmarks(problemType);
+
+  const saved = isBookmarked(problemId);
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(code);
@@ -134,30 +101,13 @@ export function ReadOnlyCodePanel({
     setTimeout(() => setCopied(false), 2000);
   }, [code]);
 
-  const handleLike = () => {
-    if (liked) { setLiked(false); setLikes((l) => l - 1); }
-    else { setLiked(true); setLikes((l) => l + 1); if (disliked) { setDisliked(false); setDislikes((d) => d - 1); } }
-  };
-
-  const handleDislike = () => {
-    if (disliked) { setDisliked(false); setDislikes((d) => d - 1); }
-    else { setDisliked(true); setDislikes((d) => d + 1); if (liked) { setLiked(false); setLikes((l) => l - 1); } }
-  };
-
-  const handleSettingChange = <K extends keyof EditorSettings>(key: K, value: EditorSettings[K]) => {
-    const next = { ...settings, [key]: value };
-    setSettings(next);
-    saveSettings(next);
-    if (editorRef.current) {
-      editorRef.current.updateOptions({
-        fontSize: key === "fontSize" ? (value as number) : settings.fontSize,
-        tabSize: key === "tabSize" ? (value as number) : settings.tabSize,
-        wordWrap: key === "wordWrap" ? (value ? "on" : "off") : settings.wordWrap ? "on" : "off",
-        lineNumbers: key === "lineNumbers" ? (value ? "on" : "off") : settings.lineNumbers ? "on" : "off",
-        minimap: { enabled: key === "minimap" ? (value as boolean) : settings.minimap },
-      });
+  const handleSave = useCallback(async () => {
+    try {
+      await toggleBookmark(problemId);
+    } catch {
+      toast.error("Login required to save");
     }
-  };
+  }, [toggleBookmark, problemId]);
 
   const handleEditorMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
@@ -214,7 +164,7 @@ export function ReadOnlyCodePanel({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Header Row 1 - matches Solve CodeEditor */}
+      {/* Header Row 1 */}
       <div className="flex items-center justify-between px-4 h-11 border-b border-border/50 bg-muted/40 shrink-0">
         <div className="flex items-center gap-2">
           <Braces className="h-4 w-4 text-primary" />
@@ -242,56 +192,14 @@ export function ReadOnlyCodePanel({
         </div>
       </div>
 
-      {/* Header Row 2 - Tools (matches Solve CodeEditor toolbar) */}
+      {/* Header Row 2 - Tools */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-background shrink-0">
         <span className="text-xs text-muted-foreground">Read-only</span>
         <div className="flex items-center gap-0.5">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy} title="Copy code">
             {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" title="Editor Settings">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72" align="end">
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm">Editor Settings</h4>
-                {/* Font Size */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Font Size</Label>
-                    <span className="text-xs text-muted-foreground">{settings.fontSize}px</span>
-                  </div>
-                  <Slider value={[settings.fontSize]} onValueChange={([v]) => handleSettingChange("fontSize", v)} min={10} max={24} step={1} className="w-full" />
-                </div>
-                {/* Tab Size */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Tab Size</Label>
-                    <span className="text-xs text-muted-foreground">{settings.tabSize} spaces</span>
-                  </div>
-                  <Slider value={[settings.tabSize]} onValueChange={([v]) => handleSettingChange("tabSize", v)} min={2} max={8} step={2} className="w-full" />
-                </div>
-                {/* Word Wrap */}
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Word Wrap</Label>
-                  <Switch checked={settings.wordWrap} onCheckedChange={(c) => handleSettingChange("wordWrap", c)} />
-                </div>
-                {/* Line Numbers */}
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Line Numbers</Label>
-                  <Switch checked={settings.lineNumbers} onCheckedChange={(c) => handleSettingChange("lineNumbers", c)} />
-                </div>
-                {/* Minimap */}
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Minimap</Label>
-                  <Switch checked={settings.minimap} onCheckedChange={(c) => handleSettingChange("minimap", c)} />
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <PracticeEditorSettingsPopover settings={settings} onChange={updateSetting} />
           <Button variant="ghost" size="icon" className="h-7 w-7"
             onClick={() => document.documentElement.requestFullscreen?.()} title="Fullscreen">
             <Maximize className="h-4 w-4" />
@@ -299,7 +207,7 @@ export function ReadOnlyCodePanel({
         </div>
       </div>
 
-      {/* Monaco Editor - options match Solve CodeEditor */}
+      {/* Monaco Editor */}
       <div className="flex-1 overflow-hidden" style={{ overscrollBehavior: "contain" }}>
         <Editor
           height="100%"
@@ -354,8 +262,8 @@ export function ReadOnlyCodePanel({
             <div className="flex items-center gap-0.5">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className={cn("h-7 px-2 gap-1.5", liked && "text-primary")} onClick={handleLike}>
-                    <ThumbsUp className={cn("h-3.5 w-3.5", liked && "fill-current")} />
+                  <Button variant="ghost" size="sm" className={cn("h-7 px-2 gap-1.5", userReaction === "like" && "text-primary")} onClick={() => react("like")}>
+                    <ThumbsUp className={cn("h-3.5 w-3.5", userReaction === "like" && "fill-current")} />
                     <span className="text-[11px]">{likes}</span>
                   </Button>
                 </TooltipTrigger>
@@ -363,8 +271,8 @@ export function ReadOnlyCodePanel({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className={cn("h-7 px-2 gap-1.5", disliked && "text-destructive")} onClick={handleDislike}>
-                    <ThumbsDown className={cn("h-3.5 w-3.5", disliked && "fill-current")} />
+                  <Button variant="ghost" size="sm" className={cn("h-7 px-2 gap-1.5", userReaction === "dislike" && "text-destructive")} onClick={() => react("dislike")}>
+                    <ThumbsDown className={cn("h-3.5 w-3.5", userReaction === "dislike" && "fill-current")} />
                     <span className="text-[11px]">{dislikes}</span>
                   </Button>
                 </TooltipTrigger>
@@ -396,7 +304,7 @@ export function ReadOnlyCodePanel({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className={cn("h-7 w-7", saved && "text-primary")} onClick={() => setSaved((s) => !s)}>
+                  <Button variant="ghost" size="icon" className={cn("h-7 w-7", saved && "text-primary")} onClick={handleSave}>
                     <Bookmark className={cn("h-3.5 w-3.5", saved && "fill-current")} />
                   </Button>
                 </TooltipTrigger>

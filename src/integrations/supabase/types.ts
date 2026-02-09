@@ -2781,29 +2781,24 @@ export type Database = {
           created_at: string
           id: string
           problem_id: string
+          problem_type: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           problem_id: string
+          problem_type?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           problem_id?: string
+          problem_type?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "problem_bookmarks_problem_id_fkey"
-            columns: ["problem_id"]
-            isOneToOne: false
-            referencedRelation: "practice_problems"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       problem_comments: {
         Row: {
@@ -2812,6 +2807,7 @@ export type Database = {
           id: string
           parent_id: string | null
           problem_id: string
+          problem_type: string
           status: string
           updated_at: string
           user_id: string | null
@@ -2822,6 +2818,7 @@ export type Database = {
           id?: string
           parent_id?: string | null
           problem_id: string
+          problem_type?: string
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -2832,6 +2829,7 @@ export type Database = {
           id?: string
           parent_id?: string | null
           problem_id?: string
+          problem_type?: string
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -2842,13 +2840,6 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "problem_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "problem_comments_problem_id_fkey"
-            columns: ["problem_id"]
-            isOneToOne: false
-            referencedRelation: "practice_problems"
             referencedColumns: ["id"]
           },
         ]
@@ -2903,6 +2894,7 @@ export type Database = {
           created_at: string
           id: string
           problem_id: string
+          problem_type: string
           reaction_type: string
           user_id: string | null
         }
@@ -2910,6 +2902,7 @@ export type Database = {
           created_at?: string
           id?: string
           problem_id: string
+          problem_type?: string
           reaction_type: string
           user_id?: string | null
         }
@@ -2917,18 +2910,11 @@ export type Database = {
           created_at?: string
           id?: string
           problem_id?: string
+          problem_type?: string
           reaction_type?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "problem_reactions_problem_id_fkey"
-            columns: ["problem_id"]
-            isOneToOne: false
-            referencedRelation: "practice_problems"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
