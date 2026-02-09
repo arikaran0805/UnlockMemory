@@ -1,8 +1,8 @@
 /**
  * EliminateWrongWorkspace
  * 3-panel learner workspace for "Eliminate the Wrong Answer" problems.
- *
  * Layout: LEFT (Description top + Code bottom) | RIGHT (Options panel)
+ * Left panel matches PredictOutputWorkspace style.
  */
 import { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -43,8 +43,9 @@ export default function EliminateWrongWorkspace() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [isDescriptionCollapsed, setIsDescriptionCollapsed] = useState(false);
+  const [isDescriptionCollapsed, setIsDescriptionCollapsed] = useState(true);
   const [isCodeCollapsed, setIsCodeCollapsed] = useState(false);
+  const [descriptionActiveTab, setDescriptionActiveTab] = useState("description");
 
   // Fetch skill info
   const { data: skill } = useQuery({
@@ -83,6 +84,13 @@ export default function EliminateWrongWorkspace() {
     if (isMobile) { setIsCodeCollapsed((v) => !v); return; }
     if (isCodeCollapsed) codePanelRef.current?.expand();
     else codePanelRef.current?.collapse();
+  };
+
+  const handleCommentClick = () => {
+    setDescriptionActiveTab("discuss");
+    if (isDescriptionCollapsed) {
+      handleToggleCollapseDescription();
+    }
   };
 
   const handleSubmitAttempt = (selectedIds: string[], isCorrect: boolean, score: number) => {
@@ -188,12 +196,29 @@ export default function EliminateWrongWorkspace() {
         <div className="flex-1 min-h-0 overflow-hidden bg-muted/30 p-1.5">
           {expandedPanel === "description" && (
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-              <EliminateWrongDescriptionPanel problem={problem} isExpanded onToggleExpand={handleExpandDescription} />
+              <EliminateWrongDescriptionPanel
+                problem={problem}
+                attempts={attempts}
+                isExpanded
+                onToggleExpand={handleExpandDescription}
+                isCollapsed={false}
+                onToggleCollapse={handleToggleCollapseDescription}
+                activeTab={descriptionActiveTab}
+                onTabChange={setDescriptionActiveTab}
+              />
             </div>
           )}
           {expandedPanel === "code" && (
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-              <EliminateWrongCodePanel code={problem.context_code} language={problem.language} isExpanded onToggleExpand={handleExpandCode} />
+              <EliminateWrongCodePanel
+                code={problem.context_code}
+                language={problem.language}
+                problemId={problem.id}
+                problemTitle={problem.title}
+                isExpanded
+                onToggleExpand={handleExpandCode}
+                onCommentClick={handleCommentClick}
+              />
             </div>
           )}
           {expandedPanel === "options" && (
@@ -222,14 +247,41 @@ export default function EliminateWrongWorkspace() {
       <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
         {isMobile ? (
           <div className="h-full flex flex-col overflow-auto p-1.5 gap-1.5">
-            <div className={cn("bg-card rounded-lg border border-border shadow-sm overflow-hidden", isDescriptionCollapsed ? "min-h-[56px]" : "min-h-[20vh]")}>
-              <EliminateWrongDescriptionPanel problem={problem} onToggleExpand={handleExpandDescription} isCollapsed={isDescriptionCollapsed} onToggleCollapse={handleToggleCollapseDescription} />
+            {/* Description */}
+            <div className={cn(
+              "bg-card rounded-lg border border-border shadow-sm overflow-hidden",
+              isDescriptionCollapsed ? "min-h-[56px]" : "min-h-[30vh]"
+            )}>
+              <EliminateWrongDescriptionPanel
+                problem={problem}
+                attempts={attempts}
+                isExpanded={false}
+                onToggleExpand={handleExpandDescription}
+                isCollapsed={isDescriptionCollapsed}
+                onToggleCollapse={handleToggleCollapseDescription}
+                activeTab={descriptionActiveTab}
+                onTabChange={setDescriptionActiveTab}
+              />
             </div>
+            {/* Code */}
             {problem.context_code && (
-              <div className={cn("bg-card rounded-lg border border-border shadow-sm overflow-hidden", isCodeCollapsed ? "min-h-[56px]" : "min-h-[25vh]")}>
-                <EliminateWrongCodePanel code={problem.context_code} language={problem.language} isCollapsed={isCodeCollapsed} onToggleCollapse={handleToggleCollapseCode} onToggleExpand={handleExpandCode} />
+              <div className={cn(
+                "bg-card rounded-lg border border-border shadow-sm overflow-hidden",
+                isCodeCollapsed ? "min-h-[56px]" : "min-h-[30vh]"
+              )}>
+                <EliminateWrongCodePanel
+                  code={problem.context_code}
+                  language={problem.language}
+                  problemId={problem.id}
+                  problemTitle={problem.title}
+                  isCollapsed={isCodeCollapsed}
+                  onToggleCollapse={handleToggleCollapseCode}
+                  onToggleExpand={handleExpandCode}
+                  onCommentClick={handleCommentClick}
+                />
               </div>
             )}
+            {/* Options */}
             <div className="flex-1 min-h-[40vh] bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <EliminateWrongOptionsPanel problem={problem} onToggleExpand={handleExpandOptions} onSubmit={handleSubmitAttempt} isSubmitting={submitMutation.isPending} pastAttempts={attempts} />
             </div>
@@ -237,42 +289,67 @@ export default function EliminateWrongWorkspace() {
         ) : (
           <div className="h-full p-1.5">
             <ResizablePanelGroup direction="horizontal" className="h-full">
-              {/* Left Panel: Description + Code */}
-              <ResizablePanel defaultSize={40} minSize={25} className="min-h-0">
+              {/* Left Panel: Description (top) + Code (bottom) */}
+              <ResizablePanel defaultSize={45} minSize={25} className="min-h-0">
                 <ResizablePanelGroup direction="vertical" className="h-full">
+                  {/* Description */}
                   <ResizablePanel
-                    ref={descriptionPanelRef} defaultSize={40} minSize={15}
-                    collapsible collapsedSize={8} className="min-h-0"
+                    ref={descriptionPanelRef}
+                    defaultSize={8}
+                    minSize={15}
+                    collapsible
+                    collapsedSize={8}
+                    className="min-h-0"
                     onCollapse={() => setIsDescriptionCollapsed(true)}
                     onExpand={() => setIsDescriptionCollapsed(false)}
                   >
                     <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-                      <EliminateWrongDescriptionPanel problem={problem} onToggleExpand={handleExpandDescription} isCollapsed={isDescriptionCollapsed} onToggleCollapse={handleToggleCollapseDescription} />
+                      <EliminateWrongDescriptionPanel
+                        problem={problem}
+                        attempts={attempts}
+                        isExpanded={false}
+                        onToggleExpand={handleExpandDescription}
+                        isCollapsed={isDescriptionCollapsed}
+                        onToggleCollapse={handleToggleCollapseDescription}
+                        activeTab={descriptionActiveTab}
+                        onTabChange={setDescriptionActiveTab}
+                      />
                     </div>
                   </ResizablePanel>
 
-                  {problem.context_code && (
-                    <>
-                      <ResizableHandle />
-                      <ResizablePanel
-                        ref={codePanelRef} defaultSize={60} minSize={15}
-                        collapsible collapsedSize={8} className="min-h-0"
-                        onCollapse={() => setIsCodeCollapsed(true)}
-                        onExpand={() => setIsCodeCollapsed(false)}
-                      >
-                        <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-                          <EliminateWrongCodePanel code={problem.context_code} language={problem.language} isCollapsed={isCodeCollapsed} onToggleCollapse={handleToggleCollapseCode} onToggleExpand={handleExpandCode} />
-                        </div>
-                      </ResizablePanel>
-                    </>
-                  )}
+                  <ResizableHandle />
+
+                  {/* Code */}
+                  <ResizablePanel
+                    ref={codePanelRef}
+                    defaultSize={92}
+                    minSize={15}
+                    collapsible
+                    collapsedSize={8}
+                    className="min-h-0"
+                    onCollapse={() => setIsCodeCollapsed(true)}
+                    onExpand={() => setIsCodeCollapsed(false)}
+                  >
+                    <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+                      <EliminateWrongCodePanel
+                        code={problem.context_code}
+                        language={problem.language}
+                        problemId={problem.id}
+                        problemTitle={problem.title}
+                        isCollapsed={isCodeCollapsed}
+                        onToggleCollapse={handleToggleCollapseCode}
+                        onToggleExpand={handleExpandCode}
+                        onCommentClick={handleCommentClick}
+                      />
+                    </div>
+                  </ResizablePanel>
                 </ResizablePanelGroup>
               </ResizablePanel>
 
               <ResizableHandle />
 
               {/* Right Panel: Options */}
-              <ResizablePanel defaultSize={60} minSize={35} className="min-h-0">
+              <ResizablePanel defaultSize={55} minSize={35} className="min-h-0">
                 <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
                   <EliminateWrongOptionsPanel problem={problem} onToggleExpand={handleExpandOptions} onSubmit={handleSubmitAttempt} isSubmitting={submitMutation.isPending} pastAttempts={attempts} />
                 </div>
