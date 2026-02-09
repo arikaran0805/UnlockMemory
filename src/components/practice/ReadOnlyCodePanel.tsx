@@ -64,6 +64,8 @@ interface ReadOnlyCodePanelProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onCommentClick?: () => void;
+  /** Hide the browser-fullscreen Maximize button in header row 2 */
+  hideMaximize?: boolean;
 }
 
 export function ReadOnlyCodePanel({
@@ -77,6 +79,7 @@ export function ReadOnlyCodePanel({
   isCollapsed = false,
   onToggleCollapse,
   onCommentClick,
+  hideMaximize = false,
 }: ReadOnlyCodePanelProps) {
   const { theme } = useTheme();
   const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
@@ -200,10 +203,12 @@ export function ReadOnlyCodePanel({
             {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </Button>
           <PracticeEditorSettingsPopover settings={settings} onChange={updateSetting} />
-          <Button variant="ghost" size="icon" className="h-7 w-7"
-            onClick={() => document.documentElement.requestFullscreen?.()} title="Fullscreen">
-            <Maximize className="h-4 w-4" />
-          </Button>
+          {!hideMaximize && (
+            <Button variant="ghost" size="icon" className="h-7 w-7"
+              onClick={() => document.documentElement.requestFullscreen?.()} title="Fullscreen">
+              <Maximize className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 

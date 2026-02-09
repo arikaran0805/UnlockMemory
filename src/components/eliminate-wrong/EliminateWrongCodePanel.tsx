@@ -39,6 +39,7 @@ export function EliminateWrongCodePanel({
       isCollapsed={isCollapsed}
       onToggleCollapse={onToggleCollapse}
       onCommentClick={onCommentClick}
+      hideMaximize
     />
   );
 }
