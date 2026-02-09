@@ -316,7 +316,7 @@ export function ReadOnlyCodePanel({
             lineNumbersMinChars: 3,
             lineDecorationsWidth: 16,
             glyphMargin: true,
-            folding: false,
+            folding: true,
             minimap: { enabled: settings.minimap },
             wordWrap: settings.wordWrap ? "on" : "off",
             scrollBeyondLastLine: false,

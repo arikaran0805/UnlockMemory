@@ -382,7 +382,7 @@ export function FixErrorCodeEditor({
                   lineNumbersMinChars: 3,
                   lineDecorationsWidth: 16,
                   glyphMargin: true,
-                  folding: false,
+                  folding: true,
                   scrollBeyondLastLine: false,
                   automaticLayout: true,
                   renderIndentGuides: true,

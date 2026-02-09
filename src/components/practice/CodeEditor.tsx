@@ -510,7 +510,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
             lineNumbersMinChars: 3,
             lineDecorationsWidth: 16,
             glyphMargin: true,
-            folding: false,
+            folding: true,
             minimap: { enabled: settings.minimap },
             wordWrap: settings.wordWrap ? "on" : "off",
             scrollBeyondLastLine: false,
