@@ -4,7 +4,7 @@
  */
 import { useState, useMemo, useCallback } from "react";
 import {
-  Expand, Shrink, PanelTopClose, PanelTopOpen,
+  Expand, Shrink, PanelTopClose, PanelTopOpen, PanelLeftOpen,
   Check, X, Send, RotateCcw, Loader2, Info, ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ interface Props {
   onSubmit: (selectedIds: string[], isCorrect: boolean, score: number) => void;
   isSubmitting?: boolean;
   pastAttempts?: { is_correct: boolean }[];
+  /** "left" = vertical sidebar style collapse (default for horizontal layout) */
+  collapseDirection?: "top" | "left";
 }
 
 type Phase = "selecting" | "submitted";
@@ -37,6 +39,7 @@ export function EliminateWrongOptionsPanel({
   onSubmit,
   isSubmitting,
   pastAttempts = [],
+  collapseDirection = "top",
 }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [phase, setPhase] = useState<Phase>("selecting");
@@ -115,6 +118,28 @@ export function EliminateWrongOptionsPanel({
   const [isHovered, setIsHovered] = useState(false);
 
   if (isCollapsed) {
+    // Vertical sidebar-style collapse (left direction)
+    if (collapseDirection === "left") {
+      return (
+        <div className="h-full w-full flex flex-col items-center py-4 gap-3">
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onToggleCollapse} title="Show options">
+            <PanelLeftOpen className="h-4 w-4" />
+          </Button>
+          <div className="flex-1 flex items-center justify-center">
+            <span
+              className="text-sm font-medium text-muted-foreground whitespace-nowrap"
+              style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            >
+              {problem.selection_mode === "single" ? "Select One" : "Select All Correct"}
+              {alreadySolved ? " · Solved" : ""}
+            </span>
+          </div>
+          <ListChecks className="h-4 w-4 text-muted-foreground shrink-0" />
+        </div>
+      );
+    }
+
+    // Top-style collapse (horizontal header only)
     return (
       <div className="h-full flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
