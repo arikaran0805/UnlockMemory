@@ -379,8 +379,8 @@ export function FixErrorCodeEditor({
                   fontFamily:
                     monacoOptions.fontFamily ||
                     "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                  lineNumbersMinChars: 3,
-                  lineDecorationsWidth: 16,
+                  lineNumbersMinChars: 2,
+                  lineDecorationsWidth: 8,
                   glyphMargin: true,
                   folding: true,
                   scrollBeyondLastLine: false,
