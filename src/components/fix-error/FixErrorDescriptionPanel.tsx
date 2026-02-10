@@ -167,7 +167,7 @@ export function FixErrorDescriptionPanel({
               className="font-medium text-xs"
               style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
             >
-              Discuss
+                Comments
             </span>
           </button>
 
@@ -235,7 +235,7 @@ export function FixErrorDescriptionPanel({
                 className="h-11 px-0 pb-3 pt-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground flex items-center gap-1.5"
               >
                 <MessageSquare className="h-4 w-4" />
-                Discuss
+                Comments
                 {commentCount > 0 && (
                   <span className="text-xs text-muted-foreground">({commentCount})</span>
                 )}
