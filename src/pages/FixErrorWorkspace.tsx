@@ -340,7 +340,7 @@ export default function FixErrorWorkspace() {
               {/* LEFT: Problem Description (collapsible) */}
               <ResizablePanel
                 ref={descriptionPanelRef}
-                defaultSize={35}
+                defaultSize={40}
                 minSize={20}
                 collapsible
                 collapsedSize={3}
