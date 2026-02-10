@@ -56,8 +56,31 @@ export function useSubmitPredictOutputAttempt() {
       if (error) throw error;
       return data as PredictOutputAttempt;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["predict-output-attempts", data.problem_id] });
+
+      // Update learner_problem_progress for checkmark tracking
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          const progressData: Record<string, unknown> = {
+            user_id: userData.user.id,
+            problem_id: variables.problem_id,
+            status: variables.is_correct ? "solved" : "attempted",
+            attempts: 1,
+            updated_at: new Date().toISOString(),
+          };
+          if (variables.is_correct) {
+            progressData.solved_at = new Date().toISOString();
+          }
+          await supabase
+            .from("learner_problem_progress")
+            .upsert(progressData as any, { onConflict: "user_id,problem_id" });
+          queryClient.invalidateQueries({ queryKey: ["learner-progress"] });
+        }
+      } catch {
+        // Non-critical: don't block the submission flow
+      }
     },
   });
 }

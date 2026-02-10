@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import type { FixErrorProblem, TestCase } from "./useFixErrorProblems";
 
 // =============================================================================
@@ -59,6 +60,7 @@ interface UseFixErrorJudgeReturn {
 }
 
 export function useFixErrorJudge(problem: FixErrorProblem | null): UseFixErrorJudgeReturn {
+  const queryClient = useQueryClient();
   const [verdict, setVerdict] = useState<FixErrorVerdict>("idle");
   const [result, setResult] = useState<FixErrorJudgeResult | null>(null);
 
@@ -115,8 +117,35 @@ export function useFixErrorJudge(problem: FixErrorProblem | null): UseFixErrorJu
           return;
         }
 
-        setResult(data as FixErrorJudgeResult);
+        const judgeResult = data as FixErrorJudgeResult;
+        setResult(judgeResult);
         setVerdict("completed");
+
+        // Update learner_problem_progress for checkmark tracking (submit mode only)
+        if (mode === "submit" && problem) {
+          try {
+            const { data: userData } = await supabase.auth.getUser();
+            if (userData.user) {
+              const isSolved = judgeResult.status === "PASS";
+              const progressData: Record<string, unknown> = {
+                user_id: userData.user.id,
+                problem_id: problem.id,
+                status: isSolved ? "solved" : "attempted",
+                attempts: 1,
+                updated_at: new Date().toISOString(),
+              };
+              if (isSolved) {
+                progressData.solved_at = new Date().toISOString();
+              }
+              await supabase
+                .from("learner_problem_progress")
+                .upsert(progressData as any, { onConflict: "user_id,problem_id" });
+              queryClient.invalidateQueries({ queryKey: ["learner-progress"] });
+            }
+          } catch {
+            // Non-critical
+          }
+        }
       } catch (err) {
         setResult({
           status: "FAIL",
