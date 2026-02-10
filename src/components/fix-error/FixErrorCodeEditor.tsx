@@ -366,7 +366,7 @@ export function FixErrorCodeEditor({
             </div>
 
             {/* Monaco Editor */}
-            <div className="flex-1 overflow-hidden" style={{ overscrollBehavior: 'contain' }}>
+            <div className="flex-1 overflow-hidden pl-2" style={{ overscrollBehavior: 'contain' }}>
               <Editor
                 height="100%"
                 language={monacoLanguage}
