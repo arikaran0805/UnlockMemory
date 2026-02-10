@@ -236,7 +236,7 @@ export function ReadOnlyCodePanel({
             automaticLayout: true,
             tabSize: settings.tabSize,
             renderIndentGuides: true,
-            padding: { top: 16, bottom: 16 },
+            padding: { top: 16, bottom: 16, left: 8 },
             scrollbar: {
               vertical: "auto",
               horizontal: "auto",
