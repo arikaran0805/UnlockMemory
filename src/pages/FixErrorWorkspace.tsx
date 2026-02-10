@@ -340,8 +340,8 @@ export default function FixErrorWorkspace() {
               {/* LEFT: Problem Description (collapsible) */}
               <ResizablePanel
                 ref={descriptionPanelRef}
-                defaultSize={40}
-                minSize={20}
+                defaultSize={45}
+                minSize={25}
                 collapsible
                 collapsedSize={3}
                 className="min-h-0"
@@ -361,7 +361,7 @@ export default function FixErrorWorkspace() {
               <ResizableHandle />
 
               {/* RIGHT: Editor (top) + Result (bottom) */}
-              <ResizablePanel defaultSize={65} minSize={30} className="min-h-0">
+              <ResizablePanel defaultSize={55} minSize={30} className="min-h-0">
                 <ResizablePanelGroup direction="vertical" className="h-full">
                   {/* Code Editor */}
                   <ResizablePanel
