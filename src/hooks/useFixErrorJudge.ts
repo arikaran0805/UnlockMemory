@@ -16,6 +16,7 @@ export type FixErrorFailureType =
   | "LOCKED_REGION_MODIFIED";
 
 export type FixErrorStatus = "PASS" | "FAIL";
+export type FixErrorFailedStage = "sample" | "hidden";
 
 // DiffLine kept for backward compat but no longer rendered in UI
 export interface DiffLine {
@@ -39,6 +40,8 @@ export interface FixErrorTestResult {
 export interface FixErrorJudgeResult {
   status: FixErrorStatus;
   failureType?: FixErrorFailureType;
+  failedStage?: FixErrorFailedStage;
+  hintCategory?: string;
   summaryMessage: string;
   stdout: string;
   stderr: string;
@@ -76,6 +79,7 @@ export function useFixErrorJudge(problem: FixErrorProblem | null): UseFixErrorJu
           code,
           language: problem.language,
           validation_type: problem.validation_type,
+          comparison_mode: (problem as any).comparison_mode || "trimmed",
           mode,
           time_limit_ms: 5000,
         };

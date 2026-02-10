@@ -17,11 +17,13 @@ import {
   Clock,
   ShieldAlert,
   XCircle,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   FixErrorJudgeResult,
   FixErrorVerdict,
+  FixErrorTestResult,
 } from "@/hooks/useFixErrorJudge";
 
 interface FixErrorResultPanelProps {
@@ -121,6 +123,71 @@ function TestSummaryBar({
   );
 }
 
+// ── Visible Test Diff ───────────────────────────────────────────────────────
+
+function VisibleTestDiff({ testResult }: { testResult: FixErrorTestResult }) {
+  if (testResult.passed || !testResult.is_visible) return null;
+
+  return (
+    <div className="rounded-lg border border-border/50 overflow-hidden">
+      <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+        <span className="text-xs font-medium text-muted-foreground">
+          Test Case {testResult.id + 1}
+        </span>
+      </div>
+      {testResult.error ? (
+        <div className="p-3">
+          <p className="text-sm font-mono text-red-500">{testResult.error}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 divide-x divide-border/50">
+          <div className="p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Expected</p>
+            <pre className="text-sm font-mono text-green-600 dark:text-green-500 whitespace-pre-wrap break-words">
+              {testResult.expected}
+            </pre>
+          </div>
+          <div className="p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Actual</p>
+            <pre className="text-sm font-mono text-red-500 whitespace-pre-wrap break-words">
+              {testResult.actual || "(no output)"}
+            </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Hidden Stage Hint ───────────────────────────────────────────────────────
+
+function HiddenStageHint({ hintCategory }: { hintCategory?: string }) {
+  const hintMessages: Record<string, string> = {
+    "empty input": "Consider what happens when the input is empty.",
+    "boundary values": "Think about boundary conditions and extreme values.",
+    "duplicates": "Does your solution handle duplicate values correctly?",
+    "overflow": "Watch out for integer overflow or very large numbers.",
+    "negative": "Have you considered negative numbers?",
+    "single element": "What happens with a single element?",
+    "sorted": "Does your solution work for already sorted input?",
+    "reverse sorted": "What about reverse-sorted input?",
+  };
+
+  const message = hintCategory
+    ? hintMessages[hintCategory] || `Hint: Think about ${hintCategory} cases.`
+    : "Review your logic for edge cases and boundary conditions.";
+
+  return (
+    <div className="flex items-start gap-2.5 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+      <Lightbulb className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+      <div>
+        <p className="text-sm font-medium text-foreground mb-1">Almost there!</p>
+        <p className="text-sm text-muted-foreground">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Panel ──────────────────────────────────────────────────────────────
 
 export function FixErrorResultPanel({
@@ -142,7 +209,7 @@ export function FixErrorResultPanel({
   // Verdict display config
   const verdictConfig: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
     PASS: {
-      label: "All Tests Passed",
+      label: "Accepted ✅",
       color: "text-green-600 dark:text-green-500",
       bg: "bg-green-500/10",
       icon: <CheckCircle2 className="h-6 w-6" />,
@@ -166,10 +233,10 @@ export function FixErrorResultPanel({
       icon: <Timer className="h-6 w-6" />,
     },
     WRONG_ANSWER: {
-      label: "Tests Failed",
-      color: "text-red-500",
-      bg: "bg-red-500/10",
-      icon: <XCircle className="h-6 w-6" />,
+      label: result?.failedStage === "hidden" ? "Wrong Answer (Edge Cases)" : "Tests Failed",
+      color: result?.failedStage === "hidden" ? "text-amber-500" : "text-red-500",
+      bg: result?.failedStage === "hidden" ? "bg-amber-500/10" : "bg-red-500/10",
+      icon: result?.failedStage === "hidden" ? <AlertTriangle className="h-6 w-6" /> : <XCircle className="h-6 w-6" />,
     },
     VALIDATOR_ERROR: {
       label: "Validation Error",
@@ -197,6 +264,11 @@ export function FixErrorResultPanel({
       ? "bg-green-500"
       : "bg-red-500"
     : null;
+
+  // Get first failed visible test for diff display
+  const firstFailedVisibleTest = result?.testResults?.find(
+    (t) => !t.passed && t.is_visible
+  );
 
   return (
     <div
@@ -291,7 +363,7 @@ export function FixErrorResultPanel({
                   </div>
                 )}
 
-                {/* Failure feedback - calm, generic, no solution leakage */}
+                {/* Failure feedback */}
                 {hasFailed && (
                   <div className="space-y-3">
                     {/* Error output (stderr) - only for compilation/runtime errors */}
@@ -302,8 +374,27 @@ export function FixErrorResultPanel({
                       <ErrorBlock content={result.stderr} />
                     )}
 
-                    {/* Generic failure guidance */}
-                    {result.failureType === "WRONG_ANSWER" && (
+                    {/* Stage-aware feedback for WRONG_ANSWER */}
+                    {result.failureType === "WRONG_ANSWER" && result.failedStage === "sample" && (
+                      <>
+                        {/* Show Expected vs Actual diff for the first failed visible test */}
+                        {firstFailedVisibleTest && (
+                          <VisibleTestDiff testResult={firstFailedVisibleTest} />
+                        )}
+                        <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                          <p className="text-sm text-muted-foreground">
+                            {failureMessage || "Your fix didn't produce the expected output. Review your changes and try again."}
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    {result.failureType === "WRONG_ANSWER" && result.failedStage === "hidden" && (
+                      <HiddenStageHint hintCategory={result.hintCategory} />
+                    )}
+
+                    {/* Fallback for WRONG_ANSWER without stage (output_comparison mode) */}
+                    {result.failureType === "WRONG_ANSWER" && !result.failedStage && (
                       <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
                         <p className="text-sm text-muted-foreground">
                           {result.passed_count > 0
