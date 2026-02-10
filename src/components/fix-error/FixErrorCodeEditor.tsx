@@ -380,8 +380,8 @@ export function FixErrorCodeEditor({
                     monacoOptions.fontFamily ||
                     "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
                   lineNumbersMinChars: 2,
-                  lineDecorationsWidth: 8,
-                  glyphMargin: true,
+                  lineDecorationsWidth: 4,
+                  glyphMargin: false,
                   folding: true,
                   scrollBeyondLastLine: false,
                   automaticLayout: true,
