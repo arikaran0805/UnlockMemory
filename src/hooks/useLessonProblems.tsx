@@ -106,19 +106,23 @@ export function useLessonProblemsCompletion(courseId: string | undefined) {
         .select(`
           lesson_id,
           problem_mappings(problem_id),
-          predict_output_mappings(predict_output_problem_id)
+          predict_output_mappings(predict_output_problem_id),
+          fix_error_mappings(fix_error_problem_id),
+          eliminate_wrong_mappings(eliminate_wrong_problem_id)
         `)
         .eq("skill_id", skill.id);
 
       if (!subTopics) return new Map<string, boolean>();
 
-      // Get all problem IDs grouped by lesson (both types)
+      // Get all problem IDs grouped by lesson (all types)
       const problemsByLesson = new Map<string, string[]>();
       subTopics.forEach((st: any) => {
         if (!st.lesson_id) return;
         const regularIds = (st.problem_mappings || []).map((pm: any) => pm.problem_id);
         const predictIds = (st.predict_output_mappings || []).map((pm: any) => pm.predict_output_problem_id);
-        const allIds = [...regularIds, ...predictIds];
+        const fixErrorIds = (st.fix_error_mappings || []).map((pm: any) => pm.fix_error_problem_id);
+        const eliminateIds = (st.eliminate_wrong_mappings || []).map((pm: any) => pm.eliminate_wrong_problem_id);
+        const allIds = [...regularIds, ...predictIds, ...fixErrorIds, ...eliminateIds];
         const existing = problemsByLesson.get(st.lesson_id) || [];
         problemsByLesson.set(st.lesson_id, [...existing, ...allIds]);
       });

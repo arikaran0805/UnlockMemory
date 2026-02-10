@@ -1668,15 +1668,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "learner_problem_progress_problem_id_fkey"
-            columns: ["problem_id"]
-            isOneToOne: false
-            referencedRelation: "practice_problems"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       lesson_notes: {
         Row: {
