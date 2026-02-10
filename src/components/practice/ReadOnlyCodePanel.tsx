@@ -227,7 +227,7 @@ export function ReadOnlyCodePanel({
             fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
             lineNumbers: settings.lineNumbers ? "on" : "off",
             lineNumbersMinChars: 2,
-            lineDecorationsWidth: 8,
+            lineDecorationsWidth: 12,
             glyphMargin: false,
             folding: true,
             minimap: { enabled: settings.minimap },
