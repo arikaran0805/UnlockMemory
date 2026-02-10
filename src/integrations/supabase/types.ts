@@ -1506,6 +1506,7 @@ export type Database = {
       fix_error_problems: {
         Row: {
           buggy_code: string
+          comparison_mode: string
           correct_code: string
           created_at: string
           created_by: string | null
@@ -1534,6 +1535,7 @@ export type Database = {
         }
         Insert: {
           buggy_code?: string
+          comparison_mode?: string
           correct_code?: string
           created_at?: string
           created_by?: string | null
@@ -1562,6 +1564,7 @@ export type Database = {
         }
         Update: {
           buggy_code?: string
+          comparison_mode?: string
           correct_code?: string
           created_at?: string
           created_by?: string | null

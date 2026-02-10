@@ -14,6 +14,7 @@ export interface FixErrorProblem {
   buggy_code: string;
   correct_code: string;
   validation_type: "test_cases" | "output_comparison" | "custom_function";
+  comparison_mode: "exact" | "trimmed" | "numeric_tolerance" | "json_deep";
   test_cases: TestCase[];
   expected_output: string;
   custom_validator: string;

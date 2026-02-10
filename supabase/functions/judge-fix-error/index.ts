@@ -21,11 +21,14 @@ type FailureType =
 type Status = 'PASS' | 'FAIL';
 type ValidationMode = 'output_comparison' | 'test_cases' | 'custom_function';
 type ExecutionMode = 'run' | 'submit';
+type ComparisonMode = 'exact' | 'trimmed' | 'numeric_tolerance' | 'json_deep';
+type FailedStage = 'sample' | 'hidden';
 
 interface TestCaseInput {
   input: string;
   expected_output: string;
   is_hidden?: boolean;
+  hint_category?: string; // e.g. "empty input", "boundary values", "duplicates", "overflow"
 }
 
 interface JudgeFixErrorRequest {
@@ -33,6 +36,7 @@ interface JudgeFixErrorRequest {
   language: string;
   validation_type: ValidationMode;
   mode?: ExecutionMode;
+  comparison_mode?: ComparisonMode;
   // For output_comparison
   expected_output?: string;
   // For test_cases
@@ -69,6 +73,8 @@ interface TestCaseResult {
 interface JudgeFixErrorResponse {
   status: Status;
   failureType?: FailureType;
+  failedStage?: FailedStage;
+  hintCategory?: string;
   summaryMessage: string;
   stdout: string;
   stderr: string;
@@ -80,15 +86,9 @@ interface JudgeFixErrorResponse {
 }
 
 // =============================================================================
-// OUTPUT NORMALIZATION
+// OUTPUT NORMALIZATION & COMPARISON
 // =============================================================================
 
-/**
- * Normalize output per spec:
- * - Convert CRLF → LF
- * - Remove final trailing newline only
- * - Preserve internal whitespace
- */
 function normalizeOutput(raw: string): string {
   let normalized = raw.replace(/\r\n/g, '\n');
   if (normalized.endsWith('\n')) {
@@ -97,8 +97,59 @@ function normalizeOutput(raw: string): string {
   return normalized;
 }
 
+function trimLines(s: string): string {
+  return s
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n')
+    .trim();
+}
+
+function compareOutputs(actual: string, expected: string, mode: ComparisonMode): boolean {
+  switch (mode) {
+    case 'exact':
+      return actual === expected;
+
+    case 'trimmed':
+      return trimLines(actual) === trimLines(expected);
+
+    case 'numeric_tolerance': {
+      // Try numeric comparison first, fall back to trimmed
+      const numA = parseFloat(actual.trim());
+      const numB = parseFloat(expected.trim());
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return Math.abs(numA - numB) < 1e-6;
+      }
+      // Multi-line: compare line by line with numeric tolerance
+      const aLines = actual.trim().split('\n');
+      const bLines = expected.trim().split('\n');
+      if (aLines.length !== bLines.length) return false;
+      return aLines.every((aLine, i) => {
+        const a = parseFloat(aLine.trim());
+        const b = parseFloat(bLines[i].trim());
+        if (!isNaN(a) && !isNaN(b)) return Math.abs(a - b) < 1e-6;
+        return aLine.trimEnd() === bLines[i].trimEnd();
+      });
+    }
+
+    case 'json_deep': {
+      try {
+        const parsedA = JSON.parse(actual.trim());
+        const parsedB = JSON.parse(expected.trim());
+        return JSON.stringify(parsedA) === JSON.stringify(parsedB);
+      } catch {
+        // Fall back to trimmed comparison
+        return trimLines(actual) === trimLines(expected);
+      }
+    }
+
+    default:
+      return trimLines(actual) === trimLines(expected);
+  }
+}
+
 // =============================================================================
-// DIFF GENERATION (for output_comparison)
+// DIFF GENERATION
 // =============================================================================
 
 function generateDiff(expected: string, actual: string): DiffLine[] {
@@ -207,7 +258,6 @@ async function executePiston(
 
   const result = await pistonResponse.json();
 
-  // Check for compilation errors
   if (result.compile?.stderr) {
     return {
       stdout: '',
@@ -229,6 +279,83 @@ async function executePiston(
 }
 
 // =============================================================================
+// HELPERS: Execute a single test case
+// =============================================================================
+
+interface SingleTestResult {
+  passed: boolean;
+  actual: string;
+  error?: string;
+  runtime_ms: number;
+  failureType?: FailureType;
+  isCritical: boolean; // compile/timeout errors that should stop all execution
+}
+
+async function executeSingleTest(
+  code: string,
+  tc: TestCaseInput,
+  language: string,
+  comparisonMode: ComparisonMode,
+  timeLimitMs: number,
+): Promise<SingleTestResult> {
+  const fullCode = `${code}\n\n# Test\n${tc.input}`;
+  const startTime = Date.now();
+  const result = await executePiston(fullCode, language, timeLimitMs);
+  const runtime = Date.now() - startTime;
+
+  // Compile error → critical stop
+  if (result.compileError) {
+    const isCompile = isSyntaxOrCompilationError(result.compileError, language);
+    return {
+      passed: false,
+      actual: '',
+      error: result.compileError.substring(0, 1000),
+      runtime_ms: 0,
+      failureType: isCompile ? 'COMPILE_ERROR' : 'RUNTIME_ERROR',
+      isCritical: true,
+    };
+  }
+
+  // Timeout → critical stop
+  if (result.timedOut) {
+    return {
+      passed: false,
+      actual: '',
+      error: 'Time Limit Exceeded',
+      runtime_ms: timeLimitMs,
+      failureType: 'TIMEOUT',
+      isCritical: true,
+    };
+  }
+
+  // Runtime error (stderr + no stdout)
+  if (result.exitCode !== 0 && result.stderr && !result.stdout.trim()) {
+    const isCompile = isSyntaxOrCompilationError(result.stderr, language);
+    return {
+      passed: false,
+      actual: '',
+      error: result.stderr.substring(0, 500),
+      runtime_ms: runtime,
+      failureType: isCompile ? 'COMPILE_ERROR' : 'RUNTIME_ERROR',
+      isCritical: isCompile,
+    };
+  }
+
+  // Compare outputs
+  const actualOutput = normalizeOutput(result.stdout);
+  const expectedOutput = normalizeOutput(tc.expected_output);
+  const passed = compareOutputs(actualOutput, expectedOutput, comparisonMode);
+
+  return {
+    passed,
+    actual: actualOutput,
+    runtime_ms: runtime,
+    failureType: passed ? undefined : 'WRONG_ANSWER',
+    isCritical: false,
+  };
+}
+
+// =============================================================================
 // VALIDATION: OUTPUT COMPARISON
 // =============================================================================
 
@@ -236,15 +363,16 @@ async function validateOutputComparison(
   code: string,
   language: string,
   expectedOutput: string,
+  comparisonMode: ComparisonMode,
   timeLimitMs: number,
 ): Promise<JudgeFixErrorResponse> {
   const result = await executePiston(code, language, timeLimitMs);
 
-  // Compile error
   if (result.compileError) {
     return {
       status: 'FAIL',
       failureType: 'COMPILE_ERROR',
+      failedStage: 'sample',
       summaryMessage: 'Your code has a compilation/syntax error.',
       stdout: '',
       stderr: result.compileError.substring(0, 1000),
@@ -254,11 +382,11 @@ async function validateOutputComparison(
     };
   }
 
-  // Timeout
   if (result.timedOut) {
     return {
       status: 'FAIL',
       failureType: 'TIMEOUT',
+      failedStage: 'sample',
       summaryMessage: 'Your code exceeded the time limit.',
       stdout: result.stdout,
       stderr: '',
@@ -268,12 +396,12 @@ async function validateOutputComparison(
     };
   }
 
-  // Runtime error (non-zero exit with stderr and no stdout)
   if (result.exitCode !== 0 && result.stderr && !result.stdout.trim()) {
     const isCompile = isSyntaxOrCompilationError(result.stderr, language);
     return {
       status: 'FAIL',
       failureType: isCompile ? 'COMPILE_ERROR' : 'RUNTIME_ERROR',
+      failedStage: 'sample',
       summaryMessage: isCompile
         ? 'Your code has a syntax error.'
         : 'Your code produced a runtime error.',
@@ -285,11 +413,10 @@ async function validateOutputComparison(
     };
   }
 
-  // Compare output
   const normalizedActual = normalizeOutput(result.stdout);
   const normalizedExpected = normalizeOutput(expectedOutput);
 
-  if (normalizedActual === normalizedExpected) {
+  if (compareOutputs(normalizedActual, normalizedExpected, comparisonMode)) {
     return {
       status: 'PASS',
       summaryMessage: 'Output matches expected result.',
@@ -306,6 +433,7 @@ async function validateOutputComparison(
   return {
     status: 'FAIL',
     failureType: 'WRONG_ANSWER',
+    failedStage: 'sample',
     summaryMessage: 'Your output does not match the expected result.',
     stdout: result.stdout,
     stderr: result.stderr,
@@ -317,7 +445,7 @@ async function validateOutputComparison(
 }
 
 // =============================================================================
-// VALIDATION: TEST CASES
+// VALIDATION: TEST CASES — TWO-STAGE PIPELINE
 // =============================================================================
 
 async function validateTestCases(
@@ -325,180 +453,215 @@ async function validateTestCases(
   language: string,
   testCases: TestCaseInput[],
   mode: ExecutionMode,
+  comparisonMode: ComparisonMode,
+  timeLimitMs: number,
+): Promise<JudgeFixErrorResponse> {
+  const visibleTests = testCases.filter(tc => !tc.is_hidden);
+  const hiddenTests = testCases.filter(tc => tc.is_hidden);
+
+  // ─── RUN MODE: only visible tests, full transparency ────────────────
+  if (mode === 'run') {
+    return await runVisibleTests(code, language, visibleTests, comparisonMode, timeLimitMs);
+  }
+
+  // ─── SUBMIT MODE: Two-stage pipeline ────────────────────────────────
+
+  // STAGE 1: Run all visible (sample) tests first
+  console.log(`[STAGE-1] Running ${visibleTests.length} sample tests`);
+  const stage1 = await runVisibleTests(code, language, visibleTests, comparisonMode, timeLimitMs);
+
+  // If any sample test fails, stop immediately — do NOT run hidden tests
+  if (stage1.status === 'FAIL') {
+    return {
+      ...stage1,
+      failedStage: 'sample',
+      // total_count includes all tests for context
+      total_count: testCases.length,
+    };
+  }
+
+  // STAGE 2: All samples passed — now run hidden tests
+  console.log(`[STAGE-2] Running ${hiddenTests.length} hidden tests`);
+  const stage2Results: TestCaseResult[] = [];
+  let allHiddenPassed = true;
+  let hiddenFailureType: FailureType = 'WRONG_ANSWER';
+  let firstFailedHintCategory: string | undefined;
+  let totalRuntime = stage1.runtime_ms;
+
+  for (let i = 0; i < hiddenTests.length; i++) {
+    const tc = hiddenTests[i];
+    try {
+      const testResult = await executeSingleTest(code, tc, language, comparisonMode, timeLimitMs);
+      totalRuntime += testResult.runtime_ms;
+
+      if (!testResult.passed) {
+        allHiddenPassed = false;
+        hiddenFailureType = testResult.failureType || 'WRONG_ANSWER';
+        if (!firstFailedHintCategory && tc.hint_category) {
+          firstFailedHintCategory = tc.hint_category;
+        }
+      }
+
+      // Redact ALL hidden test details
+      stage2Results.push({
+        id: visibleTests.length + i,
+        passed: testResult.passed,
+        input: '[hidden]',
+        expected: '[hidden]',
+        actual: '[hidden]',
+        error: testResult.error ? 'Hidden test failed' : undefined,
+        runtime_ms: testResult.runtime_ms,
+        is_visible: false,
+      });
+
+      // Stop on critical failures (compile/timeout)
+      if (testResult.isCritical) break;
+
+    } catch (err) {
+      allHiddenPassed = false;
+      if (!firstFailedHintCategory && tc.hint_category) {
+        firstFailedHintCategory = tc.hint_category;
+      }
+      stage2Results.push({
+        id: visibleTests.length + i,
+        passed: false,
+        input: '[hidden]',
+        expected: '[hidden]',
+        actual: '[hidden]',
+        error: 'Execution failed',
+        runtime_ms: 0,
+        is_visible: false,
+      });
+      break;
+    }
+  }
+
+  // Combine visible (passed) + hidden results
+  const allResults = [
+    ...(stage1.testResults || []),
+    ...stage2Results,
+  ];
+  const passedCount = allResults.filter(r => r.passed).length;
+
+  if (allHiddenPassed) {
+    return {
+      status: 'PASS',
+      summaryMessage: `All ${allResults.length} test cases passed.`,
+      stdout: '',
+      stderr: '',
+      testResults: allResults,
+      runtime_ms: totalRuntime,
+      passed_count: passedCount,
+      total_count: allResults.length,
+    };
+  }
+
+  // Hidden tests failed — generic message + optional hint category
+  const summaryMessages: Record<FailureType, string> = {
+    COMPILE_ERROR: 'Your code has a compilation/syntax error on edge cases.',
+    RUNTIME_ERROR: 'Your code produced a runtime error on edge cases.',
+    TIMEOUT: 'Your code exceeded the time limit on edge cases.',
+    WRONG_ANSWER: 'Sample tests passed, but your solution fails on edge cases.',
+    VALIDATOR_ERROR: 'Validation error.',
+    LOCKED_REGION_MODIFIED: 'Locked code was modified.',
+  };
+
+  return {
+    status: 'FAIL',
+    failureType: hiddenFailureType,
+    failedStage: 'hidden',
+    hintCategory: firstFailedHintCategory,
+    summaryMessage: summaryMessages[hiddenFailureType],
+    stdout: '',
+    stderr: '',
+    testResults: allResults,
+    runtime_ms: totalRuntime,
+    passed_count: passedCount,
+    total_count: allResults.length,
+  };
+}
+
+// Helper: run visible tests with full transparency
+async function runVisibleTests(
+  code: string,
+  language: string,
+  visibleTests: TestCaseInput[],
+  comparisonMode: ComparisonMode,
   timeLimitMs: number,
 ): Promise<JudgeFixErrorResponse> {
   const results: TestCaseResult[] = [];
   let allPassed = true;
   let globalError: string | undefined;
   let totalRuntime = 0;
+  let failureType: FailureType = 'WRONG_ANSWER';
 
-  for (let i = 0; i < testCases.length; i++) {
-    const tc = testCases[i];
-    const isVisible = !(tc.is_hidden);
-
-    // In run mode, skip hidden tests
-    if (mode === 'run' && tc.is_hidden) continue;
-
-    // Build full code: learner code + test invocation in shared context
-    const fullCode = `${code}\n\n# Test\n${tc.input}`;
+  for (let i = 0; i < visibleTests.length; i++) {
+    const tc = visibleTests[i];
 
     try {
-      const startTime = Date.now();
-      const result = await executePiston(fullCode, language, timeLimitMs);
-      const runtime = Date.now() - startTime;
-      totalRuntime += runtime;
+      const testResult = await executeSingleTest(code, tc, language, comparisonMode, timeLimitMs);
+      totalRuntime += testResult.runtime_ms;
 
-      // Compile error → stop immediately
-      if (result.compileError) {
-        const isCompile = isSyntaxOrCompilationError(result.compileError, language);
-        globalError = result.compileError.substring(0, 1000);
+      if (!testResult.passed) {
         allPassed = false;
-
-        results.push({
-          id: i,
-          passed: false,
-          input: isVisible ? tc.input : '[hidden]',
-          expected: isVisible ? tc.expected_output : '[hidden]',
-          actual: '',
-          error: isCompile ? 'Compilation Error' : 'Runtime Error',
-          runtime_ms: 0,
-          is_visible: isVisible,
-        });
-
-        break; // Critical failure — stop
-      }
-
-      // Timeout
-      if (result.timedOut) {
-        allPassed = false;
-        results.push({
-          id: i,
-          passed: false,
-          input: isVisible ? tc.input : '[hidden]',
-          expected: isVisible ? tc.expected_output : '[hidden]',
-          actual: '',
-          error: 'Time Limit Exceeded',
-          runtime_ms: timeLimitMs,
-          is_visible: isVisible,
-        });
-        break;
-      }
-
-      // Runtime error (stderr + no stdout)
-      if (result.exitCode !== 0 && result.stderr && !result.stdout.trim()) {
-        const isCompile = isSyntaxOrCompilationError(result.stderr, language);
-        allPassed = false;
-
-        if (isCompile) {
-          globalError = result.stderr.substring(0, 1000);
-          results.push({
-            id: i,
-            passed: false,
-            input: isVisible ? tc.input : '[hidden]',
-            expected: isVisible ? tc.expected_output : '[hidden]',
-            actual: '',
-            error: result.stderr.substring(0, 500),
-            runtime_ms: runtime,
-            is_visible: isVisible,
-          });
-          break;
+        failureType = testResult.failureType || 'WRONG_ANSWER';
+        if (testResult.isCritical) {
+          globalError = testResult.error;
         }
-
-        results.push({
-          id: i,
-          passed: false,
-          input: isVisible ? tc.input : '[hidden]',
-          expected: isVisible ? tc.expected_output : '[hidden]',
-          actual: '',
-          error: result.stderr.substring(0, 500),
-          runtime_ms: runtime,
-          is_visible: isVisible,
-        });
-
-        if (mode === 'run') break; // Stop on first failure in run mode
-        continue;
       }
-
-      // Compare outputs
-      const actualOutput = normalizeOutput(result.stdout);
-      const expectedOutput = normalizeOutput(tc.expected_output);
-      const passed = actualOutput === expectedOutput;
-
-      if (!passed) allPassed = false;
 
       results.push({
         id: i,
-        passed,
-        input: isVisible ? tc.input : '[hidden]',
-        expected: isVisible ? tc.expected_output : '[hidden]',
-        actual: isVisible ? actualOutput : (passed ? '[hidden]' : '[hidden]'),
-        runtime_ms: runtime,
-        is_visible: isVisible,
+        passed: testResult.passed,
+        input: tc.input,
+        expected: tc.expected_output,
+        actual: testResult.actual,
+        error: testResult.error,
+        runtime_ms: testResult.runtime_ms,
+        is_visible: true,
       });
 
-      // In run mode, stop on first failure
-      if (mode === 'run' && !passed) break;
+      // Stop on first failure or critical error
+      if (!testResult.passed) break;
 
     } catch (err) {
       allPassed = false;
       results.push({
         id: i,
         passed: false,
-        input: isVisible ? tc.input : '[hidden]',
-        expected: isVisible ? tc.expected_output : '[hidden]',
+        input: tc.input,
+        expected: tc.expected_output,
         actual: '',
         error: err instanceof Error ? err.message : 'Execution failed',
         runtime_ms: 0,
-        is_visible: isVisible,
+        is_visible: true,
       });
       break;
     }
   }
 
-  // Shape hidden test results for submit mode
-  const shapedResults = mode === 'submit'
-    ? results.map(r => ({
-        ...r,
-        input: r.is_visible ? r.input : '[hidden]',
-        expected: r.is_visible ? r.expected : '[hidden]',
-        actual: r.is_visible ? r.actual : '[hidden]',
-        error: r.is_visible ? r.error : (r.error ? 'Runtime Error' : undefined),
-      }))
-    : results;
-
   const passedCount = results.filter(r => r.passed).length;
-  const totalCount = results.length;
 
   if (allPassed) {
     return {
       status: 'PASS',
-      summaryMessage: `All ${totalCount} test cases passed.`,
+      summaryMessage: `All ${results.length} sample tests passed.`,
       stdout: '',
       stderr: '',
-      testResults: shapedResults,
+      testResults: results,
       runtime_ms: totalRuntime,
       passed_count: passedCount,
-      total_count: totalCount,
+      total_count: results.length,
     };
-  }
-
-  // Determine failure type
-  let failureType: FailureType = 'WRONG_ANSWER';
-  const hasError = results.some(r => r.error);
-  if (globalError && isSyntaxOrCompilationError(globalError, language)) {
-    failureType = 'COMPILE_ERROR';
-  } else if (results.some(r => r.error === 'Time Limit Exceeded')) {
-    failureType = 'TIMEOUT';
-  } else if (hasError) {
-    failureType = 'RUNTIME_ERROR';
   }
 
   const summaryMessages: Record<FailureType, string> = {
     COMPILE_ERROR: 'Your code has a compilation/syntax error.',
     RUNTIME_ERROR: 'Your code produced a runtime error.',
     TIMEOUT: 'Your code exceeded the time limit.',
-    WRONG_ANSWER: `${passedCount} / ${totalCount} test cases passed.`,
+    WRONG_ANSWER: `${passedCount} / ${results.length} sample tests passed.`,
     VALIDATOR_ERROR: 'Validation error.',
+    LOCKED_REGION_MODIFIED: 'Locked code was modified.',
   };
 
   return {
@@ -507,10 +670,10 @@ async function validateTestCases(
     summaryMessage: summaryMessages[failureType],
     stdout: '',
     stderr: globalError || '',
-    testResults: shapedResults,
+    testResults: results,
     runtime_ms: totalRuntime,
     passed_count: passedCount,
-    total_count: totalCount,
+    total_count: results.length,
   };
 }
 
@@ -524,13 +687,13 @@ async function validateCustom(
   customValidator: string,
   timeLimitMs: number,
 ): Promise<JudgeFixErrorResponse> {
-  // Step 1: Execute learner's code
   const learnerResult = await executePiston(code, language, timeLimitMs);
 
   if (learnerResult.compileError) {
     return {
       status: 'FAIL',
       failureType: 'COMPILE_ERROR',
+      failedStage: 'sample',
       summaryMessage: 'Your code has a compilation/syntax error.',
       stdout: '',
       stderr: learnerResult.compileError.substring(0, 1000),
@@ -544,6 +707,7 @@ async function validateCustom(
     return {
       status: 'FAIL',
       failureType: 'TIMEOUT',
+      failedStage: 'sample',
       summaryMessage: 'Your code exceeded the time limit.',
       stdout: learnerResult.stdout,
       stderr: '',
@@ -558,6 +722,7 @@ async function validateCustom(
     return {
       status: 'FAIL',
       failureType: isCompile ? 'COMPILE_ERROR' : 'RUNTIME_ERROR',
+      failedStage: 'sample',
       summaryMessage: isCompile
         ? 'Your code has a syntax error.'
         : 'Your code produced a runtime error.',
@@ -569,7 +734,6 @@ async function validateCustom(
     };
   }
 
-  // Step 2: Run the custom validator with learner's output
   const validatorCode = buildValidatorCode(
     code,
     customValidator,
@@ -593,7 +757,6 @@ async function validateCustom(
       };
     }
 
-    // Parse validator output: expects JSON { pass: boolean, message: string, details?: any }
     const validatorStdout = normalizeOutput(validatorResult.stdout);
     try {
       const validatorOutput = JSON.parse(validatorStdout);
@@ -621,7 +784,6 @@ async function validateCustom(
         total_count: 1,
       };
     } catch {
-      // Validator didn't return valid JSON
       return {
         status: 'FAIL',
         failureType: 'VALIDATOR_ERROR',
@@ -720,14 +882,12 @@ function validateLockedRegions(
   const codeLines = code.split('\n');
   const originalLines = originalCode.split('\n');
 
-  // Check lines before editable region
   for (let i = 0; i < editableStartLine - 1; i++) {
     if ((codeLines[i] ?? '') !== (originalLines[i] ?? '')) {
       return false;
     }
   }
 
-  // Check lines after editable region
   const origAfterCount = originalLines.length - editableEndLine;
   const codeAfterCount = codeLines.length - editableEndLine;
 
@@ -761,6 +921,7 @@ serve(async (req) => {
       language,
       validation_type,
       mode = 'run',
+      comparison_mode = 'trimmed',
       expected_output,
       test_cases,
       custom_validator,
@@ -770,7 +931,6 @@ serve(async (req) => {
       original_code,
     } = body;
 
-    // Validate required fields
     if (!code || !language || !validation_type) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: code, language, validation_type' }),
@@ -799,7 +959,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[JUDGE-FIX-ERROR][${mode.toUpperCase()}] ${validation_type} | ${language}`);
+    console.log(`[JUDGE-FIX-ERROR][${mode.toUpperCase()}] ${validation_type} | ${language} | comparison=${comparison_mode}`);
 
     let response: JudgeFixErrorResponse;
 
@@ -811,7 +971,7 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        response = await validateOutputComparison(code, language, expected_output, time_limit_ms);
+        response = await validateOutputComparison(code, language, expected_output, comparison_mode, time_limit_ms);
         break;
       }
 
@@ -822,7 +982,7 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        response = await validateTestCases(code, language, test_cases, mode, time_limit_ms);
+        response = await validateTestCases(code, language, test_cases, mode, comparison_mode, time_limit_ms);
         break;
       }
 
