@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Braces, RotateCcw, Settings, Maximize, Play, Send,
+  Braces, RotateCcw, Settings, Maximize,
   Expand, Shrink, AlignLeft, PanelTopClose, PanelTopOpen, Lock,
 } from "lucide-react";
 import Editor, { OnMount, Monaco } from "@monaco-editor/react";
@@ -419,14 +419,12 @@ export function FixErrorCodeEditor({
                 {" "}to run
               </span>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="h-8 gap-1.5"
+                <Button variant="outline" size="sm" className="h-8"
                   onClick={() => onRun(code)} disabled={isRunning}>
-                  <Play className="h-3.5 w-3.5" />
                   Run
                 </Button>
-                <Button size="sm" className="h-8 gap-1.5"
+                <Button size="sm" className="h-8"
                   onClick={() => onSubmit(code)} disabled={isRunning}>
-                  <Send className="h-3.5 w-3.5" />
                   Submit
                 </Button>
               </div>
