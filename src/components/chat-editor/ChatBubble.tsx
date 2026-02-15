@@ -241,11 +241,17 @@ const ChatBubble = ({
           />
         ) : (
           <div className="text-sm leading-relaxed">
-            {message.content && message.content.trim() ? (
-              renderContent(message.content)
-            ) : (
-              <span className="text-muted-foreground/60 italic text-xs select-none">Write your chat content here</span>
-            )}
+            {(() => {
+              const visibleContent = message.content?.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+              if (!visibleContent) {
+                return <span className="text-muted-foreground/60 italic text-xs select-none">Write your chat content here</span>;
+              }
+              const rendered = renderContent(message.content);
+              if (!rendered) {
+                return <span className="text-muted-foreground/60 italic text-xs select-none">Write your chat content here</span>;
+              }
+              return rendered;
+            })()}
           </div>
         )}
 
