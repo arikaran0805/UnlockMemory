@@ -171,7 +171,13 @@ const parseContent = (content: string): ChatMessage[] => {
         type: "message" as const,
       };
     })
-    .filter((m) => m.speaker.trim() && (m.content.trim() || m.type === "freeform"));
+    .filter((m) => {
+      if (!m.speaker.trim()) return false;
+      if (m.type === "freeform") return true;
+      if (m.type === "takeaway") return true;
+      // Filter out messages with no actual content (just speaker name, no text)
+      return m.content.trim().length > 0;
+    });
 };
 
 // Use a special marker to preserve newlines within messages during serialization
