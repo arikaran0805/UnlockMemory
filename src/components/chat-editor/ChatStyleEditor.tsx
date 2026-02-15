@@ -1278,29 +1278,31 @@ const ChatStyleEditor = ({
 
   const handleEditMessage = (id: string, content: string, title?: string, icon?: string, freeformData?: FreeformCanvasData) => {
     saveToUndoStack();
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id === id) {
-          if (m.type === "freeform") {
-            return { 
-              ...m, 
-              content,
-              freeformData,
-            };
+    
+    // If editing a regular message to empty content, remove it entirely
+    const visibleContent = content.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+    
+    setMessages((prev) => {
+      return prev
+        .map((m) => {
+          if (m.id === id) {
+            if (m.type === "freeform") {
+              return { ...m, content, freeformData };
+            }
+            if (m.type === "takeaway") {
+              return { ...m, content, takeawayTitle: title ?? m.takeawayTitle, takeawayIcon: icon ?? m.takeawayIcon };
+            }
+            return { ...m, content };
           }
-          if (m.type === "takeaway") {
-            return { 
-              ...m, 
-              content,
-              takeawayTitle: title ?? m.takeawayTitle,
-              takeawayIcon: icon ?? m.takeawayIcon,
-            };
-          }
-          return { ...m, content };
-        }
-        return m;
-      })
-    );
+          return m;
+        })
+        // Remove regular messages with no visible content
+        .filter((m) => {
+          if (m.type === "freeform" || m.type === "takeaway") return true;
+          const vc = m.content.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+          return vc.length > 0;
+        });
+    });
   };
 
   const handleDeleteMessage = (id: string) => {
