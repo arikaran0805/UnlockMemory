@@ -181,7 +181,7 @@ export const extractChatSegments = (
       content = content.replace(/\n{2,}$/, "");
     }
 
-    content = content.trim();
+    content = content.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
     if (content) segments.push({ speaker: cur.speaker, content });
   }
 
