@@ -229,7 +229,7 @@ const ChatBubble = ({
         </div>
 
         {/* Content */}
-        {isEditing || (!message.content?.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim()) ? (
+        {isEditing ? (
           <ChatEditor
             ref={chatEditorRef}
             value={message.content}
@@ -237,7 +237,7 @@ const ChatBubble = ({
             onCancel={onEndEdit}
             isMentor={isMentor}
             codeTheme={codeTheme}
-            placeholder="Write your chat content here..."
+            placeholder="Type your message..."
           />
         ) : (
           <div className="text-sm leading-relaxed">

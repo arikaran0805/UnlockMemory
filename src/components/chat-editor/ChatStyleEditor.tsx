@@ -1510,14 +1510,7 @@ const ChatStyleEditor = ({
         }}
         onMouseUp={() => handleTextSelection()}
       >
-        {(() => {
-          const visibleMessages = messages.filter((m) => {
-            if (m.type !== "message") return true;
-            const vc = m.content?.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
-            return !!vc;
-          });
-          return visibleMessages.length === 0;
-        })() ? (
+        {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <MessageCircle className="w-12 h-12 mb-4 opacity-30" />
             <p className="text-sm">Start a conversation</p>
@@ -1548,11 +1541,6 @@ const ChatStyleEditor = ({
                 )}
 
                 {messages.map((message, index) => {
-                   // Skip rendering bubbles with no visible content (ghost bubbles)
-                   if (message.type === "message") {
-                     const visibleContent = message.content?.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
-                     if (!visibleContent) return null;
-                   }
                    const bubbleHasOpenAnnotations = annotations.some(
                     a => a.bubble_index === index && a.status === "open"
                   );
