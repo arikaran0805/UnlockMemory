@@ -175,8 +175,9 @@ const parseContent = (content: string): ChatMessage[] => {
       if (!m.speaker.trim()) return false;
       if (m.type === "freeform") return true;
       if (m.type === "takeaway") return true;
-      // Filter out messages with no actual content (just speaker name, no text)
-      return m.content.trim().length > 0;
+      // Strip zero-width and invisible characters before checking
+      const visibleContent = m.content.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+      return visibleContent.length > 0;
     });
 };
 
@@ -184,8 +185,15 @@ const parseContent = (content: string): ChatMessage[] => {
 const NEWLINE_MARKER = "<<<NEWLINE>>>";
 
 const serializeMessages = (messages: ChatMessage[], explanation: string): string => {
+  // Filter out empty messages before serializing to prevent ghost bubbles on re-parse
+  const nonEmptyMessages = messages.filter((m) => {
+    if (m.type === "freeform" || m.type === "takeaway") return true;
+    const visibleContent = m.content.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+    return visibleContent.length > 0;
+  });
+  
   // Join messages with double newline, but encode internal newlines first
-  const chatPart = messages.map((m) => {
+  const chatPart = nonEmptyMessages.map((m) => {
     // Handle freeform canvas blocks
     if (m.type === "freeform") {
       const freeformJson = m.freeformData ? JSON.stringify(m.freeformData) : "{}";
