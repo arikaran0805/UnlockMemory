@@ -240,7 +240,13 @@ const ChatBubble = ({
             placeholder="Type your message..."
           />
         ) : (
-          <div className="text-sm leading-relaxed">{renderContent(message.content)}</div>
+          <div className="text-sm leading-relaxed">
+            {message.content && message.content.trim() ? (
+              renderContent(message.content)
+            ) : (
+              <span className="text-muted-foreground/60 italic text-xs select-none">Write your chat content here</span>
+            )}
+          </div>
         )}
 
         {/* Timestamp */}
