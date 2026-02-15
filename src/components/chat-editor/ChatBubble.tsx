@@ -229,7 +229,7 @@ const ChatBubble = ({
         </div>
 
         {/* Content */}
-        {isEditing ? (
+        {isEditing || (!message.content?.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim()) ? (
           <ChatEditor
             ref={chatEditorRef}
             value={message.content}
@@ -237,21 +237,11 @@ const ChatBubble = ({
             onCancel={onEndEdit}
             isMentor={isMentor}
             codeTheme={codeTheme}
-            placeholder="Type your message..."
+            placeholder="Write your chat content here..."
           />
         ) : (
           <div className="text-sm leading-relaxed">
-            {(() => {
-              const visibleContent = message.content?.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
-              if (!visibleContent) {
-                return <span className="text-muted-foreground/60 italic text-xs select-none">Write your chat content here</span>;
-              }
-              const rendered = renderContent(message.content);
-              if (!rendered) {
-                return <span className="text-muted-foreground/60 italic text-xs select-none">Write your chat content here</span>;
-              }
-              return rendered;
-            })()}
+            {renderContent(message.content)}
           </div>
         )}
 
