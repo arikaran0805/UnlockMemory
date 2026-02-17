@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { ChatMessage, CourseCharacter, MENTOR_CHARACTER, TAKEAWAY_ICONS } from "./types";
 import ChatBubble from "./ChatBubble";
 import TakeawayBlock from "./TakeawayBlock";
@@ -386,6 +387,7 @@ const SortableMessageItem = ({
         className="h-6 w-6"
         onClick={() => {
           navigator.clipboard.writeText(message.content);
+          toast.success("Copied to clipboard");
         }}
         title="Copy content"
       >
