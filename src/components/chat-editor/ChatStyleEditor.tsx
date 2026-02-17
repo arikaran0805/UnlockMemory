@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RichTextEditor } from "@/components/tiptap";
-import { Plus, Eye, Edit3, MessageCircle, Trash2, FileText, Code, Send, Image, Link, Bold, Italic, GripVertical, Pencil, ArrowUp, ArrowDown, Terminal, List, ListOrdered, Heading2, Quote, Lightbulb, Undo2, Redo2, EyeOff, Columns, Maximize2, Minimize2, PenTool, MessageSquarePlus } from "lucide-react";
+import { Plus, Eye, Edit3, MessageCircle, Trash2, FileText, Code, Send, Image, Link, Bold, Italic, GripVertical, Pencil, ArrowUp, ArrowDown, Terminal, List, ListOrdered, Heading2, Quote, Lightbulb, Undo2, Redo2, EyeOff, Columns, Maximize2, Minimize2, PenTool, MessageSquarePlus, Copy } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { MonacoCodeBlock } from "@/components/code-block";
 import { supabase } from "@/integrations/supabase/client";
@@ -379,6 +379,17 @@ const SortableMessageItem = ({
         onClick={() => onStartEdit(message.id)}
       >
         <Pencil className="w-3 h-3" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6"
+        onClick={() => {
+          navigator.clipboard.writeText(message.content);
+        }}
+        title="Copy content"
+      >
+        <Copy className="w-3 h-3" />
       </Button>
       {isTakeaway ? (
         <Button
