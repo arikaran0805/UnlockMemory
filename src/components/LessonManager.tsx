@@ -67,6 +67,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { SubTopicManager } from "@/components/admin/practice/SubTopicManager";
 import { ProblemMappingManager } from "@/components/admin/practice/ProblemMappingManager";
+import { LessonLinkedProblems } from "@/components/admin/practice/LessonLinkedProblems";
 
 interface Lesson {
   id: string;
@@ -898,6 +899,10 @@ const LessonManager = ({ courseId, basePath = "/admin" }: LessonManagerProps) =>
           <div className="mt-6 space-y-6">
             {practiceLesson && practiceSkillId ? (
               <>
+                <LessonLinkedProblems
+                  lessonId={practiceLesson.id}
+                  lessonTitle={practiceLesson.title}
+                />
                 <SubTopicManager
                   lessonId={practiceLesson.id}
                   skillId={practiceSkillId}
