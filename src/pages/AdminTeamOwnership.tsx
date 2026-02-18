@@ -6,11 +6,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminSidebar } from "@/contexts/AdminSidebarContext";
 import TeamCard from "@/components/team-ownership/TeamCard";
 import TeamCanvasEditor from "@/components/team-ownership/TeamCanvasEditor";
-import NewTeamCanvas from "@/components/team-ownership/NewTeamCanvas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Users2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Search, Plus, Users2, Briefcase } from "lucide-react";
 import type { Team, Career } from "@/components/team-ownership/types";
 
 const AdminTeamOwnership = () => {
@@ -23,10 +28,11 @@ const AdminTeamOwnership = () => {
   const [careers, setCareers] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCareerDialog, setShowCareerDialog] = useState(false);
+  const [creatingTeam, setCreatingTeam] = useState(false);
 
   // Derive view state from URL params
   const editingTeamId = searchParams.get("edit");
-  const isCreating = searchParams.get("new") === "true";
 
   // Find the team being edited
   const selectedTeam = useMemo(() => {
@@ -124,12 +130,12 @@ const AdminTeamOwnership = () => {
 
   // Collapse/expand sidebar based on URL state
   useEffect(() => {
-    if (editingTeamId || isCreating) {
+    if (editingTeamId) {
       collapseSidebar();
     } else {
       setSidebarOpen(true);
     }
-  }, [editingTeamId, isCreating]);
+  }, [editingTeamId]);
 
   const filteredTeams = useMemo(() => {
     if (!searchQuery.trim()) return teams;
@@ -160,32 +166,60 @@ const AdminTeamOwnership = () => {
   };
 
   const handleOpenNewTeamCanvas = () => {
-    setSearchParams({ new: "true" });
+    setShowCareerDialog(true);
+  };
+
+  const handleSelectCareerAndCreate = async (career: Career) => {
+    try {
+      setCreatingTeam(true);
+
+      // Generate unique team name
+      const baseName = `${career.name} Team`;
+      const { data: existingTeams } = await supabase
+        .from("teams")
+        .select("name")
+        .eq("career_id", career.id);
+
+      const existingNames = new Set((existingTeams || []).map((t) => t.name));
+      let uniqueName = baseName;
+      let counter = 2;
+      while (existingNames.has(uniqueName)) {
+        uniqueName = `${baseName} ${counter}`;
+        counter++;
+      }
+
+      // Create the team immediately
+      const { data: teamData, error } = await supabase
+        .from("teams")
+        .insert({
+          name: uniqueName,
+          career_id: career.id,
+          created_by: userId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setShowCareerDialog(false);
+      // Navigate to edit the newly created team
+      setSearchParams({ edit: teamData.id });
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error creating team",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingTeam(false);
+    }
   };
 
   const handleCloseCanvas = () => {
     setSearchParams({});
     fetchData();
   };
-
-  const handleNewTeamCreated = () => {
-    setSearchParams({});
-    fetchData();
-  };
-
-  const handleCloseNewTeamCanvas = () => {
-    setSearchParams({});
-  };
-
-  // Show New Team Canvas
-  if (isCreating) {
-    return (
-      <NewTeamCanvas
-        onClose={handleCloseNewTeamCanvas}
-        onTeamCreated={handleNewTeamCreated}
-      />
-    );
-  }
 
   // Show existing Team Canvas Editor
   if (editingTeamId && selectedTeam) {
@@ -360,6 +394,42 @@ const AdminTeamOwnership = () => {
           ))}
         </div>
       )}
+
+      {/* Career Selection Dialog for New Team */}
+      <Dialog open={showCareerDialog} onOpenChange={setShowCareerDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select a Career</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto py-2">
+            {careers.map((career) => (
+              <button
+                key={career.id}
+                onClick={() => handleSelectCareerAndCreate(career)}
+                disabled={creatingTeam}
+                className="flex items-center gap-3 p-4 rounded-xl border bg-card text-left transition-all hover:border-primary/50 hover:bg-accent/5 cursor-pointer disabled:opacity-50"
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold flex-shrink-0"
+                  style={{ backgroundColor: career.color || "hsl(var(--primary))" }}
+                >
+                  {career.icon || career.name[0]}
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{career.name}</p>
+                  <p className="text-xs text-muted-foreground">{career.slug}</p>
+                </div>
+              </button>
+            ))}
+            {careers.length === 0 && (
+              <div className="text-center py-8">
+                <Briefcase className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">No careers available. Create a career first.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
