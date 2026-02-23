@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -7,7 +6,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,58 +22,58 @@ serve(async (req) => {
 
     console.log(`Executing ${language} code:`, code.substring(0, 100));
 
-    // Use Piston API for code execution (free, no API key required)
-    const pistonResponse = await fetch('https://emkc.org/api/v2/piston/execute', {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'Code execution service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const prompt = `You are a ${language} code executor. Execute the following code mentally and return ONLY the exact output that would be printed to stdout. Do not include any explanation, markdown formatting, or code fences. If there is an error, return the error message exactly as the ${language} interpreter would show it.
+
+Code:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Output:`;
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        language: language === 'typescript' ? 'javascript' : language,
-        version: '*',
-        files: [
-          {
-            content: code,
-          }
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'user', content: prompt }
         ],
+        temperature: 0,
+        max_tokens: 1024,
       }),
     });
 
-    if (!pistonResponse.ok) {
-      const errorText = await pistonResponse.text();
-      console.error('Piston API error:', errorText);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI Gateway error:', errorText);
       return new Response(
         JSON.stringify({ error: 'Code execution service unavailable' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const result = await pistonResponse.json();
-    console.log('Piston result:', result);
+    const result = await aiResponse.json();
+    const output = result.choices?.[0]?.message?.content?.trim() || 'No output';
 
-    // Combine stdout and stderr
-    let output = '';
-    if (result.run) {
-      if (result.run.stdout) {
-        output += result.run.stdout;
-      }
-      if (result.run.stderr) {
-        if (output) output += '\n';
-        output += result.run.stderr;
-      }
-      if (result.run.code !== 0 && !output) {
-        output = `Exit code: ${result.run.code}`;
-      }
-    }
-
-    if (result.compile?.stderr) {
-      output = result.compile.stderr;
-    }
+    // Check if output looks like an error
+    const isError = /^(Traceback|SyntaxError|NameError|TypeError|ValueError|IndentationError|RuntimeError|Error:|Exception)/i.test(output);
 
     return new Response(
       JSON.stringify({ 
-        output: output || 'No output',
-        error: result.run?.code !== 0 ? output : null,
+        output,
+        error: isError ? output : null,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
