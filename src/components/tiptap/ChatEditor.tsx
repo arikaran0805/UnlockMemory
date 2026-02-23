@@ -120,9 +120,11 @@ const getChatEditorExtensions = (
   return [
     StarterKit.configure({
       heading: { levels: [2] },
-      // Disable codeBlock so users can type raw markdown code fences (```python ... ```)
-      // The preview will parse and render them nicely
-      codeBlock: false,
+      codeBlock: {
+        HTMLAttributes: {
+          class: 'tiptap-code-block',
+        },
+      },
     }),
     Link.configure({
       openOnClick: false,
