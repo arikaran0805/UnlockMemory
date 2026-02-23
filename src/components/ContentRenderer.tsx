@@ -68,11 +68,13 @@ const ContentRenderer = ({
   const isCorruptedJson = useMemo(() => {
     if (!htmlContent) return false;
     const trimmed = htmlContent.trim();
-    // Detect corrupted JSON fragments like `"doc","content":[...]` 
+    // Detect corrupted JSON fragments like `"doc","content":[...]`
+    // Only flag if the ENTIRE content looks like a broken JSON fragment
+    // (not when JSON appears as a suffix after valid chat/text content)
     return (
-      trimmed.includes('"doc","content"') ||
-      trimmed.includes('"type":"paragraph"') && !trimmed.startsWith('{') ||
-      trimmed.includes('"type":"doc"') && !trimmed.startsWith('{')
+      trimmed.includes('"doc","content"') && !trimmed.includes('\n') ||
+      (trimmed.includes('"type":"paragraph"') && !trimmed.startsWith('{') && !trimmed.includes('\n')) ||
+      (trimmed.includes('"type":"doc"') && !trimmed.startsWith('{') && !trimmed.includes('\n'))
     );
   }, [htmlContent]);
 
