@@ -10,7 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ViewAsRoleProvider } from "@/contexts/ViewAsRoleContext";
 import { PricingDrawerProvider } from "@/contexts/PricingDrawerContext";
 import ViewAsRoleBanner from "@/components/ViewAsRoleBanner";
-import { PricingDrawer } from "@/components/pricing";
+
 
 // Import unified TipTap styles
 import "@/styles/tiptap.css";
@@ -94,7 +94,7 @@ const App = () => (
             <ViewAsRoleProvider>
               <PricingDrawerProvider>
                 <AppContent />
-                <PricingDrawer />
+                
               </PricingDrawerProvider>
             </ViewAsRoleProvider>
           </AuthProvider>

@@ -2,6 +2,7 @@ import { Route, Navigate } from "react-router-dom";
 
 // Public Pages
 import Index from "@/pages/Index";
+import Pricing from "@/pages/Pricing";
 import Courses from "@/pages/Courses";
 import CourseDetail from "@/pages/CourseDetail";
 import CourseNotes from "@/pages/CourseNotes";
@@ -37,6 +38,7 @@ import EliminateWrongWorkspace from "@/pages/EliminateWrongWorkspace";
  */
 export const publicRoutes = [
   <Route key="home" path="/" element={<Index />} />,
+  <Route key="pricing" path="/pricing" element={<Pricing />} />,
   <Route key="courses" path="/courses" element={<Courses />} />,
   <Route key="course-detail" path="/course/:slug" element={<CourseDetail />} />,
   <Route key="course-notes" path="/courses/:courseId/notes" element={<CourseNotes />} />,
