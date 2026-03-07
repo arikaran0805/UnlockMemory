@@ -4,7 +4,8 @@
  * Global context for managing the Pricing Drawer state.
  * Provides open/close functionality and tracks analytics events.
  */
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useCallback, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { useUserState } from "@/hooks/useUserState";
 
 interface PricingDrawerContextType {
@@ -17,40 +18,26 @@ interface PricingDrawerContextType {
 const PricingDrawerContext = createContext<PricingDrawerContextType | undefined>(undefined);
 
 export const PricingDrawerProvider = ({ children }: { children: ReactNode }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [triggerSource, setTriggerSource] = useState<string | null>(null);
   const { isPro } = useUserState();
+  const navigate = useNavigate();
 
   const openPricingDrawer = useCallback((source?: string) => {
-    // Never show pricing drawer to Pro users
     if (isPro) return;
-    
-    setTriggerSource(source || "unknown");
-    setIsOpen(true);
-    
-    // Analytics: Pricing drawer opened
-    console.log("[Analytics] Pricing drawer opened", { source });
-  }, [isPro]);
+    console.log("[Analytics] Pricing page opened", { source });
+    navigate("/pricing");
+  }, [isPro, navigate]);
 
-  const closePricingDrawer = useCallback((upgraded?: boolean) => {
-    setIsOpen(false);
-    
-    // Analytics: Drawer closed
-    if (!upgraded) {
-      console.log("[Analytics] Pricing drawer closed without upgrade", { source: triggerSource });
-    }
-    
-    // Reset trigger source after close
-    setTimeout(() => setTriggerSource(null), 300);
-  }, [triggerSource]);
+  const closePricingDrawer = useCallback((_upgraded?: boolean) => {
+    // No-op: kept for API compatibility
+  }, []);
 
   return (
     <PricingDrawerContext.Provider
       value={{
-        isOpen,
+        isOpen: false,
         openPricingDrawer,
         closePricingDrawer,
-        triggerSource,
+        triggerSource: null,
       }}
     >
       {children}
