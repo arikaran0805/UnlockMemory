@@ -93,10 +93,11 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ViewAsRoleProvider>
-              <PricingDrawerProvider>
-                <AppContent />
-                
-              </PricingDrawerProvider>
+              <CareerPlanProvider>
+                <PricingDrawerProvider>
+                  <AppContent />
+                </PricingDrawerProvider>
+              </CareerPlanProvider>
             </ViewAsRoleProvider>
           </AuthProvider>
         </BrowserRouter>
