@@ -143,9 +143,10 @@ function CareerCartCard({
     .filter((c) => item.selectedCourseIds.includes(c.id))
     .reduce((s, c) => s + c.discountPrice, 0);
   const discountPct = item.discountPercentage || 0;
-  const discountedTotal = discountPct > 0 && item.selectedCourseIds.length >= 2
-    ? Math.round(subtotal * (1 - discountPct / 100))
-    : subtotal;
+  const bundleDiscount = discountPct > 0 && item.selectedCourseIds.length >= 2
+    ? Math.round(subtotal * (discountPct / 100))
+    : 0;
+  const discountedTotal = subtotal - bundleDiscount;
 
   return (
     <div className="space-y-8">

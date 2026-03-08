@@ -42,9 +42,10 @@ const Careers = () => {
           const basePrice = coursesRaw.reduce((s: number, co: any) => s + (Number(co.original_price) || 0), 0);
           // Apply career discount_percentage on top of course discount sum
           const discountPct = Number(c.discount_percentage) || 0;
-          const discountedPrice = discountPct > 0 && coursesRaw.length >= 2
-            ? Math.round(courseDiscountSum * (1 - discountPct / 100))
-            : courseDiscountSum;
+          const bundleDiscount = discountPct > 0 && coursesRaw.length >= 2
+            ? Math.round(courseDiscountSum * (discountPct / 100))
+            : 0;
+          const discountedPrice = courseDiscountSum - bundleDiscount;
           const savings = basePrice - discountedPrice;
           const courseIds = coursesRaw.map((co: any) => co.id);
           const courses: PricingCourse[] = coursesRaw.map((co: any) => ({
