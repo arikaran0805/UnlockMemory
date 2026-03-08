@@ -20,6 +20,7 @@ import { useUserState } from "@/hooks/useUserState";
 import { ThemeToggle } from "./ThemeToggle";
 import { SearchDialog } from "./SearchDialog";
 import NotificationDropdown from "./NotificationDropdown";
+import { useCareerPlan } from "@/contexts/CareerPlanContext";
 
 interface SiteSettings {
   site_name: string;
