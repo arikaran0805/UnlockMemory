@@ -297,7 +297,7 @@ const AdminCareerEditor = () => {
     try {
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, slug, description")
+        .select("id, name, slug, description, original_price, discount_price")
         .order("name");
       if (error) throw error;
       setCourses(data || []);
