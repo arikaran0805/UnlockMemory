@@ -1,8 +1,11 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { type PricingCourse, type PricingCareer, calculateBreakdown } from "./pricingData";
 
 export function usePricingState() {
+  const [searchParams] = useSearchParams();
+  const autoSelectedRef = useRef(false);
   const [selectedCareerId, setSelectedCareerId] = useState<string | null>(null);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -63,6 +66,20 @@ export function usePricingState() {
     };
     fetchCareers();
   }, []);
+
+  // Auto-select career from URL query param
+  useEffect(() => {
+    if (autoSelectedRef.current || loading || careers.length === 0) return;
+    const careerParam = searchParams.get("career");
+    if (careerParam) {
+      const career = careers.find((c) => c.id === careerParam);
+      if (career) {
+        autoSelectedRef.current = true;
+        setSelectedCareerId(career.id);
+        setSelectedCourseIds([...career.includedCourseIds]);
+      }
+    }
+  }, [careers, loading, searchParams]);
 
   const allCourses = useMemo(() => dbCourses, [dbCourses]);
 
