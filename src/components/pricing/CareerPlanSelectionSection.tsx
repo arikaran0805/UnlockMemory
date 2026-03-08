@@ -131,6 +131,7 @@ const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loadin
               career={career}
               courses={courses}
               isSelected={selectedCareerId === career.id}
+              anySelected={!!selectedCareerId}
               onSelect={onSelectCareer}
             />
           ))}
