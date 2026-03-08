@@ -16,9 +16,10 @@ const Layout = ({ children, showFooter = true }: LayoutProps) => {
   const location = useLocation();
   const { isPro } = useUserState();
 
-  // Pro users on Profile page don't see secondary course header (40px less padding)
+  // Hide secondary course header for specific pages
   const isProfilePage = location.pathname === "/profile";
-  const hideSecondaryHeader = isPro && isProfilePage;
+  const hideOnPages = ["/choose-plan", "/careers", "/plan"].includes(location.pathname);
+  const hideSecondaryHeader = hideOnPages || (isPro && isProfilePage);
 
   const handleAnnouncementVisibility = useCallback((visible: boolean) => {
     setShowAnnouncement(visible);

@@ -59,9 +59,10 @@ const Header = ({
   const { isPro } = useUserState();
   const { itemCount } = useCareerPlan();
 
-  // Hide secondary course header for Pro users on Profile/Dashboard page
+  // Hide secondary course header for specific pages
   const isProfilePage = location.pathname === "/profile";
-  const showCourseSecondaryHeaderDefault = !(isPro && isProfilePage);
+  const hideOnPages = ["/choose-plan", "/careers", "/plan"].includes(location.pathname);
+  const showCourseSecondaryHeaderDefault = !hideOnPages && !(isPro && isProfilePage);
   
   // CRITICAL TRI-STATE GATING:
   // - undefined override: Use default (normal pages)
