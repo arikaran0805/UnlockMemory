@@ -251,6 +251,21 @@ const Header = ({
               {/* Search Dialog for public pages */}
               <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
+              {/* Cart / My Plan */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/plan")}
+                className="relative h-10 w-10 rounded-full hover:bg-muted transition-all duration-200"
+              >
+                <ShoppingBag className="h-[18px] w-[18px] text-foreground/80" strokeWidth={1.5} />
+                {itemCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold leading-none">
+                    {itemCount}
+                  </span>
+                )}
+              </Button>
+
               {/* Notification Bell - Only for Admin/Moderator */}
               {user && (isAdmin || isModerator) && (
                 <NotificationDropdown 
