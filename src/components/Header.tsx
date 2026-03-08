@@ -239,6 +239,9 @@ const Header = ({
 
             {/* Right Side Actions - Positioned to rightmost side */}
             <div className="flex items-center gap-1">
+              {/* Learner Mode Badge */}
+              <LearnerModeBadge className="mr-1 hidden sm:inline-flex" />
+              <LearnerModeBadge compact className="mr-1 sm:hidden" />
               {/* Search Button */}
               <Button 
                 variant="ghost" 
