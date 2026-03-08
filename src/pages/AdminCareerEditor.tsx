@@ -1270,6 +1270,83 @@ const AdminCareerEditor = () => {
                     </div>
                   </div>
                 </Card>
+
+                {/* Course Pricing Section */}
+                <Card className="p-6 space-y-4 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-foreground">Course Pricing</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Set original &amp; discounted price for each course mapped to this career.
+                      </p>
+                    </div>
+                    {(() => {
+                      const mappedIds = getMappedCourseIds();
+                      const total = [...mappedIds].reduce((sum, cid) => sum + (coursePrices[cid]?.original_price || 0), 0);
+                      return (
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Total Career Price</p>
+                          <p className="text-lg font-bold text-primary">₹{total.toLocaleString("en-IN")}</p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {getMappedCourseIds().size === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">
+                      No courses mapped yet. Map courses to skills in the Skill Canvas tab first.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {[...getMappedCourseIds()].map((courseId) => {
+                        const course = courses.find(c => c.id === courseId);
+                        if (!course) return null;
+                        const prices = coursePrices[courseId] || { original_price: 0, discount_price: 0 };
+                        return (
+                          <div key={courseId} className="flex items-center gap-4 p-3 rounded-lg border border-border bg-muted/20">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{course.name}</p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="space-y-1">
+                                <Label className="text-[10px] text-muted-foreground">Original (₹)</Label>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={prices.original_price}
+                                  onChange={(e) => {
+                                    const val = Math.max(0, parseInt(e.target.value) || 0);
+                                    setCoursePrices(prev => ({
+                                      ...prev,
+                                      [courseId]: { ...prev[courseId], original_price: val, discount_price: prev[courseId]?.discount_price ?? val }
+                                    }));
+                                  }}
+                                  className="w-24 h-8 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px] text-muted-foreground">Discount (₹)</Label>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={prices.discount_price}
+                                  onChange={(e) => {
+                                    const val = Math.max(0, parseInt(e.target.value) || 0);
+                                    setCoursePrices(prev => ({
+                                      ...prev,
+                                      [courseId]: { ...prev[courseId], discount_price: val }
+                                    }));
+                                  }}
+                                  className="w-24 h-8 text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
