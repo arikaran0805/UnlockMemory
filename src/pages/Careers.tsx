@@ -134,6 +134,27 @@ const Careers = () => {
           </p>
         </div>
 
+        {/* ── Search ── */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <Input
+              placeholder="Search careers or courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10 h-11 rounded-xl border-border/60 bg-card shadow-sm text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* ── Grid ── */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 lg:gap-8 items-stretch">
@@ -141,11 +162,13 @@ const Careers = () => {
               <Skeleton key={i} className="h-[460px] rounded-[20px]" />
             ))}
           </div>
-        ) : careers.length === 0 ? (
-          <p className="text-center text-muted-foreground py-16">No career paths available yet.</p>
+        ) : filteredCareers.length === 0 ? (
+          <p className="text-center text-muted-foreground py-16">
+            {searchQuery ? `No careers matching "${searchQuery}"` : "No career paths available yet."}
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 lg:gap-8 items-stretch">
-            {careers.map((career) => (
+            {filteredCareers.map((career) => (
               <CareerCard
                 key={career.id}
                 career={career}
