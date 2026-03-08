@@ -1,13 +1,59 @@
-import { useState, useMemo, useCallback } from "react";
-import { SAMPLE_COURSES, SAMPLE_CAREERS, type PricingCourse, type PricingCareer } from "./pricingData";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { SAMPLE_COURSES, type PricingCourse, type PricingCareer } from "./pricingData";
 
 export function usePricingState() {
   const [selectedCareerId, setSelectedCareerId] = useState<string | null>(null);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [careers, setCareers] = useState<PricingCareer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch careers with their linked courses from DB
+  useEffect(() => {
+    const fetchCareers = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("careers")
+        .select("id, name, description, icon, color, slug, status, career_courses(course_id, is_primary, courses(id, name, description))")
+        .eq("status", "published")
+        .order("display_order", { ascending: true });
+
+      if (!error && data) {
+        const mapped: PricingCareer[] = data.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description || "",
+          duration: "Self-paced",
+          icon: c.icon || "BookOpen",
+          includedCourseIds: (c.career_courses || [])
+            .filter((cc: any) => cc.courses)
+            .map((cc: any) => cc.courses.id),
+        }));
+        setCareers(mapped);
+      }
+      setLoading(false);
+    };
+    fetchCareers();
+  }, []);
 
   const courses = SAMPLE_COURSES;
-  const careers = SAMPLE_CAREERS;
+
+  // Combine DB course data into the courses list so cards can resolve names
+  const allCourses = useMemo(() => {
+    // Collect courses from career_courses that aren't in SAMPLE_COURSES
+    const dbCourseIds = new Set(courses.map((c) => c.id));
+    const extraCourses: PricingCourse[] = [];
+    careers.forEach((career) => {
+      career.includedCourseIds.forEach((cid) => {
+        if (!dbCourseIds.has(cid) && !extraCourses.find((e) => e.id === cid)) {
+          // We don't have price/desc for DB courses yet, use defaults
+          extraCourses.push({ id: cid, name: cid, description: "", price: 0 });
+        }
+      });
+    });
+    return [...courses, ...extraCourses];
+  }, [courses, careers]);
 
   const selectedCareer = useMemo(
     () => careers.find((c) => c.id === selectedCareerId) ?? null,
@@ -17,18 +63,18 @@ export function usePricingState() {
   const includedCourses = useMemo<PricingCourse[]>(() => {
     if (!selectedCareer) return [];
     return selectedCareer.includedCourseIds
-      .map((id) => courses.find((c) => c.id === id))
+      .map((id) => allCourses.find((c) => c.id === id))
       .filter(Boolean) as PricingCourse[];
-  }, [selectedCareer, courses]);
+  }, [selectedCareer, allCourses]);
 
   const addOnCourses = useMemo<PricingCourse[]>(() => {
     if (!selectedCareer) return [];
-    return courses.filter((c) => !selectedCareer.includedCourseIds.includes(c.id));
-  }, [selectedCareer, courses]);
+    return allCourses.filter((c) => !selectedCareer.includedCourseIds.includes(c.id));
+  }, [selectedCareer, allCourses]);
 
   const selectedCourses = useMemo<PricingCourse[]>(
-    () => selectedCourseIds.map((id) => courses.find((c) => c.id === id)).filter(Boolean) as PricingCourse[],
-    [selectedCourseIds, courses]
+    () => selectedCourseIds.map((id) => allCourses.find((c) => c.id === id)).filter(Boolean) as PricingCourse[],
+    [selectedCourseIds, allCourses]
   );
 
   const totalPrice = useMemo(
@@ -67,7 +113,7 @@ export function usePricingState() {
 
   return {
     careers,
-    courses,
+    courses: allCourses,
     selectedCareerId,
     selectedCareer,
     selectedCourseIds,
@@ -76,6 +122,7 @@ export function usePricingState() {
     selectedCourses,
     totalPrice,
     validationError,
+    loading,
     handleSelectCareer,
     handleToggleCourse,
   };
