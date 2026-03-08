@@ -16,6 +16,7 @@ interface CareerPlanCardProps {
   career: PricingCareer;
   courses: PricingCourse[];
   isSelected: boolean;
+  anySelected: boolean;
   onSelect: (id: string) => void;
 }
 
