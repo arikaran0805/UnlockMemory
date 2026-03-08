@@ -4,6 +4,7 @@ import { Route, Navigate } from "react-router-dom";
 import Index from "@/pages/Index";
 import Pricing from "@/pages/Pricing";
 import Courses from "@/pages/Courses";
+import Careers from "@/pages/Careers";
 import CourseDetail from "@/pages/CourseDetail";
 import CourseNotes from "@/pages/CourseNotes";
 import VerifyCertificate from "@/pages/VerifyCertificate";
