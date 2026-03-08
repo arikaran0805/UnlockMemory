@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { type PricingCourse, type PricingCareer, calculateBreakdown } from "./pricingData";
 
 export function usePricingState() {
+  const [searchParams] = useSearchParams();
+  const autoSelectedRef = useRef(false);
   const [selectedCareerId, setSelectedCareerId] = useState<string | null>(null);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
