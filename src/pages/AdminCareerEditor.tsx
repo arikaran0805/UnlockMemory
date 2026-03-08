@@ -305,6 +305,15 @@ const AdminCareerEditor = () => {
         .order("name");
       if (error) throw error;
       setCourses(data || []);
+      // Initialize course prices from DB
+      const prices: Record<string, { original_price: number; discount_price: number }> = {};
+      (data || []).forEach((c: any) => {
+        prices[c.id] = {
+          original_price: Number(c.original_price) || 0,
+          discount_price: Number(c.discount_price) || 0,
+        };
+      });
+      setCoursePrices(prev => ({ ...prices, ...prev }));
     } catch (error) {
       console.error("Error fetching courses:", error);
     }
