@@ -561,6 +561,7 @@ export type Database = {
           color: string
           created_at: string
           description: string | null
+          discount_percentage: number | null
           display_order: number
           icon: string
           id: string
@@ -574,6 +575,7 @@ export type Database = {
           color?: string
           created_at?: string
           description?: string | null
+          discount_percentage?: number | null
           display_order?: number
           icon?: string
           id?: string
@@ -587,6 +589,7 @@ export type Database = {
           color?: string
           created_at?: string
           description?: string | null
+          discount_percentage?: number | null
           display_order?: number
           icon?: string
           id?: string

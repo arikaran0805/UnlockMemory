@@ -155,6 +155,8 @@ interface Course {
   name: string;
   slug: string;
   description?: string | null;
+  original_price?: number | null;
+  discount_price?: number | null;
 }
 const skillIconOptions = [
   "Code2", "Database", "BarChart3", "Brain", "Cpu", "Terminal",
@@ -207,6 +209,7 @@ const AdminCareerEditor = () => {
   const [careerColor, setCareerColor] = useState(careerColorOptions[0].value);
   const [displayOrder, setDisplayOrder] = useState(0);
   const [careerStatus, setCareerStatus] = useState("draft");
+  const [careerDiscount, setCareerDiscount] = useState(0);
   const [originalAuthorId, setOriginalAuthorId] = useState<string | null>(null);
   
   // Canvas state
@@ -294,7 +297,7 @@ const AdminCareerEditor = () => {
     try {
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, slug, description")
+        .select("id, name, slug, description, original_price, discount_price")
         .order("name");
       if (error) throw error;
       setCourses(data || []);
@@ -346,6 +349,7 @@ const AdminCareerEditor = () => {
       setCareerColor(career.color);
       setDisplayOrder(career.display_order);
       setCareerStatus(career.status || "draft");
+      setCareerDiscount(Number(career.discount_percentage) || 0);
 
       // Convert skills to nodes with positions
       const nodes: SkillNode[] = (skillsRes.data || []).map((skill, index) => {
@@ -732,6 +736,7 @@ const AdminCareerEditor = () => {
             icon: careerIcon,
             color: careerColor,
             display_order: displayOrder,
+            discount_percentage: careerDiscount,
           })
           .eq("id", id);
 
@@ -774,6 +779,7 @@ const AdminCareerEditor = () => {
             icon: careerIcon,
             color: careerColor,
             display_order: displayOrder,
+            discount_percentage: careerDiscount,
           })
           .select()
           .single();
@@ -1169,6 +1175,95 @@ const AdminCareerEditor = () => {
                         Add skills to see weight distribution
                       </div>
                     )}
+                  </Card>
+
+                  {/* Career Pricing Card */}
+                  <Card className="p-5 lg:col-span-2">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <Icons.IndianRupee className="h-4 w-4 text-primary" />
+                      Career Pricing
+                    </h3>
+                    {(() => {
+                      const mappedIds = getMappedCourseIds();
+                      const mappedCourses = courses.filter(c => mappedIds.has(c.id));
+                      const totalOriginal = mappedCourses.reduce((sum, c) => sum + (Number(c.original_price) || 0), 0);
+                      const discountedTotal = careerDiscount > 0 ? Math.round(totalOriginal * (1 - careerDiscount / 100)) : totalOriginal;
+                      const savings = totalOriginal - discountedTotal;
+
+                      return (
+                        <div className="space-y-4">
+                          {/* Course list */}
+                          {mappedCourses.length > 0 ? (
+                            <div className="space-y-2">
+                              {mappedCourses.map(course => (
+                                <div key={course.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm font-medium">{course.name}</span>
+                                  </div>
+                                  <span className="text-sm font-semibold">
+                                    {Number(course.original_price) ? `₹${Number(course.original_price).toLocaleString("en-IN")}` : "—"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="py-4 text-center text-muted-foreground text-sm">
+                              No courses mapped yet
+                            </div>
+                          )}
+
+                          {/* Subtotal */}
+                          <div className="flex items-center justify-between pt-3 border-t border-border">
+                            <span className="text-sm text-muted-foreground">Total Original Price</span>
+                            <span className="text-sm font-semibold">₹{totalOriginal.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          {/* Discount input */}
+                          <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                            <Label className="text-sm font-medium whitespace-nowrap">Career Discount</Label>
+                            <div className="flex items-center gap-2 ml-auto">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={careerDiscount}
+                                onChange={(e) => setCareerDiscount(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                className="w-20 h-8 text-sm text-center"
+                              />
+                              <span className="text-sm font-medium">%</span>
+                            </div>
+                          </div>
+
+                          {/* Final price */}
+                          {careerDiscount > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Discount Amount</span>
+                              <span className="text-sm font-medium text-green-600">-₹{savings.toLocaleString("en-IN")}</span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pt-3 border-t border-border">
+                            <span className="font-semibold">Final Career Price</span>
+                            <div className="text-right">
+                              {careerDiscount > 0 && (
+                                <p className="text-xs text-muted-foreground line-through">₹{totalOriginal.toLocaleString("en-IN")}</p>
+                              )}
+                              <p className="text-lg font-bold text-primary">₹{discountedTotal.toLocaleString("en-IN")}</p>
+                            </div>
+                          </div>
+
+                          {careerDiscount > 0 && savings > 0 && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 text-green-700 dark:text-green-400">
+                              <Icons.BadgePercent className="h-4 w-4" />
+                              <span className="text-sm font-medium">
+                                Students save ₹{savings.toLocaleString("en-IN")} ({careerDiscount}% off)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </Card>
                 </div>
               </TabsContent>
