@@ -14,6 +14,7 @@ export interface PricingCareer {
   duration: string;
   icon: string;
   includedCourseIds: string[];
+  discountPercentage: number;
 }
 
 export interface PricingBreakdown {
