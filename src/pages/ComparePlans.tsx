@@ -71,7 +71,7 @@ const CellValue = ({ value }: { value: boolean | string }) => {
 };
 
 const ComparePlans = () => {
-  const { learnerMode, activateProMode, isProMode } = useLearnerMode();
+  const { confirmProMode, isProMode } = useLearnerMode();
   const navigate = useNavigate();
 
   // Group features by category
