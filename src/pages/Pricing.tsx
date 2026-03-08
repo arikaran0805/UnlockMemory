@@ -21,6 +21,7 @@ const Pricing = () => {
     selectedCourses,
     totalPrice,
     validationError,
+    loading,
     handleSelectCareer,
     handleToggleCourse,
   } = usePricingState();
