@@ -38,6 +38,7 @@ import AdminPredictOutputProblems from "@/pages/AdminPredictOutputProblems";
 import AdminPredictOutputEditor from "@/pages/AdminPredictOutputEditor";
 import AdminFixErrorEditor from "@/pages/AdminFixErrorEditor";
 import AdminEliminateWrongEditor from "@/pages/AdminEliminateWrongEditor";
+import AdminPromoCodes from "@/pages/AdminPromoCodes";
 import NotFound from "@/pages/NotFound";
 
 /**
