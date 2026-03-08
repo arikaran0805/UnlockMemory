@@ -11,17 +11,14 @@ import { toast } from "@/hooks/use-toast";
 export type LearnerMode = "FREE" | "PRO";
 
 interface LearnerModeContextValue {
-  /** Current learner mode */
   learnerMode: LearnerMode;
-  /** Check if user is in FREE mode */
   isFreeMode: boolean;
-  /** Check if user is in PRO mode */
   isProMode: boolean;
-  /** Activate PRO mode - shows toast and unlocks features */
+  /** Navigates to compare-plans page */
   activateProMode: () => void;
-  /** Reset to FREE mode */
+  /** Actually confirms and sets PRO mode (used on compare-plans page) */
+  confirmProMode: () => void;
   resetToFreeMode: () => void;
-  /** Toggle between modes */
   toggleMode: () => void;
 }
 
