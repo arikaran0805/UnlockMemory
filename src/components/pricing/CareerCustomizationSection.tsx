@@ -59,7 +59,7 @@ const CareerCustomizationSection = ({
         <div>
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Included in this Career</h3>
         </div>
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {includedCourses.map((c) => (
             <CourseSelectionCard
               key={c.id}
