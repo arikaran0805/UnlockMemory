@@ -38,7 +38,7 @@ export function calculateBreakdown(
   promoDiscount: number,
   careerDiscountPercent: number = 0
 ): PricingBreakdown {
-  const courseSubtotal = selectedCourses.reduce((sum, c) => sum + c.originalPrice, 0);
+  const courseSubtotal = selectedCourses.reduce((sum, c) => sum + c.discountPrice, 0);
 
   // Bundle discount uses the career's discount_percentage
   const bundleDiscount =

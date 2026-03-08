@@ -75,7 +75,8 @@ const PricingSummaryPanel = ({
                 <li key={c.id} className="flex items-center justify-between text-sm gap-2">
                   <span className="text-foreground truncate mr-2">{c.name}</span>
                   <span className="text-foreground font-medium whitespace-nowrap shrink-0">
-                    {formatPrice(c.originalPrice)}
+                    {formatPrice(c.discountPrice)}
+                  </span>
                   </span>
                 </li>
               ))}
