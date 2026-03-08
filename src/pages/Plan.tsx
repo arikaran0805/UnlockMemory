@@ -512,7 +512,7 @@ function OrderSummaryCard({
         </div>
       )}
 
-      <Button className="w-full h-12 text-base font-semibold" size="lg" disabled={allCourses.length === 0}>
+      <Button className="w-full h-12 text-base font-semibold" size="lg" disabled={allCourses.length === 0} onClick={onCheckout}>
         <Zap className="h-4 w-4 mr-2" />
         Ready for Checkout
       </Button>
