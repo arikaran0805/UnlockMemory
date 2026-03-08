@@ -349,6 +349,7 @@ const AdminCareerEditor = () => {
       setCareerColor(career.color);
       setDisplayOrder(career.display_order);
       setCareerStatus(career.status || "draft");
+      setCareerDiscount(Number(career.discount_percentage) || 0);
 
       // Convert skills to nodes with positions
       const nodes: SkillNode[] = (skillsRes.data || []).map((skill, index) => {
