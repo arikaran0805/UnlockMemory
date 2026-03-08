@@ -57,6 +57,7 @@ const Header = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isPro } = useUserState();
+  const { itemCount } = useCareerPlan();
 
   // Hide secondary course header for Pro users on Profile/Dashboard page
   const isProfilePage = location.pathname === "/profile";
