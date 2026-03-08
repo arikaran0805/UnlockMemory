@@ -5,22 +5,20 @@
  * Persists to localStorage and provides mode switching throughout the app.
  */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 export type LearnerMode = "FREE" | "PRO";
 
 interface LearnerModeContextValue {
-  /** Current learner mode */
   learnerMode: LearnerMode;
-  /** Check if user is in FREE mode */
   isFreeMode: boolean;
-  /** Check if user is in PRO mode */
   isProMode: boolean;
-  /** Activate PRO mode - shows toast and unlocks features */
+  /** Navigates to compare-plans page */
   activateProMode: () => void;
-  /** Reset to FREE mode */
+  /** Actually confirms and sets PRO mode (used on compare-plans page) */
+  confirmProMode: () => void;
   resetToFreeMode: () => void;
-  /** Toggle between modes */
   toggleMode: () => void;
 }
 
@@ -29,6 +27,7 @@ const LearnerModeContext = createContext<LearnerModeContextValue | undefined>(un
 const STORAGE_KEY = "lovable_learner_mode";
 
 export const LearnerModeProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
   const [learnerMode, setLearnerMode] = useState<LearnerMode>(() => {
     if (typeof window === "undefined") return "FREE";
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -40,7 +39,13 @@ export const LearnerModeProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STORAGE_KEY, learnerMode);
   }, [learnerMode]);
 
+  /** Redirect to compare-plans page instead of instantly activating */
   const activateProMode = useCallback(() => {
+    navigate("/compare-plans");
+  }, [navigate]);
+
+  /** Actually sets PRO mode - called from compare-plans page */
+  const confirmProMode = useCallback(() => {
     setLearnerMode("PRO");
     toast({
       title: "✨ You are now a Pro Learner",
@@ -69,6 +74,7 @@ export const LearnerModeProvider = ({ children }: { children: ReactNode }) => {
     isFreeMode: learnerMode === "FREE",
     isProMode: learnerMode === "PRO",
     activateProMode,
+    confirmProMode,
     resetToFreeMode,
     toggleMode,
   };

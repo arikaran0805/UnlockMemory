@@ -71,7 +71,7 @@ const CellValue = ({ value }: { value: boolean | string }) => {
 };
 
 const ComparePlans = () => {
-  const { learnerMode, activateProMode, isProMode } = useLearnerMode();
+  const { confirmProMode, isProMode } = useLearnerMode();
   const navigate = useNavigate();
 
   // Group features by category
@@ -256,7 +256,7 @@ const ComparePlans = () => {
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
                 Upgrade to Pro and get course customization, bundle discounts, certificates, and more.
               </p>
-              <Button size="lg" onClick={activateProMode} className="gap-2">
+              <Button size="lg" onClick={confirmProMode} className="gap-2">
                 <Sparkles className="h-4 w-4" />
                 Upgrade to Pro
               </Button>
