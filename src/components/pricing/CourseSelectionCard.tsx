@@ -8,7 +8,7 @@ interface CourseSelectionCardProps {
   name: string;
   description: string;
   price: number;
-  type: "included" | "addon";
+  type: "default" | "included" | "addon";
   isSelected: boolean;
   onToggle: (id: string) => void;
 }
