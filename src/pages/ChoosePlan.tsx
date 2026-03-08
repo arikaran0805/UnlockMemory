@@ -49,7 +49,7 @@ const ChoosePlan = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-foreground leading-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
               Choose Your Learning Path
             </h1>
             <p className="mt-5 text-lg md:text-xl text-muted-foreground max-w-xl mx-auto font-normal leading-relaxed">
