@@ -122,7 +122,7 @@ const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loadin
       ) : displayCareers.length > 0 ? (
         <div className={`grid gap-4 ${
           displayCareers.length === 1 
-            ? "sm:grid-cols-1 max-w-md" 
+            ? "grid-cols-1" 
             : "sm:grid-cols-2 lg:grid-cols-3"
         }`}>
           {displayCareers.map((career) => (
