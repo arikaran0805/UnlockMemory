@@ -185,15 +185,9 @@ function CareerCartCard({
               <p className="text-xl font-bold text-foreground">{formatPrice(basePrice)}</p>
             </div>
             <div className="flex items-center gap-2">
-              {isCustomizing ? (
-                <Button size="sm" variant="default" disabled className="shrink-0">
-                  Customizing
-                </Button>
-              ) : (
-                <Button size="sm" variant="default" onClick={onCustomize} className="shrink-0">
-                  Customize
-                </Button>
-              )}
+              <Button size="sm" variant="default" onClick={onCustomize} className="shrink-0">
+                {isCustomizing ? "Customizing" : "Customize"}
+              </Button>
               <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={onRemove}>
                 <Trash2 className="h-4 w-4" />
               </Button>
