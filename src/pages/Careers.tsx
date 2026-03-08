@@ -135,7 +135,7 @@ const Careers = () => {
         </div>
 
         {/* ── Search ── */}
-        <div className="max-w-md mx-auto mb-8">
+        <div className="max-w-xl mx-auto mb-8">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
             <Input
