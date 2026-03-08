@@ -1,4 +1,7 @@
-import { ShieldCheck, Sparkles, Settings2, Zap, Tag, X, Package, PartyPopper } from "lucide-react";
+import { ShieldCheck, Sparkles, Settings2, Zap, Tag, X, Package, PartyPopper, Copy, Ticket } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -149,6 +152,14 @@ const PricingSummaryPanel = ({
                 {promoError && (
                   <p className="text-[11px] text-destructive">{promoError}</p>
                 )}
+
+                {/* Available promo codes */}
+                <AvailablePromoCodes
+                  onApply={(code) => {
+                    onPromoCodeChange(code);
+                    onApplyPromo(code);
+                  }}
+                />
               </div>
             )}
           </div>
@@ -201,5 +212,56 @@ const PricingSummaryPanel = ({
     </div>
   );
 };
+
+/* ─── Available Promo Codes list ─── */
+function AvailablePromoCodes({ onApply }: { onApply: (code: string) => void }) {
+  const { data: codes = [] } = useQuery({
+    queryKey: ["active-promo-codes-pricing"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("code, discount_type, discount_value, max_discount, description, expiry_date")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      // Filter out expired codes client-side
+      return (data ?? []).filter(
+        (c: any) => !c.expiry_date || new Date(c.expiry_date) > new Date()
+      );
+    },
+  });
+
+  if (codes.length === 0) return null;
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+        <Ticket className="h-3 w-3" /> Available Codes
+      </p>
+      <div className="space-y-1">
+        {codes.map((c: any) => (
+          <button
+            key={c.code}
+            type="button"
+            onClick={() => onApply(c.code)}
+            className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-md border border-dashed border-border hover:border-primary/40 hover:bg-accent transition-colors text-left group"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-mono text-xs font-semibold text-foreground">{c.code}</span>
+              <span className="text-[10px] text-muted-foreground truncate">
+                {c.discount_type === "percentage"
+                  ? `${c.discount_value}% off${c.max_discount ? ` (max ₹${c.max_discount})` : ""}`
+                  : `₹${c.discount_value} off`}
+              </span>
+            </div>
+            <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              Apply
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default PricingSummaryPanel;
