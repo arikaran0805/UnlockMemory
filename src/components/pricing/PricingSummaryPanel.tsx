@@ -20,6 +20,7 @@ interface Props {
   promoError: string | null;
   onApplyPromo: (code: string) => void;
   onRemovePromo: () => void;
+  onCheckout?: () => void;
 }
 
 const PricingSummaryPanel = ({
