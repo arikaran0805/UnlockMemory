@@ -779,6 +779,7 @@ const AdminCareerEditor = () => {
             icon: careerIcon,
             color: careerColor,
             display_order: displayOrder,
+            discount_percentage: careerDiscount,
           })
           .select()
           .single();
