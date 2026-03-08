@@ -30,6 +30,7 @@ import {
   UserCog,
   Users2,
   Dumbbell,
+  Ticket,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
