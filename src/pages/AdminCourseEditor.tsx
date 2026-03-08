@@ -77,6 +77,8 @@ const AdminCourseEditor = () => {
     learning_hours: 0,
     status: "draft" as string,
     assigned_to: "" as string,
+    original_price: 0,
+    discount_percentage: 0,
   });
   
   // Prerequisites hook for the new linked prerequisites system
