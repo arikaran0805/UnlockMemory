@@ -30,6 +30,7 @@ import {
   UserCog,
   Users2,
   Dumbbell,
+  Ticket,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
@@ -86,6 +87,7 @@ const systemSection: SidebarSection = {
     { icon: Users2, label: "Team Ownership", path: "/admin/team-ownership" },
     { icon: UserCog, label: "Assignment Logs", path: "/admin/assignments" },
     { icon: DollarSign, label: "Monetization", path: "/admin/monetization" },
+    { icon: Ticket, label: "Promo Codes", path: "/admin/promo-codes" },
     { icon: Link2, label: "Redirects", path: "/admin/redirects" },
     { icon: Key, label: "API & Integrations", path: "/admin/api" },
   ],

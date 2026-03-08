@@ -3001,6 +3001,101 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_code_redemptions: {
+        Row: {
+          discount_amount: number
+          id: string
+          order_id: string | null
+          promo_code_id: string
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          promo_code_id: string
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          promo_code_id?: string
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_redemptions_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          applies_to_ids: string[] | null
+          applies_to_type: string
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expiry_date: string | null
+          id: string
+          is_active: boolean
+          max_discount: number | null
+          min_purchase: number | null
+          per_user_limit: number | null
+          start_date: string | null
+          updated_at: string
+          usage_limit: number | null
+          used_count: number
+        }
+        Insert: {
+          applies_to_ids?: string[] | null
+          applies_to_type?: string
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          min_purchase?: number | null
+          per_user_limit?: number | null
+          start_date?: string | null
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+        }
+        Update: {
+          applies_to_ids?: string[] | null
+          applies_to_type?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          min_purchase?: number | null
+          per_user_limit?: number | null
+          start_date?: string | null
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+        }
+        Relationships: []
+      }
       redirects: {
         Row: {
           created_at: string
