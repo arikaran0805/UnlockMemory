@@ -862,6 +862,10 @@ const AdminCareerEditor = () => {
                     <Target className="h-3.5 w-3.5 mr-1.5" />
                     Skill Canvas
                   </TabsTrigger>
+                  <TabsTrigger value="pricing" className="text-xs px-3">
+                    <Icons.IndianRupee className="h-3.5 w-3.5 mr-1.5" />
+                    Pricing
+                  </TabsTrigger>
                   <TabsTrigger value="preview" className="text-xs px-3">
                     <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
                     Preview
