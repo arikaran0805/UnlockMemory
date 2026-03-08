@@ -3,6 +3,7 @@ import { Route, Navigate } from "react-router-dom";
 // Public Pages
 import Index from "@/pages/Index";
 import Pricing from "@/pages/Pricing";
+import Plan from "@/pages/Plan";
 import Courses from "@/pages/Courses";
 import Careers from "@/pages/Careers";
 import CourseDetail from "@/pages/CourseDetail";
