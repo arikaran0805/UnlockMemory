@@ -135,6 +135,9 @@ const Careers = () => {
           </p>
         </div>
 
+        {/* ── Pro Upgrade Banner (FREE mode only) ── */}
+        <ProUpgradeBanner className="mb-8" dismissible />
+
         {/* ── Search ── */}
         <div className="mb-8">
           <div className="relative">

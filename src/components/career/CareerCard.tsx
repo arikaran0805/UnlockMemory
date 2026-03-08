@@ -1,10 +1,12 @@
 import {
   BarChart3, Briefcase, Brain, BookOpen, ArrowRight, Check,
   Settings2, Star, Flame, Rocket, Users, ChevronDown, ChevronUp,
-  ShieldCheck, Clock, Package,
+  ShieldCheck, Clock, Package, Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLearnerMode } from "@/contexts/LearnerModeContext";
+import { LockIndicator } from "@/components/FeatureLock";
 import type { PricingCourse } from "@/components/pricing/pricingData";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -57,6 +59,7 @@ export function CareerCard({
   const badge = career.badgeType ? BADGE_CONFIG[career.badgeType] : null;
   const previewCourses = isCoursesExpanded ? career.courses : career.courses.slice(0, 3);
   const hasMoreCourses = career.courses.length > 3;
+  const { isFreeMode, activateProMode } = useLearnerMode();
 
   return (
     <div
@@ -192,9 +195,16 @@ export function CareerCard({
                 Added to your plan
               </p>
               <div className="flex gap-2">
-                <Button size="sm" onClick={onCustomize} className="flex-1 h-9 text-xs font-semibold rounded-lg">
-                  Customize Now
-                </Button>
+                {isFreeMode ? (
+                  <Button size="sm" onClick={activateProMode} className="flex-1 h-9 text-xs font-semibold rounded-lg gap-1">
+                    <Lock className="h-3 w-3" />
+                    Upgrade to Customize
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={onCustomize} className="flex-1 h-9 text-xs font-semibold rounded-lg">
+                    Customize Now
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={onReviewPlan} className="flex-1 h-9 text-xs font-semibold rounded-lg">
                   Review Plan
                 </Button>
@@ -213,6 +223,23 @@ export function CareerCard({
                   Add to Plan
                   <ArrowRight className="h-4 w-4 ml-1.5" />
                 </Button>
+              ) : isFreeMode ? (
+                /* FREE mode: Show customize as locked */
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    onClick={activateProMode}
+                    className="w-full h-11 text-sm font-semibold rounded-xl transition-all duration-200 gap-1.5"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    Customize Plan
+                    <LockIndicator className="ml-auto" />
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground/60 text-center flex items-center justify-center gap-1">
+                    <Lock className="h-3 w-3 text-muted-foreground/40" />
+                    Customization available in Pro
+                  </p>
+                </div>
               ) : (
                 <Button
                   variant="outline"

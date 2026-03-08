@@ -21,6 +21,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { SearchDialog } from "./SearchDialog";
 import NotificationDropdown from "./NotificationDropdown";
 import { useCareerPlan } from "@/contexts/CareerPlanContext";
+import { LearnerModeBadge } from "./LearnerModeBadge";
 
 interface SiteSettings {
   site_name: string;
