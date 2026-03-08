@@ -1,6 +1,7 @@
 import { Lock, StickyNote, Sparkles, Award, HelpCircle, type LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useLearnerMode } from "@/contexts/LearnerModeContext";
 
 interface LockedFeatureCardProps {
   icon: LucideIcon;
@@ -9,10 +10,6 @@ interface LockedFeatureCardProps {
   onUpgrade?: () => void;
 }
 
-/**
- * Individual locked feature card for Pro-only features
- * Shows lock icon and upgrade CTA
- */
 export const LockedFeatureCard = ({ 
   icon: Icon, 
   title, 
@@ -44,19 +41,22 @@ interface LockedSidebarSectionProps {
   onUpgrade?: () => void;
 }
 
-/**
- * Grouped locked sidebar sections for learners
- * Shows multiple locked Pro features with single upgrade CTA
- */
 export const LockedSidebarSection = ({ 
   className = "",
   onUpgrade,
 }: LockedSidebarSectionProps) => {
+  const { activateProMode } = useLearnerMode();
+  
   const lockedFeatures = [
     { icon: StickyNote, title: "Quick & Deep Notes" },
     { icon: Sparkles, title: "Practice & Reinforce" },
     { icon: Award, title: "Certificate" },
   ];
+
+  const handleUpgrade = () => {
+    activateProMode();
+    onUpgrade?.();
+  };
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -71,7 +71,7 @@ export const LockedSidebarSection = ({
         variant="outline" 
         size="sm" 
         className="w-full mt-3 border-primary/30 hover:bg-primary/10"
-        onClick={onUpgrade}
+        onClick={handleUpgrade}
       >
         <Sparkles className="h-3.5 w-3.5 mr-1.5" />
         Upgrade to Pro
