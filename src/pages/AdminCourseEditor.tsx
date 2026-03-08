@@ -355,6 +355,10 @@ const AdminCourseEditor = () => {
 
       const isPublishing = status === "published";
 
+      const discountPrice = formData.original_price > 0 && formData.discount_percentage > 0
+        ? Math.round(formData.original_price * (1 - formData.discount_percentage / 100))
+        : formData.original_price;
+
       const courseData: any = {
         name: formData.name,
         slug: formData.slug,
@@ -366,6 +370,8 @@ const AdminCourseEditor = () => {
         learning_hours: formData.learning_hours,
         status,
         author_id: originalAuthorId || session.user.id,
+        original_price: formData.original_price || null,
+        discount_price: discountPrice || null,
       };
 
       if (isAdmin) {
