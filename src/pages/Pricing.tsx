@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
 import PricingHeroSection from "@/components/pricing/PricingHeroSection";
@@ -8,6 +9,7 @@ import PricingSummaryPanel from "@/components/pricing/PricingSummaryPanel";
 import { usePricingState } from "@/components/pricing/usePricingState";
 
 const Pricing = () => {
+  const navigate = useNavigate();
   const customizationRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -35,6 +37,23 @@ const Pricing = () => {
     // Breakdown
     breakdown,
   } = usePricingState();
+
+  const handleCheckout = useCallback(() => {
+    if (!selectedCareer || selectedCourses.length === 0) return;
+    const cartData = {
+      careerId: selectedCareer.id,
+      careerName: selectedCareer.name,
+      courses: selectedCourses.map((c) => ({ id: c.id, name: c.name, price: c.discountPrice })),
+      subtotal: breakdown.courseSubtotal,
+      bundleDiscount: breakdown.bundleDiscount,
+      promoCode: appliedPromo,
+      promoDiscount: breakdown.promoDiscount,
+      finalTotal: breakdown.finalTotal,
+      savings: breakdown.savings,
+    };
+    sessionStorage.setItem("checkout_cart", JSON.stringify(cartData));
+    navigate("/checkout");
+  }, [selectedCareer, selectedCourses, breakdown, appliedPromo, navigate]);
 
   const onSelectCareer = (id: string) => {
     handleSelectCareer(id);
@@ -91,6 +110,7 @@ const Pricing = () => {
                 promoError={promoError}
                 onApplyPromo={handleApplyPromo}
                 onRemovePromo={handleRemovePromo}
+                onCheckout={handleCheckout}
               />
             </div>
           </div>
@@ -108,6 +128,7 @@ const Pricing = () => {
               </div>
               <button
                 disabled={selectedCourses.length === 0}
+                onClick={handleCheckout}
                 className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm disabled:opacity-50"
               >
                 Ready for Checkout

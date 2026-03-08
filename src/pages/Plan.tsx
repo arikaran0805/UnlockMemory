@@ -26,6 +26,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 const Plan = () => {
+  const navigate = useNavigate();
   const {
     items, removeCareer, toggleCourse,
     customizingCareerId, setCustomizingCareerId,
@@ -36,6 +37,23 @@ const Plan = () => {
 
   const { totalBreakdown } = getBreakdown();
   const allCourses = getAllSelectedCourses();
+
+  const handleCheckout = () => {
+    if (allCourses.length === 0) return;
+    const cartData = {
+      careerId: items[0]?.careerId || "",
+      careerName: items.map((i) => i.careerName).join(", "),
+      courses: allCourses.map((c) => ({ id: c.id, name: c.name, price: c.discountPrice })),
+      subtotal: totalBreakdown.courseSubtotal,
+      bundleDiscount: totalBreakdown.bundleDiscount,
+      promoCode: appliedPromo,
+      promoDiscount: totalBreakdown.promoDiscount,
+      finalTotal: totalBreakdown.finalTotal,
+      savings: totalBreakdown.savings,
+    };
+    sessionStorage.setItem("checkout_cart", JSON.stringify(cartData));
+    navigate("/checkout");
+  };
 
   if (items.length === 0) {
     return (
@@ -103,6 +121,7 @@ const Plan = () => {
                 onApplyPromo={handleApplyPromo}
                 onRemovePromo={handleRemovePromo}
                 itemCount={items.length}
+                onCheckout={handleCheckout}
               />
             </div>
           </div>
@@ -117,7 +136,7 @@ const Plan = () => {
               </p>
               <p className="text-lg font-bold text-foreground">{formatPrice(totalBreakdown.finalTotal)}</p>
             </div>
-            <Button disabled={allCourses.length === 0}>
+            <Button disabled={allCourses.length === 0} onClick={handleCheckout}>
               <Zap className="h-4 w-4 mr-2" />
               Ready for Checkout
             </Button>
@@ -404,7 +423,7 @@ function CustomizationSection({
 /* ─── Order Summary Card ─── */
 function OrderSummaryCard({
   allCourses, breakdown, promoCode, onPromoCodeChange,
-  appliedPromo, promoError, onApplyPromo, onRemovePromo, itemCount,
+  appliedPromo, promoError, onApplyPromo, onRemovePromo, itemCount, onCheckout,
 }: {
   allCourses: { id: string; name: string; originalPrice: number; discountPrice: number }[];
   breakdown: { courseSubtotal: number; bundleDiscount: number; promoDiscount: number; finalTotal: number; savings: number; itemCount: number };
@@ -415,6 +434,7 @@ function OrderSummaryCard({
   onApplyPromo: (code: string) => void;
   onRemovePromo: () => void;
   itemCount: number;
+  onCheckout?: () => void;
 }) {
   const hasBundleDiscount = breakdown.bundleDiscount > 0;
   const hasSavings = breakdown.savings > 0;
@@ -511,7 +531,7 @@ function OrderSummaryCard({
         </div>
       )}
 
-      <Button className="w-full h-12 text-base font-semibold" size="lg" disabled={allCourses.length === 0}>
+      <Button className="w-full h-12 text-base font-semibold" size="lg" disabled={allCourses.length === 0} onClick={onCheckout}>
         <Zap className="h-4 w-4 mr-2" />
         Ready for Checkout
       </Button>
