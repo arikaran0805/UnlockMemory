@@ -822,6 +822,20 @@ const AdminCareerEditor = () => {
         toast({ title: "Career created successfully" });
       }
 
+      // Save course prices to courses table
+      const priceUpdates = courseIds.map(courseId => {
+        const prices = coursePrices[courseId];
+        if (!prices) return null;
+        return supabase
+          .from("courses")
+          .update({
+            original_price: prices.original_price,
+            discount_price: prices.discount_price,
+          })
+          .eq("id", courseId);
+      }).filter(Boolean);
+      await Promise.all(priceUpdates);
+
       navigate("/admin/careers");
     } catch (error: any) {
       toast({ title: "Error saving career", description: error.message, variant: "destructive" });
