@@ -224,14 +224,45 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
   }, [items]);
 
   const getBreakdown = useCallback(() => {
-    const allCourses = getAllSelectedCourses();
-    const avgDiscount =
-      items.length > 0
-        ? items.reduce((s, i) => s + i.discountPercentage, 0) / items.length
-        : 0;
-    const totalBreakdown = calculateBreakdown(allCourses, promoDiscount, avgDiscount);
+    // Calculate bundle discount per career individually, then sum
+    let totalSubtotal = 0;
+    let totalBundleDiscount = 0;
+    const seen = new Set<string>();
+
+    for (const item of items) {
+      const selectedCourses = item.selectedCourseIds
+        .map((id) => item.courses.find((c) => c.id === id))
+        .filter(Boolean) as PricingCourse[];
+
+      for (const c of selectedCourses) {
+        if (!seen.has(c.id)) {
+          seen.add(c.id);
+          totalSubtotal += c.discountPrice;
+        }
+      }
+
+      const itemSubtotal = selectedCourses.reduce((s, c) => s + c.discountPrice, 0);
+      if (item.discountPercentage > 0 && selectedCourses.length >= 2) {
+        totalBundleDiscount += Math.round(itemSubtotal * (item.discountPercentage / 100));
+      }
+    }
+
+    const subtotalAfterBundle = totalSubtotal - totalBundleDiscount;
+    const finalTotal = Math.max(0, subtotalAfterBundle - promoDiscount);
+    const savings = totalSubtotal - finalTotal;
+
+    const totalBreakdown: PricingBreakdown = {
+      courseSubtotal: totalSubtotal,
+      bundleDiscount: totalBundleDiscount,
+      subtotalAfterBundle,
+      promoDiscount,
+      finalTotal,
+      savings,
+      itemCount: seen.size,
+    };
+
     return { items, totalBreakdown };
-  }, [items, promoDiscount, getAllSelectedCourses]);
+  }, [items, promoDiscount]);
 
   const handleApplyPromo = useCallback(
     async (code: string) => {
