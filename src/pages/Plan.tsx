@@ -139,7 +139,13 @@ function CareerCartCard({
   onToggleCourse: (courseId: string) => void;
 }) {
   const Icon = ICON_MAP[item.careerIcon] || BookOpen;
-  const basePrice = item.courses.reduce((s, c) => s + c.originalPrice, 0);
+  const subtotal = item.courses
+    .filter((c) => item.selectedCourseIds.includes(c.id))
+    .reduce((s, c) => s + c.discountPrice, 0);
+  const discountPct = item.discountPercentage || 0;
+  const discountedTotal = discountPct > 0 && item.selectedCourseIds.length >= 2
+    ? Math.round(subtotal * (1 - discountPct / 100))
+    : subtotal;
 
   return (
     <div className="space-y-8">
@@ -181,8 +187,12 @@ function CareerCartCard({
 
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xs text-muted-foreground">Starts from</span>
-              <p className="text-xl font-bold text-foreground">{formatPrice(basePrice)}</p>
+              <p className="text-xl font-bold text-foreground">{formatPrice(discountedTotal)}</p>
+              {discountedTotal < subtotal && (
+                <p className="text-xs text-primary font-medium">
+                  You save {formatPrice(subtotal - discountedTotal)} with this bundle
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="default" onClick={onCustomize} className="shrink-0">
@@ -395,7 +405,7 @@ function OrderSummaryCard({
   allCourses, breakdown, promoCode, onPromoCodeChange,
   appliedPromo, promoError, onApplyPromo, onRemovePromo, itemCount,
 }: {
-  allCourses: { id: string; name: string; originalPrice: number }[];
+  allCourses: { id: string; name: string; originalPrice: number; discountPrice: number }[];
   breakdown: { courseSubtotal: number; bundleDiscount: number; promoDiscount: number; finalTotal: number; savings: number; itemCount: number };
   promoCode: string;
   onPromoCodeChange: (v: string) => void;
@@ -423,7 +433,7 @@ function OrderSummaryCard({
             <li key={c.id} className="flex items-center justify-between text-sm gap-2">
               <span className="text-foreground truncate mr-2">{c.name}</span>
               <span className="text-foreground font-medium whitespace-nowrap shrink-0">
-                {formatPrice(c.originalPrice)}
+                {formatPrice(c.discountPrice)}
               </span>
             </li>
           ))}
