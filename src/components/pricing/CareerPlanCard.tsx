@@ -57,9 +57,6 @@ const CareerPlanCard = ({ career, courses, isSelected, anySelected, onSelect }: 
               {showMetaBelow && (
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                   <span className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" /> {career.duration}
-                  </span>
-                  <span className="flex items-center gap-1.5">
                     <BookOpen className="h-3.5 w-3.5" /> {includedCourses.length} courses
                   </span>
                 </div>
