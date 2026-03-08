@@ -77,7 +77,6 @@ const PricingSummaryPanel = ({
                   <span className="text-foreground font-medium whitespace-nowrap shrink-0">
                     {formatPrice(c.discountPrice)}
                   </span>
-                  </span>
                 </li>
               ))}
             </ul>
