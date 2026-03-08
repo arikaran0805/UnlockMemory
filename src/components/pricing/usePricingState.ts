@@ -22,7 +22,7 @@ export function usePricingState() {
       setLoading(true);
       const { data, error } = await supabase
         .from("careers")
-        .select("id, name, description, icon, color, slug, status, career_courses(course_id, is_primary, courses(id, name, description, original_price, discount_price))")
+        .select("id, name, description, icon, color, slug, status, discount_percentage, career_courses(course_id, is_primary, courses(id, name, description, original_price, discount_price))")
         .eq("status", "published")
         .order("display_order", { ascending: true });
 
