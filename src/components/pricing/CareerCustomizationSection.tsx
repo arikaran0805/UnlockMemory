@@ -39,7 +39,7 @@ const CareerCustomizationSection = ({
       setSearching(true);
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, description")
+        .select("id, name, description, original_price, discount_price")
         .ilike("name", `%${debouncedSearch}%`)
         .eq("status", "published")
         .limit(10);
