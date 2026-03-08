@@ -209,6 +209,7 @@ const AdminCareerEditor = () => {
   const [careerColor, setCareerColor] = useState(careerColorOptions[0].value);
   const [displayOrder, setDisplayOrder] = useState(0);
   const [careerStatus, setCareerStatus] = useState("draft");
+  const [careerDiscount, setCareerDiscount] = useState(0);
   const [originalAuthorId, setOriginalAuthorId] = useState<string | null>(null);
   
   // Canvas state
