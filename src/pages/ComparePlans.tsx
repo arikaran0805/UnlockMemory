@@ -169,17 +169,10 @@ const ComparePlans = () => {
                 </li>
               ))}
             </ul>
-            {isProMode ? (
-              <Button className="w-full gap-1.5" onClick={() => navigate("/careers")}>
-                <Sparkles className="h-4 w-4" />
-                Continue Learning
-              </Button>
-            ) : (
-              <Button className="w-full gap-1.5" onClick={activateProMode}>
-                <Sparkles className="h-4 w-4" />
-                Upgrade to Pro
-              </Button>
-            )}
+            <Button className="w-full gap-1.5" onClick={() => navigate("/careers")}>
+              <ArrowRight className="h-4 w-4" />
+              Browse Careers
+            </Button>
           </div>
         </div>
 
