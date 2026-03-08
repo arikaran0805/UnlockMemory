@@ -42,34 +42,24 @@ const CareerPlanCard = ({ career, courses, isSelected, onSelect }: CareerPlanCar
         </div>
       )}
       <CardContent className="p-6 space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-            <Icon className="h-5 w-5" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+              <Icon className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-foreground text-lg leading-tight">{career.name}</h3>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{career.description}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h3 className="font-semibold text-foreground text-lg leading-tight">{career.name}</h3>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{career.description}</p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground shrink-0">
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" /> {career.duration}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" /> {includedCourses.length} courses
+            </span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> {career.duration}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <BookOpen className="h-3.5 w-3.5" /> {includedCourses.length} courses
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {includedCourses.slice(0, 4).map((c) => (
-            <Badge key={c.id} variant="secondary" className="text-xs font-normal">
-              {c.name}
-            </Badge>
-          ))}
-          {includedCourses.length > 4 && (
-            <Badge variant="secondary" className="text-xs font-normal">+{includedCourses.length - 4}</Badge>
-          )}
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
