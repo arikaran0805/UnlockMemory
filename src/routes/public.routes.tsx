@@ -33,6 +33,7 @@ import PredictOutputDetail from "@/pages/PredictOutputDetail";
 import PredictOutputWorkspace from "@/pages/PredictOutputWorkspace";
 import FixErrorWorkspace from "@/pages/FixErrorWorkspace";
 import EliminateWrongWorkspace from "@/pages/EliminateWrongWorkspace";
+import ChoosePlan from "@/pages/ChoosePlan";
 
 /**
  * Public Routes - No authentication required
@@ -74,6 +75,7 @@ export const publicRoutes = [
   <Route key="auth" path="/auth" element={<Navigate to="/login" replace />} />,
   <Route key="reset-password" path="/reset-password" element={<ResetPassword />} />,
   
+  <Route key="choose-plan" path="/choose-plan" element={<ChoosePlan />} />,
   <Route key="profile" path="/profile" element={<Profile />} />,
   <Route key="access-denied" path="/access-denied" element={<AccessDenied />} />,
   <Route key="unauthorized" path="/unauthorized" element={<AccessDenied />} />,
