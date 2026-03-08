@@ -151,43 +151,6 @@ const Careers = () => {
             Curated career bundles with everything you need. Add to your plan, customize courses, and start learning.
           </p>
 
-          {careers.length > 1 && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="mt-2 text-muted-foreground hover:text-primary">
-                  <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
-                  Compare all careers
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-                <DialogHeader>
-                  <DialogTitle>Compare Career Paths</DialogTitle>
-                </DialogHeader>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Career</TableHead>
-                      <TableHead className="text-center">Courses</TableHead>
-                      <TableHead className="text-center">Discount</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {careers.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.name}</TableCell>
-                        <TableCell className="text-center">{c.courseCount}</TableCell>
-                        <TableCell className="text-center">
-                          {c.discount_percentage ? `${c.discount_percentage}%` : "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">{fmt(c.basePrice)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </DialogContent>
-            </Dialog>
-          )}
         </div>
 
         {/* ── Grid ── */}
