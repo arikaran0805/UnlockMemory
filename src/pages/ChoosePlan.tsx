@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Check, X, Crown, User } from "lucide-react";
+import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 
 const freeFeatures = [
@@ -30,91 +29,149 @@ const proFeatures = [
   { text: "Offline access", included: true },
 ];
 
+const cardVariants = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0 },
+  hover: { y: -6, transition: { duration: 0.3, ease: "easeOut" as const } },
+};
+
 const ChoosePlan = () => {
   const navigate = useNavigate();
 
   return (
     <Layout>
-      <div className="container max-w-5xl mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Choose Your Learning Path
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Start learning for free or unlock everything with Pro.
-          </p>
-        </div>
+      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-20 md:py-28">
+        <div className="w-full max-w-[1100px] mx-auto">
+          {/* Hero */}
+          <motion.div
+            className="text-center mb-16 md:mb-20"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-foreground leading-tight">
+              Choose Your Learning Path
+            </h1>
+            <p className="mt-5 text-lg md:text-xl text-muted-foreground max-w-xl mx-auto font-normal leading-relaxed">
+              Start learning for free or unlock everything with Pro.
+            </p>
+          </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Free Plan */}
-          <Card className="relative border-border/60 shadow-md flex flex-col">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+          {/* Cards */}
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-[900px] mx-auto">
+            {/* Free Card */}
+            <motion.div
+              className="relative rounded-2xl border border-border/50 bg-card p-8 md:p-10 flex flex-col shadow-sm cursor-default"
+              variants={cardVariants}
+              initial="initial"
+              animate="animate"
+              whileHover="hover"
+              transition={{ duration: 0.5, delay: 0.1 }}
+              style={{ willChange: "transform" }}
+            >
+              {/* Icon */}
+              <div className="mx-auto mb-6 h-14 w-14 rounded-full bg-muted flex items-center justify-center">
                 <User className="h-6 w-6 text-muted-foreground" />
               </div>
-              <CardTitle className="text-2xl">Free Learner</CardTitle>
-              <CardDescription className="text-base">
-                Get started with the essentials
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-3">
-              {freeFeatures.map((f, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  {f.included ? (
-                    <Check className="h-4 w-4 text-primary shrink-0" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-                  )}
-                  <span className={f.included ? "text-foreground" : "text-muted-foreground/60"}>
-                    {f.text}
-                  </span>
-                </div>
-              ))}
-            </CardContent>
-            <CardFooter className="pt-6">
-              <Button
-                variant="outline"
-                className="w-full h-12 text-base"
+
+              {/* Title */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+                  Free Learner
+                </h2>
+                <p className="mt-2 text-muted-foreground text-[0.95rem]">
+                  Get started with the essentials
+                </p>
+              </div>
+
+              {/* Features */}
+              <div className="flex-1 space-y-4 mb-10">
+                {freeFeatures.map((f, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    {f.included ? (
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Check className="h-3 w-3 text-primary" strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <X className="h-3 w-3 text-muted-foreground/40" strokeWidth={3} />
+                      </div>
+                    )}
+                    <span
+                      className={`text-[0.9rem] leading-snug ${
+                        f.included ? "text-foreground" : "text-muted-foreground/40"
+                      }`}
+                    >
+                      {f.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <button
                 onClick={() => navigate("/")}
+                className="w-full h-12 rounded-xl border border-border text-foreground font-medium text-[0.95rem] bg-background hover:bg-accent transition-colors duration-200"
               >
                 Continue Free
-              </Button>
-            </CardFooter>
-          </Card>
+              </button>
+            </motion.div>
 
-          {/* Pro Plan */}
-          <Card className="relative border-primary/40 shadow-lg ring-2 ring-primary/20 flex flex-col">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
-                Recommended
-              </span>
-            </div>
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+            {/* Pro Card */}
+            <motion.div
+              className="relative rounded-2xl border border-primary/20 bg-card p-8 md:p-10 flex flex-col shadow-md cursor-default"
+              variants={cardVariants}
+              initial="initial"
+              animate="animate"
+              whileHover="hover"
+              transition={{ duration: 0.5, delay: 0.2 }}
+              style={{ willChange: "transform" }}
+            >
+              {/* Badge */}
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center bg-primary/10 text-primary text-xs font-semibold px-4 py-1.5 rounded-full tracking-wide">
+                  Recommended
+                </span>
+              </div>
+
+              {/* Icon */}
+              <div className="mx-auto mb-6 h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
                 <Crown className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle className="text-2xl">Pro Learner</CardTitle>
-              <CardDescription className="text-base">
-                Unlock your full potential
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-3">
-              {proFeatures.map((f, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Check className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-foreground">{f.text}</span>
-                </div>
-              ))}
-            </CardContent>
-            <CardFooter className="pt-6">
-              <Button
-                className="w-full h-12 text-base"
+
+              {/* Title */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+                  Pro Learner
+                </h2>
+                <p className="mt-2 text-muted-foreground text-[0.95rem]">
+                  Unlock your full potential
+                </p>
+              </div>
+
+              {/* Features */}
+              <div className="flex-1 space-y-4 mb-10">
+                {proFeatures.map((f, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Check className="h-3 w-3 text-primary" strokeWidth={3} />
+                    </div>
+                    <span className="text-[0.9rem] leading-snug text-foreground">
+                      {f.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <button
                 onClick={() => navigate("/careers")}
+                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-medium text-[0.95rem] hover:bg-primary/90 transition-colors duration-200"
               >
                 Continue as Pro
-              </Button>
-            </CardFooter>
-          </Card>
+              </button>
+            </motion.div>
+          </div>
         </div>
       </div>
     </Layout>
