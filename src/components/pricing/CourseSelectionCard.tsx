@@ -8,7 +8,7 @@ interface CourseSelectionCardProps {
   name: string;
   description: string;
   price: number;
-  type: "included" | "addon";
+  type: "default" | "included" | "addon";
   isSelected: boolean;
   onToggle: (id: string) => void;
 }
@@ -35,13 +35,13 @@ const CourseSelectionCard = ({ id, name, description, price, type, isSelected, o
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-medium text-foreground">{name}</span>
         <Badge
-          variant={type === "included" ? "default" : "secondary"}
+          variant={type === "addon" ? "secondary" : "default"}
           className={cn(
             "text-[10px] px-1.5 py-0",
-            type === "included" ? "bg-primary/15 text-primary border-0" : ""
+            type !== "addon" ? "bg-primary/15 text-primary border-0" : ""
           )}
         >
-          {type === "included" ? "Included" : "Add-on"}
+          {type === "default" ? "Default" : type === "included" ? "Included" : "Add-on"}
         </Badge>
       </div>
       

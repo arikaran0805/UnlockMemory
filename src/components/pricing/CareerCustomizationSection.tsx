@@ -135,18 +135,21 @@ const CareerCustomizationSection = ({
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Included in this Career</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {displayIncluded.map((c) => (
-            <CourseSelectionCard
-              key={c.id}
-              id={c.id}
-              name={c.name}
-              description={c.description}
-              price={c.price}
-              type="included"
-              isSelected={selectedCourseIds.includes(c.id)}
-              onToggle={onToggleCourse}
-            />
-          ))}
+          {displayIncluded.map((c) => {
+            const isOriginallyIncluded = selectedCareer.includedCourseIds.includes(c.id);
+            return (
+              <CourseSelectionCard
+                key={c.id}
+                id={c.id}
+                name={c.name}
+                description={c.description}
+                price={c.price}
+                type={isOriginallyIncluded ? "default" : "included"}
+                isSelected={selectedCourseIds.includes(c.id)}
+                onToggle={onToggleCourse}
+              />
+            );
+          })}
         </div>
       </div>
 
