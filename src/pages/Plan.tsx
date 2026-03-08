@@ -120,7 +120,7 @@ const Plan = () => {
                 promoError={promoError}
                 onApplyPromo={handleApplyPromo}
                 onRemovePromo={handleRemovePromo}
-                itemCount={items.length}
+                onCheckout={handleCheckout}
               />
             </div>
           </div>
@@ -135,7 +135,7 @@ const Plan = () => {
               </p>
               <p className="text-lg font-bold text-foreground">{formatPrice(totalBreakdown.finalTotal)}</p>
             </div>
-            <Button disabled={allCourses.length === 0}>
+            <Button disabled={allCourses.length === 0} onClick={handleCheckout}>
               <Zap className="h-4 w-4 mr-2" />
               Ready for Checkout
             </Button>
