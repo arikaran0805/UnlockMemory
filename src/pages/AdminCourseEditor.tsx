@@ -287,6 +287,10 @@ const AdminCourseEditor = () => {
         }
 
         setOriginalAuthorId(data.author_id);
+        const op = Number((data as any).original_price) || 0;
+        const dp = Number((data as any).discount_price) || 0;
+        const discPct = op > 0 && dp < op ? Math.round(((op - dp) / op) * 100) : 0;
+
         setFormData((prev) => ({
           ...prev,
           name: data.name,
@@ -300,6 +304,8 @@ const AdminCourseEditor = () => {
           status: data.status || "draft",
           assigned_to: (data as any).assigned_to || "",
           prerequisites: (data as any).prerequisites || [],
+          original_price: op,
+          discount_percentage: discPct,
         }));
 
         // Store original content for change detection
