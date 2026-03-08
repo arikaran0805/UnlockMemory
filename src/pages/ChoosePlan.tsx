@@ -32,7 +32,7 @@ const proFeatures = [
 const cardVariants = {
   initial: { opacity: 0, y: 30 },
   animate: { opacity: 1, y: 0 },
-  hover: { y: -6, transition: { duration: 0.3, ease: "easeOut" } },
+  hover: { y: -6, transition: { duration: 0.3, ease: "easeOut" as const } },
 };
 
 const ChoosePlan = () => {
