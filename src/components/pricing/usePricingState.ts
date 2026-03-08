@@ -7,6 +7,7 @@ export function usePricingState() {
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [careers, setCareers] = useState<PricingCareer[]>([]);
+  const [dbCourses, setDbCourses] = useState<PricingCourse[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch careers with their linked courses from DB
@@ -20,6 +21,8 @@ export function usePricingState() {
         .order("display_order", { ascending: true });
 
       if (!error && data) {
+        const coursesMap = new Map<string, PricingCourse>();
+
         const mapped: PricingCareer[] = data.map((c: any) => ({
           id: c.id,
           name: c.name,
@@ -28,32 +31,37 @@ export function usePricingState() {
           icon: c.icon || "BookOpen",
           includedCourseIds: (c.career_courses || [])
             .filter((cc: any) => cc.courses)
-            .map((cc: any) => cc.courses.id),
+            .map((cc: any) => {
+              const course = cc.courses;
+              if (!coursesMap.has(course.id)) {
+                coursesMap.set(course.id, {
+                  id: course.id,
+                  name: course.name,
+                  description: course.description || "",
+                  price: 0,
+                });
+              }
+              return course.id;
+            }),
         }));
+
         setCareers(mapped);
+        setDbCourses(Array.from(coursesMap.values()));
       }
       setLoading(false);
     };
     fetchCareers();
   }, []);
 
-  const courses = SAMPLE_COURSES;
-
-  // Combine DB course data into the courses list so cards can resolve names
+  // Merge sample courses with DB courses (DB courses override if same id)
   const allCourses = useMemo(() => {
-    // Collect courses from career_courses that aren't in SAMPLE_COURSES
-    const dbCourseIds = new Set(courses.map((c) => c.id));
-    const extraCourses: PricingCourse[] = [];
-    careers.forEach((career) => {
-      career.includedCourseIds.forEach((cid) => {
-        if (!dbCourseIds.has(cid) && !extraCourses.find((e) => e.id === cid)) {
-          // We don't have price/desc for DB courses yet, use defaults
-          extraCourses.push({ id: cid, name: cid, description: "", price: 0 });
-        }
-      });
+    const merged = new Map<string, PricingCourse>();
+    SAMPLE_COURSES.forEach((c) => merged.set(c.id, c));
+    dbCourses.forEach((c) => {
+      if (!merged.has(c.id)) merged.set(c.id, c);
     });
-    return [...courses, ...extraCourses];
-  }, [courses, careers]);
+    return Array.from(merged.values());
+  }, [dbCourses]);
 
   const selectedCareer = useMemo(
     () => careers.find((c) => c.id === selectedCareerId) ?? null,
