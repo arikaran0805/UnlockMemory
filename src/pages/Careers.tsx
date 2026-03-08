@@ -7,9 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart3, Briefcase, Brain, BookOpen, ArrowRight, Check,
   Settings2, Star, Flame, Rocket, Users, ChevronDown, ChevronUp,
-  ShieldCheck, ArrowUpRight, X,
+  ShieldCheck, ArrowUpRight, Clock,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,10 +26,10 @@ const ICON_MAP: Record<string, React.ElementType> = {
   BarChart3, Briefcase, Brain,
 };
 
-const BADGE_CONFIG: Record<string, { icon: React.ElementType; label: string; className: string }> = {
-  popular: { icon: Star, label: "Most Popular", className: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
-  trending: { icon: Flame, label: "Trending", className: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30" },
-  beginner: { icon: Rocket, label: "Beginner Friendly", className: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+const BADGE_CONFIG: Record<string, { icon: React.ElementType; label: string; bg: string; text: string }> = {
+  popular: { icon: Star, label: "Most Popular", bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-amber-600 dark:text-amber-400" },
+  trending: { icon: Flame, label: "Trending", bg: "bg-orange-50 dark:bg-orange-500/10", text: "text-orange-600 dark:text-orange-400" },
+  beginner: { icon: Rocket, label: "Beginner Friendly", bg: "bg-sky-50 dark:bg-sky-500/10", text: "text-sky-600 dark:text-sky-400" },
 };
 
 interface CareerWithPrice {
@@ -70,7 +69,6 @@ const Careers = () => {
         .order("display_order", { ascending: true });
 
       if (!error && data) {
-        // Fetch enrollment counts
         const { data: enrollments } = await supabase
           .from("course_enrollments")
           .select("course_id");
@@ -89,38 +87,24 @@ const Careers = () => {
             originalPrice: Number(co.original_price) || 0,
             discountPrice: Number(co.discount_price) || Number(co.original_price) || 0,
           }));
-
           const discountPct = Number(c.discount_percentage) || 0;
           const savings = discountPct > 0 ? Math.round(basePrice * (discountPct / 100)) : 0;
           const discountedPrice = basePrice - savings;
-
-          // Count enrollments for this career's courses
           const enrollCount = enrollments
             ? enrollments.filter((e: any) => courseIds.includes(e.course_id)).length
             : 0;
 
-          // Assign badge based on index/data (first = popular, etc.)
           let badgeType: string | null = null;
           if (index === 0) badgeType = "popular";
           else if (index === 1) badgeType = "trending";
           else if (coursesRaw.length > 0 && coursesRaw.length <= 4) badgeType = "beginner";
 
           return {
-            id: c.id,
-            name: c.name,
-            description: c.description,
-            icon: c.icon || "BookOpen",
-            color: c.color,
-            slug: c.slug,
+            id: c.id, name: c.name, description: c.description,
+            icon: c.icon || "BookOpen", color: c.color, slug: c.slug,
             discount_percentage: c.discount_percentage,
-            courseCount: coursesRaw.length,
-            basePrice,
-            discountedPrice,
-            savings,
-            courses,
-            courseIds,
-            badgeType,
-            enrollmentCount: enrollCount,
+            courseCount: coursesRaw.length, basePrice, discountedPrice, savings,
+            courses, courseIds, badgeType, enrollmentCount: enrollCount,
           };
         });
         setCareers(mapped);
@@ -130,18 +114,14 @@ const Careers = () => {
     fetchCareers();
   }, []);
 
-  const formatPrice = (amount: number) =>
-    `₹${amount.toLocaleString("en-IN")}`;
+  const fmt = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
 
   const handleAddToPlan = (career: CareerWithPrice) => {
     addCareer({
-      id: career.id,
-      name: career.name,
-      icon: career.icon,
+      id: career.id, name: career.name, icon: career.icon,
       description: career.description || "",
       discountPercentage: Number(career.discount_percentage) || 0,
-      courseIds: career.courseIds,
-      courses: career.courses,
+      courseIds: career.courseIds, courses: career.courses,
     });
     setJustAdded(career.id);
     toast({
@@ -155,10 +135,6 @@ const Careers = () => {
     navigate(`/plan`);
   };
 
-  const handleReviewPlan = () => {
-    navigate("/plan");
-  };
-
   return (
     <Layout>
       <SEOHead
@@ -166,23 +142,22 @@ const Careers = () => {
         description="Explore career paths with curated courses. Pick a career, customize your plan, and start learning."
       />
 
-      <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+      <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-10 py-16">
+        {/* ── Page Header ── */}
+        <div className="text-center mb-14 space-y-4">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground">
             Choose Your Career Path
           </h1>
-          <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-            Each career comes with a curated set of courses. Add to your plan, customize, and checkout when ready.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Curated career bundles with everything you need. Add to your plan, customize courses, and start learning.
           </p>
 
-          {/* Compare Careers link */}
           {careers.length > 1 && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="link" className="mt-3 text-primary">
-                  <ArrowUpRight className="h-4 w-4 mr-1" />
-                  Compare Careers
+                <Button variant="ghost" size="sm" className="mt-2 text-muted-foreground hover:text-primary">
+                  <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
+                  Compare all careers
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
@@ -194,7 +169,7 @@ const Careers = () => {
                     <TableRow>
                       <TableHead>Career</TableHead>
                       <TableHead className="text-center">Courses</TableHead>
-                      <TableHead className="text-center">Bundle Discount</TableHead>
+                      <TableHead className="text-center">Discount</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -206,7 +181,7 @@ const Careers = () => {
                         <TableCell className="text-center">
                           {c.discount_percentage ? `${c.discount_percentage}%` : "—"}
                         </TableCell>
-                        <TableCell className="text-right font-semibold">{formatPrice(c.basePrice)}</TableCell>
+                        <TableCell className="text-right font-semibold">{fmt(c.basePrice)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -216,196 +191,240 @@ const Careers = () => {
           )}
         </div>
 
+        {/* ── Grid ── */}
         {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-72 rounded-xl" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-[420px] rounded-2xl" />
             ))}
           </div>
         ) : careers.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">No career paths available yet.</p>
+          <p className="text-center text-muted-foreground py-16">No career paths available yet.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {careers.map((career) => {
-              const Icon = ICON_MAP[career.icon] || BookOpen;
-              const inPlan = isCareerInPlan(career.id);
-              const wasJustAdded = justAdded === career.id;
-              const isCurrentlyCustomizing = customizingCareerId === career.id;
-              const isCoursesExpanded = expandedCourses === career.id;
-              const badge = career.badgeType ? BADGE_CONFIG[career.badgeType] : null;
-
-              return (
-                <Card
-                  key={career.id}
-                  className={cn(
-                    "h-full transition-all duration-300 hover:shadow-xl group relative overflow-visible",
-                    inPlan
-                      ? "border-primary ring-2 ring-primary/20 shadow-lg"
-                      : "border-border hover:border-primary/40"
-                  )}
-                >
-                  {/* Highlight badge */}
-                  {badge && (
-                    <div className={cn(
-                      "absolute -top-2.5 right-4 px-2.5 py-0.5 text-[11px] font-semibold rounded-full border flex items-center gap-1 z-10",
-                      badge.className
-                    )}>
-                      <badge.icon className="h-3 w-3" />
-                      {badge.label}
-                    </div>
-                  )}
-
-                  {/* Added badge */}
-                  {inPlan && !wasJustAdded && (
-                    <div className="absolute -top-2.5 left-4 px-2.5 py-0.5 bg-primary text-primary-foreground text-[11px] font-medium rounded-full z-10">
-                      ✔ In Your Plan
-                    </div>
-                  )}
-
-                  <CardContent className="p-6 flex flex-col h-full">
-                    {/* Header */}
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className="font-semibold text-foreground text-lg leading-tight group-hover:text-primary transition-colors">
-                          {career.name}
-                        </h2>
-                        {career.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {career.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Meta row: courses, social proof */}
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2 flex-wrap">
-                      <span className="flex items-center gap-1.5">
-                        <BookOpen className="h-3.5 w-3.5" /> {career.courseCount} courses
-                      </span>
-                      {career.enrollmentCount > 0 && (
-                        <span className="flex items-center gap-1.5">
-                          <Users className="h-3.5 w-3.5" /> {career.enrollmentCount.toLocaleString("en-IN")} learners
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Savings / discount badge */}
-                    {career.savings > 0 && (
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
-                          {career.discount_percentage}% bundle discount
-                        </Badge>
-                        <span className="text-xs text-primary font-medium">
-                          Save {formatPrice(career.savings)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Course preview expandable */}
-                    {career.courseCount > 0 && (
-                      <div className="mb-3">
-                        <button
-                          onClick={() => setExpandedCourses(isCoursesExpanded ? null : career.id)}
-                          className="text-xs text-primary font-medium flex items-center gap-1 hover:underline"
-                        >
-                          {isCoursesExpanded ? "Hide" : "View"} Courses
-                          {isCoursesExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                        </button>
-                        {isCoursesExpanded && (
-                          <ul className="mt-2 space-y-1.5 pl-1">
-                            {career.courses.map((c) => (
-                              <li key={c.id} className="flex items-center gap-2 text-sm text-foreground">
-                                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                <span className="truncate">{c.name}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Just-added overlay */}
-                    {wasJustAdded && (
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3 space-y-2">
-                        <p className="text-sm font-medium text-primary flex items-center gap-1.5">
-                          <Check className="h-4 w-4" />
-                          {career.name} added to your plan
-                        </p>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="default" onClick={() => handleCustomize(career.id)} className="text-xs h-7">
-                            Customize Now
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={handleReviewPlan} className="text-xs h-7">
-                            Review Plan
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Footer: Price + CTA */}
-                    <div className="mt-auto pt-4 border-t border-border">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className="text-xs text-muted-foreground">Starts from</span>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xl font-bold text-foreground">
-                              {formatPrice(career.discountedPrice)}
-                            </p>
-                            {career.savings > 0 && (
-                              <span className="text-sm text-muted-foreground line-through">
-                                {formatPrice(career.basePrice)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {!inPlan ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddToPlan(career)}
-                            className="shrink-0"
-                          >
-                            Add to Plan
-                            <ArrowRight className="h-4 w-4 ml-1" />
-                          </Button>
-                        ) : isCurrentlyCustomizing ? (
-                          <Button size="sm" variant="outline" disabled className="shrink-0">
-                            <Settings2 className="h-4 w-4 mr-1" />
-                            Customizing
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCustomize(career.id)}
-                            className="shrink-0"
-                          >
-                            Customize
-                            <ArrowRight className="h-4 w-4 ml-1" />
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Confidence text */}
-                      {!inPlan && (
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <ShieldCheck className="h-3 w-3 text-primary/50" />
-                          You can customize courses anytime before checkout.
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {careers.map((career) => (
+              <CareerCard
+                key={career.id}
+                career={career}
+                inPlan={isCareerInPlan(career.id)}
+                wasJustAdded={justAdded === career.id}
+                isCurrentlyCustomizing={customizingCareerId === career.id}
+                isCoursesExpanded={expandedCourses === career.id}
+                onToggleCourses={() => setExpandedCourses(expandedCourses === career.id ? null : career.id)}
+                onAddToPlan={() => handleAddToPlan(career)}
+                onCustomize={() => handleCustomize(career.id)}
+                onReviewPlan={() => navigate("/plan")}
+                fmt={fmt}
+              />
+            ))}
           </div>
         )}
       </div>
     </Layout>
   );
 };
+
+/* ─────────────────────── Career Card ─────────────────────── */
+function CareerCard({
+  career, inPlan, wasJustAdded, isCurrentlyCustomizing,
+  isCoursesExpanded, onToggleCourses,
+  onAddToPlan, onCustomize, onReviewPlan, fmt,
+}: {
+  career: CareerWithPrice;
+  inPlan: boolean;
+  wasJustAdded: boolean;
+  isCurrentlyCustomizing: boolean;
+  isCoursesExpanded: boolean;
+  onToggleCourses: () => void;
+  onAddToPlan: () => void;
+  onCustomize: () => void;
+  onReviewPlan: () => void;
+  fmt: (n: number) => string;
+}) {
+  const Icon = ICON_MAP[career.icon] || BookOpen;
+  const badge = career.badgeType ? BADGE_CONFIG[career.badgeType] : null;
+  const previewCourses = isCoursesExpanded ? career.courses : career.courses.slice(0, 3);
+  const hasMoreCourses = career.courses.length > 3;
+
+  return (
+    <div
+      className={cn(
+        "relative group flex flex-col rounded-[20px] border bg-card transition-all duration-[250ms]",
+        "shadow-[0_1px_3px_0_hsl(var(--foreground)/0.04),0_4px_12px_0_hsl(var(--foreground)/0.03)]",
+        "hover:shadow-[0_8px_30px_0_hsl(var(--foreground)/0.08)] hover:-translate-y-1",
+        inPlan
+          ? "border-primary/50 ring-2 ring-primary/15"
+          : "border-border/60 hover:border-primary/30"
+      )}
+    >
+      {/* ── Badge row ── */}
+      {(badge || (inPlan && !wasJustAdded)) && (
+        <div className="flex items-center gap-2 px-7 pt-5 pb-0">
+          {badge && (
+            <span className={cn(
+              "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold",
+              badge.bg, badge.text
+            )}>
+              <badge.icon className="h-3 w-3" />
+              {badge.label}
+            </span>
+          )}
+          {inPlan && !wasJustAdded && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-primary/10 text-primary">
+              <Check className="h-3 w-3" />
+              In Your Plan
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Content ── */}
+      <div className="flex flex-col flex-1 px-7 pt-5 pb-7 space-y-5">
+        {/* Title + Icon */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-primary/8 text-primary shrink-0">
+              <Icon className="h-5 w-5" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground tracking-tight leading-tight group-hover:text-primary transition-colors duration-200">
+              {career.name}
+            </h2>
+          </div>
+          {career.description && (
+            <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">
+              {career.description}
+            </p>
+          )}
+        </div>
+
+        {/* Meta */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <BookOpen className="h-3.5 w-3.5" />
+            {career.courseCount} courses
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            Self-paced
+          </span>
+          {career.enrollmentCount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              {career.enrollmentCount.toLocaleString("en-IN")}
+            </span>
+          )}
+        </div>
+
+        {/* Course preview */}
+        {career.courseCount > 0 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Includes</p>
+            <ul className="space-y-1.5">
+              {previewCourses.map((c) => (
+                <li key={c.id} className="flex items-center gap-2 text-[13px] text-foreground">
+                  <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="truncate">{c.name}</span>
+                </li>
+              ))}
+            </ul>
+            {hasMoreCourses && (
+              <button
+                onClick={onToggleCourses}
+                className="text-xs text-primary font-medium flex items-center gap-1 hover:underline pt-0.5"
+              >
+                {isCoursesExpanded ? (
+                  <>Show less <ChevronUp className="h-3 w-3" /></>
+                ) : (
+                  <>+{career.courses.length - 3} more <ChevronDown className="h-3 w-3" /></>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Spacer to push footer down */}
+        <div className="flex-1" />
+
+        {/* ── Price Section ── */}
+        <div className="space-y-1 pt-4 border-t border-border/50">
+          <div className="flex items-baseline gap-2.5">
+            <span className="text-2xl font-extrabold tracking-tight text-foreground">
+              {fmt(career.discountedPrice)}
+            </span>
+            {career.savings > 0 && (
+              <span className="text-sm text-muted-foreground line-through">
+                {fmt(career.basePrice)}
+              </span>
+            )}
+          </div>
+          {career.savings > 0 && (
+            <p className="text-xs font-medium text-primary flex items-center gap-1">
+              You save {fmt(career.savings)} with this bundle
+            </p>
+          )}
+        </div>
+
+        {/* ── Just-added actions ── */}
+        {wasJustAdded && (
+          <div className="rounded-xl bg-primary/5 border border-primary/15 p-4 space-y-3 animate-fade-in">
+            <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
+              <Check className="h-4 w-4" />
+              Added to your plan
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={onCustomize} className="flex-1 h-9 text-xs font-semibold">
+                Customize Now
+              </Button>
+              <Button size="sm" variant="outline" onClick={onReviewPlan} className="flex-1 h-9 text-xs font-semibold">
+                Review Plan
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── CTA ── */}
+        {!wasJustAdded && (
+          <div className="space-y-2.5">
+            {!inPlan ? (
+              <Button
+                onClick={onAddToPlan}
+                className="w-full h-11 text-sm font-semibold rounded-xl transition-all duration-200 hover:shadow-md"
+              >
+                Add to Plan
+                <ArrowRight className="h-4 w-4 ml-1.5" />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={onCustomize}
+                disabled={isCurrentlyCustomizing}
+                className="w-full h-11 text-sm font-semibold rounded-xl"
+              >
+                {isCurrentlyCustomizing ? (
+                  <>
+                    <Settings2 className="h-4 w-4 mr-1.5" />
+                    Customizing
+                  </>
+                ) : (
+                  <>
+                    Customize Plan
+                    <ArrowRight className="h-4 w-4 ml-1.5" />
+                  </>
+                )}
+              </Button>
+            )}
+
+            {!inPlan && (
+              <p className="text-[10px] text-muted-foreground text-center flex items-center justify-center gap-1">
+                <ShieldCheck className="h-3 w-3 text-primary/40" />
+                Customize courses anytime before checkout
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default Careers;
