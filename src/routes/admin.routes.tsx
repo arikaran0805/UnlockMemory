@@ -97,6 +97,7 @@ const AdminRoutes = () => {
           <Route path="reports" element={<AdminReports />} />
           <Route path="seo" element={<Navigate to="/admin/settings" replace />} />
           <Route path="ad-settings" element={<Navigate to="/admin/api" replace />} />
+          <Route path="promo-codes" element={<AdminPromoCodes />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
