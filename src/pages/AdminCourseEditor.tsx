@@ -77,6 +77,8 @@ const AdminCourseEditor = () => {
     learning_hours: 0,
     status: "draft" as string,
     assigned_to: "" as string,
+    original_price: 0,
+    discount_percentage: 0,
   });
   
   // Prerequisites hook for the new linked prerequisites system
@@ -285,6 +287,10 @@ const AdminCourseEditor = () => {
         }
 
         setOriginalAuthorId(data.author_id);
+        const op = Number((data as any).original_price) || 0;
+        const dp = Number((data as any).discount_price) || 0;
+        const discPct = op > 0 && dp < op ? Math.round(((op - dp) / op) * 100) : 0;
+
         setFormData((prev) => ({
           ...prev,
           name: data.name,
@@ -298,6 +304,8 @@ const AdminCourseEditor = () => {
           status: data.status || "draft",
           assigned_to: (data as any).assigned_to || "",
           prerequisites: (data as any).prerequisites || [],
+          original_price: op,
+          discount_percentage: discPct,
         }));
 
         // Store original content for change detection
@@ -347,6 +355,10 @@ const AdminCourseEditor = () => {
 
       const isPublishing = status === "published";
 
+      const discountPrice = formData.original_price > 0 && formData.discount_percentage > 0
+        ? Math.round(formData.original_price * (1 - formData.discount_percentage / 100))
+        : formData.original_price;
+
       const courseData: any = {
         name: formData.name,
         slug: formData.slug,
@@ -358,6 +370,8 @@ const AdminCourseEditor = () => {
         learning_hours: formData.learning_hours,
         status,
         author_id: originalAuthorId || session.user.id,
+        original_price: formData.original_price || null,
+        discount_price: discountPrice || null,
       };
 
       if (isAdmin) {
@@ -723,6 +737,46 @@ const AdminCourseEditor = () => {
                       onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                       required
                     />
+                  </div>
+
+                  {/* Price & Discount */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border">
+                    <div className="space-y-2">
+                      <Label htmlFor="original_price">Original Price (₹)</Label>
+                      <Input
+                        id="original_price"
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 1999"
+                        value={formData.original_price || ""}
+                        onChange={(e) => setFormData({ ...formData, original_price: Number(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="discount_percentage">Discount %</Label>
+                      <Input
+                        id="discount_percentage"
+                        type="number"
+                        min={0}
+                        max={100}
+                        placeholder="e.g. 20"
+                        value={formData.discount_percentage || ""}
+                        onChange={(e) => setFormData({ ...formData, discount_percentage: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Final Price (₹)</Label>
+                      <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/50 text-sm font-medium">
+                        {formData.original_price > 0 && formData.discount_percentage > 0
+                          ? `₹${Math.round(formData.original_price * (1 - formData.discount_percentage / 100)).toLocaleString("en-IN")}`
+                          : formData.original_price > 0
+                          ? `₹${formData.original_price.toLocaleString("en-IN")}`
+                          : "—"}
+                        {formData.discount_percentage > 0 && (
+                          <span className="ml-2 text-xs text-emerald-600 font-semibold">{formData.discount_percentage}% OFF</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
