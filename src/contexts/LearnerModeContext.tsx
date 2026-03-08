@@ -44,6 +44,15 @@ export const LearnerModeProvider = ({ children }: { children: ReactNode }) => {
     navigate("/compare-plans");
   }, [navigate]);
 
+  /** Actually sets PRO mode - called from compare-plans page */
+  const confirmProMode = useCallback(() => {
+    setLearnerMode("PRO");
+    toast({
+      title: "✨ You are now a Pro Learner",
+      description: "Course customization, bundle discounts, and premium features are now unlocked.",
+    });
+  }, []);
+
   const resetToFreeMode = useCallback(() => {
     setLearnerMode("FREE");
     toast({
@@ -65,6 +74,7 @@ export const LearnerModeProvider = ({ children }: { children: ReactNode }) => {
     isFreeMode: learnerMode === "FREE",
     isProMode: learnerMode === "PRO",
     activateProMode,
+    confirmProMode,
     resetToFreeMode,
     toggleMode,
   };
