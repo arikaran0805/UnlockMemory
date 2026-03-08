@@ -24,6 +24,16 @@ const Pricing = () => {
     loading,
     handleSelectCareer,
     handleToggleCourse,
+    // Promo
+    promoCode,
+    setPromoCode,
+    appliedPromo,
+    promoDiscount,
+    promoError,
+    handleApplyPromo,
+    handleRemovePromo,
+    // Breakdown
+    breakdown,
   } = usePricingState();
 
   const onSelectCareer = (id: string) => {
@@ -74,6 +84,13 @@ const Pricing = () => {
                 selectedCareer={selectedCareer}
                 selectedCourses={selectedCourses}
                 totalPrice={totalPrice}
+                breakdown={breakdown}
+                promoCode={promoCode}
+                onPromoCodeChange={setPromoCode}
+                appliedPromo={appliedPromo}
+                promoError={promoError}
+                onApplyPromo={handleApplyPromo}
+                onRemovePromo={handleRemovePromo}
               />
             </div>
           </div>
@@ -87,13 +104,13 @@ const Pricing = () => {
                 <p className="text-xs text-muted-foreground">
                   {selectedCourses.length} course{selectedCourses.length !== 1 ? "s" : ""} selected
                 </p>
-                <p className="text-lg font-bold text-foreground">₹{totalPrice.toLocaleString("en-IN")}</p>
+                <p className="text-lg font-bold text-foreground">{formatPriceForMobile(totalPrice)}</p>
               </div>
               <button
                 disabled={selectedCourses.length === 0}
                 className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm disabled:opacity-50"
               >
-                Proceed to Enroll
+                Ready for Checkout
               </button>
             </div>
           </div>
@@ -102,5 +119,9 @@ const Pricing = () => {
     </Layout>
   );
 };
+
+function formatPriceForMobile(amount: number) {
+  return `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default Pricing;

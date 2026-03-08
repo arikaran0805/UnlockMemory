@@ -1,46 +1,98 @@
-import { ShieldCheck, Zap, Sparkles, Settings2 } from "lucide-react";
+import { useState } from "react";
+import { ShieldCheck, Sparkles, Settings2, Zap, Tag, X, BadgePercent, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import type { PricingCareer, PricingCourse } from "./pricingData";
+import type { PricingCareer, PricingCourse, PricingBreakdown } from "./pricingData";
 import { formatPrice } from "./pricingData";
 
 interface Props {
   selectedCareer: PricingCareer | null;
   selectedCourses: PricingCourse[];
   totalPrice: number;
+  breakdown: PricingBreakdown;
+  promoCode: string;
+  onPromoCodeChange: (v: string) => void;
+  appliedPromo: string | null;
+  promoError: string | null;
+  onApplyPromo: (code: string) => void;
+  onRemovePromo: () => void;
 }
 
-const PricingSummaryPanel = ({ selectedCareer, selectedCourses, totalPrice }: Props) => {
+const PricingSummaryPanel = ({
+  selectedCareer,
+  selectedCourses,
+  totalPrice,
+  breakdown,
+  promoCode,
+  onPromoCodeChange,
+  appliedPromo,
+  promoError,
+  onApplyPromo,
+  onRemovePromo,
+}: Props) => {
   const canEnroll = selectedCourses.length > 0;
+  const hasDiscount = breakdown.discountTotal > 0;
+  const hasSavings = breakdown.savings > 0;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-md">
-      <h3 className="font-semibold text-foreground text-lg">Your Plan Summary</h3>
+      {/* 1. Order Summary Header */}
+      <div>
+        <h3 className="font-semibold text-foreground text-lg">Order Summary</h3>
+        {selectedCareer && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {breakdown.itemCount} item{breakdown.itemCount !== 1 ? "s" : ""}
+          </p>
+        )}
+      </div>
 
       {!selectedCareer ? (
         <div className="py-10 text-center space-y-3">
           <Settings2 className="h-8 w-8 text-muted-foreground/40 mx-auto" />
           <p className="text-sm text-muted-foreground">
-            Select a career path to see your plan summary.
+            Select a career path to see your order summary.
           </p>
         </div>
       ) : (
         <>
-          <div>
-            <p className="text-sm font-medium text-foreground">{selectedCareer.name}</p>
-            <p className="text-xs text-muted-foreground">{selectedCareer.duration}</p>
+          {/* 2. Selected Career */}
+          <div className="rounded-lg bg-muted/40 px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">{selectedCareer.name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {selectedCareer.duration} · {selectedCourses.length} course{selectedCourses.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           <Separator />
 
+          {/* 3. Selected Courses List */}
           {selectedCourses.length > 0 ? (
-            <ul className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
-              {selectedCourses.map((c) => (
-                <li key={c.id} className="flex items-center justify-between text-sm">
-                  <span className="text-foreground truncate mr-2">{c.name}</span>
-                  <span className="text-muted-foreground whitespace-nowrap">{formatPrice(c.price)}</span>
-                </li>
-              ))}
+            <ul className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+              {selectedCourses.map((c) => {
+                const hasItemDiscount = c.originalPrice > c.discountPrice;
+                return (
+                  <li key={c.id} className="flex items-start justify-between text-sm gap-2">
+                    <span className="text-foreground truncate mr-2 leading-tight">{c.name}</span>
+                    <div className="text-right shrink-0">
+                      {hasItemDiscount ? (
+                        <>
+                          <span className="text-muted-foreground line-through text-xs block">
+                            {formatPrice(c.originalPrice)}
+                          </span>
+                          <span className="text-foreground font-medium">
+                            {formatPrice(c.discountPrice)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-foreground font-medium whitespace-nowrap">
+                          {formatPrice(c.discountPrice)}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-2">No courses selected.</p>
@@ -48,18 +100,106 @@ const PricingSummaryPanel = ({ selectedCareer, selectedCourses, totalPrice }: Pr
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-foreground">Total Price</span>
-            <span className="text-2xl font-bold text-foreground">{formatPrice(totalPrice)}</span>
+          {/* 4. Subtotal */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal (INR)</span>
+              <span className="text-foreground font-medium">{formatPrice(breakdown.courseSubtotal)}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Subtotal does not include applicable taxes.
+            </p>
           </div>
 
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Your total is calculated based on the courses currently selected in your career plan.
-          </p>
+          {/* 5. Discount Section */}
+          {hasDiscount && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <BadgePercent className="h-3.5 w-3.5 text-green-500" />
+                Discount
+              </span>
+              <span className="text-green-600 dark:text-green-400 font-medium">
+                −{formatPrice(breakdown.discountTotal)}
+              </span>
+            </div>
+          )}
 
+          <Separator />
+
+          {/* 6. Promo Code Section */}
+          <div className="space-y-2">
+            {appliedPromo ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Promo Code: {appliedPromo}</span>
+                  </div>
+                  <button
+                    onClick={onRemovePromo}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-[11px] text-green-600 dark:text-green-400 leading-snug">
+                  VALID PROMO CODE. You're getting the best price we've got.
+                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Promo savings</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    −{formatPrice(breakdown.promoDiscount)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter promo code"
+                    value={promoCode}
+                    onChange={(e) => onPromoCodeChange(e.target.value)}
+                    className="h-9 text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && onApplyPromo(promoCode)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0"
+                    onClick={() => onApplyPromo(promoCode)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+                {promoError && (
+                  <p className="text-[11px] text-destructive">{promoError}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* 7. Final Total */}
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-foreground text-base">Total Price</span>
+            <span className="text-2xl font-bold text-primary">{formatPrice(breakdown.finalTotal)}</span>
+          </div>
+
+          {/* 8. Savings Message */}
+          {hasSavings && (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-500/10 dark:bg-green-500/15">
+              <PartyPopper className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+              <p className="text-xs font-medium text-green-700 dark:text-green-300">
+                Nice! You saved {formatPrice(breakdown.savings)} on your order.
+              </p>
+            </div>
+          )}
+
+          {/* 9. Checkout Button */}
           <Button className="w-full h-12 text-base font-semibold" size="lg" disabled={!canEnroll}>
             <Zap className="h-4 w-4 mr-2" />
-            Proceed to Enroll
+            Ready for Checkout
           </Button>
 
           <p className="text-[11px] text-center text-muted-foreground">

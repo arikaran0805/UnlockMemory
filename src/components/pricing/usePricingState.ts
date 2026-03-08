@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { SAMPLE_COURSES, type PricingCourse, type PricingCareer } from "./pricingData";
+import { type PricingCourse, type PricingCareer, calculateBreakdown } from "./pricingData";
 
 export function usePricingState() {
   const [selectedCareerId, setSelectedCareerId] = useState<string | null>(null);
@@ -10,13 +10,19 @@ export function usePricingState() {
   const [dbCourses, setDbCourses] = useState<PricingCourse[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   // Fetch careers with their linked courses from DB
   useEffect(() => {
     const fetchCareers = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("careers")
-        .select("id, name, description, icon, color, slug, status, career_courses(course_id, is_primary, courses(id, name, description))")
+        .select("id, name, description, icon, color, slug, status, career_courses(course_id, is_primary, courses(id, name, description, original_price, discount_price))")
         .eq("status", "published")
         .order("display_order", { ascending: true });
 
@@ -34,11 +40,15 @@ export function usePricingState() {
             .map((cc: any) => {
               const course = cc.courses;
               if (!coursesMap.has(course.id)) {
+                const op = Number(course.original_price) || 0;
+                const dp = Number(course.discount_price) || op;
                 coursesMap.set(course.id, {
                   id: course.id,
                   name: course.name,
                   description: course.description || "",
-                  price: 0,
+                  price: dp,
+                  originalPrice: op,
+                  discountPrice: dp,
                 });
               }
               return course.id;
@@ -53,10 +63,7 @@ export function usePricingState() {
     fetchCareers();
   }, []);
 
-  // Use only DB courses
-  const allCourses = useMemo(() => {
-    return dbCourses;
-  }, [dbCourses]);
+  const allCourses = useMemo(() => dbCourses, [dbCourses]);
 
   const selectedCareer = useMemo(
     () => careers.find((c) => c.id === selectedCareerId) ?? null,
@@ -80,10 +87,12 @@ export function usePricingState() {
     [selectedCourseIds, allCourses]
   );
 
-  const totalPrice = useMemo(
-    () => selectedCourses.reduce((sum, c) => sum + c.price, 0),
-    [selectedCourses]
+  const breakdown = useMemo(
+    () => calculateBreakdown(selectedCourses, promoDiscount),
+    [selectedCourses, promoDiscount]
   );
+
+  const totalPrice = breakdown.finalTotal;
 
   const handleSelectCareer = useCallback(
     (careerId: string) => {
@@ -92,6 +101,11 @@ export function usePricingState() {
       setSelectedCareerId(careerId);
       setSelectedCourseIds([...career.includedCourseIds]);
       setValidationError(null);
+      // Reset promo on career change
+      setAppliedPromo(null);
+      setPromoDiscount(0);
+      setPromoCode("");
+      setPromoError(null);
     },
     [careers]
   );
@@ -114,6 +128,35 @@ export function usePricingState() {
     []
   );
 
+  const handleApplyPromo = useCallback(
+    (code: string) => {
+      const trimmed = code.trim().toUpperCase();
+      if (!trimmed) {
+        setPromoError("Please enter a promo code.");
+        return;
+      }
+      // Simple promo logic — extend with DB lookup later
+      if (trimmed === "GOINDIA") {
+        const discount = breakdown.subtotal * 0.1; // 10% off
+        setAppliedPromo(trimmed);
+        setPromoDiscount(discount);
+        setPromoError(null);
+      } else {
+        setPromoError("Invalid promo code. Please try again.");
+        setAppliedPromo(null);
+        setPromoDiscount(0);
+      }
+    },
+    [breakdown.subtotal]
+  );
+
+  const handleRemovePromo = useCallback(() => {
+    setAppliedPromo(null);
+    setPromoDiscount(0);
+    setPromoCode("");
+    setPromoError(null);
+  }, []);
+
   return {
     careers,
     courses: allCourses,
@@ -128,5 +171,15 @@ export function usePricingState() {
     loading,
     handleSelectCareer,
     handleToggleCourse,
+    // Promo
+    promoCode,
+    setPromoCode,
+    appliedPromo,
+    promoDiscount,
+    promoError,
+    handleApplyPromo,
+    handleRemovePromo,
+    // Breakdown
+    breakdown,
   };
 }
