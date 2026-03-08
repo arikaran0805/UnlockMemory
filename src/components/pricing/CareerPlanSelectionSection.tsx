@@ -115,11 +115,15 @@ const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loadin
       )}
 
       {loading || searching ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-64 rounded-xl" />
-          ))}
-        </div>
+        selectedCareerId ? (
+          <Skeleton className="h-44 rounded-xl w-full" />
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-64 rounded-xl" />
+            ))}
+          </div>
+        )
       ) : displayCareers.length > 0 ? (
         <div className={`grid gap-4 ${
           displayCareers.length === 1 
