@@ -110,6 +110,7 @@ const Pricing = () => {
                 promoError={promoError}
                 onApplyPromo={handleApplyPromo}
                 onRemovePromo={handleRemovePromo}
+                onCheckout={handleCheckout}
               />
             </div>
           </div>
@@ -127,6 +128,7 @@ const Pricing = () => {
               </div>
               <button
                 disabled={selectedCourses.length === 0}
+                onClick={handleCheckout}
                 className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm disabled:opacity-50"
               >
                 Ready for Checkout
