@@ -435,7 +435,7 @@ const AdminPromoCodes = () => {
             {/* Applicability */}
             <div className="space-y-2">
               <Label>Applies To</Label>
-              <Select value={form.applies_to_type} onValueChange={(v) => setForm({ ...form, applies_to_type: v })}>
+              <Select value={form.applies_to_type} onValueChange={(v) => setForm({ ...form, applies_to_type: v, applies_to_ids: [] })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="entire_website">Entire Website</SelectItem>
@@ -446,6 +446,15 @@ const AdminPromoCodes = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Specific items multi-select */}
+            {(form.applies_to_type === "specific_careers" || form.applies_to_type === "specific_courses") && (
+              <SpecificItemsSelector
+                type={form.applies_to_type === "specific_careers" ? "careers" : "courses"}
+                selectedIds={form.applies_to_ids ?? []}
+                onChange={(ids) => setForm({ ...form, applies_to_ids: ids })}
+              />
+            )}
 
             {/* Purchase rules */}
             <div className="grid grid-cols-2 gap-4">
