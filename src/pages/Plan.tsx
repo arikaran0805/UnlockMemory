@@ -139,7 +139,13 @@ function CareerCartCard({
   onToggleCourse: (courseId: string) => void;
 }) {
   const Icon = ICON_MAP[item.careerIcon] || BookOpen;
-  const basePrice = item.courses.reduce((s, c) => s + c.originalPrice, 0);
+  const subtotal = item.courses
+    .filter((c) => item.selectedCourseIds.includes(c.id))
+    .reduce((s, c) => s + c.discountPrice, 0);
+  const discountPct = item.discountPercentage || 0;
+  const discountedTotal = discountPct > 0 && item.selectedCourseIds.length >= 2
+    ? Math.round(subtotal * (1 - discountPct / 100))
+    : subtotal;
 
   return (
     <div className="space-y-8">
