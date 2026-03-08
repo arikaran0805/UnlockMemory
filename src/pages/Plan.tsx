@@ -150,10 +150,12 @@ function CareerCartCard({
           ? "border-primary ring-2 ring-primary/20 shadow-lg"
           : "border-border hover:border-primary/40"
       )}>
-        {/* Selected badge */}
-        <div className="absolute -top-2.5 left-4 px-2.5 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-          Selected
-        </div>
+        {/* Selected badge - only when customizing */}
+        {isCustomizing && (
+          <div className="absolute -top-2.5 left-4 px-2.5 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded-full">
+            Selected
+          </div>
+        )}
         <CardContent className="p-6 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0">
