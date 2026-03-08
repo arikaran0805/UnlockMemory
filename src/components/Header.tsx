@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Menu, User, LogOut, Shield, UserCircle, LayoutDashboard, BookOpen, Bookmark, Gamepad2, FlaskConical, Library, Settings } from "lucide-react";
+import { Search, Menu, User, LogOut, Shield, UserCircle, LayoutDashboard, BookOpen, Bookmark, Gamepad2, FlaskConical, Library, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
