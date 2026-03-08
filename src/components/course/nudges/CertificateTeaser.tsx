@@ -1,6 +1,7 @@
 import { GraduationCap, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useLearnerMode } from "@/contexts/LearnerModeContext";
 
 interface CertificateTeaserProps {
   variant: "guest" | "learner";
@@ -9,17 +10,19 @@ interface CertificateTeaserProps {
   onUpgrade?: () => void;
 }
 
-/**
- * Certificate teaser shown at end of lesson content
- * Guest: Encourages sign-in with "Learn more"
- * Learner: Encourages Pro upgrade
- */
 export const CertificateTeaser = ({ 
   variant, 
   className = "",
   onLearnMore,
   onUpgrade,
 }: CertificateTeaserProps) => {
+  const { activateProMode } = useLearnerMode();
+
+  const handleUpgrade = () => {
+    activateProMode();
+    onUpgrade?.();
+  };
+
   if (variant === "guest") {
     return (
       <Card className={`border-border/50 bg-muted/30 ${className}`}>
@@ -70,7 +73,7 @@ export const CertificateTeaser = ({
             variant="outline" 
             size="sm" 
             className="flex-shrink-0 border-amber-500/30 hover:bg-amber-500/10"
-            onClick={onUpgrade}
+            onClick={handleUpgrade}
           >
             <Sparkles className="h-3.5 w-3.5 mr-1.5" />
             Upgrade to Pro
