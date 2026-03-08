@@ -581,4 +581,99 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
+/* ─── Specific items multi-select ─── */
+function SpecificItemsSelector({
+  type,
+  selectedIds,
+  onChange,
+}: {
+  type: "careers" | "courses";
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [itemSearch, setItemSearch] = useState("");
+
+  const { data: items = [] } = useQuery({
+    queryKey: [type === "careers" ? "careers-list" : "courses-list"],
+    queryFn: async () => {
+      if (type === "careers") {
+        const { data, error } = await supabase.from("careers").select("id, name").order("name");
+        if (error) throw error;
+        return data as { id: string; name: string }[];
+      } else {
+        const { data, error } = await supabase.from("courses").select("id, name").order("name");
+        if (error) throw error;
+        return data as { id: string; name: string }[];
+      }
+    },
+  });
+
+  const filtered = items.filter((item) =>
+    item.name.toLowerCase().includes(itemSearch.toLowerCase())
+  );
+
+  const toggle = (id: string) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter((i) => i !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const selectedItems = items.filter((i) => selectedIds.includes(i.id));
+
+  return (
+    <div className="space-y-2">
+      <Label>Select {type === "careers" ? "Careers" : "Courses"}</Label>
+
+      {/* Selected chips */}
+      {selectedItems.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selectedItems.map((item) => (
+            <Badge key={item.id} variant="secondary" className="gap-1 pr-1">
+              {item.name}
+              <button onClick={() => toggle(item.id)} className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Search + list */}
+      <div className="border rounded-md">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={itemSearch}
+            onChange={(e) => setItemSearch(e.target.value)}
+            placeholder={`Search ${type}…`}
+            className="border-0 border-b rounded-none pl-8 h-9 focus-visible:ring-0"
+          />
+        </div>
+        <div className="max-h-40 overflow-y-auto p-1">
+          {filtered.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-3">No {type} found.</p>
+          ) : (
+            filtered.map((item) => {
+              const checked = selectedIds.includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => toggle(item.id)}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors text-left"
+                >
+                  <Checkbox checked={checked} className="pointer-events-none" />
+                  <span className={checked ? "font-medium" : ""}>{item.name}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default AdminPromoCodes;
