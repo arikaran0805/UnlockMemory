@@ -89,8 +89,8 @@ export function usePricingState() {
   );
 
   const breakdown = useMemo(
-    () => calculateBreakdown(selectedCourses, promoDiscount),
-    [selectedCourses, promoDiscount]
+    () => calculateBreakdown(selectedCourses, promoDiscount, selectedCareer?.discountPercentage ?? 0),
+    [selectedCourses, promoDiscount, selectedCareer]
   );
 
   const totalPrice = breakdown.finalTotal;
