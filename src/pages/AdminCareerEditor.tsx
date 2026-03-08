@@ -243,6 +243,9 @@ const AdminCareerEditor = () => {
   
   // Track if user has attempted to save (for validation display)
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
+  
+  // Course pricing state: { courseId: { original_price, discount_price } }
+  const [coursePrices, setCoursePrices] = useState<Record<string, { original_price: number; discount_price: number }>>({}); 
 
   // DnD sensors for skill reordering
   const sensors = useSensors(
