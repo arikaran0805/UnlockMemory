@@ -40,7 +40,7 @@ const ChoosePlan = () => {
 
   return (
     <Layout>
-      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-20 md:py-28">
+      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12 md:py-16">
         <div className="w-full max-w-[1100px] mx-auto">
           {/* Hero */}
           <motion.div
