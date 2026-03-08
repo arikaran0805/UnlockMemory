@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
@@ -8,12 +8,15 @@ import { useCareerPlan } from "@/contexts/CareerPlanContext";
 import { useToast } from "@/hooks/use-toast";
 import { CareerCard, type CareerWithPrice } from "@/components/career/CareerCard";
 import type { PricingCourse } from "@/components/pricing/pricingData";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const Careers = () => {
   const [careers, setCareers] = useState<CareerWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [expandedCourses, setExpandedCourses] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const { addCareer, isCareerInPlan, customizingCareerId, setCustomizingCareerId } = useCareerPlan();
   const { toast } = useToast();
   const navigate = useNavigate();
