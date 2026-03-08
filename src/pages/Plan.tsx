@@ -404,7 +404,7 @@ function CustomizationSection({
 /* ─── Order Summary Card ─── */
 function OrderSummaryCard({
   allCourses, breakdown, promoCode, onPromoCodeChange,
-  appliedPromo, promoError, onApplyPromo, onRemovePromo, itemCount,
+  appliedPromo, promoError, onApplyPromo, onRemovePromo, itemCount, onCheckout,
 }: {
   allCourses: { id: string; name: string; originalPrice: number; discountPrice: number }[];
   breakdown: { courseSubtotal: number; bundleDiscount: number; promoDiscount: number; finalTotal: number; savings: number; itemCount: number };
@@ -415,6 +415,7 @@ function OrderSummaryCard({
   onApplyPromo: (code: string) => void;
   onRemovePromo: () => void;
   itemCount: number;
+  onCheckout?: () => void;
 }) {
   const hasBundleDiscount = breakdown.bundleDiscount > 0;
   const hasSavings = breakdown.savings > 0;
