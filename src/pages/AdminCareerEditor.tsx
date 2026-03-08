@@ -1227,8 +1227,13 @@ const AdminCareerEditor = () => {
                                 type="number"
                                 min={0}
                                 max={100}
-                                value={careerDiscount}
-                                onChange={(e) => setCareerDiscount(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                value={careerDiscount === 0 ? "" : careerDiscount}
+                                placeholder="0"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === "") { setCareerDiscount(0); return; }
+                                  setCareerDiscount(Math.min(100, Math.max(0, parseInt(val) || 0)));
+                                }}
                                 className="w-20 h-8 text-sm text-center"
                               />
                               <span className="text-sm font-medium">%</span>
