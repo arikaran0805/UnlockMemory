@@ -39,7 +39,7 @@ const Pricing = () => {
         description="Choose a career path, customize courses, and pay only for what you need. Transparent pricing with flexible learning."
       />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8">
         <PricingHeroSection />
 
         {/* GoDaddy-style 2-column layout */}
