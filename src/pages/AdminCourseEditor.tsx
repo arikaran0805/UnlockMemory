@@ -738,6 +738,46 @@ const AdminCourseEditor = () => {
                       required
                     />
                   </div>
+
+                  {/* Price & Discount */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border">
+                    <div className="space-y-2">
+                      <Label htmlFor="original_price">Original Price (₹)</Label>
+                      <Input
+                        id="original_price"
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 1999"
+                        value={formData.original_price || ""}
+                        onChange={(e) => setFormData({ ...formData, original_price: Number(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="discount_percentage">Discount %</Label>
+                      <Input
+                        id="discount_percentage"
+                        type="number"
+                        min={0}
+                        max={100}
+                        placeholder="e.g. 20"
+                        value={formData.discount_percentage || ""}
+                        onChange={(e) => setFormData({ ...formData, discount_percentage: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Final Price (₹)</Label>
+                      <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/50 text-sm font-medium">
+                        {formData.original_price > 0 && formData.discount_percentage > 0
+                          ? `₹${Math.round(formData.original_price * (1 - formData.discount_percentage / 100)).toLocaleString("en-IN")}`
+                          : formData.original_price > 0
+                          ? `₹${formData.original_price.toLocaleString("en-IN")}`
+                          : "—"}
+                        {formData.discount_percentage > 0 && (
+                          <span className="ml-2 text-xs text-emerald-600 font-semibold">{formData.discount_percentage}% OFF</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
