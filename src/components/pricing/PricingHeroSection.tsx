@@ -1,4 +1,4 @@
-import { Sparkles, Target, Layers, Eye } from "lucide-react";
+import { Target, Layers, Eye } from "lucide-react";
 
 const TRUST_BULLETS = [
   { icon: Target, text: "Industry-focused learning" },
@@ -8,11 +8,6 @@ const TRUST_BULLETS = [
 
 const PricingHeroSection = () => (
   <section className="text-center space-y-6 pt-8 pb-4">
-    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-      <Sparkles className="h-4 w-4" />
-      Customize Your Plan
-    </div>
-
     <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
       Build Your Career Plan
     </h1>
