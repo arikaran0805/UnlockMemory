@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PricingCourse, PricingBreakdown } from "@/components/pricing/pricingData";
-import { calculateBreakdown } from "@/components/pricing/pricingData";
 
 export interface CareerPlanItem {
   careerId: string;
