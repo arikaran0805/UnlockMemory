@@ -405,7 +405,7 @@ function OrderSummaryCard({
   allCourses, breakdown, promoCode, onPromoCodeChange,
   appliedPromo, promoError, onApplyPromo, onRemovePromo, itemCount,
 }: {
-  allCourses: { id: string; name: string; originalPrice: number }[];
+  allCourses: { id: string; name: string; originalPrice: number; discountPrice: number }[];
   breakdown: { courseSubtotal: number; bundleDiscount: number; promoDiscount: number; finalTotal: number; savings: number; itemCount: number };
   promoCode: string;
   onPromoCodeChange: (v: string) => void;
