@@ -77,6 +77,8 @@ interface Course {
   name: string;
   slug: string;
   description?: string | null;
+  original_price?: number;
+  discount_price?: number;
 }
 
 // Sortable Skill Item Component
