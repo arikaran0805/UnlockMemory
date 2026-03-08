@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Search, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,8 @@ interface Props {
 }
 
 const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loading, onSelectCareer }: Props) => {
+  const [searchParams] = useSearchParams();
+  const hasCareerParam = !!searchParams.get("career");
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<PricingCareer[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -115,7 +118,7 @@ const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loadin
       )}
 
       {loading || searching ? (
-        selectedCareerId ? (
+        selectedCareerId || hasCareerParam ? (
           <Skeleton className="h-44 rounded-xl w-full" />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
