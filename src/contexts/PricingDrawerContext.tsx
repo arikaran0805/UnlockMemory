@@ -24,7 +24,7 @@ export const PricingDrawerProvider = ({ children }: { children: ReactNode }) => 
   const openPricingDrawer = useCallback((source?: string) => {
     if (isPro) return;
     console.log("[Analytics] Pricing page opened", { source });
-    navigate("/pricing");
+    navigate("/careers");
   }, [isPro, navigate]);
 
   const closePricingDrawer = useCallback((_upgraded?: boolean) => {
