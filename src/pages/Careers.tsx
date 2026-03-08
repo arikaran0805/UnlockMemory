@@ -78,6 +78,8 @@ const Careers = () => {
             .filter((cc: any) => cc.courses)
             .map((cc: any) => cc.courses);
           const basePrice = coursesRaw.reduce((s: number, co: any) => s + (Number(co.original_price) || 0), 0);
+          const discountedPrice = coursesRaw.reduce((s: number, co: any) => s + (Number(co.discount_price) || Number(co.original_price) || 0), 0);
+          const savings = basePrice - discountedPrice;
           const courseIds = coursesRaw.map((co: any) => co.id);
           const courses: PricingCourse[] = coursesRaw.map((co: any) => ({
             id: co.id,
@@ -87,9 +89,6 @@ const Careers = () => {
             originalPrice: Number(co.original_price) || 0,
             discountPrice: Number(co.discount_price) || Number(co.original_price) || 0,
           }));
-          const discountPct = Number(c.discount_percentage) || 0;
-          const savings = discountPct > 0 ? Math.round(basePrice * (discountPct / 100)) : 0;
-          const discountedPrice = basePrice - savings;
           const enrollCount = enrollments
             ? enrollments.filter((e: any) => courseIds.includes(e.course_id)).length
             : 0;
