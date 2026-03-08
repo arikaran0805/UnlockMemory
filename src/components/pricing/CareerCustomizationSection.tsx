@@ -39,7 +39,7 @@ const CareerCustomizationSection = ({
       setSearching(true);
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, description")
+        .select("id, name, description, original_price, discount_price")
         .ilike("name", `%${debouncedSearch}%`)
         .eq("status", "published")
         .limit(10);
@@ -49,7 +49,9 @@ const CareerCustomizationSection = ({
           id: c.id,
           name: c.name,
           description: c.description || "",
-          price: 0,
+          price: Number(c.discount_price) || Number(c.original_price) || 0,
+          originalPrice: Number(c.original_price) || 0,
+          discountPrice: Number(c.discount_price) || Number(c.original_price) || 0,
         }));
         setSearchResults(mapped);
       }
@@ -144,6 +146,8 @@ const CareerCustomizationSection = ({
                 name={c.name}
                 description={c.description}
                 price={c.price}
+                originalPrice={c.originalPrice}
+                discountPrice={c.discountPrice}
                 type={isOriginallyIncluded ? "default" : "included"}
                 isSelected={selectedCourseIds.includes(c.id)}
                 onToggle={onToggleCourse}
@@ -190,6 +194,8 @@ const CareerCustomizationSection = ({
                 name={c.name}
                 description={c.description}
                 price={c.price}
+                originalPrice={c.originalPrice}
+                discountPrice={c.discountPrice}
                 type="addon"
                 isSelected={selectedCourseIds.includes(c.id)}
                 onToggle={onToggleCourse}

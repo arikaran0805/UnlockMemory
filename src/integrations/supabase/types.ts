@@ -1174,6 +1174,7 @@ export type Database = {
           default_senior_moderator: string | null
           deleted_at: string | null
           description: string | null
+          discount_price: number | null
           featured: boolean | null
           featured_image: string | null
           icon: string | null
@@ -1181,6 +1182,7 @@ export type Database = {
           learning_hours: number | null
           level: string | null
           name: string
+          original_price: number | null
           prerequisites: string[] | null
           slug: string
           status: string
@@ -1193,6 +1195,7 @@ export type Database = {
           default_senior_moderator?: string | null
           deleted_at?: string | null
           description?: string | null
+          discount_price?: number | null
           featured?: boolean | null
           featured_image?: string | null
           icon?: string | null
@@ -1200,6 +1203,7 @@ export type Database = {
           learning_hours?: number | null
           level?: string | null
           name: string
+          original_price?: number | null
           prerequisites?: string[] | null
           slug: string
           status?: string
@@ -1212,6 +1216,7 @@ export type Database = {
           default_senior_moderator?: string | null
           deleted_at?: string | null
           description?: string | null
+          discount_price?: number | null
           featured?: boolean | null
           featured_image?: string | null
           icon?: string | null
@@ -1219,6 +1224,7 @@ export type Database = {
           learning_hours?: number | null
           level?: string | null
           name?: string
+          original_price?: number | null
           prerequisites?: string[] | null
           slug?: string
           status?: string
