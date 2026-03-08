@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
@@ -8,12 +8,15 @@ import { useCareerPlan } from "@/contexts/CareerPlanContext";
 import { useToast } from "@/hooks/use-toast";
 import { CareerCard, type CareerWithPrice } from "@/components/career/CareerCard";
 import type { PricingCourse } from "@/components/pricing/pricingData";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const Careers = () => {
   const [careers, setCareers] = useState<CareerWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [expandedCourses, setExpandedCourses] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const { addCareer, isCareerInPlan, customizingCareerId, setCustomizingCareerId } = useCareerPlan();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -80,7 +83,19 @@ const Careers = () => {
     fetchCareers();
   }, []);
 
+  const filteredCareers = useMemo(() => {
+    if (!searchQuery.trim()) return careers;
+    const q = searchQuery.toLowerCase();
+    return careers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.description && c.description.toLowerCase().includes(q)) ||
+        c.courses.some((course) => course.name.toLowerCase().includes(q))
+    );
+  }, [careers, searchQuery]);
+
   const fmt = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
+
 
   const handleAddToPlan = (career: CareerWithPrice) => {
     addCareer({
@@ -119,6 +134,27 @@ const Careers = () => {
           </p>
         </div>
 
+        {/* ── Search ── */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <Input
+              placeholder="Search careers or courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10 h-11 rounded-xl border-border/60 bg-card shadow-sm text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* ── Grid ── */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 lg:gap-8 items-stretch">
@@ -126,11 +162,13 @@ const Careers = () => {
               <Skeleton key={i} className="h-[460px] rounded-[20px]" />
             ))}
           </div>
-        ) : careers.length === 0 ? (
-          <p className="text-center text-muted-foreground py-16">No career paths available yet.</p>
+        ) : filteredCareers.length === 0 ? (
+          <p className="text-center text-muted-foreground py-16">
+            {searchQuery ? `No careers matching "${searchQuery}"` : "No career paths available yet."}
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 lg:gap-8 items-stretch">
-            {careers.map((career) => (
+            {filteredCareers.map((career) => (
               <CareerCard
                 key={career.id}
                 career={career}
