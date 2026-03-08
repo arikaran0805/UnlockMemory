@@ -600,6 +600,41 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          career_id: string
+          created_at: string
+          id: string
+          selected_course_ids: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          career_id: string
+          created_at?: string
+          id?: string
+          selected_course_ids?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          career_id?: string
+          created_at?: string
+          id?: string
+          selected_course_ids?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_career_id_fkey"
+            columns: ["career_id"]
+            isOneToOne: false
+            referencedRelation: "careers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           approved_at: string | null
