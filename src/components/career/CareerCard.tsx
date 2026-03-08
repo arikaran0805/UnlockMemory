@@ -217,12 +217,11 @@ export function CareerCard({
                 <Button
                   variant="outline"
                   onClick={onCustomize}
-                  disabled={isCurrentlyCustomizing}
                   className="w-full h-11 text-sm font-semibold rounded-xl transition-all duration-200"
                 >
                   {isCurrentlyCustomizing ? (
                     <>
-                      <Settings2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      <Settings2 className="h-4 w-4 mr-1.5" />
                       Customizing…
                     </>
                   ) : (
