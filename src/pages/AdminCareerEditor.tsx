@@ -155,6 +155,8 @@ interface Course {
   name: string;
   slug: string;
   description?: string | null;
+  original_price?: number | null;
+  discount_price?: number | null;
 }
 const skillIconOptions = [
   "Code2", "Database", "BarChart3", "Brain", "Cpu", "Terminal",
