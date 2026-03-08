@@ -9,6 +9,7 @@ import PricingSummaryPanel from "@/components/pricing/PricingSummaryPanel";
 import { usePricingState } from "@/components/pricing/usePricingState";
 
 const Pricing = () => {
+  const navigate = useNavigate();
   const customizationRef = useRef<HTMLDivElement>(null);
 
   const {

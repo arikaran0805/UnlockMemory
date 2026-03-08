@@ -34,6 +34,7 @@ import PredictOutputWorkspace from "@/pages/PredictOutputWorkspace";
 import FixErrorWorkspace from "@/pages/FixErrorWorkspace";
 import EliminateWrongWorkspace from "@/pages/EliminateWrongWorkspace";
 import ChoosePlan from "@/pages/ChoosePlan";
+import Checkout from "@/pages/Checkout";
 
 /**
  * Public Routes - No authentication required
