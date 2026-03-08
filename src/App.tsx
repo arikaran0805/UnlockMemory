@@ -9,6 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ViewAsRoleProvider } from "@/contexts/ViewAsRoleContext";
 import { PricingDrawerProvider } from "@/contexts/PricingDrawerContext";
+import { CareerPlanProvider } from "@/contexts/CareerPlanContext";
 import ViewAsRoleBanner from "@/components/ViewAsRoleBanner";
 
 
@@ -92,10 +93,11 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ViewAsRoleProvider>
-              <PricingDrawerProvider>
-                <AppContent />
-                
-              </PricingDrawerProvider>
+              <CareerPlanProvider>
+                <PricingDrawerProvider>
+                  <AppContent />
+                </PricingDrawerProvider>
+              </CareerPlanProvider>
             </ViewAsRoleProvider>
           </AuthProvider>
         </BrowserRouter>
