@@ -49,7 +49,9 @@ const CareerCustomizationSection = ({
           id: c.id,
           name: c.name,
           description: c.description || "",
-          price: 0,
+          price: Number(c.discount_price) || Number(c.original_price) || 0,
+          originalPrice: Number(c.original_price) || 0,
+          discountPrice: Number(c.discount_price) || Number(c.original_price) || 0,
         }));
         setSearchResults(mapped);
       }
