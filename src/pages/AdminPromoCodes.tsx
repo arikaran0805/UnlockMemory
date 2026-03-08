@@ -23,8 +23,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Plus, Search, MoreHorizontal, Copy, Pencil, Trash2, Eye, CopyPlus, Tag, Ticket, Clock, BarChart3, AlertTriangle,
+  Plus, Search, MoreHorizontal, Copy, Pencil, Trash2, Eye, CopyPlus, Tag, Ticket, Clock, BarChart3, AlertTriangle, X, Check,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format, isPast, differenceInDays } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
