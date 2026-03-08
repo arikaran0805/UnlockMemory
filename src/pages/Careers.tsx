@@ -36,11 +36,15 @@ const Careers = () => {
           const coursesRaw = (c.career_courses || [])
             .filter((cc: any) => cc.courses)
             .map((cc: any) => cc.courses);
+          // Sum of all course discount prices
+          const courseDiscountSum = coursesRaw.reduce((s: number, co: any) => s + (Number(co.discount_price) || Number(co.original_price) || 0), 0);
+          // Sum of all original prices (for showing savings)
           const basePrice = coursesRaw.reduce((s: number, co: any) => s + (Number(co.original_price) || 0), 0);
+          // Apply career discount_percentage on top of course discount sum
           const discountPct = Number(c.discount_percentage) || 0;
-          const discountedPrice = discountPct > 0
-            ? Math.round(basePrice * (1 - discountPct / 100))
-            : coursesRaw.reduce((s: number, co: any) => s + (Number(co.discount_price) || Number(co.original_price) || 0), 0);
+          const discountedPrice = discountPct > 0 && coursesRaw.length >= 2
+            ? Math.round(courseDiscountSum * (1 - discountPct / 100))
+            : courseDiscountSum;
           const savings = basePrice - discountedPrice;
           const courseIds = coursesRaw.map((co: any) => co.id);
           const courses: PricingCourse[] = coursesRaw.map((co: any) => ({
