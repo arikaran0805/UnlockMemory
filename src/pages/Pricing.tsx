@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
 import PricingHeroSection from "@/components/pricing/PricingHeroSection";
