@@ -43,6 +43,7 @@ export const publicRoutes = [
   <Route key="home" path="/" element={<Index />} />,
   <Route key="pricing" path="/pricing" element={<Pricing />} />,
   <Route key="plan" path="/plan" element={<Plan />} />,
+  <Route key="compare-plans" path="/compare-plans" element={<ComparePlans />} />,
   <Route key="careers" path="/careers" element={<Careers />} />,
   <Route key="courses" path="/courses" element={<Courses />} />,
   <Route key="course-detail" path="/course/:slug" element={<CourseDetail />} />,
