@@ -39,33 +39,41 @@ const Pricing = () => {
         description="Choose a career path, customize courses, and pay only for what you need. Transparent pricing with flexible learning."
       />
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <PricingHeroSection />
 
-        <CareerPlanSelectionSection
-          careers={careers}
-          courses={courses}
-          selectedCareerId={selectedCareerId}
-          onSelectCareer={onSelectCareer}
-        />
-
-        {/* Two-column layout: customization + sticky summary */}
-        <div ref={customizationRef} className="grid lg:grid-cols-[1fr_340px] gap-8 items-start">
-          <CareerCustomizationSection
-            selectedCareer={selectedCareer}
-            includedCourses={includedCourses}
-            addOnCourses={addOnCourses}
-            selectedCourseIds={selectedCourseIds}
-            validationError={validationError}
-            onToggleCourse={handleToggleCourse}
-          />
-
-          <div className="hidden lg:block sticky top-24">
-            <PricingSummaryPanel
-              selectedCareer={selectedCareer}
-              selectedCourses={selectedCourses}
-              totalPrice={totalPrice}
+        {/* GoDaddy-style 2-column layout */}
+        <div className="grid lg:grid-cols-[1fr_380px] gap-8 mt-10 items-start">
+          {/* Left: All customization */}
+          <div className="space-y-10 min-w-0">
+            <CareerPlanSelectionSection
+              careers={careers}
+              courses={courses}
+              selectedCareerId={selectedCareerId}
+              onSelectCareer={onSelectCareer}
             />
+
+            <div ref={customizationRef}>
+              <CareerCustomizationSection
+                selectedCareer={selectedCareer}
+                includedCourses={includedCourses}
+                addOnCourses={addOnCourses}
+                selectedCourseIds={selectedCourseIds}
+                validationError={validationError}
+                onToggleCourse={handleToggleCourse}
+              />
+            </div>
+          </div>
+
+          {/* Right: Sticky checkout summary */}
+          <div className="hidden lg:block">
+            <div className="sticky top-20">
+              <PricingSummaryPanel
+                selectedCareer={selectedCareer}
+                selectedCourses={selectedCourses}
+                totalPrice={totalPrice}
+              />
+            </div>
           </div>
         </div>
 
@@ -74,7 +82,9 @@ const Pricing = () => {
           <div className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-card border-t border-border p-4 shadow-lg">
             <div className="flex items-center justify-between max-w-lg mx-auto">
               <div>
-                <p className="text-xs text-muted-foreground">{selectedCourses.length} course{selectedCourses.length !== 1 ? "s" : ""}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedCourses.length} course{selectedCourses.length !== 1 ? "s" : ""} selected
+                </p>
                 <p className="text-lg font-bold text-foreground">₹{totalPrice.toLocaleString("en-IN")}</p>
               </div>
               <button
