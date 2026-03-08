@@ -135,11 +135,10 @@ export function usePricingState() {
         setPromoError("Please enter a promo code.");
         return;
       }
-      // Simple promo logic — extend with DB lookup later
+      // Simple promo logic — flat ₹500 off for GOINDIA
       if (trimmed === "GOINDIA") {
-        const discount = breakdown.subtotal * 0.1; // 10% off
         setAppliedPromo(trimmed);
-        setPromoDiscount(discount);
+        setPromoDiscount(500);
         setPromoError(null);
       } else {
         setPromoError("Invalid promo code. Please try again.");
@@ -147,7 +146,7 @@ export function usePricingState() {
         setPromoDiscount(0);
       }
     },
-    [breakdown.subtotal]
+    []
   );
 
   const handleRemovePromo = useCallback(() => {

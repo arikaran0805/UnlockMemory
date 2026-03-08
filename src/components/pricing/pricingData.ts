@@ -18,8 +18,8 @@ export interface PricingCareer {
 
 export interface PricingBreakdown {
   courseSubtotal: number;
-  discountTotal: number;
-  subtotal: number;
+  bundleDiscount: number;
+  subtotalAfterBundle: number;
   promoDiscount: number;
   finalTotal: number;
   savings: number;
@@ -29,24 +29,33 @@ export interface PricingBreakdown {
 export const SAMPLE_COURSES: PricingCourse[] = [];
 export const SAMPLE_CAREERS: PricingCareer[] = [];
 
-export const formatPrice = (amount: number): string => `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatPrice = (amount: number): string =>
+  `₹${amount.toLocaleString("en-IN")}`;
 
-export const formatPriceShort = (amount: number): string => `₹${amount.toLocaleString("en-IN")}`;
+/** Bundle discount: 33% off when 2+ courses selected in a career plan */
+const BUNDLE_DISCOUNT_PERCENT = 33;
+const BUNDLE_MIN_COURSES = 2;
 
 export function calculateBreakdown(
   selectedCourses: PricingCourse[],
   promoDiscount: number
 ): PricingBreakdown {
   const courseSubtotal = selectedCourses.reduce((sum, c) => sum + c.originalPrice, 0);
-  const discountTotal = selectedCourses.reduce((sum, c) => sum + (c.originalPrice - c.discountPrice), 0);
-  const subtotal = selectedCourses.reduce((sum, c) => sum + c.discountPrice, 0);
-  const finalTotal = Math.max(0, subtotal - promoDiscount);
+
+  // Bundle discount applies when 2+ courses
+  const bundleDiscount =
+    selectedCourses.length >= BUNDLE_MIN_COURSES
+      ? Math.round(courseSubtotal * (BUNDLE_DISCOUNT_PERCENT / 100))
+      : 0;
+
+  const subtotalAfterBundle = courseSubtotal - bundleDiscount;
+  const finalTotal = Math.max(0, subtotalAfterBundle - promoDiscount);
   const savings = courseSubtotal - finalTotal;
 
   return {
     courseSubtotal,
-    discountTotal,
-    subtotal,
+    bundleDiscount,
+    subtotalAfterBundle,
     promoDiscount,
     finalTotal,
     savings,

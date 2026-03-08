@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { ShieldCheck, Sparkles, Settings2, Zap, Tag, X, BadgePercent, PartyPopper } from "lucide-react";
+import { ShieldCheck, Sparkles, Settings2, Zap, Tag, X, Package, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +21,6 @@ interface Props {
 const PricingSummaryPanel = ({
   selectedCareer,
   selectedCourses,
-  totalPrice,
   breakdown,
   promoCode,
   onPromoCodeChange,
@@ -32,14 +30,15 @@ const PricingSummaryPanel = ({
   onRemovePromo,
 }: Props) => {
   const canEnroll = selectedCourses.length > 0;
-  const hasDiscount = breakdown.discountTotal > 0;
+  const hasBundleDiscount = breakdown.bundleDiscount > 0;
+  const hasPromo = breakdown.promoDiscount > 0;
   const hasSavings = breakdown.savings > 0;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-md">
+    <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-md">
       {/* 1. Order Summary Header */}
       <div>
-        <h3 className="font-semibold text-foreground text-lg">Order Summary</h3>
+        <h3 className="font-bold text-foreground text-lg">Order Summary</h3>
         {selectedCareer && (
           <p className="text-xs text-muted-foreground mt-0.5">
             {breakdown.itemCount} item{breakdown.itemCount !== 1 ? "s" : ""}
@@ -66,33 +65,17 @@ const PricingSummaryPanel = ({
 
           <Separator />
 
-          {/* 3. Selected Courses List */}
+          {/* 3. Selected Courses List with individual prices */}
           {selectedCourses.length > 0 ? (
-            <ul className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
-              {selectedCourses.map((c) => {
-                const hasItemDiscount = c.originalPrice > c.discountPrice;
-                return (
-                  <li key={c.id} className="flex items-start justify-between text-sm gap-2">
-                    <span className="text-foreground truncate mr-2 leading-tight">{c.name}</span>
-                    <div className="text-right shrink-0">
-                      {hasItemDiscount ? (
-                        <>
-                          <span className="text-muted-foreground line-through text-xs block">
-                            {formatPrice(c.originalPrice)}
-                          </span>
-                          <span className="text-foreground font-medium">
-                            {formatPrice(c.discountPrice)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-foreground font-medium whitespace-nowrap">
-                          {formatPrice(c.discountPrice)}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
+            <ul className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+              {selectedCourses.map((c) => (
+                <li key={c.id} className="flex items-center justify-between text-sm gap-2">
+                  <span className="text-foreground truncate mr-2">{c.name}</span>
+                  <span className="text-foreground font-medium whitespace-nowrap shrink-0">
+                    {formatPrice(c.originalPrice)}
+                  </span>
+                </li>
+              ))}
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-2">No courses selected.</p>
@@ -101,57 +84,49 @@ const PricingSummaryPanel = ({
           <Separator />
 
           {/* 4. Subtotal */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal (INR)</span>
-              <span className="text-foreground font-medium">{formatPrice(breakdown.courseSubtotal)}</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Subtotal does not include applicable taxes.
-            </p>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-foreground font-medium">Subtotal</span>
+            <span className="text-foreground font-medium">{formatPrice(breakdown.courseSubtotal)}</span>
           </div>
 
-          {/* 5. Discount Section */}
-          {hasDiscount && (
+          {/* 5. Bundle Discount */}
+          {hasBundleDiscount && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-1.5">
-                <BadgePercent className="h-3.5 w-3.5 text-green-500" />
-                Discount
+                <Package className="h-3.5 w-3.5 text-primary/70" />
+                Bundle Discount
               </span>
-              <span className="text-green-600 dark:text-green-400 font-medium">
-                −{formatPrice(breakdown.discountTotal)}
+              <span className="text-primary font-medium">
+                −{formatPrice(breakdown.bundleDiscount)}
               </span>
             </div>
           )}
 
-          <Separator />
-
-          {/* 6. Promo Code Section */}
+          {/* 6. Promo Code */}
           <div className="space-y-2">
             {appliedPromo ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Promo Code: {appliedPromo}</span>
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5 text-primary/70" />
+                    <span className="text-muted-foreground">Promo Code: {appliedPromo}</span>
                   </div>
-                  <button
-                    onClick={onRemovePromo}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary font-medium">
+                      −{formatPrice(breakdown.promoDiscount)}
+                    </span>
+                    <button
+                      onClick={onRemovePromo}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] text-green-600 dark:text-green-400 leading-snug">
+                <p className="text-[11px] text-primary/80 leading-snug">
                   VALID PROMO CODE. You're getting the best price we've got.
                 </p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Promo savings</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    −{formatPrice(breakdown.promoDiscount)}
-                  </span>
-                </div>
-              </div>
+              </>
             ) : (
               <div className="space-y-1.5">
                 <div className="flex gap-2">
@@ -182,16 +157,16 @@ const PricingSummaryPanel = ({
 
           {/* 7. Final Total */}
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-foreground text-base">Total Price</span>
+            <span className="font-bold text-foreground text-base">Total</span>
             <span className="text-2xl font-bold text-primary">{formatPrice(breakdown.finalTotal)}</span>
           </div>
 
           {/* 8. Savings Message */}
           {hasSavings && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-500/10 dark:bg-green-500/15">
-              <PartyPopper className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-              <p className="text-xs font-medium text-green-700 dark:text-green-300">
-                Nice! You saved {formatPrice(breakdown.savings)} on your order.
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-primary/10">
+              <PartyPopper className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-xs font-medium text-primary">
+                You saved {formatPrice(breakdown.savings)}
               </p>
             </div>
           )}
@@ -202,8 +177,8 @@ const PricingSummaryPanel = ({
             Ready for Checkout
           </Button>
 
-          <p className="text-[11px] text-center text-muted-foreground">
-            You're paying only for the courses you selected.
+          <p className="text-[10px] text-center text-muted-foreground">
+            Subtotal does not include applicable taxes.
           </p>
 
           <Separator />
