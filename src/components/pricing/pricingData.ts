@@ -14,6 +14,7 @@ export interface PricingCareer {
   duration: string;
   icon: string;
   includedCourseIds: string[];
+  discountPercentage: number;
 }
 
 export interface PricingBreakdown {
@@ -32,20 +33,17 @@ export const SAMPLE_CAREERS: PricingCareer[] = [];
 export const formatPrice = (amount: number): string =>
   `₹${amount.toLocaleString("en-IN")}`;
 
-/** Bundle discount: 33% off when 2+ courses selected in a career plan */
-const BUNDLE_DISCOUNT_PERCENT = 33;
-const BUNDLE_MIN_COURSES = 2;
-
 export function calculateBreakdown(
   selectedCourses: PricingCourse[],
-  promoDiscount: number
+  promoDiscount: number,
+  careerDiscountPercent: number = 0
 ): PricingBreakdown {
   const courseSubtotal = selectedCourses.reduce((sum, c) => sum + c.originalPrice, 0);
 
-  // Bundle discount applies when 2+ courses
+  // Bundle discount uses the career's discount_percentage
   const bundleDiscount =
-    selectedCourses.length >= BUNDLE_MIN_COURSES
-      ? Math.round(courseSubtotal * (BUNDLE_DISCOUNT_PERCENT / 100))
+    careerDiscountPercent > 0 && selectedCourses.length >= 2
+      ? Math.round(courseSubtotal * (careerDiscountPercent / 100))
       : 0;
 
   const subtotalAfterBundle = courseSubtotal - bundleDiscount;

@@ -22,7 +22,7 @@ export function usePricingState() {
       setLoading(true);
       const { data, error } = await supabase
         .from("careers")
-        .select("id, name, description, icon, color, slug, status, career_courses(course_id, is_primary, courses(id, name, description, original_price, discount_price))")
+        .select("id, name, description, icon, color, slug, status, discount_percentage, career_courses(course_id, is_primary, courses(id, name, description, original_price, discount_price))")
         .eq("status", "published")
         .order("display_order", { ascending: true });
 
@@ -35,6 +35,7 @@ export function usePricingState() {
           description: c.description || "",
           duration: "Self-paced",
           icon: c.icon || "BookOpen",
+          discountPercentage: Number(c.discount_percentage) || 0,
           includedCourseIds: (c.career_courses || [])
             .filter((cc: any) => cc.courses)
             .map((cc: any) => {
@@ -88,8 +89,8 @@ export function usePricingState() {
   );
 
   const breakdown = useMemo(
-    () => calculateBreakdown(selectedCourses, promoDiscount),
-    [selectedCourses, promoDiscount]
+    () => calculateBreakdown(selectedCourses, promoDiscount, selectedCareer?.discountPercentage ?? 0),
+    [selectedCourses, promoDiscount, selectedCareer]
   );
 
   const totalPrice = breakdown.finalTotal;

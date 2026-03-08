@@ -33,7 +33,7 @@ const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loadin
       setSearching(true);
       const { data, error } = await supabase
         .from("careers")
-        .select("id, name, description, icon, color, slug, career_courses(course_id, courses(id, name))")
+        .select("id, name, description, icon, color, slug, discount_percentage, career_courses(course_id, courses(id, name))")
         .eq("status", "published")
         .ilike("name", `%${debouncedSearch}%`)
         .order("display_order", { ascending: true });
@@ -45,6 +45,7 @@ const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loadin
           description: c.description || "",
           duration: "Self-paced",
           icon: c.icon || "BookOpen",
+          discountPercentage: Number(c.discount_percentage) || 0,
           includedCourseIds: (c.career_courses || [])
             .filter((cc: any) => cc.courses)
             .map((cc: any) => cc.courses.id),
