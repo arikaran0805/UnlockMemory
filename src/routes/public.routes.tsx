@@ -40,6 +40,7 @@ import EliminateWrongWorkspace from "@/pages/EliminateWrongWorkspace";
 export const publicRoutes = [
   <Route key="home" path="/" element={<Index />} />,
   <Route key="pricing" path="/pricing" element={<Pricing />} />,
+  <Route key="careers" path="/careers" element={<Careers />} />,
   <Route key="courses" path="/courses" element={<Courses />} />,
   <Route key="course-detail" path="/course/:slug" element={<CourseDetail />} />,
   <Route key="course-notes" path="/courses/:courseId/notes" element={<CourseNotes />} />,
