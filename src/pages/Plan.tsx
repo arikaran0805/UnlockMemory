@@ -120,6 +120,7 @@ const Plan = () => {
                 promoError={promoError}
                 onApplyPromo={handleApplyPromo}
                 onRemovePromo={handleRemovePromo}
+                itemCount={items.length}
                 onCheckout={handleCheckout}
               />
             </div>
