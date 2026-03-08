@@ -33,6 +33,7 @@ import PredictOutputDetail from "@/pages/PredictOutputDetail";
 import PredictOutputWorkspace from "@/pages/PredictOutputWorkspace";
 import FixErrorWorkspace from "@/pages/FixErrorWorkspace";
 import EliminateWrongWorkspace from "@/pages/EliminateWrongWorkspace";
+import ComparePlans from "@/pages/ComparePlans";
 
 /**
  * Public Routes - No authentication required
