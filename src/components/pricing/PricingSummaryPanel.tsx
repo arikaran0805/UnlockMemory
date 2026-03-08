@@ -152,14 +152,6 @@ const PricingSummaryPanel = ({
                 {promoError && (
                   <p className="text-[11px] text-destructive">{promoError}</p>
                 )}
-
-                {/* Available promo codes */}
-                <AvailablePromoCodes
-                  onApply={(code) => {
-                    onPromoCodeChange(code);
-                    onApplyPromo(code);
-                  }}
-                />
               </div>
             )}
           </div>
