@@ -83,7 +83,19 @@ const Careers = () => {
     fetchCareers();
   }, []);
 
+  const filteredCareers = useMemo(() => {
+    if (!searchQuery.trim()) return careers;
+    const q = searchQuery.toLowerCase();
+    return careers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.description && c.description.toLowerCase().includes(q)) ||
+        c.courses.some((course) => course.name.toLowerCase().includes(q))
+    );
+  }, [careers, searchQuery]);
+
   const fmt = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
+
 
   const handleAddToPlan = (career: CareerWithPrice) => {
     addCareer({
