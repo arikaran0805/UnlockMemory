@@ -10,6 +10,7 @@ import { CareerCard, type CareerWithPrice } from "@/components/career/CareerCard
 import type { PricingCourse } from "@/components/pricing/pricingData";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ProUpgradeBanner } from "@/components/ProUpgradeBanner";
 
 const Careers = () => {
   const [careers, setCareers] = useState<CareerWithPrice[]>([]);
@@ -133,6 +134,9 @@ const Careers = () => {
             Curated career bundles with everything you need. Add to your plan, customize courses, and start learning.
           </p>
         </div>
+
+        {/* ── Pro Upgrade Banner (FREE mode only) ── */}
+        <ProUpgradeBanner className="mb-8" dismissible />
 
         {/* ── Search ── */}
         <div className="mb-8">

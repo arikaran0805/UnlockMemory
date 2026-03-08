@@ -21,6 +21,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { SearchDialog } from "./SearchDialog";
 import NotificationDropdown from "./NotificationDropdown";
 import { useCareerPlan } from "@/contexts/CareerPlanContext";
+import { LearnerModeBadge } from "./LearnerModeBadge";
 
 interface SiteSettings {
   site_name: string;
@@ -238,6 +239,9 @@ const Header = ({
 
             {/* Right Side Actions - Positioned to rightmost side */}
             <div className="flex items-center gap-1">
+              {/* Learner Mode Badge */}
+              <LearnerModeBadge className="mr-1 hidden sm:inline-flex" />
+              <LearnerModeBadge compact className="mr-1 sm:hidden" />
               {/* Search Button */}
               <Button 
                 variant="ghost" 
