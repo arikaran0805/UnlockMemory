@@ -44,7 +44,7 @@ const CourseSelectionCard = ({ id, name, description, price, type, isSelected, o
           {type === "included" ? "Included" : "Add-on"}
         </Badge>
       </div>
-      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{description}</p>
+      
     </div>
 
     <span className="font-semibold text-foreground whitespace-nowrap shrink-0">{formatPrice(price)}</span>

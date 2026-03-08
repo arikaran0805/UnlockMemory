@@ -82,7 +82,7 @@ const CareerCustomizationSection = ({
           <p className="text-xs text-muted-foreground mt-0.5">Strengthen your career path with additional skills.</p>
         </div>
         {addOnCourses.length > 0 ? (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {addOnCourses.map((c) => (
               <CourseSelectionCard
                 key={c.id}
