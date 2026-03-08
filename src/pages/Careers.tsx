@@ -42,7 +42,7 @@ const Careers = () => {
           // Sum of all course discount prices
           const courseDiscountSum = coursesRaw.reduce((s: number, co: any) => s + (Number(co.discount_price) || Number(co.original_price) || 0), 0);
           // Sum of all original prices (for showing savings)
-          const basePrice = coursesRaw.reduce((s: number, co: any) => s + (Number(co.original_price) || 0), 0);
+          const basePrice = courseDiscountSum;
           // Apply career discount_percentage on top of course discount sum
           const discountPct = Number(c.discount_percentage) || 0;
           const bundleDiscount = discountPct > 0 && coursesRaw.length >= 2
