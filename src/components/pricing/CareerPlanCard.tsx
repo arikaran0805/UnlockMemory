@@ -20,12 +20,15 @@ interface CareerPlanCardProps {
   onSelect: (id: string) => void;
 }
 
-const CareerPlanCard = ({ career, courses, isSelected, onSelect }: CareerPlanCardProps) => {
+const CareerPlanCard = ({ career, courses, isSelected, anySelected, onSelect }: CareerPlanCardProps) => {
   const Icon = ICON_MAP[career.icon] || BookOpen;
   const includedCourses = career.includedCourseIds
     .map((id) => courses.find((c) => c.id === id))
     .filter(Boolean) as PricingCourse[];
   const basePrice = includedCourses.reduce((s, c) => s + c.price, 0);
+
+  // Show metadata inline (top-right) when a career is selected, below name when browsing
+  const showMetaBelow = !anySelected;
 
   return (
     <Card
@@ -51,16 +54,28 @@ const CareerPlanCard = ({ career, courses, isSelected, onSelect }: CareerPlanCar
             <div className="min-w-0">
               <h3 className="font-semibold text-foreground text-lg leading-tight">{career.name}</h3>
               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{career.description}</p>
+              {showMetaBelow && (
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" /> {career.duration}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5" /> {includedCourses.length} courses
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground shrink-0">
-            <span className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> {career.duration}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <BookOpen className="h-3.5 w-3.5" /> {includedCourses.length} courses
-            </span>
-          </div>
+          {!showMetaBelow && (
+            <div className="flex items-center gap-4 text-sm text-muted-foreground shrink-0">
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> {career.duration}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <BookOpen className="h-3.5 w-3.5" /> {includedCourses.length} courses
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
