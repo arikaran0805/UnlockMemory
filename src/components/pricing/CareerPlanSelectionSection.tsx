@@ -18,6 +18,8 @@ interface Props {
 }
 
 const CareerPlanSelectionSection = ({ careers, courses, selectedCareerId, loading, onSelectCareer }: Props) => {
+  const [searchParams] = useSearchParams();
+  const hasCareerParam = !!searchParams.get("career");
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<PricingCareer[] | null>(null);
   const [searching, setSearching] = useState(false);
