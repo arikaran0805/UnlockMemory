@@ -38,6 +38,23 @@ const Pricing = () => {
     breakdown,
   } = usePricingState();
 
+  const handleCheckout = useCallback(() => {
+    if (!selectedCareer || selectedCourses.length === 0) return;
+    const cartData = {
+      careerId: selectedCareer.id,
+      careerName: selectedCareer.name,
+      courses: selectedCourses.map((c) => ({ id: c.id, name: c.name, price: c.discountPrice })),
+      subtotal: breakdown.courseSubtotal,
+      bundleDiscount: breakdown.bundleDiscount,
+      promoCode: appliedPromo,
+      promoDiscount: breakdown.promoDiscount,
+      finalTotal: breakdown.finalTotal,
+      savings: breakdown.savings,
+    };
+    sessionStorage.setItem("checkout_cart", JSON.stringify(cartData));
+    navigate("/checkout");
+  }, [selectedCareer, selectedCourses, breakdown, appliedPromo, navigate]);
+
   const onSelectCareer = (id: string) => {
     handleSelectCareer(id);
     setTimeout(() => {
