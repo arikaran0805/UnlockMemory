@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart3, Briefcase, Brain, BookOpen, ArrowRight, Check,
   Settings2, Star, Flame, Rocket, Users, ChevronDown, ChevronUp,
-  ShieldCheck, ArrowUpRight, Clock,
+  ShieldCheck, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
