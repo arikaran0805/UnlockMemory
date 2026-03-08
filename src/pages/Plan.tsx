@@ -187,8 +187,12 @@ function CareerCartCard({
 
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xs text-muted-foreground">Starts from</span>
-              <p className="text-xl font-bold text-foreground">{formatPrice(basePrice)}</p>
+              <p className="text-xl font-bold text-foreground">{formatPrice(discountedTotal)}</p>
+              {discountedTotal < subtotal && (
+                <p className="text-xs text-primary font-medium">
+                  You save {formatPrice(subtotal - discountedTotal)} with this bundle
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="default" onClick={onCustomize} className="shrink-0">
