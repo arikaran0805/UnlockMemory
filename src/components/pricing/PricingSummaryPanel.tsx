@@ -178,7 +178,7 @@ const PricingSummaryPanel = ({
           )}
 
           {/* 9. Checkout Button */}
-          <Button className="w-full h-12 text-base font-semibold" size="lg" disabled={!canEnroll}>
+          <Button className="w-full h-12 text-base font-semibold" size="lg" disabled={!canEnroll} onClick={onCheckout}>
             <Zap className="h-4 w-4 mr-2" />
             Ready for Checkout
           </Button>
