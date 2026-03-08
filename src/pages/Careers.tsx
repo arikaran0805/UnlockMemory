@@ -10,6 +10,7 @@ import { CareerCard, type CareerWithPrice } from "@/components/career/CareerCard
 import type { PricingCourse } from "@/components/pricing/pricingData";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ProUpgradeBanner } from "@/components/ProUpgradeBanner";
 
 const Careers = () => {
   const [careers, setCareers] = useState<CareerWithPrice[]>([]);
