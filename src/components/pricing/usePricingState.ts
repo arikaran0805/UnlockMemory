@@ -130,24 +130,69 @@ export function usePricingState() {
   );
 
   const handleApplyPromo = useCallback(
-    (code: string) => {
+    async (code: string) => {
       const trimmed = code.trim().toUpperCase();
       if (!trimmed) {
         setPromoError("Please enter a promo code.");
         return;
       }
-      // Simple promo logic — flat ₹500 off for GOINDIA
-      if (trimmed === "GOINDIA") {
-        setAppliedPromo(trimmed);
-        setPromoDiscount(500);
-        setPromoError(null);
-      } else {
+
+      // Look up promo code from database
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("*")
+        .eq("code", trimmed)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error || !data) {
         setPromoError("Invalid promo code. Please try again.");
         setAppliedPromo(null);
         setPromoDiscount(0);
+        return;
       }
+
+      // Check expiry
+      if (data.expiry_date && new Date(data.expiry_date) < new Date()) {
+        setPromoError("This promo code has expired.");
+        setAppliedPromo(null);
+        setPromoDiscount(0);
+        return;
+      }
+
+      // Check usage limit
+      if (data.usage_limit && data.used_count >= data.usage_limit) {
+        setPromoError("This promo code has reached its usage limit.");
+        setAppliedPromo(null);
+        setPromoDiscount(0);
+        return;
+      }
+
+      // Check minimum purchase
+      const subtotal = selectedCourses.reduce((s, c) => s + c.originalPrice, 0);
+      if (data.min_purchase && subtotal < data.min_purchase) {
+        setPromoError(`Minimum purchase of ₹${data.min_purchase} required.`);
+        setAppliedPromo(null);
+        setPromoDiscount(0);
+        return;
+      }
+
+      // Calculate discount
+      let discount = 0;
+      if (data.discount_type === "percentage") {
+        discount = Math.round(subtotal * (data.discount_value / 100));
+        if (data.max_discount && discount > data.max_discount) {
+          discount = data.max_discount;
+        }
+      } else {
+        discount = data.discount_value;
+      }
+
+      setAppliedPromo(trimmed);
+      setPromoDiscount(discount);
+      setPromoError(null);
     },
-    []
+    [selectedCourses]
   );
 
   const handleRemovePromo = useCallback(() => {
