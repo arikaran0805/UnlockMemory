@@ -25,7 +25,7 @@ const CareerPlanCard = ({ career, courses, isSelected, anySelected, onSelect }: 
   const includedCourses = career.includedCourseIds
     .map((id) => courses.find((c) => c.id === id))
     .filter(Boolean) as PricingCourse[];
-  const basePrice = includedCourses.reduce((s, c) => s + c.price, 0);
+  const basePrice = includedCourses.reduce((s, c) => s + c.originalPrice, 0);
 
   // Show metadata inline (top-right) when a career is selected, below name when browsing
   const showMetaBelow = !anySelected;
