@@ -30,6 +30,7 @@ const LearnerModeContext = createContext<LearnerModeContextValue | undefined>(un
 const STORAGE_KEY = "lovable_learner_mode";
 
 export const LearnerModeProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
   const [learnerMode, setLearnerMode] = useState<LearnerMode>(() => {
     if (typeof window === "undefined") return "FREE";
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -41,13 +42,10 @@ export const LearnerModeProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STORAGE_KEY, learnerMode);
   }, [learnerMode]);
 
+  /** Redirect to compare-plans page instead of instantly activating */
   const activateProMode = useCallback(() => {
-    setLearnerMode("PRO");
-    toast({
-      title: "✨ You are now a Pro Learner",
-      description: "Course customization, bundle discounts, and premium features are now unlocked.",
-    });
-  }, []);
+    navigate("/compare-plans");
+  }, [navigate]);
 
   const resetToFreeMode = useCallback(() => {
     setLearnerMode("FREE");
