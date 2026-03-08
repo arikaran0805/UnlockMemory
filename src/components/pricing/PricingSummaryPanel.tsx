@@ -94,7 +94,7 @@ const PricingSummaryPanel = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5 text-primary/70" />
-                Bundle Discount
+                Bundle Discount ({selectedCareer?.discountPercentage || 0}%)
               </span>
               <span className="text-primary font-medium">
                 −{formatPrice(breakdown.bundleDiscount)}
