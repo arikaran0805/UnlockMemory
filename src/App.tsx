@@ -10,7 +10,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ViewAsRoleProvider } from "@/contexts/ViewAsRoleContext";
 import { PricingDrawerProvider } from "@/contexts/PricingDrawerContext";
 import { CareerPlanProvider } from "@/contexts/CareerPlanContext";
-import { LearnerModeProvider } from "@/contexts/LearnerModeContext";
 import ViewAsRoleBanner from "@/components/ViewAsRoleBanner";
 
 
@@ -94,13 +93,11 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ViewAsRoleProvider>
-              <LearnerModeProvider>
-                <CareerPlanProvider>
-                  <PricingDrawerProvider>
-                    <AppContent />
-                  </PricingDrawerProvider>
-                </CareerPlanProvider>
-              </LearnerModeProvider>
+              <CareerPlanProvider>
+                <PricingDrawerProvider>
+                  <AppContent />
+                </PricingDrawerProvider>
+              </CareerPlanProvider>
             </ViewAsRoleProvider>
           </AuthProvider>
         </BrowserRouter>

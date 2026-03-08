@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Settings2, AlertCircle, Search, X, Lock, Sparkles } from "lucide-react";
+import { Settings2, AlertCircle, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useLearnerMode } from "@/contexts/LearnerModeContext";
 import type { PricingCareer, PricingCourse } from "./pricingData";
 import CourseSelectionCard from "./CourseSelectionCard";
 
@@ -29,7 +27,6 @@ const CareerCustomizationSection = ({
   const [searchResults, setSearchResults] = useState<PricingCourse[] | null>(null);
   const [searching, setSearching] = useState(false);
   const debouncedSearch = useDebounce(courseSearch, 300);
-  const { isFreeMode, activateProMode } = useLearnerMode();
 
   // Search courses from DB
   useEffect(() => {
@@ -74,6 +71,7 @@ const CareerCustomizationSection = ({
   // Included = original included + selected add-ons
   const displayIncluded = useMemo(() => {
     const selectedAddOns = addOnCourses.filter((c) => selectedAddOnIds.has(c.id));
+    // Also include search result courses that were selected but aren't in addOnCourses
     const searchSelectedIds = [...selectedAddOnIds].filter(
       (id) => !addOnCourses.some((c) => c.id === id) && !includedCourses.some((c) => c.id === id)
     );
@@ -83,14 +81,16 @@ const CareerCustomizationSection = ({
     return [...includedCourses, ...selectedAddOns, ...searchSelected];
   }, [includedCourses, addOnCourses, selectedAddOnIds, searchResults]);
 
-  // Add-ons to display
+  // Add-ons to display: only 3 related, exclude selected ones
   const displayAddOns = useMemo(() => {
     if (courseSearch.trim() && searchResults) {
+      // When searching, show search results excluding already-included and already-selected
       const includedSet = new Set(selectedCareer?.includedCourseIds || []);
       return searchResults.filter(
         (c) => !includedSet.has(c.id) && !selectedAddOnIds.has(c.id)
       );
     }
+    // Default: show first 3 add-ons that aren't selected
     return addOnCourses
       .filter((c) => !selectedAddOnIds.has(c.id))
       .slice(0, 3);
@@ -107,42 +107,6 @@ const CareerCustomizationSection = ({
     );
   }
 
-  // FREE mode: show locked customization section
-  if (isFreeMode) {
-    return (
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <Settings2 className="h-5 w-5 text-muted-foreground" />
-            Customize Your Plan
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {selectedCareer.name} · {selectedCourseIds.length} course{selectedCourseIds.length !== 1 ? "s" : ""} selected
-          </p>
-        </div>
-
-        <div className="relative rounded-2xl border-2 border-dashed border-border bg-muted/10 p-8 flex flex-col items-center justify-center text-center gap-4">
-          <div className="p-3 rounded-full bg-primary/10">
-            <Lock className="h-6 w-6 text-primary" />
-          </div>
-          <div className="space-y-1.5 max-w-sm">
-            <p className="text-base font-semibold text-foreground">
-              Course customization is available for Pro learners.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Upgrade to add or remove courses, see real-time pricing updates, and unlock bundle discounts.
-            </p>
-          </div>
-          <Button onClick={activateProMode} className="gap-1.5 mt-1">
-            <Sparkles className="h-4 w-4" />
-            Upgrade to Pro
-          </Button>
-        </div>
-      </section>
-    );
-  }
-
-  // PRO mode: full interactive customization
   return (
     <section className="space-y-8">
       {/* Selected Career Header */}
