@@ -67,6 +67,20 @@ export function usePricingState() {
     fetchCareers();
   }, []);
 
+  // Auto-select career from URL query param
+  useEffect(() => {
+    if (autoSelectedRef.current || loading || careers.length === 0) return;
+    const careerParam = searchParams.get("career");
+    if (careerParam) {
+      const career = careers.find((c) => c.id === careerParam);
+      if (career) {
+        autoSelectedRef.current = true;
+        setSelectedCareerId(career.id);
+        setSelectedCourseIds([...career.includedCourseIds]);
+      }
+    }
+  }, [careers, loading, searchParams]);
+
   const allCourses = useMemo(() => dbCourses, [dbCourses]);
 
   const selectedCareer = useMemo(
