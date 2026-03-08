@@ -33,6 +33,7 @@ const PricingSummaryPanel = ({
   promoError,
   onApplyPromo,
   onRemovePromo,
+  onCheckout,
 }: Props) => {
   const canEnroll = selectedCourses.length > 0;
   const hasBundleDiscount = breakdown.bundleDiscount > 0;
