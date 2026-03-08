@@ -51,6 +51,7 @@ const Pricing = () => {
               careers={careers}
               courses={courses}
               selectedCareerId={selectedCareerId}
+              loading={loading}
               onSelectCareer={onSelectCareer}
             />
 
