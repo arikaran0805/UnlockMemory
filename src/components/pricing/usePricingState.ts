@@ -53,14 +53,9 @@ export function usePricingState() {
     fetchCareers();
   }, []);
 
-  // Merge sample courses with DB courses (DB courses override if same id)
+  // Use only DB courses
   const allCourses = useMemo(() => {
-    const merged = new Map<string, PricingCourse>();
-    SAMPLE_COURSES.forEach((c) => merged.set(c.id, c));
-    dbCourses.forEach((c) => {
-      if (!merged.has(c.id)) merged.set(c.id, c);
-    });
-    return Array.from(merged.values());
+    return dbCourses;
   }, [dbCourses]);
 
   const selectedCareer = useMemo(
