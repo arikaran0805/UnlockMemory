@@ -174,15 +174,8 @@ const Checkout = () => {
     <Layout>
       <SEOHead title="Checkout | Complete Your Purchase" description="Review your order and complete your purchase." />
 
-      <div className="co-page-bg min-h-screen relative overflow-hidden">
-        {/* Decorative blur shapes */}
-        <div className="co-blur-shape co-blur-1" />
-        <div className="co-blur-shape co-blur-2" />
-        <div className="co-blur-shape co-blur-3" />
-
-
-        {/* Main Content */}
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-[60px] relative z-10">
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8">
           <AnimatePresence mode="wait">
             {paymentSuccess ? (
               <CheckoutSuccess
