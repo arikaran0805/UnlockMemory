@@ -1813,6 +1813,7 @@ const CourseDetail = () => {
 
                     {/* TABS */}
                     <Tabs value={activeTab ?? "details"} onValueChange={handleTabChange} className="w-full">
+                      {(isPro || isAdmin || isModerator) && (
                       <TabsList className="mb-6 w-full justify-start">
                         {/* Course Details tab - hidden for free users (guests & free learners) */}
                         {(isPro || isAdmin || isModerator) && (
@@ -1874,6 +1875,7 @@ const CourseDetail = () => {
                           </TabsTrigger>
                         )}
                       </TabsList>
+                      )}
 
                       {/* Course Details Tab */}
                       <TabsContent value="details">
