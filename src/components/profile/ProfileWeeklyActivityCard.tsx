@@ -91,8 +91,8 @@ export const ProfileWeeklyActivityCard = ({
 
   if (loading) {
     return (
-      <Card className={cn("card-premium rounded-xl", className)}>
-        <CardContent className="p-5">
+      <div className={cn("co-card", className)}>
+        <div className="p-5">
           <div className="space-y-1">
             <h3 className="text-lg font-bold">Weekly Activity</h3>
             <p className="text-xs text-muted-foreground">Time spent per day (hrs)</p>
@@ -100,14 +100,14 @@ export const ProfileWeeklyActivityCard = ({
           <div className="flex items-center justify-center h-28 text-sm text-muted-foreground">
             Loading activity...
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className={cn("card-premium rounded-xl", className)}>
-      <CardContent className="p-5">
+    <div className={cn("co-card", className)}>
+      <div className="p-5">
         <div className="space-y-1 mb-4">
           <h3 className="text-lg font-bold">Weekly Activity</h3>
           <p className="text-xs text-muted-foreground">Time spent per day (hrs)</p>
@@ -237,7 +237,7 @@ export const ProfileWeeklyActivityCard = ({
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

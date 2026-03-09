@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +17,9 @@ export const ProfileDashboardHeader = ({
   maxStreak,
 }: Props) => {
   return (
-    <Card
+    <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border-0",
-        "bg-gradient-to-r from-primary/8 via-primary/5 to-accent/8",
-        "shadow-lg shadow-primary/5",
+        "co-card relative overflow-hidden",
         className
       )}
     >
@@ -31,7 +28,7 @@ export const ProfileDashboardHeader = ({
       <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl translate-x-1/4 translate-y-1/4" />
 
-      <CardContent className="relative p-4 md:p-5 h-[100px] flex items-center">
+      <div className="relative p-4 md:p-5 h-[100px] flex items-center">
         <div className="flex items-center justify-between w-full">
           {/* Left - Identity */}
           <div className="flex flex-col gap-0.5">
@@ -61,7 +58,7 @@ export const ProfileDashboardHeader = ({
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
