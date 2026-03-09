@@ -211,7 +211,7 @@ const Checkout = () => {
                     </div>
 
                     {/* Billing */}
-                    <motion.div custom={1} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Card className="border-border">
                         <CardContent className="p-6 space-y-4">
                           <h2 className="font-semibold text-foreground text-lg">Billing Information</h2>
