@@ -2450,7 +2450,7 @@ const Profile = () => {
           {activeTab !== 'practice' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
             <div className="co-card">
-              <CardContent className="p-4">
+              <div className="p-4">
                 {/* Profile Summary */}
                 <div className="text-center pb-4 mb-4 border-b border-border/50">
                   <div className="mx-auto w-fit">
