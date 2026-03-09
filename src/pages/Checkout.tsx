@@ -276,7 +276,7 @@ const Checkout = () => {
                         <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Instant Course Access</span>
                         <span className="flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> UPI · Cards · Netbanking</span>
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
 
                   {/* Right: Summary */}
