@@ -258,7 +258,7 @@ const Checkout = () => {
                     </div>
 
                     {/* CTA */}
-                    <motion.div custom={3} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Button
                         disabled={!user}
                         size="lg"
