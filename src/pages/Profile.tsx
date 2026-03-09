@@ -1538,8 +1538,8 @@ const Profile = () => {
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <ProfileWeeklyActivityCard
             className="animate-stagger-2"
