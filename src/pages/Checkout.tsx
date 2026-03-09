@@ -208,7 +208,7 @@ const Checkout = () => {
                           )}
                         </CardContent>
                       </Card>
-                    </motion.div>
+                    </div>
 
                     {/* Billing */}
                     <motion.div custom={1} initial="hidden" animate="visible" variants={cardVariants}>
