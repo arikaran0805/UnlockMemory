@@ -2551,8 +2551,8 @@ const Profile = () => {
                     )}
                   </nav>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </aside>
           )}
 
