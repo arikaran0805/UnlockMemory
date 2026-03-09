@@ -255,7 +255,7 @@ const Checkout = () => {
                           </div>
                         </CardContent>
                       </Card>
-                    </motion.div>
+                    </div>
 
                     {/* CTA */}
                     <motion.div custom={3} initial="hidden" animate="visible" variants={cardVariants}>
