@@ -91,8 +91,8 @@ export const ProfileWeeklyActivityCard = ({
 
   if (loading) {
     return (
-      <Card className={cn("card-premium rounded-xl", className)}>
-        <CardContent className="p-5">
+      <div className={cn("co-card", className)}>
+        <div className="p-5">
           <div className="space-y-1">
             <h3 className="text-lg font-bold">Weekly Activity</h3>
             <p className="text-xs text-muted-foreground">Time spent per day (hrs)</p>
