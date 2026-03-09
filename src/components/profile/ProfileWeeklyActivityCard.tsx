@@ -100,8 +100,8 @@ export const ProfileWeeklyActivityCard = ({
           <div className="flex items-center justify-center h-28 text-sm text-muted-foreground">
             Loading activity...
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
