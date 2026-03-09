@@ -431,8 +431,12 @@ const CourseDetail = () => {
       return;
     }
 
-    // 0% progress → Course Details tab (first-time visitors understand the course)
-    setActiveTab("details");
+    // 0% progress → Course Details tab for staff/Pro, Lessons tab for free users
+    if (isPro || isAdmin || isModerator) {
+      setActiveTab("details");
+    } else {
+      setActiveTab("lessons");
+    }
     setDefaultTabResolved(true);
   }, [
     defaultTabResolved,
@@ -1810,15 +1814,19 @@ const CourseDetail = () => {
                     {/* TABS */}
                     <Tabs value={activeTab ?? "details"} onValueChange={handleTabChange} className="w-full">
                       <TabsList className="mb-6 w-full justify-start">
-                        <TabsTrigger value="details" className="gap-2">
-                          <Info className="h-4 w-4" />
-                          Course Details
-                        </TabsTrigger>
+                        {/* Course Details tab - hidden for free users (guests & free learners) */}
+                        {(isPro || isAdmin || isModerator) && (
+                          <TabsTrigger value="details" className="gap-2">
+                            <Info className="h-4 w-4" />
+                            Course Details
+                          </TabsTrigger>
+                        )}
                         <TabsTrigger value="lessons" className="gap-2">
                           <List className="h-4 w-4" />
                           Lessons ({lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length})
                         </TabsTrigger>
-                        {user && course && (
+                        {/* Notes tab - hidden for free users (guests & free learners) */}
+                        {user && course && (isPro || isAdmin || isModerator) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               {isMobile ? (
