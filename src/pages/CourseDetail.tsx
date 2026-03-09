@@ -431,8 +431,12 @@ const CourseDetail = () => {
       return;
     }
 
-    // 0% progress → Course Details tab (first-time visitors understand the course)
-    setActiveTab("details");
+    // 0% progress → Course Details tab for staff/Pro, Lessons tab for free users
+    if (isPro || isAdmin || isModerator) {
+      setActiveTab("details");
+    } else {
+      setActiveTab("lessons");
+    }
     setDefaultTabResolved(true);
   }, [
     defaultTabResolved,
