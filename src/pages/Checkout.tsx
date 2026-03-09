@@ -357,7 +357,6 @@ const Checkout = () => {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
       </div>
     </Layout>
   );
