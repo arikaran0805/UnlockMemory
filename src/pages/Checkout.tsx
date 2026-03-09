@@ -180,40 +180,6 @@ const Checkout = () => {
         <div className="co-blur-shape co-blur-2" />
         <div className="co-blur-shape co-blur-3" />
 
-        {/* Progress Bar */}
-        <div className="co-progress-bar relative z-10">
-          <div className="max-w-[680px] mx-auto px-4">
-            <div className="flex items-center justify-between">
-              {steps.map((step, idx) => {
-                const StepIcon = step.icon;
-                const isActive = idx === currentStep;
-                const isCompleted = idx < currentStep;
-                return (
-                  <div key={step.label} className="flex items-center flex-1 last:flex-none">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <motion.div
-                        className={`co-step-dot ${
-                          isCompleted ? "co-step-done" : isActive ? "co-step-active" : "co-step-future"
-                        }`}
-                        initial={false}
-                        animate={isActive ? { scale: [1, 1.15, 1] } : {}}
-                        transition={{ duration: 0.4, ease: ease4 }}
-                      >
-                        {isCompleted ? <Check className="h-3.5 w-3.5" /> : <StepIcon className="h-3.5 w-3.5" />}
-                      </motion.div>
-                      <span className={`text-[11px] font-medium ${isActive ? "text-primary" : isCompleted ? "text-primary/70" : "text-muted-foreground/50"}`}>
-                        {step.label}
-                      </span>
-                    </div>
-                    {idx < steps.length - 1 && (
-                      <div className={`flex-1 h-[2px] mx-3 mt-[-18px] rounded-full transition-colors duration-300 ${idx < currentStep ? "bg-primary/40" : "bg-border/60"}`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
 
         {/* Main Content */}
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-[60px] relative z-10">
