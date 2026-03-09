@@ -1580,8 +1580,8 @@ const Profile = () => {
       </div>
 
       {/* Arcade Section */}
-      <Card className="card-premium rounded-xl animate-stagger-5">
-        <CardContent className="p-6">
+      <div className="co-card animate-stagger-5">
+        <div className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
               <Gamepad2 className="h-8 w-8 text-white" />
