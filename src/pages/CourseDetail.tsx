@@ -1963,12 +1963,14 @@ const CourseDetail = () => {
 
                       {/* Lessons Tab */}
                       <TabsContent value="lessons">
-                        <div className="mb-6">
-                          <h3 className="text-xl font-semibold mb-1">Course Curriculum</h3>
-                          <p className="text-muted-foreground text-sm">
-                            {lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length} lessons • {posts.length} posts
-                          </p>
-                        </div>
+                        {(isPro || isAdmin || isModerator) && (
+                          <div className="mb-6">
+                            <h3 className="text-xl font-semibold mb-1">Course Curriculum</h3>
+                            <p className="text-muted-foreground text-sm">
+                              {lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length} lessons • {posts.length} posts
+                            </p>
+                          </div>
+                        )}
 
                         {lessons.length === 0 ? (
                           <div className="text-center py-16 bg-muted/30 rounded-xl">
