@@ -1492,8 +1492,8 @@ const Profile = () => {
         {/* Right Column - Today's Focus + Weekly Activity + AI Mentor */}
         <div className="flex flex-col space-y-6 h-full min-h-full">
           {/* Today's Focus Card */}
-          <Card className="card-premium rounded-xl animate-stagger-1">
-            <CardContent className="p-5">
+          <div className="co-card animate-stagger-1">
+            <div className="p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Target className="h-5 w-5 text-primary" />
                 <span className="text-sm font-semibold text-primary uppercase tracking-wider">
