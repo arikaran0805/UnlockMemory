@@ -2449,7 +2449,7 @@ const Profile = () => {
           {/* Sidebar - hidden for Practice Lab */}
           {activeTab !== 'practice' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
-            <Card className="rounded-xl bg-card/80 backdrop-blur-sm border shadow-lg">
+            <div className="co-card">
               <CardContent className="p-4">
                 {/* Profile Summary */}
                 <div className="text-center pb-4 mb-4 border-b border-border/50">
