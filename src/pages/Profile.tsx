@@ -1425,8 +1425,8 @@ const Profile = () => {
                   );
                 })()}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Recommended Labs Section - Directly below Career Readiness */}
           <Card className="card-premium rounded-xl animate-stagger-3">
