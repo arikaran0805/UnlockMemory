@@ -171,8 +171,7 @@ const Checkout = () => {
     <Layout>
       <SEOHead title="Checkout | Complete Your Purchase" description="Review your order and complete your purchase." />
 
-      <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-16 sm:py-20">
           <AnimatePresence mode="wait">
             {paymentSuccess ? (
               <CheckoutSuccess
@@ -183,9 +182,9 @@ const Checkout = () => {
             ) : (
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
                 {/* Title */}
-                <motion.div className="mb-8" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                  <h1 className="text-3xl font-bold text-foreground">Checkout</h1>
-                  <p className="text-muted-foreground mt-2">Review your order and complete your purchase.</p>
+                <motion.div className="text-center mb-12 sm:mb-16 space-y-3" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">Checkout</h1>
+                  <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">Review your order and complete your purchase.</p>
                 </motion.div>
 
                 <div className="grid lg:grid-cols-[1fr_380px] gap-8 items-start">
