@@ -183,7 +183,7 @@ const Checkout = () => {
                   {/* Left */}
                   <div className="space-y-8">
                     {/* Account */}
-                    <motion.div custom={0} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Card className="border-border">
                         <CardContent className="p-6 space-y-4">
                           <h2 className="font-semibold text-foreground text-lg">Account Details</h2>
