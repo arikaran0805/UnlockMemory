@@ -1138,8 +1138,8 @@ const Profile = () => {
             maxStreak={maxStreak}
           />
           {/* Career Readiness */}
-          <Card className="card-premium rounded-xl animate-stagger-2">
-            <CardContent className="p-6">
+          <div className="co-card animate-stagger-2">
+            <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">Career Readiness</h3>
