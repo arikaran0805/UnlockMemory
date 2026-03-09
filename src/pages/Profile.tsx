@@ -2441,7 +2441,15 @@ const Profile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-2xl ${activeTab === 'dashboard' ? 'dashboard-bg' : 'bg-background'}`}>
+        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-2xl relative overflow-hidden ${activeTab === 'dashboard' ? 'co-page-bg' : 'bg-background'}`}>
+          {/* Decorative blur shapes - only on dashboard */}
+          {activeTab === 'dashboard' && (
+            <>
+              <div className="co-blur-shape co-blur-1" />
+              <div className="co-blur-shape co-blur-2" />
+              <div className="co-blur-shape co-blur-3" />
+            </>
+          )}
           {/* Sidebar - hidden for Practice Lab */}
           {activeTab !== 'practice' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
