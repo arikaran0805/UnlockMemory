@@ -230,7 +230,7 @@ const Checkout = () => {
                     </div>
 
                     {/* Payment */}
-                    <motion.div custom={2} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Card className="border-border">
                         <CardContent className="p-6 space-y-4">
                           <h2 className="font-semibold text-foreground text-lg">Payment Method</h2>
