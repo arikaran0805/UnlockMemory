@@ -43,14 +43,6 @@ const steps = [
 
 const ease4 = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, delay: 0.1 + i * 0.08, ease: ease4 },
-  }),
-};
 
 /* ─── Success Screen ─── */
 const CheckoutSuccess = ({ cartData, onGoToLearning }: { cartData: CartData; onGoToLearning: () => void }) => (
@@ -191,7 +183,7 @@ const Checkout = () => {
                   {/* Left */}
                   <div className="space-y-8">
                     {/* Account */}
-                    <motion.div custom={0} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Card className="border-border">
                         <CardContent className="p-6 space-y-4">
                           <h2 className="font-semibold text-foreground text-lg">Account Details</h2>
@@ -216,10 +208,10 @@ const Checkout = () => {
                           )}
                         </CardContent>
                       </Card>
-                    </motion.div>
+                    </div>
 
                     {/* Billing */}
-                    <motion.div custom={1} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Card className="border-border">
                         <CardContent className="p-6 space-y-4">
                           <h2 className="font-semibold text-foreground text-lg">Billing Information</h2>
@@ -235,10 +227,10 @@ const Checkout = () => {
                           </div>
                         </CardContent>
                       </Card>
-                    </motion.div>
+                    </div>
 
                     {/* Payment */}
-                    <motion.div custom={2} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Card className="border-border">
                         <CardContent className="p-6 space-y-4">
                           <h2 className="font-semibold text-foreground text-lg">Payment Method</h2>
@@ -263,10 +255,10 @@ const Checkout = () => {
                           </div>
                         </CardContent>
                       </Card>
-                    </motion.div>
+                    </div>
 
                     {/* CTA */}
-                    <motion.div custom={3} initial="hidden" animate="visible" variants={cardVariants}>
+                    <div>
                       <Button
                         disabled={!user}
                         size="lg"
@@ -284,7 +276,7 @@ const Checkout = () => {
                         <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Instant Course Access</span>
                         <span className="flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> UPI · Cards · Netbanking</span>
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
 
                   {/* Right: Summary */}
