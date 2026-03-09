@@ -518,3 +518,160 @@ All colors MUST be HSL.
 .dark .error-column-highlight {
   background-color: hsl(0 62% 50% / 0.3) !important;
 }
+
+/* ─── Checkout Page ─── */
+.checkout-page-bg {
+  background-color: hsl(240 5% 97%);
+}
+
+.dark .checkout-page-bg {
+  background-color: hsl(var(--background));
+}
+
+.checkout-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkout-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+}
+
+.checkout-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.checkout-input {
+  height: 48px;
+  border-radius: 12px !important;
+  border-color: hsl(var(--border)) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.checkout-input:focus {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+.checkout-payment-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 12px;
+  border-radius: 14px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkout-payment-option-default {
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.checkout-payment-option-default:hover {
+  border-color: hsl(var(--muted-foreground) / 0.3);
+  transform: translateY(-1px);
+}
+
+.checkout-payment-option-selected {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.06);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+}
+
+.checkout-pay-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+  box-shadow: 0 8px 20px hsl(var(--primary) / 0.25);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkout-pay-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px hsl(var(--primary) / 0.3);
+}
+
+.checkout-pay-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.checkout-pay-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkout-summary-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.checkout-divider {
+  height: 1px;
+  background: hsl(var(--border));
+  margin: 16px 0;
+}
+
+.checkout-discount-text {
+  color: hsl(142 70% 40%);
+}
+
+.dark .checkout-discount-text {
+  color: hsl(142 70% 55%);
+}
+
+.checkout-total-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.checkout-savings-badge {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(142 70% 40%);
+  background: hsl(142 70% 45% / 0.08);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+.dark .checkout-savings-badge {
+  color: hsl(142 70% 55%);
+  background: hsl(142 70% 45% / 0.12);
+}
+
+.checkout-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.checkout-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.checkout-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 10px;
+}
