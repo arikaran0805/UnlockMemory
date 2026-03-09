@@ -61,7 +61,7 @@ const Header = ({
 
   // Hide secondary course header for specific pages
   const isProfilePage = location.pathname === "/profile";
-  const hideOnPages = ["/choose-plan", "/careers", "/plan"].includes(location.pathname);
+  const hideOnPages = ["/choose-plan", "/careers", "/plan", "/checkout"].includes(location.pathname);
   const showCourseSecondaryHeaderDefault = !hideOnPages && !(isPro && isProfilePage);
   
   // CRITICAL TRI-STATE GATING:
