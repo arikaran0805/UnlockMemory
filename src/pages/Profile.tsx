@@ -1429,24 +1429,22 @@ const Profile = () => {
           </div>
 
           {/* Recommended Labs Section - Directly below Career Readiness */}
-          <Card className="card-premium rounded-xl animate-stagger-3">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
+          <div className="co-card animate-stagger-3">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
                     <FlaskConical className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Recommended Labs</CardTitle>
-                    <CardDescription>Practice exercises based on your enrolled courses</CardDescription>
+                    <h3 className="text-lg font-semibold">Recommended Labs</h3>
+                    <p className="text-sm text-muted-foreground">Practice exercises based on your enrolled courses</p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => handleTabChange('practice')} className="gap-1">
                   View All <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {enrolledCourses.slice(0, 3).map((enrollment, index) => {
                   const course = enrollment.courses;
@@ -1457,26 +1455,24 @@ const Profile = () => {
                   const labColors = ['from-emerald-500 to-teal-600', 'from-blue-500 to-indigo-600', 'from-purple-500 to-pink-600'];
                   
                   return (
-                    <Card 
+                    <div 
                       key={enrollment.id} 
-                      className="bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer border"
+                      className="rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer border border-border/50 p-4"
                       onClick={() => handleTabChange('practice')}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0`}>
-                            {labIcons[index % 3]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">{course.name} {labTypes[index % 3]}</p>
-                            <p className="text-xs text-muted-foreground mt-1">Practice your skills</p>
-                            <Badge variant="secondary" className="mt-2 text-xs">
-                              {labTypes[index % 3]}
-                            </Badge>
-                          </div>
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0`}>
+                          {labIcons[index % 3]}
                         </div>
-                      </CardContent>
-                    </Card>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{course.name} {labTypes[index % 3]}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Practice your skills</p>
+                          <Badge variant="secondary" className="mt-2 text-xs">
+                            {labTypes[index % 3]}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
                 {enrolledCourses.length === 0 && (
@@ -1489,8 +1485,8 @@ const Profile = () => {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Right Column - Today's Focus + Weekly Activity + AI Mentor */}
