@@ -1574,8 +1574,8 @@ const Profile = () => {
                   Ask AI Mentor
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
