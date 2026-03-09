@@ -40,11 +40,10 @@ const ChoosePlan = () => {
 
   return (
     <Layout>
-      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12 md:py-16">
-        <div className="w-full max-w-[1100px] mx-auto">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-16 sm:py-20">
           {/* Hero */}
           <motion.div
-            className="text-center mb-16 md:mb-20"
+            className="text-center mb-12 sm:mb-16 space-y-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -52,7 +51,7 @@ const ChoosePlan = () => {
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
               Choose Your Learning Path
             </h1>
-            <p className="mt-5 text-lg md:text-xl text-muted-foreground max-w-xl mx-auto font-normal leading-relaxed">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Start learning for free or unlock everything with Pro.
             </p>
           </motion.div>
