@@ -1548,8 +1548,8 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - Expand to match Practice Labs height */}
-          <Card className="card-premium rounded-xl animate-stagger-3 flex-1 flex flex-col">
-            <CardContent className="p-5 flex-1 flex flex-col">
+          <div className="co-card animate-stagger-3 flex-1 flex flex-col">
+            <div className="p-5 flex-1 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/30">
                   <Sparkles className="h-6 w-6 text-white" />
