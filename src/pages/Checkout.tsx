@@ -60,71 +60,66 @@ const CheckoutSuccess = ({ cartData, onGoToLearning }: { cartData: CartData; onG
     animate={{ opacity: 1 }}
     transition={{ duration: 0.4 }}
   >
-    <div className="co-success-card text-center max-w-lg w-full">
-      {/* Checkmark */}
-      <motion.div
-        className="co-success-check mx-auto"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-      >
+    <Card className="border-border max-w-lg w-full">
+      <CardContent className="p-8 text-center">
+        {/* Checkmark */}
         <motion.div
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
         >
-          <Check className="h-10 w-10 text-white" strokeWidth={3} />
+          <Check className="h-8 w-8 text-primary-foreground" strokeWidth={3} />
         </motion.div>
-      </motion.div>
 
-      <motion.h2
-        className="text-2xl sm:text-3xl font-bold text-foreground mt-6"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, ease: ease4 }}
-      >
-        Payment Successful
-      </motion.h2>
-      <motion.p
-        className="text-muted-foreground mt-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.75 }}
-      >
-        Your courses are now unlocked.
-      </motion.p>
+        <motion.h2
+          className="text-2xl sm:text-3xl font-bold text-foreground mt-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, ease: ease4 }}
+        >
+          Payment Successful
+        </motion.h2>
+        <motion.p
+          className="text-muted-foreground mt-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.75 }}
+        >
+          Your courses are now unlocked.
+        </motion.p>
 
-      {/* Course list */}
-      <motion.ul
-        className="mt-6 space-y-2 text-left"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.85, ease: ease4 }}
-      >
-        {cartData.courses.map((c) => (
-          <li key={c.id} className="flex items-center gap-2.5 text-sm text-foreground py-1.5 px-3 rounded-lg bg-muted/40">
-            <BookOpen className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate">{c.name}</span>
-          </li>
-        ))}
-      </motion.ul>
+        <motion.ul
+          className="mt-6 space-y-2 text-left"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.85, ease: ease4 }}
+        >
+          {cartData.courses.map((c) => (
+            <li key={c.id} className="flex items-center gap-2.5 text-sm text-foreground py-1.5 px-3 rounded-lg bg-muted/40">
+              <BookOpen className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">{c.name}</span>
+            </li>
+          ))}
+        </motion.ul>
 
-      <motion.div
-        className="flex flex-col sm:flex-row gap-3 mt-8"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1, ease: ease4 }}
-      >
-        <button onClick={onGoToLearning} className="checkout-pay-button flex-1 h-12 text-base">
-          <GraduationCap className="h-4 w-4" />
-          Go to My Learning
-        </button>
-        <button className="co-secondary-btn flex-1">
-          <Download className="h-4 w-4" />
-          Download Invoice
-        </button>
-      </motion.div>
-    </div>
+        <motion.div
+          className="flex flex-col sm:flex-row gap-3 mt-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, ease: ease4 }}
+        >
+          <Button onClick={onGoToLearning} className="flex-1 gap-2">
+            <GraduationCap className="h-4 w-4" />
+            Go to My Learning
+          </Button>
+          <Button variant="outline" className="flex-1 gap-2">
+            <Download className="h-4 w-4" />
+            Download Invoice
+          </Button>
+        </motion.div>
+      </CardContent>
+    </Card>
   </motion.div>
 );
 
