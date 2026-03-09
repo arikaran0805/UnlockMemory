@@ -1875,6 +1875,7 @@ const CourseDetail = () => {
                           </TabsTrigger>
                         )}
                       </TabsList>
+                      )}
 
                       {/* Course Details Tab */}
                       <TabsContent value="details">
