@@ -237,7 +237,7 @@ export const ProfileWeeklyActivityCard = ({
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
