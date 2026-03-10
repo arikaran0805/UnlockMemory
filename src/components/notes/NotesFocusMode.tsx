@@ -86,7 +86,7 @@ export function NotesFocusMode({
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
-  const savingTimeoutRef = useRef<NodeJS.Timeout>();
+  const savingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const editorRef = useRef<any>(null);
 
   // Handle context switch requests from other tabs

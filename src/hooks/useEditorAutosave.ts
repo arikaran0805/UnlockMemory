@@ -53,9 +53,9 @@ export function useEditorAutosave({
   const [status, setStatus] = useState<AutosaveStatus>('idle');
   const [isDirty, setIsDirty] = useState(false);
   
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string>('');
-  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const storageKey = `${DRAFT_PREFIX}${draftKey}`;
 

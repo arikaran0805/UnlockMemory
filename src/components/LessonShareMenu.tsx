@@ -36,9 +36,9 @@ const LessonShareMenu = ({
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const openTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autoHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const shareUrl = `${window.location.origin}/courses/${postSlug}`;
   const encodedUrl = encodeURIComponent(shareUrl);

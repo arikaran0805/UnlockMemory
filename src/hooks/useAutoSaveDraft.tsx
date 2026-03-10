@@ -6,10 +6,10 @@ const DEBOUNCE_MS = 1000;
 export type AutoSaveStatus = 'idle' | 'saving' | 'saved';
 
 export function useAutoSaveDraft(key: string, value: string, enabled: boolean = true) {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string>('');
   const [status, setStatus] = useState<AutoSaveStatus>('idle');
-  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Save draft to localStorage with debounce
   const saveDraft = useCallback((content: string) => {
