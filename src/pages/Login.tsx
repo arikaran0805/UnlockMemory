@@ -118,8 +118,24 @@ const Login = () => {
         description: "Check your email for password reset instructions.",
       });
     } catch (error: any) {
-      // Always show success to prevent email enumeration
-      setResetEmailSent(true);
+      // Hide "user not found" to prevent email enumeration,
+      // but surface genuine failures so users know to retry.
+      const msg = error?.message?.toLowerCase() || "";
+      const isEnumerationSafe =
+        msg.includes("not found") ||
+        msg.includes("no user") ||
+        msg.includes("invalid") ||
+        msg.includes("unable to validate");
+
+      if (isEnumerationSafe) {
+        setResetEmailSent(true);
+      } else {
+        toast({
+          title: "Something went wrong",
+          description: "Could not send the reset email. Please try again in a moment.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }

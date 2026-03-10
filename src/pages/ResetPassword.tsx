@@ -145,19 +145,19 @@ const ResetPassword = () => {
           <div className="w-full max-w-md text-center space-y-6">
             <Link to="/" className="flex items-center justify-center gap-3 mb-8">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-                <span className="text-2xl font-bold text-primary-foreground">B</span>
-              </div>
-              <span className="text-2xl font-bold text-foreground">BlogHub</span>
-            </Link>
+               <span className="text-2xl font-bold text-primary-foreground">U</span>
+             </div>
+             <span className="text-2xl font-bold text-foreground">UnlockMemory</span>
+           </Link>
 
-            <div className="space-y-4">
-              <h1 className="text-2xl font-bold text-foreground">Link Expired or Invalid</h1>
-              <p className="text-muted-foreground">
-                This password reset link has expired or is invalid. Please request a new one.
-              </p>
-              <Button
-                onClick={() => navigate("/auth")}
-                className="mt-4"
+           <div className="space-y-4">
+             <h1 className="text-2xl font-bold text-foreground">Link Expired or Invalid</h1>
+             <p className="text-muted-foreground">
+               This password reset link has expired or is invalid. Please request a new one.
+             </p>
+             <Button
+               onClick={() => navigate("/login")}
+               className="mt-4"
               >
                 Go to Login
               </Button>
