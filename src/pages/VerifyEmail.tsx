@@ -172,15 +172,14 @@ const VerifyEmail = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">Email Verified!</h1>
-                <p className="text-muted-foreground">Your account is now active. Redirecting to your profile...</p>
+                <p className="text-muted-foreground">Your account is now active. Please log in to get started.</p>
               </div>
-              <Button
-                onClick={() => navigate("/profile")}
-                className="bg-gradient-to-r from-primary via-emerald-500 to-teal-500"
-              >
-                Go to Profile
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link to="/login">
+                <Button className="bg-gradient-to-r from-primary via-emerald-500 to-teal-500 w-full">
+                  Go to Login
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           )}
 
