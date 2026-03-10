@@ -24,7 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Shield, User, Trash2 } from "lucide-react";
+import { Search, Shield, User, Trash2, UserPlus } from "lucide-react";
+import InviteUserDialog from "@/components/admin/InviteUserDialog";
 
 interface UserWithRole {
   id: string;
@@ -41,6 +42,7 @@ const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithRole | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -156,6 +158,10 @@ const AdminUsers = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-foreground">Users Management</h1>
           <div className="flex items-center gap-2">
+            <Button onClick={() => setInviteDialogOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite User
+            </Button>
             <Badge variant="outline" className="text-sm">
               Total Users: {users.length}
             </Badge>
@@ -271,6 +277,11 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <InviteUserDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        onInviteSent={fetchUsers}
+      />
     </>
   );
 };
