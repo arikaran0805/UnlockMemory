@@ -19,7 +19,7 @@ const VerifyEmail = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { refreshAuthState } = useAuth();
+  
   
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
