@@ -284,7 +284,7 @@ const ResetPassword = () => {
 
             <div className="text-center">
               <Link 
-                to="/auth" 
+                to="/login"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Back to Login
