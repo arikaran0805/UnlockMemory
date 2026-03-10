@@ -115,7 +115,7 @@ const ResetPassword = () => {
       });
 
       // Sign out and redirect to login
-      await supabase.auth.signOut();
+      navigate("/login", { replace: true });
       navigate("/auth", { replace: true });
     } catch (error: any) {
       toast({
