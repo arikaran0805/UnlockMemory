@@ -180,9 +180,9 @@ const ResetPassword = () => {
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12">
           <Link to="/" className="flex items-center gap-3 mb-12">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary shadow-glow">
-              <span className="text-3xl font-black text-primary-foreground">B</span>
+              <span className="text-3xl font-black text-primary-foreground">U</span>
             </div>
-            <span className="text-3xl font-black text-foreground">BlogHub</span>
+            <span className="text-3xl font-black text-foreground">UnlockMemory</span>
           </Link>
 
           <div className="relative w-80 h-96 mb-12">
