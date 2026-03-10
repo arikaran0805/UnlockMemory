@@ -86,20 +86,10 @@ const VerifyEmail = () => {
             .insert({ user_id: user.id, role: "user" });
         }
 
-        // Refresh auth state to pick up new session
-        await refreshAuthState();
+        // Sign out - user must log in manually after verification
+        await supabase.auth.signOut();
 
         setVerificationStatus('success');
-        
-        toast({
-          title: "Email verified!",
-          description: "Welcome to UnlockMemory. Redirecting to your profile...",
-        });
-
-        // Auto-redirect to profile after success
-        setTimeout(() => {
-          navigate("/profile", { replace: true });
-        }, 2000);
       } catch (error: any) {
         console.error("Verification error:", error);
         setVerificationStatus('error');
