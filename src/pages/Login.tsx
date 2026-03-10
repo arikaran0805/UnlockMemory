@@ -98,7 +98,19 @@ const Login = () => {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Surface rate-limit errors so the user knows to wait
+        if (error.status === 429 || error.message?.includes("security purposes")) {
+          toast({
+            title: "Please wait",
+            description: "For security purposes, please wait a moment before requesting another reset email.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        throw error;
+      }
 
       setResetEmailSent(true);
       toast({

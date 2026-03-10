@@ -18,31 +18,51 @@ const ResetPassword = () => {
 
   useEffect(() => {
     let cancelled = false;
+    let fallbackTimer: ReturnType<typeof setTimeout>;
+
+    // Listen for auth state changes FIRST — this is the most reliable signal.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
+
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setIsValidSession(true);
+      }
+    });
 
     const checkSession = async () => {
       try {
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
         const searchParams = new URLSearchParams(window.location.search);
-
-        const type = hashParams.get("type") ?? searchParams.get("type");
-        const hasTokens = hashParams.has("access_token") && hashParams.has("refresh_token");
         const code = searchParams.get("code");
 
-        // Some recovery emails use PKCE and provide `?code=...` instead of hash tokens.
+        // PKCE flow: exchange the one-time code for a session.
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
-
-          // Remove the one-time code from the URL (refreshing would otherwise fail).
           navigate("/reset-password", { replace: true });
+          if (!cancelled) setIsValidSession(true);
+          return;
         }
 
+        // The Supabase client auto-processes hash tokens on init.
+        // Give it a moment to complete, then check for an active session.
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
-        const valid = !!session || type === "recovery" || hasTokens || !!code;
-        if (!cancelled) setIsValidSession(valid);
+        if (!cancelled && session) {
+          setIsValidSession(true);
+          return;
+        }
+
+        // If no session yet, wait a short time for onAuthStateChange to fire
+        // (the client may still be processing hash tokens).
+        fallbackTimer = setTimeout(() => {
+          if (!cancelled && isValidSession === null) {
+            setIsValidSession(false);
+          }
+        }, 3000);
       } catch {
         if (!cancelled) setIsValidSession(false);
       }
@@ -50,16 +70,9 @@ const ResetPassword = () => {
 
     checkSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setIsValidSession(true);
-      }
-    });
-
     return () => {
       cancelled = true;
+      clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
   }, [navigate]);
