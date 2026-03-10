@@ -100,7 +100,7 @@ const VerifyEmail = () => {
     };
 
     handleConfirmation();
-  }, [isConfirmPage, searchParams, navigate, toast, refreshAuthState]);
+  }, [isConfirmPage, searchParams, navigate, toast]);
 
   const handleResendVerification = async () => {
     if (!emailFromState) {
