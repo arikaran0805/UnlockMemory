@@ -59,8 +59,9 @@ const ResetPassword = () => {
         // If no session yet, wait a short time for onAuthStateChange to fire
         // (the client may still be processing hash tokens).
         fallbackTimer = setTimeout(() => {
-          if (!cancelled && isValidSession === null) {
-            setIsValidSession(false);
+          if (!cancelled) {
+            // If onAuthStateChange hasn't fired by now, session is invalid
+            setIsValidSession((prev) => (prev === null ? false : prev));
           }
         }, 3000);
       } catch {
