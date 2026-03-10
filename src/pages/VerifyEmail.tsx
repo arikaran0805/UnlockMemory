@@ -11,6 +11,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Mail, CheckCircle, XCircle, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const VerifyEmail = () => {
