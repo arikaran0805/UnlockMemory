@@ -19,15 +19,22 @@ const ResetPassword = () => {
   useEffect(() => {
     let cancelled = false;
     let fallbackTimer: ReturnType<typeof setTimeout>;
+    let retryTimer: ReturnType<typeof setTimeout>;
 
-    // Listen for auth state changes FIRST — this is the most reliable signal.
+    console.log("[ResetPassword] Init — URL:", window.location.href);
+    console.log("[ResetPassword] Hash:", window.location.hash);
+    console.log("[ResetPassword] Search:", window.location.search);
+
+    // Listen for auth state changes — most reliable signal.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
+      console.log("[ResetPassword] onAuthStateChange:", event, !!session);
 
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         clearTimeout(fallbackTimer);
+        clearTimeout(retryTimer);
         setIsValidSession(true);
       }
     });
@@ -39,9 +46,12 @@ const ResetPassword = () => {
 
         // PKCE flow: exchange the one-time code for a session.
         if (code) {
+          console.log("[ResetPassword] Exchanging code for session...");
           const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-          // Strip the code param from URL without re-mounting
+          if (error) {
+            console.error("[ResetPassword] Code exchange error:", error.message);
+            throw error;
+          }
           window.history.replaceState({}, "", "/reset-password");
           if (!cancelled) setIsValidSession(true);
           return;
@@ -49,33 +59,51 @@ const ResetPassword = () => {
 
         // Check for hash-based tokens (implicit flow)
         const hash = window.location.hash;
-        if (hash && (hash.includes("access_token") || hash.includes("type=recovery"))) {
-          // Supabase client auto-processes hash tokens — wait for onAuthStateChange
+        if (hash && hash.length > 1) {
+          console.log("[ResetPassword] Hash detected, waiting for Supabase to process...");
+          // Supabase client auto-processes hash tokens — give it time
           fallbackTimer = setTimeout(() => {
             if (!cancelled) {
-              setIsValidSession((prev) => (prev === null ? false : prev));
+              // One more session check before giving up
+              supabase.auth.getSession().then(({ data: { session } }) => {
+                if (!cancelled) {
+                  console.log("[ResetPassword] Fallback session check:", !!session);
+                  setIsValidSession(!!session);
+                }
+              });
             }
           }, 5000);
           return;
         }
 
         // No code or hash — check for an existing session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("[ResetPassword] Direct session check:", !!session);
 
         if (!cancelled && session) {
           setIsValidSession(true);
           return;
         }
 
-        // No session found and no tokens to process
+        // No session yet — the Supabase client may still be initializing.
+        // Retry once after a short delay, then use a longer fallback.
+        retryTimer = setTimeout(async () => {
+          if (cancelled) return;
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          console.log("[ResetPassword] Retry session check:", !!retrySession);
+          if (!cancelled && retrySession) {
+            setIsValidSession(true);
+          }
+        }, 1500);
+
         fallbackTimer = setTimeout(() => {
           if (!cancelled) {
+            console.log("[ResetPassword] Fallback timeout — marking invalid");
             setIsValidSession((prev) => (prev === null ? false : prev));
           }
-        }, 3000);
-      } catch {
+        }, 6000);
+      } catch (err: any) {
+        console.error("[ResetPassword] Error:", err?.message);
         if (!cancelled) setIsValidSession(false);
       }
     };
@@ -85,6 +113,7 @@ const ResetPassword = () => {
     return () => {
       cancelled = true;
       clearTimeout(fallbackTimer);
+      clearTimeout(retryTimer);
       subscription.unsubscribe();
     };
   }, []);
