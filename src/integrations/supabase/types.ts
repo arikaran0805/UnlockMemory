@@ -330,7 +330,7 @@ export type Database = {
           created_at: string
           feedback: string | null
           id: string
-          performed_by: string
+          performed_by: string | null
         }
         Insert: {
           action: string
@@ -339,7 +339,7 @@ export type Database = {
           created_at?: string
           feedback?: string | null
           id?: string
-          performed_by: string
+          performed_by?: string | null
         }
         Update: {
           action?: string
@@ -348,7 +348,7 @@ export type Database = {
           created_at?: string
           feedback?: string | null
           id?: string
-          performed_by?: string
+          performed_by?: string | null
         }
         Relationships: []
       }
