@@ -158,6 +158,10 @@ const AdminUsers = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-foreground">Users Management</h1>
           <div className="flex items-center gap-2">
+            <Button onClick={() => setInviteDialogOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite User
+            </Button>
             <Badge variant="outline" className="text-sm">
               Total Users: {users.length}
             </Badge>
