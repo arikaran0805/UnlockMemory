@@ -213,9 +213,9 @@ const ResetPassword = () => {
         <div className="w-full max-w-md">
           <Link to="/" className="flex lg:hidden items-center justify-center gap-3 mb-8">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-              <span className="text-2xl font-bold text-primary-foreground">B</span>
+              <span className="text-2xl font-bold text-primary-foreground">U</span>
             </div>
-            <span className="text-2xl font-bold text-foreground">BlogHub</span>
+            <span className="text-2xl font-bold text-foreground">UnlockMemory</span>
           </Link>
 
           <div className="space-y-6">
