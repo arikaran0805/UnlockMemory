@@ -116,7 +116,7 @@ const ResetPassword = () => {
 
       // Sign out and redirect to login
       await supabase.auth.signOut();
-      navigate("/auth", { replace: true });
+      navigate("/login", { replace: true });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -145,19 +145,19 @@ const ResetPassword = () => {
           <div className="w-full max-w-md text-center space-y-6">
             <Link to="/" className="flex items-center justify-center gap-3 mb-8">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-                <span className="text-2xl font-bold text-primary-foreground">B</span>
-              </div>
-              <span className="text-2xl font-bold text-foreground">BlogHub</span>
-            </Link>
+               <span className="text-2xl font-bold text-primary-foreground">U</span>
+             </div>
+             <span className="text-2xl font-bold text-foreground">UnlockMemory</span>
+           </Link>
 
-            <div className="space-y-4">
-              <h1 className="text-2xl font-bold text-foreground">Link Expired or Invalid</h1>
-              <p className="text-muted-foreground">
-                This password reset link has expired or is invalid. Please request a new one.
-              </p>
-              <Button
-                onClick={() => navigate("/auth")}
-                className="mt-4"
+           <div className="space-y-4">
+             <h1 className="text-2xl font-bold text-foreground">Link Expired or Invalid</h1>
+             <p className="text-muted-foreground">
+               This password reset link has expired or is invalid. Please request a new one.
+             </p>
+             <Button
+               onClick={() => navigate("/login")}
+               className="mt-4"
               >
                 Go to Login
               </Button>
@@ -180,9 +180,9 @@ const ResetPassword = () => {
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12">
           <Link to="/" className="flex items-center gap-3 mb-12">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary shadow-glow">
-              <span className="text-3xl font-black text-primary-foreground">B</span>
+              <span className="text-3xl font-black text-primary-foreground">U</span>
             </div>
-            <span className="text-3xl font-black text-foreground">BlogHub</span>
+            <span className="text-3xl font-black text-foreground">UnlockMemory</span>
           </Link>
 
           <div className="relative w-80 h-96 mb-12">
@@ -213,9 +213,9 @@ const ResetPassword = () => {
         <div className="w-full max-w-md">
           <Link to="/" className="flex lg:hidden items-center justify-center gap-3 mb-8">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-              <span className="text-2xl font-bold text-primary-foreground">B</span>
+              <span className="text-2xl font-bold text-primary-foreground">U</span>
             </div>
-            <span className="text-2xl font-bold text-foreground">BlogHub</span>
+            <span className="text-2xl font-bold text-foreground">UnlockMemory</span>
           </Link>
 
           <div className="space-y-6">
@@ -284,7 +284,7 @@ const ResetPassword = () => {
 
             <div className="text-center">
               <Link 
-                to="/auth" 
+                to="/login"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Back to Login
