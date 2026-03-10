@@ -27,6 +27,7 @@ const ResetPassword = () => {
       if (cancelled) return;
 
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        clearTimeout(fallbackTimer);
         setIsValidSession(true);
       }
     });
@@ -40,13 +41,25 @@ const ResetPassword = () => {
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
-          navigate("/reset-password", { replace: true });
+          // Strip the code param from URL without re-mounting
+          window.history.replaceState({}, "", "/reset-password");
           if (!cancelled) setIsValidSession(true);
           return;
         }
 
-        // The Supabase client auto-processes hash tokens on init.
-        // Give it a moment to complete, then check for an active session.
+        // Check for hash-based tokens (implicit flow)
+        const hash = window.location.hash;
+        if (hash && (hash.includes("access_token") || hash.includes("type=recovery"))) {
+          // Supabase client auto-processes hash tokens — wait for onAuthStateChange
+          fallbackTimer = setTimeout(() => {
+            if (!cancelled) {
+              setIsValidSession((prev) => (prev === null ? false : prev));
+            }
+          }, 5000);
+          return;
+        }
+
+        // No code or hash — check for an existing session
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -56,11 +69,9 @@ const ResetPassword = () => {
           return;
         }
 
-        // If no session yet, wait a short time for onAuthStateChange to fire
-        // (the client may still be processing hash tokens).
+        // No session found and no tokens to process
         fallbackTimer = setTimeout(() => {
           if (!cancelled) {
-            // If onAuthStateChange hasn't fired by now, session is invalid
             setIsValidSession((prev) => (prev === null ? false : prev));
           }
         }, 3000);
@@ -76,7 +87,7 @@ const ResetPassword = () => {
       clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
