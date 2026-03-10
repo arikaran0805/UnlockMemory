@@ -57,7 +57,7 @@ export function useProblemCodePersistence({
   const [hasLastSubmission, setHasLastSubmission] = useState(false);
   const [isDraftDirty, setIsDraftDirty] = useState(false);
   
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitializedRef = useRef(false);
   const lastSavedCodeRef = useRef<string>("");
 
