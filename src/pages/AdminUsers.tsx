@@ -24,7 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Shield, User, Trash2 } from "lucide-react";
+import { Search, Shield, User, Trash2, UserPlus } from "lucide-react";
+import InviteUserDialog from "@/components/admin/InviteUserDialog";
 
 interface UserWithRole {
   id: string;
