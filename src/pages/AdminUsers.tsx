@@ -277,6 +277,11 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <InviteUserDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        onInviteSent={fetchUsers}
+      />
     </>
   );
 };
