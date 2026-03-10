@@ -19,7 +19,7 @@ const VerifyEmail = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { refreshAuthState } = useAuth();
+  
   
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -86,20 +86,10 @@ const VerifyEmail = () => {
             .insert({ user_id: user.id, role: "user" });
         }
 
-        // Refresh auth state to pick up new session
-        await refreshAuthState();
+        // Sign out - user must log in manually after verification
+        await supabase.auth.signOut();
 
         setVerificationStatus('success');
-        
-        toast({
-          title: "Email verified!",
-          description: "Welcome to UnlockMemory. Redirecting to your profile...",
-        });
-
-        // Auto-redirect to profile after success
-        setTimeout(() => {
-          navigate("/profile", { replace: true });
-        }, 2000);
       } catch (error: any) {
         console.error("Verification error:", error);
         setVerificationStatus('error');
@@ -110,7 +100,7 @@ const VerifyEmail = () => {
     };
 
     handleConfirmation();
-  }, [isConfirmPage, searchParams, navigate, toast, refreshAuthState]);
+  }, [isConfirmPage, searchParams, navigate, toast]);
 
   const handleResendVerification = async () => {
     if (!emailFromState) {
@@ -182,15 +172,14 @@ const VerifyEmail = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">Email Verified!</h1>
-                <p className="text-muted-foreground">Your account is now active. Redirecting to your profile...</p>
+                <p className="text-muted-foreground">Your account is now active. Please log in to get started.</p>
               </div>
-              <Button
-                onClick={() => navigate("/profile")}
-                className="bg-gradient-to-r from-primary via-emerald-500 to-teal-500"
-              >
-                Go to Profile
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link to="/login">
+                <Button className="bg-gradient-to-r from-primary via-emerald-500 to-teal-500 w-full">
+                  Go to Login
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           )}
 
