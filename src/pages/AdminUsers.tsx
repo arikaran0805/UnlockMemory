@@ -42,6 +42,7 @@ const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithRole | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
