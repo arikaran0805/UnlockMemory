@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
@@ -7,9 +7,15 @@ import CareerPlanSelectionSection from "@/components/pricing/CareerPlanSelection
 import CareerCustomizationSection from "@/components/pricing/CareerCustomizationSection";
 import PricingSummaryPanel from "@/components/pricing/PricingSummaryPanel";
 import { usePricingState } from "@/components/pricing/usePricingState";
+import { useAuth } from "@/hooks/useAuth";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Lock } from "lucide-react";
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const customizationRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -40,6 +46,10 @@ const Pricing = () => {
 
   const handleCheckout = useCallback(() => {
     if (!selectedCareer || selectedCourses.length === 0) return;
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
     const cartData = {
       careerId: selectedCareer.id,
       careerName: selectedCareer.name,
@@ -53,7 +63,7 @@ const Pricing = () => {
     };
     sessionStorage.setItem("checkout_cart", JSON.stringify(cartData));
     navigate("/checkout");
-  }, [selectedCareer, selectedCourses, breakdown, appliedPromo, navigate]);
+  }, [selectedCareer, selectedCourses, breakdown, appliedPromo, navigate, user]);
 
   const onSelectCareer = (id: string) => {
     handleSelectCareer(id);
@@ -137,6 +147,27 @@ const Pricing = () => {
           </div>
         )}
       </div>
+
+      {/* Auth Required Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="max-w-sm text-center p-8">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Sign in to continue</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Create an account or sign in to complete your purchase and unlock your courses.
+          </p>
+          <div className="flex flex-col gap-3 mt-6">
+            <Button onClick={() => { setShowAuthDialog(false); navigate("/signup?redirect=/pricing"); }}>
+              Create Account
+            </Button>
+            <Button variant="outline" onClick={() => { setShowAuthDialog(false); navigate("/login?redirect=/pricing"); }}>
+              Sign In
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
