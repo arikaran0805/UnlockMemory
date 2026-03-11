@@ -14,6 +14,8 @@ interface GuestContextBannerProps {
  * Dismissible - won't reappear in same session
  */
 export const GuestContextBanner = ({ className = "" }: GuestContextBannerProps) => {
+  const location = useLocation();
+  const redirectParam = encodeURIComponent(location.pathname + location.search);
   const [dismissed, setDismissed] = useState(() => {
     return sessionStorage.getItem(SESSION_KEY) === "true";
   });
