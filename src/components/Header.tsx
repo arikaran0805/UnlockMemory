@@ -469,7 +469,7 @@ const Header = ({
                           asChild 
                           className="w-full h-12 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-semibold"
                         >
-                          <Link to="/auth">Get Started</Link>
+                          <Link to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}>Get Started</Link>
                         </Button>
                       )}
                     </div>
