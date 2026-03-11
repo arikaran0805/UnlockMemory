@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   BarChart3, Briefcase, Brain, BookOpen, Trash2, Settings2,
   ShoppingCart, ArrowRight, Clock,
-  ShieldCheck, Sparkles, Zap, Tag, X, Package, PartyPopper, Search,
+  ShieldCheck, Sparkles, Zap, Tag, X, Package, PartyPopper, Search, Lock,
 } from "lucide-react";
 import { formatPrice } from "@/components/pricing/pricingData";
 import type { CareerPlanItem } from "@/contexts/CareerPlanContext";
@@ -20,6 +21,7 @@ import type { PricingCourse } from "@/components/pricing/pricingData";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAuth } from "@/hooks/useAuth";
 
 const ICON_MAP: Record<string, React.ElementType> = {
   BarChart3, Briefcase, Brain,
