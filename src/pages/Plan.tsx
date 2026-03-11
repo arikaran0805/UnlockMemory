@@ -44,6 +44,10 @@ const Plan = () => {
 
   const handleCheckout = () => {
     if (allCourses.length === 0) return;
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
     const cartData = {
       careerId: items[0]?.careerId || "",
       careerName: items.map((i) => i.careerName).join(", "),
