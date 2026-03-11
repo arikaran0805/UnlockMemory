@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { formatPrice } from "@/components/pricing/pricingData";
 import { toast } from "@/hooks/use-toast";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface CartData {
   careerId: string;
@@ -122,6 +123,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("upi");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("checkout_cart");
@@ -260,10 +262,13 @@ const Checkout = () => {
                     {/* CTA */}
                     <div>
                       <Button
-                        disabled={!user}
                         size="lg"
                         className="w-full h-14 text-base font-semibold gap-2"
                         onClick={() => {
+                          if (!user) {
+                            setShowAuthDialog(true);
+                            return;
+                          }
                           toast({ title: "Payment integration coming soon", description: "We'll notify you when checkout is fully available." });
                         }}
                       >
@@ -350,6 +355,27 @@ const Checkout = () => {
             )}
           </AnimatePresence>
       </div>
+
+      {/* Auth Required Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="max-w-sm text-center p-8">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Sign in to continue</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Create an account or sign in to complete your purchase and unlock your courses.
+          </p>
+          <div className="flex flex-col gap-3 mt-6">
+            <Button onClick={() => { setShowAuthDialog(false); navigate("/signup?redirect=/checkout"); }}>
+              Create Account
+            </Button>
+            <Button variant="outline" onClick={() => { setShowAuthDialog(false); navigate("/login?redirect=/checkout"); }}>
+              Sign In
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
