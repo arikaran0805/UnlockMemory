@@ -63,7 +63,7 @@ const Pricing = () => {
     };
     sessionStorage.setItem("checkout_cart", JSON.stringify(cartData));
     navigate("/checkout");
-  }, [selectedCareer, selectedCourses, breakdown, appliedPromo, navigate]);
+  }, [selectedCareer, selectedCourses, breakdown, appliedPromo, navigate, user]);
 
   const onSelectCareer = (id: string) => {
     handleSelectCareer(id);
