@@ -39,10 +39,10 @@ export const GuestContextBanner = ({ className = "" }: GuestContextBannerProps) 
       
       <div className="flex items-center gap-2 flex-shrink-0">
         <Button asChild variant="default" size="sm">
-          <Link to="/login">Sign in</Link>
+          <Link to={`/login?redirect=${redirectParam}`}>Sign in</Link>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link to="/signup">Create free account</Link>
+          <Link to={`/signup?redirect=${redirectParam}`}>Create free account</Link>
         </Button>
         <Button
           variant="ghost"
