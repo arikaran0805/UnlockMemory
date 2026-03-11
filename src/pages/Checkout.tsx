@@ -263,7 +263,7 @@ const Checkout = () => {
                     <div>
                       <Button
                         size="lg"
-                        className="w-full h-14 text-base font-semibold gap-2"
+                        className="w-full h-14 text-base font-semibold gap-2 rounded-xl bg-primary hover:bg-primary/90"
                         onClick={() => {
                           if (!user) {
                             setShowAuthDialog(true);
@@ -272,14 +272,16 @@ const Checkout = () => {
                           toast({ title: "Payment integration coming soon", description: "We'll notify you when checkout is fully available." });
                         }}
                       >
-                        <Lock className="h-[18px] w-[18px]" />
-                        <span>Pay {formatPrice(cartData.finalTotal)} Securely</span>
+                        <GraduationCap className="h-5 w-5" />
+                        <span>Start Learning Now – {formatPrice(cartData.finalTotal)}</span>
                       </Button>
 
-                      <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5 text-[13px] text-muted-foreground mt-4">
-                        <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Secure Payment</span>
-                        <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Instant Course Access</span>
-                        <span className="flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> UPI · Cards · Netbanking</span>
+                      <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs text-muted-foreground mt-3">
+                        <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> Secure Payment</span>
+                        <span className="text-muted-foreground/40">•</span>
+                        <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> Instant Course Access</span>
+                        <span className="text-muted-foreground/40">•</span>
+                        <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> UPI / Cards</span>
                       </div>
                     </div>
                   </div>
