@@ -123,6 +123,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("upi");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("checkout_cart");
