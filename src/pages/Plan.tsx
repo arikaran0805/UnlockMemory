@@ -29,6 +29,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const Plan = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const {
     items, removeCareer, toggleCourse,
     customizingCareerId, setCustomizingCareerId,
