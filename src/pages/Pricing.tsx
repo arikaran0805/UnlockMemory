@@ -14,6 +14,8 @@ import { Lock } from "lucide-react";
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const customizationRef = useRef<HTMLDivElement>(null);
 
   const {
