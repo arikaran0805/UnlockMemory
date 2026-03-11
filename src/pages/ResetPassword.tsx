@@ -323,12 +323,16 @@ const ResetPassword = () => {
             </form>
 
             <div className="text-center">
-              <Link 
-                to="/login"
+              <button
+                type="button"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  navigate("/login", { replace: true });
+                }}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Back to Login
-              </Link>
+              </button>
             </div>
           </div>
         </div>

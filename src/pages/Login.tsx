@@ -32,15 +32,19 @@ const Login = () => {
   const unauthorizedReason = searchParams.get("reason") === "unauthorized";
 
   // Redirect if already authenticated
+  const redirectParam = searchParams.get("redirect");
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      // If user has a staff role, go to their dashboard; otherwise go to profile
-      const path = activeRole && activeRole !== "user" 
-        ? getRoleDashboardPath(activeRole) 
-        : "/profile";
-      navigate(path, { replace: true });
+      if (redirectParam) {
+        navigate(redirectParam, { replace: true });
+      } else {
+        const path = activeRole && activeRole !== "user" 
+          ? getRoleDashboardPath(activeRole) 
+          : "/profile";
+        navigate(path, { replace: true });
+      }
     }
-  }, [isAuthenticated, activeRole, authLoading, navigate]);
+  }, [isAuthenticated, activeRole, authLoading, navigate, redirectParam]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
