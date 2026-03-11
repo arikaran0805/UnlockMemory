@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Lock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +14,8 @@ interface GuestContextBannerProps {
  * Dismissible - won't reappear in same session
  */
 export const GuestContextBanner = ({ className = "" }: GuestContextBannerProps) => {
+  const location = useLocation();
+  const redirectParam = encodeURIComponent(location.pathname + location.search);
   const [dismissed, setDismissed] = useState(() => {
     return sessionStorage.getItem(SESSION_KEY) === "true";
   });
@@ -37,10 +39,10 @@ export const GuestContextBanner = ({ className = "" }: GuestContextBannerProps) 
       
       <div className="flex items-center gap-2 flex-shrink-0">
         <Button asChild variant="default" size="sm">
-          <Link to="/login">Sign in</Link>
+          <Link to={`/login?redirect=${redirectParam}`}>Sign in</Link>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link to="/signup">Create free account</Link>
+          <Link to={`/signup?redirect=${redirectParam}`}>Create free account</Link>
         </Button>
         <Button
           variant="ghost"
