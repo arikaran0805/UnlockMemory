@@ -46,6 +46,10 @@ const Pricing = () => {
 
   const handleCheckout = useCallback(() => {
     if (!selectedCareer || selectedCourses.length === 0) return;
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
     const cartData = {
       careerId: selectedCareer.id,
       careerName: selectedCareer.name,
