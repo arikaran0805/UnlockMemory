@@ -85,6 +85,27 @@ const Plan = () => {
   return (
     <Layout>
       <SEOHead title="Your Career Plan" description="Review your selected career paths and customize courses before checkout." />
+
+      {/* Auth Required Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="max-w-sm text-center p-8">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Sign in to continue</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Create an account or sign in to complete your purchase and unlock your courses.
+          </p>
+          <div className="flex flex-col gap-3 mt-6">
+            <Button onClick={() => { setShowAuthDialog(false); navigate("/signup?redirect=/plan"); }}>
+              Create Account
+            </Button>
+            <Button variant="outline" onClick={() => { setShowAuthDialog(false); navigate("/login?redirect=/plan"); }}>
+              Sign In
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Your Career Plan</h1>
