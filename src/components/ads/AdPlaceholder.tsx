@@ -160,9 +160,23 @@ const AdPlaceholder = ({
     initializeAd();
   }, [hasValidCredentials]);
 
-  // Don't render if no valid credentials or if collapsed due to error
-  if (!hasValidCredentials || !isVisible) {
+  // Don't render if collapsed due to error
+  if (!isVisible) {
     return null;
+  }
+
+  // Show dev placeholder when no valid credentials
+  if (!hasValidCredentials) {
+    if (!isTestMode) return null;
+    return (
+      <div
+        className={`rounded-lg border border-dashed border-border/60 bg-muted/20 flex items-center justify-center min-h-[250px] ${className}`}
+      >
+        <span className="text-[11px] text-muted-foreground/50 select-none">
+          Ad Slot Preview
+        </span>
+      </div>
+    );
   }
 
   return (
