@@ -262,10 +262,13 @@ const Checkout = () => {
                     {/* CTA */}
                     <div>
                       <Button
-                        disabled={!user}
                         size="lg"
                         className="w-full h-14 text-base font-semibold gap-2"
                         onClick={() => {
+                          if (!user) {
+                            setShowAuthDialog(true);
+                            return;
+                          }
                           toast({ title: "Payment integration coming soon", description: "We'll notify you when checkout is fully available." });
                         }}
                       >
