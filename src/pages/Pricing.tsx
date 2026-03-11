@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
@@ -7,6 +7,10 @@ import CareerPlanSelectionSection from "@/components/pricing/CareerPlanSelection
 import CareerCustomizationSection from "@/components/pricing/CareerCustomizationSection";
 import PricingSummaryPanel from "@/components/pricing/PricingSummaryPanel";
 import { usePricingState } from "@/components/pricing/usePricingState";
+import { useAuth } from "@/hooks/useAuth";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Lock } from "lucide-react";
 
 const Pricing = () => {
   const navigate = useNavigate();
