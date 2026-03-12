@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Github, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth, getRoleDashboardPath } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { saveRedirectPath, peekRedirectPath, resolvePostAuthRedirect, clearRedirectPath, isValidRedirectPath } from "@/lib/authRedirect";
 
 const Login = () => {
