@@ -387,7 +387,7 @@ const Signup = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2.5">
                     {confirmPassword.length > 0 && (
                       confirmPassword === password
                         ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
