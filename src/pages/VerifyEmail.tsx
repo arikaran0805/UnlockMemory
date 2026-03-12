@@ -28,7 +28,8 @@ const VerifyEmail = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const emailFromState = (location.state as any)?.email;
-  const redirectTo = (location.state as any)?.redirectTo;
+  const redirectFromState = (location.state as any)?.redirectTo;
+  const redirectTo = redirectFromState || sessionStorage.getItem("auth_redirect");
   const isConfirmPage = location.pathname === '/verify-email/confirm';
 
   // Handle email confirmation link
