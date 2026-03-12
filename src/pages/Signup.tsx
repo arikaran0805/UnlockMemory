@@ -28,7 +28,6 @@ const Signup = () => {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isValid: emailValid, error: emailError, suggestion: emailSuggestion } = useEmailValidation(email);
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
