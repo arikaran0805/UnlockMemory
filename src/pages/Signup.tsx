@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEmailValidation } from "@/hooks/useEmailValidation";
 
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
