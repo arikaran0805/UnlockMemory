@@ -44,16 +44,13 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      const fallbackPath = activeRole && activeRole !== "user"
-        ? getRoleDashboardPath(activeRole)
-        : "/profile";
-      const finalRedirect = resolvePostAuthRedirect(safeRedirectParam, fallbackPath);
+      const finalRedirect = resolvePostAuthRedirect(safeRedirectParam, "/profile");
 
       console.log("[auth-redirect] final destination after auth:", finalRedirect);
       navigate(finalRedirect, { replace: true });
       clearRedirectPath();
     }
-  }, [isAuthenticated, activeRole, authLoading, navigate, safeRedirectParam]);
+  }, [isAuthenticated, authLoading, navigate, safeRedirectParam]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
