@@ -265,7 +265,7 @@ const VerifyEmail = () => {
               )}
             </Button>
 
-            <Link to="/login" className="block text-primary hover:underline text-sm">
+            <Link to={`/login${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="block text-primary hover:underline text-sm">
               Back to login
             </Link>
           </div>
