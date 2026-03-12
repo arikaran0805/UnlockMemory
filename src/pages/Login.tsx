@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Github, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth, getRoleDashboardPath } from "@/contexts/AuthContext";
+import { saveRedirectPath, consumeRedirectPath, isValidRedirectPath } from "@/lib/authRedirect";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -30,22 +31,25 @@ const Login = () => {
   
   const roleChangedReason = searchParams.get("reason") === "role_changed";
   const unauthorizedReason = searchParams.get("reason") === "unauthorized";
+  const redirectParam = searchParams.get("redirect");
+
+  // Persist redirect param to localStorage on mount
+  useEffect(() => {
+    saveRedirectPath(redirectParam);
+  }, [redirectParam]);
 
   // Redirect if already authenticated
-  const redirectParam = searchParams.get("redirect");
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      // Check sessionStorage for OAuth redirect (set before OAuth flow)
-      const storedRedirect = sessionStorage.getItem("auth_redirect");
-      const finalRedirect = redirectParam || storedRedirect;
-      if (storedRedirect) sessionStorage.removeItem("auth_redirect");
+      const stored = consumeRedirectPath();
+      const finalRedirect = (isValidRedirectPath(redirectParam) ? redirectParam : null) || stored;
 
       if (finalRedirect) {
         navigate(finalRedirect, { replace: true });
       } else {
-      const path = activeRole && activeRole !== "user" 
-          ? getRoleDashboardPath(activeRole) 
-          : "/profile";
+        const path = activeRole && activeRole !== "user" 
+            ? getRoleDashboardPath(activeRole) 
+            : "/profile";
         navigate(path, { replace: true });
       }
     }
@@ -152,10 +156,8 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      // Store redirect param before OAuth redirect
-      if (redirectParam) {
-        sessionStorage.setItem("auth_redirect", redirectParam);
-      }
+      // Persist redirect before leaving the page
+      saveRedirectPath(redirectParam);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -421,9 +423,9 @@ const Login = () => {
               </form>
 
               <p className="text-center text-sm text-muted-foreground">
-                New user?{" "}
+                Don't have an account?{" "}
                 <Link to={`/signup${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`} className="text-primary hover:text-primary/80 font-semibold">
-                  Create a Learner Account
+                  Create Learner Account
                 </Link>
               </p>
             </div>
