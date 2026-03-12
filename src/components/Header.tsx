@@ -201,7 +201,11 @@ const Header = ({
             : `${announcementVisible ? 'top-9' : 'top-0'} translate-y-0 opacity-100`
         }`}
       >
-        <div className="bg-background border-b border-border">
+        <div className={`transition-all duration-300 ${
+          isScrolled 
+            ? 'bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-[0_1px_3px_hsl(var(--foreground)/0.04)]' 
+            : 'bg-background/60 backdrop-blur-md border-b border-transparent'
+        }`}>
         <div className="container mx-auto px-6 lg:px-12">
           <div className="flex h-16 items-center justify-between">
             {/* Logo and Brand */}
