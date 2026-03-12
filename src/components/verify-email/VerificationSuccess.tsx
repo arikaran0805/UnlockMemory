@@ -1,19 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-
+import { motion } from "framer-motion";
 
 /* ── main component ── */
 const VerificationSuccess = () => {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(10);
-  const [showConfetti, setShowConfetti] = useState(true);
-
-  useEffect(() => {
-    const hide = setTimeout(() => setShowConfetti(false), 3500);
-    return () => clearTimeout(hide);
   }, []);
 
   useEffect(() => {
