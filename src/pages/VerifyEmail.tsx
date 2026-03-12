@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import VerificationSuccess from "@/components/verify-email/VerificationSuccess";
+import { peekRedirectPath } from "@/lib/authRedirect";
 
 const VerifyEmail = () => {
   const location = useLocation();
@@ -29,7 +30,8 @@ const VerifyEmail = () => {
   
   const emailFromState = (location.state as any)?.email;
   const redirectFromState = (location.state as any)?.redirectTo;
-  const redirectTo = redirectFromState || sessionStorage.getItem("auth_redirect");
+  // Priority: state > localStorage
+  const redirectTo = redirectFromState || peekRedirectPath();
   const isConfirmPage = location.pathname === '/verify-email/confirm';
 
   // Handle email confirmation link

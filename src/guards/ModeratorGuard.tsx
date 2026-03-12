@@ -7,20 +7,11 @@ interface ModeratorGuardProps {
   children: ReactNode;
 }
 
-/**
- * ModeratorGuard - Protects routes that require moderator role.
- * 
- * SINGLE-ROLE ENFORCEMENT:
- * - Only users with activeRole === "moderator" can access
- * - EXCEPTION: Admins using "View as Role" feature can preview this dashboard
- * - Redirects to /access-denied for unauthorized users
- */
 const ModeratorGuard = ({ children }: ModeratorGuardProps) => {
   const { activeRole, isLoading, isAuthenticated, userId } = useAuth();
   const { viewAsRole, isViewingAs } = useViewAsRole();
   const location = useLocation();
 
-  // Show loading state while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -29,17 +20,14 @@ const ModeratorGuard = ({ children }: ModeratorGuardProps) => {
     );
   }
 
-  // Redirect to auth if not logged in
   if (!isAuthenticated || !userId) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
 
-  // Allow admin viewing as moderator
   if (activeRole === "admin" && isViewingAs && viewAsRole === "moderator") {
     return <>{children}</>;
   }
 
-  // STRICT: Only moderator role can access /moderator/* routes
   if (activeRole !== "moderator") {
     return <Navigate to="/access-denied" state={{ from: location }} replace />;
   }

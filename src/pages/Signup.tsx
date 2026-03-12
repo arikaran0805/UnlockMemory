@@ -16,6 +16,7 @@ import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2 } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
+import { saveRedirectPath } from "@/lib/authRedirect";
 
 const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -38,6 +39,11 @@ const Signup = () => {
 
   // Check if currently rate limited
   const isRateLimited = rateLimitedUntil !== null && Date.now() < rateLimitedUntil;
+
+  // Persist redirect param to localStorage on mount
+  useEffect(() => {
+    saveRedirectPath(redirectParam);
+  }, [redirectParam]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -108,10 +114,8 @@ const Signup = () => {
 
     setIsLoading(true);
 
-    // Store redirect for post-verification flow
-    if (redirectParam) {
-      sessionStorage.setItem("auth_redirect", redirectParam);
-    }
+    // Store redirect for post-verification flow (survives new tab)
+    saveRedirectPath(redirectParam);
 
     try {
       // Create account - email verification required
@@ -162,9 +166,7 @@ const Signup = () => {
 
   const handleGoogleSignup = async () => {
     try {
-      if (redirectParam) {
-        sessionStorage.setItem("auth_redirect", redirectParam);
-      }
+      saveRedirectPath(redirectParam);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
