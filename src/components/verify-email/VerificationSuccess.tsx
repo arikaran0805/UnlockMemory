@@ -113,7 +113,7 @@ const VerificationSuccess = ({ redirectTo }: VerificationSuccessProps) => {
 
         {/* CTA */}
         <div className="space-y-3 pt-1">
-          <Link to={loginPath} className="block">
+          <Link to={destinationPath} className="block">
             <Button className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium rounded-xl shadow-md shadow-emerald-500/15 transition-all duration-200 text-sm">
               Start Learning
               <ArrowRight className="ml-1 h-4 w-4" />
