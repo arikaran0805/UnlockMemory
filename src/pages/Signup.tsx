@@ -107,6 +107,11 @@ const Signup = () => {
 
     setIsLoading(true);
 
+    // Store redirect for post-verification flow
+    if (redirectParam) {
+      sessionStorage.setItem("auth_redirect", redirectParam);
+    }
+
     try {
       // Create account - email verification required
       const { data, error } = await supabase.auth.signUp({
