@@ -27,7 +27,7 @@ const Login = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAuthenticated, activeRole, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
   const roleChangedReason = searchParams.get("reason") === "role_changed";
   const unauthorizedReason = searchParams.get("reason") === "unauthorized";
