@@ -21,9 +21,9 @@ const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
-  
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
@@ -103,6 +103,21 @@ const VerifyEmail = () => {
     handleConfirmation();
   }, [isConfirmPage, searchParams, navigate, toast]);
 
+  // Cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const handleResendVerification = async () => {
     if (!emailFromState) {
       toast({
@@ -113,6 +128,8 @@ const VerifyEmail = () => {
       navigate("/signup");
       return;
     }
+
+    if (resendCooldown > 0) return;
 
     setIsResending(true);
 
@@ -126,6 +143,8 @@ const VerifyEmail = () => {
       });
 
       if (error) throw error;
+
+      setResendCooldown(30);
 
       toast({
         title: "Verification email sent!",
@@ -230,7 +249,7 @@ const VerifyEmail = () => {
             <Button
               onClick={handleResendVerification}
               variant="outline"
-              disabled={isResending || !emailFromState}
+              disabled={isResending || !emailFromState || resendCooldown > 0}
               className="w-full"
             >
               {isResending ? (
@@ -238,6 +257,8 @@ const VerifyEmail = () => {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Sending...
                 </>
+              ) : resendCooldown > 0 ? (
+                `Resend in ${resendCooldown}s`
               ) : (
                 "Resend verification email"
               )}

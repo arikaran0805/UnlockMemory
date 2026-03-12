@@ -16,6 +16,9 @@ import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2 } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
 
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -24,10 +27,14 @@ const Signup = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isValid: emailValid, error: emailError, suggestion: emailSuggestion } = useEmailValidation(email);
+
+  // Check if currently rate limited
+  const isRateLimited = rateLimitedUntil !== null && Date.now() < rateLimitedUntil;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -38,6 +45,17 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Rate limit check
+    if (isRateLimited) {
+      const secsLeft = Math.ceil((rateLimitedUntil! - Date.now()) / 1000);
+      toast({
+        title: "Too many attempts",
+        description: `Please wait ${secsLeft} seconds before trying again.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (password !== confirmPassword) {
       toast({
@@ -61,6 +79,25 @@ const Signup = () => {
       toast({
         title: "Error",
         description: "Please enter your full name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Track signup attempts for rate limiting
+    const now = Date.now();
+    const attemptsRaw = sessionStorage.getItem("signup_attempts");
+    let attempts: number[] = attemptsRaw ? JSON.parse(attemptsRaw) : [];
+    attempts = attempts.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    attempts.push(now);
+    sessionStorage.setItem("signup_attempts", JSON.stringify(attempts));
+
+    if (attempts.length > RATE_LIMIT_MAX) {
+      const lockUntil = now + 60 * 1000; // 1 minute cooldown
+      setRateLimitedUntil(lockUntil);
+      toast({
+        title: "Too many attempts",
+        description: "You've tried too many times. Please wait 1 minute.",
         variant: "destructive",
       });
       return;
