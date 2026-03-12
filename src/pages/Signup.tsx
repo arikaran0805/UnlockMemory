@@ -361,6 +361,7 @@ const Signup = () => {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                <PasswordStrengthIndicator password={password} />
               </div>
 
               <div className="space-y-2">
