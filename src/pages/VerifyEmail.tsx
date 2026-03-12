@@ -21,9 +21,9 @@ const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
-  
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
