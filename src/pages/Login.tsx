@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Github, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth, getRoleDashboardPath } from "@/contexts/AuthContext";
-import { saveRedirectPath, consumeRedirectPath, isValidRedirectPath } from "@/lib/authRedirect";
+import { saveRedirectPath, peekRedirectPath, resolvePostAuthRedirect, clearRedirectPath, isValidRedirectPath } from "@/lib/authRedirect";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -32,28 +32,28 @@ const Login = () => {
   const roleChangedReason = searchParams.get("reason") === "role_changed";
   const unauthorizedReason = searchParams.get("reason") === "unauthorized";
   const redirectParam = searchParams.get("redirect");
+  const safeRedirectParam = isValidRedirectPath(redirectParam) ? redirectParam : null;
 
   // Persist redirect param to localStorage on mount
   useEffect(() => {
-    saveRedirectPath(redirectParam);
-  }, [redirectParam]);
+    console.log("[auth-redirect] login query redirect:", redirectParam);
+    saveRedirectPath(safeRedirectParam);
+    console.log("[auth-redirect] localStorage post_auth_redirect:", peekRedirectPath());
+  }, [redirectParam, safeRedirectParam]);
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      const stored = consumeRedirectPath();
-      const finalRedirect = (isValidRedirectPath(redirectParam) ? redirectParam : null) || stored;
+      const fallbackPath = activeRole && activeRole !== "user"
+        ? getRoleDashboardPath(activeRole)
+        : "/profile";
+      const finalRedirect = resolvePostAuthRedirect(safeRedirectParam, fallbackPath);
 
-      if (finalRedirect) {
-        navigate(finalRedirect, { replace: true });
-      } else {
-        const path = activeRole && activeRole !== "user" 
-            ? getRoleDashboardPath(activeRole) 
-            : "/profile";
-        navigate(path, { replace: true });
-      }
+      console.log("[auth-redirect] final destination after auth:", finalRedirect);
+      navigate(finalRedirect, { replace: true });
+      clearRedirectPath();
     }
-  }, [isAuthenticated, activeRole, authLoading, navigate, redirectParam]);
+  }, [isAuthenticated, activeRole, authLoading, navigate, safeRedirectParam]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
