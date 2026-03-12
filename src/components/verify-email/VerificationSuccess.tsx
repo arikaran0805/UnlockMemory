@@ -10,23 +10,26 @@ interface VerificationSuccessProps {
 
 const VerificationSuccess = ({ redirectTo }: VerificationSuccessProps) => {
   const navigate = useNavigate();
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
 
-  const loginPath = `/login${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`;
+  const destinationPath = redirectTo || "/profile";
 
   useEffect(() => {
+    // Clean up stored redirect
+    sessionStorage.removeItem("auth_redirect");
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigate(loginPath);
+          navigate(destinationPath, { replace: true });
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [navigate, loginPath]);
+  }, [navigate, destinationPath]);
 
   const features = [
     "Explore career paths",
