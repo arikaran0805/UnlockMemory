@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 
 const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -360,6 +361,7 @@ const Signup = () => {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                <PasswordStrengthIndicator password={password} />
               </div>
 
               <div className="space-y-2">
