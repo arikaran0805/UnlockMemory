@@ -154,7 +154,7 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       // Persist redirect before leaving the page
-      saveRedirectPath(redirectParam);
+      saveRedirectPath(safeRedirectParam);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
