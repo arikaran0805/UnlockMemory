@@ -29,6 +29,8 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isValid: emailValid, error: emailError, suggestion: emailSuggestion } = useEmailValidation(email);
