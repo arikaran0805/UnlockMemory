@@ -37,7 +37,7 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
       </div>
 
       {/* Rules checklist */}
-      <ul className="space-y-1">
+      <ul className="flex flex-col sm:flex-row sm:flex-wrap gap-x-4 gap-y-1">
         {rules.map((rule) => {
           const ok = rule.test(password);
           return (
@@ -48,9 +48,9 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
               }`}
             >
               {ok ? (
-                <Check className="h-3.5 w-3.5" />
+                <Check className="h-3.5 w-3.5 flex-shrink-0" />
               ) : (
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 flex-shrink-0" />
               )}
               {rule.label}
             </li>
