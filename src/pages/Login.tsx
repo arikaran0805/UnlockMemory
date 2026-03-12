@@ -45,7 +45,7 @@ const Login = () => {
       } else {
       const path = activeRole && activeRole !== "user" 
           ? getRoleDashboardPath(activeRole) 
-          : "/dashboard";
+          : "/profile";
         navigate(path, { replace: true });
       }
     }

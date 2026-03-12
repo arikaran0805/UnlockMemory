@@ -13,7 +13,7 @@ const VerificationSuccess = ({ redirectTo }: VerificationSuccessProps) => {
   const [countdown, setCountdown] = useState(5);
 
   // Redirect directly to the original page or /dashboard
-  const destinationPath = redirectTo || "/dashboard";
+  const destinationPath = redirectTo || "/profile";
 
   useEffect(() => {
     const timer = setInterval(() => {
