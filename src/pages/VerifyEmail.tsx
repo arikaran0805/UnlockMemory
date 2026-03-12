@@ -103,6 +103,21 @@ const VerifyEmail = () => {
     handleConfirmation();
   }, [isConfirmPage, searchParams, navigate, toast]);
 
+  // Cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const handleResendVerification = async () => {
     if (!emailFromState) {
       toast({
@@ -113,6 +128,8 @@ const VerifyEmail = () => {
       navigate("/signup");
       return;
     }
+
+    if (resendCooldown > 0) return;
 
     setIsResending(true);
 
@@ -126,6 +143,8 @@ const VerifyEmail = () => {
       });
 
       if (error) throw error;
+
+      setResendCooldown(30);
 
       toast({
         title: "Verification email sent!",
