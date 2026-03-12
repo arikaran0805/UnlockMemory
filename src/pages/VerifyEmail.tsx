@@ -186,7 +186,7 @@ const VerifyEmail = () => {
             </div>
           )}
 
-          {verificationStatus === 'success' && <VerificationSuccess />}
+          {verificationStatus === 'success' && <VerificationSuccess redirectTo={redirectTo} />}
 
           {verificationStatus === 'error' && (
             <div className="space-y-6">
