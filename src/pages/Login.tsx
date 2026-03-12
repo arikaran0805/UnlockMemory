@@ -71,7 +71,7 @@ const Login = () => {
       if (data.user && !data.user.email_confirmed_at) {
         await supabase.auth.signOut();
         setIsLoading(false);
-        navigate("/verify-email", { state: { email, redirectTo: redirectParam } });
+        navigate("/verify-email", { state: { email, redirectTo: safeRedirectParam } });
         return;
       }
 
