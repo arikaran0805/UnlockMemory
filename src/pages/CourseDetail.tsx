@@ -1316,7 +1316,7 @@ const CourseDetail = () => {
     setLoginModalOpen(false);
     // Store current URL to redirect back after login
     const returnUrl = window.location.pathname + window.location.search;
-    navigate(`/auth?returnUrl=${encodeURIComponent(returnUrl)}`);
+    navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
   };
 
   // Get lesson completion info
