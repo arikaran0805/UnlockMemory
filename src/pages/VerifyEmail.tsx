@@ -89,9 +89,7 @@ const VerifyEmail = () => {
             .insert({ user_id: user.id, role: "user" });
         }
 
-        // Sign out - user must log in manually after verification
-        await supabase.auth.signOut();
-
+        // Keep session active - user is now verified and logged in
         setVerificationStatus('success');
       } catch (error: any) {
         console.error("Verification error:", error);

@@ -43,9 +43,9 @@ const Login = () => {
       if (finalRedirect) {
         navigate(finalRedirect, { replace: true });
       } else {
-        const path = activeRole && activeRole !== "user" 
+      const path = activeRole && activeRole !== "user" 
           ? getRoleDashboardPath(activeRole) 
-          : "/profile";
+          : "/dashboard";
         navigate(path, { replace: true });
       }
     }

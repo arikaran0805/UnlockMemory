@@ -138,7 +138,7 @@ const Signup = () => {
         return;
       }
 
-      // Sign out immediately - no session until email verified
+      // Sign out - session will be established after email verification
       await supabase.auth.signOut();
 
       toast({
