@@ -161,7 +161,7 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`,
+          redirectTo: `${window.location.origin}/login${safeRedirectParam ? `?redirect=${encodeURIComponent(safeRedirectParam)}` : ''}`,
         },
       });
 

@@ -73,7 +73,7 @@ export const publicRoutes = [
   <Route key="verify-email-confirm" path="/verify-email/confirm" element={<VerifyEmail />} />,
   <Route key="forgot-password" path="/forgot-password" element={<Navigate to="/login" replace />} />,
   <Route key="invite" path="/invite/:token" element={<AcceptInvite />} />,
-  <Route key="auth" path="/auth" element={<Navigate to="/login" replace />} />,
+  <Route key="auth" path="/auth" element={<Auth />} />,
   <Route key="reset-password" path="/reset-password" element={<ResetPassword />} />,
   
   <Route key="choose-plan" path="/choose-plan" element={<ChoosePlan />} />,

@@ -127,7 +127,7 @@ const AcceptInvite = () => {
     try {
       // If not logged in, redirect to login with return URL
       if (!isAuthenticated) {
-        navigate(`/login?returnTo=/invite/${token}`);
+        navigate(`/login?redirect=${encodeURIComponent(`/invite/${token}`)}`);
         return;
       }
 
