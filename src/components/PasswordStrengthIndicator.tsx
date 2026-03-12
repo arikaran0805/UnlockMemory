@@ -17,7 +17,7 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
   const strength = passed / rules.length;
 
   return (
-    <div className="space-y-1.5 pt-1">
+    <div className="space-y-2.5 pt-1">
       {/* Strength bars */}
       <div className="grid grid-cols-3 gap-1">
         {rules.map((_, i) => (
