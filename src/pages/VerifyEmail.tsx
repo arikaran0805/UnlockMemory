@@ -249,7 +249,7 @@ const VerifyEmail = () => {
             <Button
               onClick={handleResendVerification}
               variant="outline"
-              disabled={isResending || !emailFromState}
+              disabled={isResending || !emailFromState || resendCooldown > 0}
               className="w-full"
             >
               {isResending ? (
@@ -257,6 +257,8 @@ const VerifyEmail = () => {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Sending...
                 </>
+              ) : resendCooldown > 0 ? (
+                `Resend in ${resendCooldown}s`
               ) : (
                 "Resend verification email"
               )}

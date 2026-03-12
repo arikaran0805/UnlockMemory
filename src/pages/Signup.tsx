@@ -46,6 +46,17 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Rate limit check
+    if (isRateLimited) {
+      const secsLeft = Math.ceil((rateLimitedUntil! - Date.now()) / 1000);
+      toast({
+        title: "Too many attempts",
+        description: `Please wait ${secsLeft} seconds before trying again.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast({
         title: "Error",
@@ -68,6 +79,25 @@ const Signup = () => {
       toast({
         title: "Error",
         description: "Please enter your full name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Track signup attempts for rate limiting
+    const now = Date.now();
+    const attemptsRaw = sessionStorage.getItem("signup_attempts");
+    let attempts: number[] = attemptsRaw ? JSON.parse(attemptsRaw) : [];
+    attempts = attempts.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    attempts.push(now);
+    sessionStorage.setItem("signup_attempts", JSON.stringify(attempts));
+
+    if (attempts.length > RATE_LIMIT_MAX) {
+      const lockUntil = now + 60 * 1000; // 1 minute cooldown
+      setRateLimitedUntil(lockUntil);
+      toast({
+        title: "Too many attempts",
+        description: "You've tried too many times. Please wait 1 minute.",
         variant: "destructive",
       });
       return;
