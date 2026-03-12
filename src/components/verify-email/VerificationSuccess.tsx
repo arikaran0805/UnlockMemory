@@ -4,58 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Check, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* ── tiny confetti ── */
-const CONFETTI_COLORS = [
-  "hsl(142 71% 45%)",  // emerald
-  "hsl(173 58% 39%)",  // teal
-  "hsl(48 96% 53%)",   // gold
-  "hsl(220 70% 55%)",  // blue
-  "hsl(280 60% 55%)",  // purple
-];
-
-interface Particle {
-  id: number;
-  x: number;
-  y: number;
-  color: string;
-  size: number;
-  rotation: number;
-  delay: number;
-}
-
-const makeParticles = (count: number): Particle[] =>
-  Array.from({ length: count }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: -(Math.random() * 20 + 10),
-    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-    size: Math.random() * 6 + 4,
-    rotation: Math.random() * 360,
-    delay: Math.random() * 0.6,
-  }));
-
-const Confetti = () => {
-  const [particles] = useState(() => makeParticles(40));
-
-  return (
-    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          initial={{ y: `${p.y}vh`, x: `${p.x}vw`, rotate: 0, opacity: 1 }}
-          animate={{
-            y: "110vh",
-            x: `${p.x + (Math.random() - 0.5) * 20}vw`,
-            rotate: p.rotation + 720,
-            opacity: [1, 1, 0],
-          }}
-          transition={{ duration: 2.4 + Math.random(), delay: p.delay, ease: "easeIn" }}
-          style={{ width: p.size, height: p.size, backgroundColor: p.color, position: "absolute", borderRadius: p.size > 7 ? "50%" : "1px" }}
-        />
-      ))}
-    </div>
-  );
-};
 
 /* ── main component ── */
 const VerificationSuccess = () => {
