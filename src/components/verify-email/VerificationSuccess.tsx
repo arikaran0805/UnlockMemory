@@ -11,7 +11,7 @@ interface VerificationSuccessProps {
 
 const VerificationSuccess = ({ redirectTo }: VerificationSuccessProps) => {
   const navigate = useNavigate();
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(10);
 
   // Priority: prop > localStorage > fallback
   const destinationPath = redirectTo || consumeRedirectPath() || "/profile";
