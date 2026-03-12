@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
@@ -39,6 +39,9 @@ const Signup = () => {
 
   // Check if currently rate limited
   const isRateLimited = rateLimitedUntil !== null && Date.now() < rateLimitedUntil;
+
+  // Password strength rules must all pass
+  const isPasswordValid = password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
 
   // Persist redirect param to localStorage on mount
   useEffect(() => {
@@ -373,26 +376,42 @@ const Signup = () => {
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="h-12 pl-12 pr-12 rounded-xl border-border focus:border-primary focus:ring-primary"
+                    className={`h-12 pl-12 pr-20 rounded-xl border-border focus:border-primary focus:ring-primary ${
+                      confirmPassword.length > 0
+                        ? confirmPassword === password
+                          ? 'border-emerald-500 focus:border-emerald-500'
+                          : 'border-destructive focus:border-destructive'
+                        : ''
+                    }`}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {confirmPassword.length > 0 && (
+                      confirmPassword === password
+                        ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                        : <XCircle className="h-5 w-5 text-destructive" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
+                {confirmPassword.length > 0 && confirmPassword !== password && (
+                  <p className="text-sm text-destructive">Passwords do not match</p>
+                )}
               </div>
 
               <Button
                 type="submit"
                 size="lg"
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-primary via-emerald-500 to-teal-500 text-primary-foreground font-bold shadow-lg hover:shadow-xl transition-all duration-300"
-                disabled={isLoading}
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-primary via-emerald-500 to-teal-500 text-primary-foreground font-bold shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
+                disabled={isLoading || !isPasswordValid || confirmPassword !== password}
               >
                 {isLoading ? "Creating Account..." : "Create Learner Account"}
                 <ArrowRight className="ml-2 h-5 w-5" />
