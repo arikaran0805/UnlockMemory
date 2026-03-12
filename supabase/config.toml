@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.judge-fix-error]
 verify_jwt = false
+
+[functions.cleanup-unverified-accounts]
+verify_jwt = false
