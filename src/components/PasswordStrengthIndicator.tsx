@@ -5,9 +5,9 @@ interface PasswordStrengthIndicatorProps {
 }
 
 const rules = [
-  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
+  { label: "8+ characters", test: (p: string) => p.length >= 8 },
+  { label: "1 uppercase", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "1 number", test: (p: string) => /[0-9]/.test(p) },
 ];
 
 const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps) => {
@@ -37,7 +37,7 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
       </div>
 
       {/* Rules checklist */}
-      <ul className="space-y-1">
+      <ul className="flex flex-col sm:flex-row sm:flex-wrap gap-x-4 gap-y-1">
         {rules.map((rule) => {
           const ok = rule.test(password);
           return (
@@ -48,9 +48,9 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
               }`}
             >
               {ok ? (
-                <Check className="h-3.5 w-3.5" />
+                <Check className="h-3.5 w-3.5 flex-shrink-0" />
               ) : (
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 flex-shrink-0" />
               )}
               {rule.label}
             </li>
