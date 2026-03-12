@@ -384,7 +384,7 @@ const Header = ({
               ) : (
                 <Button 
                   asChild 
-                  className="hidden md:flex h-9 px-5 rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold transition-all duration-300 hover:scale-105 shadow-lg text-sm"
+                  className="hidden md:flex h-9 px-6 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold transition-all duration-300 hover:shadow-elegant text-sm"
                 >
                   <Link to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}>Get Started</Link>
                 </Button>
