@@ -147,10 +147,14 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
+      // Store redirect param before OAuth redirect
+      if (redirectParam) {
+        sessionStorage.setItem("auth_redirect", redirectParam);
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo: `${window.location.origin}/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`,
         },
       });
 
