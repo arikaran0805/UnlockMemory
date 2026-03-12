@@ -41,9 +41,9 @@ const Signup = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate("/profile", { replace: true });
+      navigate(redirectParam || "/profile", { replace: true });
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, navigate, redirectParam]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
