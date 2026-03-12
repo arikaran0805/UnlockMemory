@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEmailValidation } from "@/hooks/useEmailValidation";
 
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +27,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isValid: emailValid, error: emailError, suggestion: emailSuggestion } = useEmailValidation(email);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -268,12 +270,27 @@ const Signup = () => {
                   <Input
                     type="email"
                     placeholder="your@email.com"
-                    className="h-12 pl-12 rounded-xl border-border focus:border-primary focus:ring-primary"
+                    className={`h-12 pl-12 ${emailValid ? 'pr-12' : ''} rounded-xl border-border focus:border-primary focus:ring-primary ${emailValid === false && email.length > 2 ? 'border-destructive focus:border-destructive' : ''} ${emailValid === true ? 'border-emerald-500 focus:border-emerald-500' : ''}`}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
+                  {emailValid === true && (
+                    <CheckCircle2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
+                  )}
                 </div>
+                {emailError && email.length > 2 && (
+                  <p className="text-sm text-destructive">{emailError}</p>
+                )}
+                {emailSuggestion && (
+                  <button
+                    type="button"
+                    onClick={() => setEmail(emailSuggestion)}
+                    className="text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
+                  >
+                    Did you mean <span className="font-semibold">{emailSuggestion}</span>?
+                  </button>
+                )}
               </div>
 
               <div className="space-y-2">
