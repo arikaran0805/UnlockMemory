@@ -16,6 +16,9 @@ import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Github, CheckCircle2 } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
 
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -24,10 +27,14 @@ const Signup = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isValid: emailValid, error: emailError, suggestion: emailSuggestion } = useEmailValidation(email);
+
+  // Check if currently rate limited
+  const isRateLimited = rateLimitedUntil !== null && Date.now() < rateLimitedUntil;
 
   // Redirect if already authenticated
   useEffect(() => {
