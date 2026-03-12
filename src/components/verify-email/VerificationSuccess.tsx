@@ -36,16 +36,6 @@ const VerificationSuccess = () => {
       className="w-full max-w-[420px] mx-auto px-4"
     >
       <div className="rounded-3xl border border-border/40 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5 p-8 sm:p-10 space-y-8">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-            <span className="text-base font-bold text-primary-foreground">U</span>
-          </div>
-          <span className="text-base font-semibold text-foreground tracking-tight">
-            UnlockMemory
-          </span>
-        </div>
-
         {/* Animated check */}
         <div className="flex justify-center pt-2">
           <motion.div
