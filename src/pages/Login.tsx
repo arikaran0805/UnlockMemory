@@ -35,8 +35,13 @@ const Login = () => {
   const redirectParam = searchParams.get("redirect");
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      if (redirectParam) {
-        navigate(redirectParam, { replace: true });
+      // Check sessionStorage for OAuth redirect (set before OAuth flow)
+      const storedRedirect = sessionStorage.getItem("auth_redirect");
+      const finalRedirect = redirectParam || storedRedirect;
+      if (storedRedirect) sessionStorage.removeItem("auth_redirect");
+
+      if (finalRedirect) {
+        navigate(finalRedirect, { replace: true });
       } else {
         const path = activeRole && activeRole !== "user" 
           ? getRoleDashboardPath(activeRole) 
