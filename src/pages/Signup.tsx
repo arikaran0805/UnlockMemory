@@ -40,6 +40,9 @@ const Signup = () => {
   // Check if currently rate limited
   const isRateLimited = rateLimitedUntil !== null && Date.now() < rateLimitedUntil;
 
+  // Password strength rules must all pass
+  const isPasswordValid = password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
+
   // Persist redirect param to localStorage on mount
   useEffect(() => {
     saveRedirectPath(redirectParam);
