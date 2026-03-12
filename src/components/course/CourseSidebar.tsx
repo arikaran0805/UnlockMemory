@@ -354,7 +354,7 @@ export const CourseSidebar = ({
           /* Guest CTA */
           <div className="px-4 py-3">
             <p className="text-xs text-muted-foreground">
-              <a href={`/login?redirect=${encodeURIComponent(window.location.pathname)}`} className="text-sidebar-primary hover:underline">Log in</a> to track your progress
+              <a href={`/login?redirect=${encodeURIComponent(window.location.pathname)}`} className="text-sidebar-primary hover:underline">Sign in</a> to track your progress
             </p>
           </div>
         )}
