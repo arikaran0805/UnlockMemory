@@ -127,7 +127,7 @@ const AcceptInvite = () => {
     try {
       // If not logged in, redirect to login with return URL
       if (!isAuthenticated) {
-        navigate(`/login?returnTo=/invite/${token}`);
+        navigate(`/login?redirect=${encodeURIComponent(`/invite/${token}`)}`);
         return;
       }
 
@@ -289,7 +289,7 @@ const AcceptInvite = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Invitation</h1>
           <p className="text-muted-foreground mb-6">{error}</p>
-          <Link to="/login">
+          <Link to={`/login?redirect=${encodeURIComponent(`/invite/${token}`)}`}>
             <Button variant="outline">Go to Login</Button>
           </Link>
         </div>

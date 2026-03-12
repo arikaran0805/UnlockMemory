@@ -1,15 +1,32 @@
 /**
  * Auth Redirect Utilities
- * 
- * Centralised helpers for storing / retrieving the post-authentication
- * redirect path.  Uses localStorage so the value survives across tabs
+ *
+ * Centralized helpers for storing / retrieving the post-authentication
+ * redirect path. Uses localStorage so the value survives across tabs
  * (important for email-verification links that open in a new tab).
  */
 
 const STORAGE_KEY = "post_auth_redirect";
 
 /** Paths that must never be used as a redirect target */
-const BLOCKED_PATHS = ["/login", "/signup", "/auth", "/verify-email"];
+const BLOCKED_PATHS = [
+  "/login",
+  "/signup",
+  "/auth",
+  "/verify-email",
+  "/verify-email/confirm",
+  "/reset-password",
+  "/forgot-password",
+];
+
+const isBlockedPath = (path: string): boolean => {
+  return BLOCKED_PATHS.some(
+    (blockedPath) =>
+      path === blockedPath ||
+      path.startsWith(`${blockedPath}/`) ||
+      path.startsWith(`${blockedPath}?`)
+  );
+};
 
 /**
  * Returns true when `path` is a safe, internal relative path that we
@@ -17,10 +34,16 @@ const BLOCKED_PATHS = ["/login", "/signup", "/auth", "/verify-email"];
  */
 export function isValidRedirectPath(path: string | null | undefined): path is string {
   if (!path) return false;
+
+  const normalizedPath = path.trim();
+  if (!normalizedPath) return false;
+
   // Must start with "/" (relative) and must NOT start with "//" (protocol-relative URL)
-  if (!path.startsWith("/") || path.startsWith("//")) return false;
-  // Block auth-related pages
-  if (BLOCKED_PATHS.some((bp) => path === bp || path.startsWith(bp + "/"))) return false;
+  if (!normalizedPath.startsWith("/") || normalizedPath.startsWith("//")) return false;
+
+  // Block auth-related pages and callback-like routes
+  if (isBlockedPath(normalizedPath)) return false;
+
   return true;
 }
 
@@ -44,7 +67,21 @@ export function peekRedirectPath(): string | null {
   return isValidRedirectPath(path) ? path : null;
 }
 
+/** Resolve redirect target using query param first, then storage, then fallback. */
+export function resolvePostAuthRedirect(
+  queryRedirectPath: string | null | undefined,
+  fallbackPath = "/profile"
+): string {
+  if (isValidRedirectPath(queryRedirectPath)) return queryRedirectPath;
+
+  const storedPath = peekRedirectPath();
+  if (storedPath) return storedPath;
+
+  return fallbackPath;
+}
+
 /** Explicitly clear the stored redirect. */
 export function clearRedirectPath(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
+
