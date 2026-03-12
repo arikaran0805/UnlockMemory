@@ -202,24 +202,6 @@ const Index = () => {
               </div>
             </form>
 
-            {/* Quick Course Links */}
-            {heroQuickLinks.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3">
-                {heroQuickLinks.map((link) => (
-                  <Link
-                    key={link.slug}
-                    to={`/course/${link.slug}`}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                      link.highlighted
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'bg-card border border-border text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            )}
 
             {/* CTA */}
             <div className="flex justify-center pt-4">
