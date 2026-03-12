@@ -60,7 +60,7 @@ const Confetti = () => {
 /* ── main component ── */
 const VerificationSuccess = () => {
   const navigate = useNavigate();
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(10);
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
