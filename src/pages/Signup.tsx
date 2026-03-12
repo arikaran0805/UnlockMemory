@@ -141,8 +141,8 @@ const Signup = () => {
         description: "Please check your email to verify your account.",
       });
 
-      // Redirect to verification waiting page
-      navigate("/verify-email", { state: { email } });
+      // Redirect to verification waiting page, pass redirect param
+      navigate("/verify-email", { state: { email, redirectTo: redirectParam } });
     } catch (error: any) {
       toast({
         title: "Error",
