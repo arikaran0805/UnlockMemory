@@ -17,13 +17,13 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
   const strength = passed / rules.length;
 
   return (
-    <div className="space-y-2 pt-1">
-      {/* Strength bar */}
-      <div className="flex gap-1">
+    <div className="space-y-1.5 pt-1">
+      {/* Strength bars */}
+      <div className="grid grid-cols-3 gap-1">
         {rules.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+            className={`h-1.5 rounded-full transition-colors duration-300 ${
               i < passed
                 ? strength === 1
                   ? "bg-emerald-500"
@@ -36,14 +36,14 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
         ))}
       </div>
 
-      {/* Rules checklist */}
-      <ul className="flex flex-col sm:flex-row sm:flex-wrap gap-x-4 gap-y-1">
+      {/* Rules checklist — each label centered under its bar on sm+ */}
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-y-1">
         {rules.map((rule) => {
           const ok = rule.test(password);
           return (
-            <li
+            <div
               key={rule.label}
-              className={`flex items-center gap-1.5 text-xs transition-colors duration-200 ${
+              className={`flex items-center sm:justify-center gap-1.5 text-xs transition-colors duration-200 ${
                 ok ? "text-emerald-500" : "text-muted-foreground"
               }`}
             >
@@ -53,10 +53,10 @@ const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps)
                 <X className="h-3.5 w-3.5 flex-shrink-0" />
               )}
               {rule.label}
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 };
