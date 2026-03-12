@@ -201,11 +201,7 @@ const Header = ({
             : `${announcementVisible ? 'top-9' : 'top-0'} translate-y-0 opacity-100`
         }`}
       >
-        <div className={`transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-[0_1px_3px_hsl(var(--foreground)/0.04)]' 
-            : 'bg-background/60 backdrop-blur-md border-b border-transparent'
-        }`}>
+        <div className="bg-background border-b border-border">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="flex h-16 items-center justify-between">
             {/* Logo and Brand */}
@@ -384,7 +380,7 @@ const Header = ({
               ) : (
                 <Button 
                   asChild 
-                  className="hidden md:flex h-9 px-6 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold transition-all duration-300 hover:shadow-elegant text-sm"
+                  className="hidden md:flex h-9 px-5 rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold transition-all duration-300 hover:scale-105 shadow-lg text-sm"
                 >
                   <Link to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}>Get Started</Link>
                 </Button>
