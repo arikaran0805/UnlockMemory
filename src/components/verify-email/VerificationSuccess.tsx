@@ -4,23 +4,29 @@ import { Button } from "@/components/ui/button";
 import { Check, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
-const VerificationSuccess = () => {
+interface VerificationSuccessProps {
+  redirectTo?: string | null;
+}
+
+const VerificationSuccess = ({ redirectTo }: VerificationSuccessProps) => {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(10);
+
+  const loginPath = `/login${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`;
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigate("/login");
+          navigate(loginPath);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [navigate]);
+  }, [navigate, loginPath]);
 
   const features = [
     "Explore career paths",
@@ -104,7 +110,7 @@ const VerificationSuccess = () => {
 
         {/* CTA */}
         <div className="space-y-3 pt-1">
-          <Link to="/login" className="block">
+          <Link to={loginPath} className="block">
             <Button className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium rounded-xl shadow-md shadow-emerald-500/15 transition-all duration-200 text-sm">
               Start Learning
               <ArrowRight className="ml-1 h-4 w-4" />

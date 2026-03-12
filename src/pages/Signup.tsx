@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,8 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isValid: emailValid, error: emailError, suggestion: emailSuggestion } = useEmailValidation(email);
@@ -39,9 +41,9 @@ const Signup = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate("/profile", { replace: true });
+      navigate(redirectParam || "/profile", { replace: true });
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, navigate, redirectParam]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +107,11 @@ const Signup = () => {
 
     setIsLoading(true);
 
+    // Store redirect for post-verification flow
+    if (redirectParam) {
+      sessionStorage.setItem("auth_redirect", redirectParam);
+    }
+
     try {
       // Create account - email verification required
       const { data, error } = await supabase.auth.signUp({
@@ -139,8 +146,8 @@ const Signup = () => {
         description: "Please check your email to verify your account.",
       });
 
-      // Redirect to verification waiting page
-      navigate("/verify-email", { state: { email } });
+      // Redirect to verification waiting page, pass redirect param
+      navigate("/verify-email", { state: { email, redirectTo: redirectParam } });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -154,10 +161,13 @@ const Signup = () => {
 
   const handleGoogleSignup = async () => {
     try {
+      if (redirectParam) {
+        sessionStorage.setItem("auth_redirect", redirectParam);
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/profile`,
+          redirectTo: `${window.location.origin}/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`,
         },
       });
 
@@ -387,7 +397,7 @@ const Signup = () => {
 
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/login" className="text-primary hover:text-primary/80 font-semibold">
+              <Link to={`/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`} className="text-primary hover:text-primary/80 font-semibold">
                 Sign In
               </Link>
             </p>

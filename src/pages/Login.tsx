@@ -35,8 +35,13 @@ const Login = () => {
   const redirectParam = searchParams.get("redirect");
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      if (redirectParam) {
-        navigate(redirectParam, { replace: true });
+      // Check sessionStorage for OAuth redirect (set before OAuth flow)
+      const storedRedirect = sessionStorage.getItem("auth_redirect");
+      const finalRedirect = redirectParam || storedRedirect;
+      if (storedRedirect) sessionStorage.removeItem("auth_redirect");
+
+      if (finalRedirect) {
+        navigate(finalRedirect, { replace: true });
       } else {
         const path = activeRole && activeRole !== "user" 
           ? getRoleDashboardPath(activeRole) 
@@ -62,7 +67,7 @@ const Login = () => {
       if (data.user && !data.user.email_confirmed_at) {
         await supabase.auth.signOut();
         setIsLoading(false);
-        navigate("/verify-email", { state: { email } });
+        navigate("/verify-email", { state: { email, redirectTo: redirectParam } });
         return;
       }
 
@@ -147,10 +152,14 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
+      // Store redirect param before OAuth redirect
+      if (redirectParam) {
+        sessionStorage.setItem("auth_redirect", redirectParam);
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo: `${window.location.origin}/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`,
         },
       });
 
@@ -413,7 +422,7 @@ const Login = () => {
 
               <p className="text-center text-sm text-muted-foreground">
                 New user?{" "}
-                <Link to="/signup" className="text-primary hover:text-primary/80 font-semibold">
+                <Link to={`/signup${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`} className="text-primary hover:text-primary/80 font-semibold">
                   Create a Learner Account
                 </Link>
               </p>

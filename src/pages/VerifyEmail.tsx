@@ -28,6 +28,8 @@ const VerifyEmail = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const emailFromState = (location.state as any)?.email;
+  const redirectFromState = (location.state as any)?.redirectTo;
+  const redirectTo = redirectFromState || sessionStorage.getItem("auth_redirect");
   const isConfirmPage = location.pathname === '/verify-email/confirm';
 
   // Handle email confirmation link
@@ -185,7 +187,7 @@ const VerifyEmail = () => {
             </div>
           )}
 
-          {verificationStatus === 'success' && <VerificationSuccess />}
+          {verificationStatus === 'success' && <VerificationSuccess redirectTo={redirectTo} />}
 
           {verificationStatus === 'error' && (
             <div className="space-y-6">
@@ -264,7 +266,7 @@ const VerifyEmail = () => {
               )}
             </Button>
 
-            <Link to="/login" className="block text-primary hover:underline text-sm">
+            <Link to={`/login${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="block text-primary hover:underline text-sm">
               Back to login
             </Link>
           </div>
