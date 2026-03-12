@@ -147,10 +147,10 @@ const VerificationSuccess = () => {
           {/* Copy */}
           <div className="text-center space-y-1.5">
             <h1 className="text-[22px] font-semibold text-foreground tracking-tight">
-              Email Verified Successfully
+              Email Verified
             </h1>
             <p className="text-sm text-muted-foreground">
-              Your UnlockMemory account is ready. Start building your learning journey.
+              Welcome to UnlockMemory. Your account is ready.
             </p>
           </div>
 
