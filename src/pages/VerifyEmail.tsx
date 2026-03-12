@@ -165,23 +165,7 @@ const VerifyEmail = () => {
             </div>
           )}
 
-          {verificationStatus === 'success' && (
-            <div className="space-y-6">
-              <div className="w-20 h-20 mx-auto bg-green-500/10 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-10 w-10 text-green-500" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground mb-2">Email Verified!</h1>
-                <p className="text-muted-foreground">Your account is now active. Please log in to get started.</p>
-              </div>
-              <Link to="/login">
-                <Button className="bg-gradient-to-r from-primary via-emerald-500 to-teal-500 w-full">
-                  Go to Login
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          )}
+          {verificationStatus === 'success' && <VerificationSuccess />}
 
           {verificationStatus === 'error' && (
             <div className="space-y-6">
