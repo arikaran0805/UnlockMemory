@@ -4,23 +4,29 @@ import { Button } from "@/components/ui/button";
 import { Check, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
-const VerificationSuccess = () => {
+interface VerificationSuccessProps {
+  redirectTo?: string | null;
+}
+
+const VerificationSuccess = ({ redirectTo }: VerificationSuccessProps) => {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(10);
+
+  const loginPath = `/login${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`;
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigate("/login");
+          navigate(loginPath);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [navigate]);
+  }, [navigate, loginPath]);
 
   const features = [
     "Explore career paths",
