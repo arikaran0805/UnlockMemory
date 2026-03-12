@@ -422,7 +422,7 @@ const Login = () => {
 
               <p className="text-center text-sm text-muted-foreground">
                 New user?{" "}
-                <Link to="/signup" className="text-primary hover:text-primary/80 font-semibold">
+                <Link to={`/signup${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`} className="text-primary hover:text-primary/80 font-semibold">
                   Create a Learner Account
                 </Link>
               </p>
