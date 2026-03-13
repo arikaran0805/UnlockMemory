@@ -1477,7 +1477,7 @@ const Profile = () => {
                       </div>
 
                       {/* Title */}
-                      <p className="font-semibold text-xl text-foreground mt-5 truncate w-full tracking-[-0.01em]">
+                      <p className="font-semibold text-xl text-foreground mt-5 w-full tracking-[-0.01em] line-clamp-2 leading-snug">
                         {course.name}
                       </p>
 
