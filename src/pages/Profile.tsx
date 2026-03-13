@@ -447,13 +447,27 @@ const FeaturedCourseCard = ({
 
   return (
     <Card 
-      className={`bg-gradient-to-br ${gradient} border-0 text-white cursor-pointer hover:scale-[1.02] transition-transform`}
+      className="border-0 text-white cursor-pointer overflow-hidden relative"
+      style={{
+        background: gradient,
+        borderRadius: '22px',
+        boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
+        transition: 'all 200ms ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 16px 36px rgba(0,0,0,0.12)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.08)';
+      }}
       onClick={onClick}
     >
-      <CardContent className="p-5 h-44 flex flex-col justify-between">
+      <CardContent className="p-[26px] h-44 flex flex-col justify-between relative z-10">
         <div>
-          <h4 className="font-bold text-lg">{course.name}</h4>
-          <div className="flex items-center gap-4 mt-2 text-sm text-white/80">
+          <h4 style={{ fontSize: '20px', fontWeight: 600 }}>{course.name}</h4>
+          <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
             <span className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
               {lessonCount} Lessons
@@ -465,9 +479,13 @@ const FeaturedCourseCard = ({
           </div>
         </div>
         <div className="flex justify-end">
-          <IconComponent className="h-12 w-12 text-white/30" />
+          <IconComponent className="h-12 w-12" style={{ color: 'rgba(255,255,255,0.15)' }} />
         </div>
       </CardContent>
+      {/* Large watermark icon */}
+      <div className="absolute -right-4 -bottom-4 pointer-events-none" style={{ opacity: 0.08 }}>
+        <IconComponent className="h-32 w-32 text-white" />
+      </div>
     </Card>
   );
 };
