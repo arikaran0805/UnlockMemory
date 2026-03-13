@@ -1150,8 +1150,8 @@ const Profile = () => {
                   <Button 
                     variant="default" 
                     size="sm" 
-                    className="gap-1.5 rounded-full px-5 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-                    style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
+                    className="btn-glossy gap-1.5 rounded-full px-5 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                    style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.35)' }}
                     onClick={() => {
                       if (career) {
                         // Try to get specific course, otherwise navigate to career board index
@@ -1398,8 +1398,8 @@ const Profile = () => {
                       {/* Bottom CTA with contextual subtext */}
                       <div className="flex flex-col items-center mt-5 group/cta gap-2">
                         <Button 
-                          className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-                          style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
+                          className="btn-glossy gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                          style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.35)' }}
                           onClick={() => {
                             // This is a career action - navigate to first course inside Career Board
                             if (career) {
@@ -1501,7 +1501,7 @@ const Profile = () => {
           <Card className="card-premium animate-stagger-1">
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/15">
+                <div className="icon-glossy w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/15">
                   <Target className="h-5 w-5 text-white" strokeWidth={1.5} />
                 </div>
                 <div className="space-y-0.5">
@@ -1565,7 +1565,7 @@ const Profile = () => {
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full blur-lg" style={{ background: 'rgba(139,92,246,0.15)' }} />
                   <div
-                    className="relative w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                    className="icon-glossy relative w-12 h-12 rounded-full flex items-center justify-center shrink-0"
                     style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)', boxShadow: '0 8px 20px rgba(124,58,237,0.3)' }}
                   >
                     <Sparkles className="h-6 w-6 text-white" strokeWidth={1.5} />
@@ -1588,7 +1588,7 @@ const Profile = () => {
                 
                 <Button
                   variant="default"
-                  className="w-full mt-4 gap-2 rounded-full font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                  className="btn-glossy w-full mt-4 gap-2 rounded-full font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
                   style={{ background: 'linear-gradient(90deg, #7C3AED, #9333EA)', boxShadow: '0 10px 30px rgba(124,58,237,0.35)' }}
                 >
                   <Sparkles className="h-4 w-4" strokeWidth={1.5} />
@@ -1605,7 +1605,7 @@ const Profile = () => {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              className="icon-glossy w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.25)' }}
             >
               <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.5} />
@@ -1618,8 +1618,8 @@ const Profile = () => {
             </div>
             <Button 
               onClick={() => navigate('/arcade')} 
-              className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-              style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
+              className="btn-glossy gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+              style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.35)' }}
             >
               <Gamepad2 className="h-4 w-4" />
               Enter Arcade

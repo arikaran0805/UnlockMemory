@@ -21,8 +21,8 @@ const Progress = React.forwardRef<
       className={cn("h-full w-full flex-1 rounded-full transition-all", indicatorClassName)}
       style={{ 
         transform: `translateX(-${100 - (value || 0)}%)`,
-        background: 'linear-gradient(90deg, #22C55E, #16A34A)',
-        boxShadow: '0 0 6px rgba(34, 197, 94, 0.35)',
+        background: 'linear-gradient(180deg, #34D399, #22C55E)',
+        boxShadow: '0 0 6px rgba(34, 197, 94, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}
     />
   </ProgressPrimitive.Root>
