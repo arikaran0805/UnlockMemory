@@ -1459,26 +1459,49 @@ const Profile = () => {
                   const labColors = ['from-emerald-500 to-teal-600', 'from-blue-500 to-indigo-600', 'from-purple-500 to-pink-600'];
                   
                   return (
-                    <Card 
+                    <div 
                       key={enrollment.id} 
-                      className="bg-muted/20 hover:bg-muted/40 transition-all duration-200 cursor-pointer border border-border/30 rounded-2xl hover:-translate-y-0.5"
+                      className="group cursor-pointer transition-all duration-[220ms] ease-out hover:-translate-y-[3px] rounded-[22px] border border-black/[0.06] dark:border-white/[0.08] p-7"
+                      style={{
+                        background: 'rgba(255,255,255,0.9)',
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                      }}
                       onClick={() => handleTabChange('practice')}
                     >
-                      <CardContent className="p-5">
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0 shadow-sm`}>
-                            {labIcons[index % 3]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">{course.name} {labTypes[index % 3]}</p>
-                            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">Practice your skills with hands-on exercises</p>
-                            <Badge variant="secondary" className="mt-3 text-xs">
-                              {labTypes[index % 3]}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      {/* Icon */}
+                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0 shadow-lg`}>
+                        {React.cloneElement(labIcons[index % 3] as React.ReactElement, { className: 'h-6 w-6 text-white' })}
+                      </div>
+
+                      {/* Title */}
+                      <p className="font-semibold text-lg text-foreground mt-4 truncate tracking-[-0.01em]">
+                        {course.name}
+                      </p>
+
+                      {/* Description */}
+                      <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
+                        Practice your skills with hands-on coding exercises.
+                      </p>
+
+                      {/* Badge + CTA */}
+                      <div className="flex items-center justify-between mt-5">
+                        <span 
+                          className="text-[13px] font-medium px-3 py-1.5 rounded-full"
+                          style={{ background: 'rgba(34,197,94,0.12)', color: '#16A34A' }}
+                        >
+                          {labTypes[index % 3]}
+                        </span>
+                        <button 
+                          className="text-sm font-medium text-white px-4 py-2.5 rounded-full transition-transform duration-[220ms] ease-out group-hover:-translate-y-px"
+                          style={{
+                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                            boxShadow: '0 6px 16px rgba(34,197,94,0.25)',
+                          }}
+                        >
+                          Start Lab
+                        </button>
+                      </div>
+                    </div>
                   );
                 })}
                 {enrolledCourses.length === 0 && (
