@@ -44,18 +44,18 @@ All colors MUST be HSL.
     --text-on-mint-secondary: 142 25% 35%;
     
     --gradient-primary: linear-gradient(135deg, hsl(142 70% 45%), hsl(142 70% 65%));
-    --gradient-subtle: linear-gradient(180deg, hsl(142 45% 98%), hsl(142 30% 95%));
-    --gradient-dashboard: linear-gradient(135deg, hsl(142 40% 97%) 0%, hsl(160 30% 95%) 50%, hsl(200 25% 96%) 100%);
-    --gradient-mesh: radial-gradient(at 40% 20%, hsl(142 60% 95%) 0px, transparent 50%), radial-gradient(at 80% 0%, hsl(160 50% 94%) 0px, transparent 50%), radial-gradient(at 0% 50%, hsl(200 40% 96%) 0px, transparent 50%), radial-gradient(at 80% 50%, hsl(142 45% 96%) 0px, transparent 50%), radial-gradient(at 0% 100%, hsl(180 35% 95%) 0px, transparent 50%);
+    --gradient-subtle: linear-gradient(180deg, hsl(140 30% 98%), hsl(140 20% 96%));
+    --gradient-dashboard: linear-gradient(180deg, hsl(140 25% 98%) 0%, hsl(140 20% 97%) 100%);
+    --gradient-mesh: radial-gradient(ellipse 80% 60% at 50% 40%, hsl(142 40% 95% / 0.6) 0px, transparent 70%);
     
-    --shadow-elegant: 0 10px 30px -10px hsl(142 70% 45% / 0.15);
-    --shadow-glow: 0 0 40px hsl(142 70% 65% / 0.2);
-    --shadow-card: 0 2px 8px hsl(142 30% 20% / 0.08);
-    --shadow-premium: 0 4px 20px -4px hsl(142 40% 30% / 0.12), 0 0 0 1px hsl(142 30% 90% / 0.5);
-    --shadow-premium-hover: 0 8px 30px -6px hsl(142 50% 35% / 0.18), 0 0 0 1px hsl(142 40% 85% / 0.6);
+    --shadow-elegant: 0 10px 30px -10px hsl(142 70% 45% / 0.12);
+    --shadow-glow: 0 0 40px hsl(142 70% 65% / 0.15);
+    --shadow-card: 0 2px 8px hsl(220 15% 20% / 0.06);
+    --shadow-premium: 0 8px 30px hsl(220 15% 20% / 0.06), 0 2px 8px hsl(220 15% 20% / 0.04), inset 0 1px 0 hsl(0 0% 100% / 0.7);
+    --shadow-premium-hover: 0 12px 40px hsl(220 15% 20% / 0.08), 0 4px 12px hsl(220 15% 20% / 0.05), inset 0 1px 0 hsl(0 0% 100% / 0.7);
     
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-premium: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-premium: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
     --sidebar-background: 142 45% 98%;
     --sidebar-foreground: 142 30% 20%;
@@ -130,16 +130,16 @@ All colors MUST be HSL.
 
   /* Premium dashboard background */
   .dashboard-bg {
-    background: var(--gradient-dashboard);
+    background: linear-gradient(180deg, hsl(140 25% 98%) 0%, hsl(140 20% 97%) 100%);
     position: relative;
-    isolation: isolate; /* keep decorative overlays behind content */
+    isolation: isolate;
   }
 
   .dashboard-bg::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--gradient-mesh);
+    background: radial-gradient(ellipse 70% 50% at 50% 30%, hsl(142 40% 95% / 0.5) 0px, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -148,8 +148,8 @@ All colors MUST be HSL.
     content: '';
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: radial-gradient(hsl(var(--primary) / 0.02) 1px, transparent 1px);
+    background-size: 20px 20px;
     pointer-events: none;
     z-index: 0;
   }
@@ -196,11 +196,15 @@ All colors MUST be HSL.
   /* Premium card styling */
   .card-premium {
     @apply relative overflow-hidden;
-    background: linear-gradient(135deg, hsl(var(--card) / 0.8) 0%, hsl(var(--card) / 0.6) 100%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    box-shadow: var(--shadow-premium);
-    border: 1px solid hsl(var(--border) / 0.5);
+    background: hsl(0 0% 100% / 0.78);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid hsl(142 30% 40% / 0.08);
+    border-radius: 24px;
+    box-shadow: 
+      0 8px 30px hsl(220 15% 20% / 0.06),
+      0 2px 8px hsl(220 15% 20% / 0.04),
+      inset 0 1px 0 hsl(0 0% 100% / 0.7);
     transition: var(--transition-premium);
   }
 
@@ -208,45 +212,55 @@ All colors MUST be HSL.
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.03) 0%, transparent 50%);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.02) 0%, transparent 60%);
     pointer-events: none;
+    border-radius: inherit;
   }
 
   .card-premium:hover {
-    box-shadow: var(--shadow-premium-hover);
-    border-color: hsl(var(--primary) / 0.2);
+    box-shadow: 
+      0 12px 40px hsl(220 15% 20% / 0.08),
+      0 4px 12px hsl(220 15% 20% / 0.05),
+      inset 0 1px 0 hsl(0 0% 100% / 0.7);
+    transform: translateY(-1px);
   }
 
   /* Premium sidebar styling */
   .sidebar-premium {
     @apply relative overflow-hidden;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.9) 0%, hsl(var(--card) / 0.7) 100%);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    box-shadow: var(--shadow-premium);
-    border: 1px solid hsl(var(--primary) / 0.1);
+    background: hsl(0 0% 100% / 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(142 30% 40% / 0.08);
+    border-radius: 24px;
+    box-shadow: 
+      0 8px 30px hsl(220 15% 20% / 0.06),
+      0 2px 8px hsl(220 15% 20% / 0.04),
+      inset 0 1px 0 hsl(0 0% 100% / 0.7);
   }
 
   .sidebar-premium::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.05) 0%, transparent 30%);
+    background: linear-gradient(180deg, hsl(var(--primary) / 0.03) 0%, transparent 40%);
     pointer-events: none;
+    border-radius: inherit;
   }
 
   /* Premium nav item */
   .nav-item-premium {
-    @apply relative transition-all duration-300;
+    @apply relative transition-all duration-200;
   }
 
   .nav-item-premium:hover {
-    background: linear-gradient(90deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.03) 100%);
+    background: hsl(var(--primary) / 0.06);
   }
 
   .nav-item-premium.active {
-    background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%);
-    box-shadow: 0 2px 12px -2px hsl(var(--primary) / 0.4);
+    background: linear-gradient(180deg, hsl(142 70% 45%) 0%, hsl(142 70% 38%) 100%);
+    box-shadow: 0 6px 16px -4px hsl(142 70% 45% / 0.35);
+    color: white;
   }
 
   /* Premium avatar ring */
@@ -260,14 +274,15 @@ All colors MUST be HSL.
     inset: -3px;
     border-radius: 50%;
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-    opacity: 0.3;
+    opacity: 0.25;
     z-index: -1;
+    filter: blur(2px);
   }
 
   /* Premium badge glow */
   .badge-premium {
     @apply relative;
-    box-shadow: 0 0 12px -2px hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 10px -2px hsl(var(--primary) / 0.2);
   }
 
   /* Subtle shine animation */

@@ -1138,19 +1138,19 @@ const Profile = () => {
             maxStreak={maxStreak}
           />
           {/* Career Readiness */}
-          <Card className="card-premium rounded-xl animate-stagger-2">
+          <Card className="card-premium animate-stagger-2">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">Career Readiness</h3>
-                  <p className="text-sm text-muted-foreground">Your progress toward becoming job-ready</p>
+                  <h3 className="text-xl font-bold tracking-[-0.02em] text-foreground">Career Readiness</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5 font-normal">Your progress toward becoming job-ready</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Primary CTA: Career Board - Navigate to first course in career path */}
                   <Button 
                     variant="default" 
                     size="sm" 
-                    className="gap-1.5 rounded-full px-4"
+                    className="gap-1.5 rounded-full px-5 shadow-lg shadow-primary/20 font-semibold"
                     onClick={() => {
                       if (career) {
                         // Try to get specific course, otherwise navigate to career board index
@@ -1235,7 +1235,7 @@ const Profile = () => {
                         </div>
                         <Progress 
                           value={skillProgress} 
-                          className="h-2.5"
+                          className="h-2 [&>div]:rounded-full [&>div]:shadow-[0_0_6px_hsl(var(--primary)/0.25)]"
                         />
                       </div>
                     );
@@ -1397,7 +1397,7 @@ const Profile = () => {
                       {/* Bottom CTA with contextual subtext */}
                       <div className="flex flex-col items-center mt-5 group/cta gap-2">
                         <Button 
-                          className="gap-2 rounded-full px-5"
+                          className="gap-2 rounded-full px-6 shadow-lg shadow-primary/20 font-semibold bg-gradient-to-b from-primary to-primary/90 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                           onClick={() => {
                             // This is a career action - navigate to first course inside Career Board
                             if (career) {
@@ -1429,16 +1429,16 @@ const Profile = () => {
           </Card>
 
           {/* Recommended Labs Section - Directly below Career Readiness */}
-          <Card className="card-premium rounded-xl animate-stagger-3">
+          <Card className="card-premium animate-stagger-3">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/15">
                     <FlaskConical className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Recommended Labs</CardTitle>
-                    <CardDescription>Practice exercises based on your enrolled courses</CardDescription>
+                    <CardTitle className="text-lg tracking-[-0.01em]">Recommended Labs</CardTitle>
+                    <CardDescription className="font-normal">Practice exercises based on your enrolled courses</CardDescription>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => handleTabChange('practice')} className="gap-1">
@@ -1459,12 +1459,12 @@ const Profile = () => {
                   return (
                     <Card 
                       key={enrollment.id} 
-                      className="bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer border"
+                      className="bg-muted/20 hover:bg-muted/40 transition-all duration-200 cursor-pointer border border-border/30 rounded-2xl hover:-translate-y-0.5"
                       onClick={() => handleTabChange('practice')}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0`}>
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0 shadow-sm`}>
                             {labIcons[index % 3]}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1496,50 +1496,50 @@ const Profile = () => {
         {/* Right Column - Today's Focus + Weekly Activity + AI Mentor */}
         <div className="flex flex-col space-y-6 h-full min-h-full">
           {/* Today's Focus Card */}
-          <Card className="card-premium rounded-xl animate-stagger-1">
+          <Card className="card-premium animate-stagger-1">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Target className="h-5 w-5 text-primary" />
-                <span className="text-sm font-semibold text-primary uppercase tracking-wider">
+                <Target className="h-4 w-4 text-primary" strokeWidth={2} />
+                <span className="text-[11px] font-semibold text-primary uppercase tracking-[0.12em]">
                   Today's Focus
                 </span>
               </div>
               
               <div className="space-y-3">
                 {/* Lesson Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
+                    <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">Continue Learning</p>
-                    <p className="text-xs text-muted-foreground truncate">{focusContent.message}</p>
+                    <p className="text-sm font-semibold text-foreground">Continue Learning</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{focusContent.message}</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
 
                 {/* MCQ Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10 transition-colors cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                    <HelpCircle className="h-4 w-4 text-amber-500" />
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/4 border border-amber-500/8 hover:bg-amber-500/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/8 flex items-center justify-center shrink-0">
+                    <HelpCircle className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">Daily Quiz</p>
-                    <p className="text-xs text-muted-foreground">Test your knowledge with MCQs</p>
+                    <p className="text-sm font-semibold text-foreground">Daily Quiz</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Test your knowledge with MCQs</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
 
                 {/* Debug & Practice Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 transition-colors cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                    <Code className="h-4 w-4 text-violet-500" />
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 hover:bg-violet-500/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-violet-500/8 flex items-center justify-center shrink-0">
+                    <Code className="h-4 w-4 text-violet-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">Debug & Practice</p>
-                    <p className="text-xs text-muted-foreground">Hands-on coding challenges</p>
+                    <p className="text-sm font-semibold text-foreground">Debug & Practice</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Hands-on coding challenges</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
               </div>
             </CardContent>
@@ -1552,28 +1552,33 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - Expand to match Practice Labs height */}
-          <Card className="card-premium rounded-xl animate-stagger-3 flex-1 flex flex-col">
-            <CardContent className="p-5 flex-1 flex flex-col">
+          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col relative overflow-hidden">
+            {/* Ambient glow for AI Mentor */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl" />
+            <CardContent className="p-5 flex-1 flex flex-col relative">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/30">
-                  <Sparkles className="h-6 w-6 text-white" />
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-full blur-lg" />
+                  <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/25">
+                    <Sparkles className="h-6 w-6 text-white" strokeWidth={1.8} />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold">AI Mentor</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-lg font-bold tracking-[-0.01em]">AI Mentor</h3>
+                  <p className="text-sm text-muted-foreground font-normal">
                     Your personal learning assistant
                   </p>
                 </div>
               </div>
               
               <div className="flex-1 flex flex-col justify-between">
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed font-normal">
                   {completedInCareer < careerRelatedSlugs.length 
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
                     : 'Great progress! Ask me about advanced topics, career advice, or explore new learning paths.'}
                 </p>
                 
-                <Button variant="default" className="w-full mt-4 gap-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
+                <Button variant="default" className="w-full mt-4 gap-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 font-semibold">
                   <Sparkles className="h-4 w-4" />
                   Ask AI Mentor
                 </Button>
@@ -1584,21 +1589,21 @@ const Profile = () => {
       </div>
 
       {/* Arcade Section */}
-      <Card className="card-premium rounded-xl animate-stagger-5">
+      <Card className="card-premium animate-stagger-5">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <Gamepad2 className="h-8 w-8 text-white" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-accent to-primary/80 flex items-center justify-center shadow-lg shadow-primary/15">
+              <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.8} />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="text-xl font-bold mb-1">Arcade</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]">Arcade</h3>
+              <p className="text-muted-foreground font-normal">
                 Test your skills with interactive challenges, quizzes, and games to reinforce your learning.
               </p>
             </div>
             <Button 
               onClick={() => navigate('/arcade')} 
-              className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20"
+              className="gap-2 rounded-full px-6 bg-gradient-to-b from-primary to-primary/90 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shadow-lg shadow-primary/15 font-semibold"
             >
               <Gamepad2 className="h-4 w-4" />
               Enter Arcade
@@ -2441,107 +2446,107 @@ const Profile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-2xl ${activeTab === 'dashboard' ? 'dashboard-bg' : 'bg-background'}`}>
+        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' ? 'dashboard-bg' : 'bg-background'}`}>
           {/* Sidebar - hidden for Practice Lab */}
           {activeTab !== 'practice' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
-            <Card className="rounded-xl bg-card/80 backdrop-blur-sm border shadow-lg">
-              <CardContent className="p-4">
+            <Card className="sidebar-premium">
+              <CardContent className="p-5">
                 {/* Profile Summary */}
-                <div className="text-center pb-4 mb-4 border-b border-border/50">
-                  <div className="mx-auto w-fit">
-                    <Avatar className="h-20 w-20 ring-4 ring-primary/20 ring-offset-2 ring-offset-background shadow-lg">
+                <div className="text-center pb-5 mb-5 border-b border-border/30">
+                  <div className="mx-auto w-fit avatar-premium">
+                    <Avatar className="h-20 w-20 ring-[3px] ring-primary/15 ring-offset-2 ring-offset-background shadow-lg">
                       <AvatarImage src={avatarUrl} alt={fullName} />
                       <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
                         {fullName?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <h3 className="font-semibold text-lg truncate mt-3 text-foreground">{fullName || 'User'}</h3>
-                  <p className="text-sm text-muted-foreground truncate">{email}</p>
+                  <h3 className="font-semibold text-lg truncate mt-3 text-foreground tracking-[-0.01em]">{fullName || 'User'}</h3>
+                  <p className="text-sm text-muted-foreground truncate mt-0.5">{email}</p>
                 </div>
                 
                 {/* Navigation */}
-                <nav className="space-y-1">
+                <nav className="space-y-0.5">
                   {sidebarItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => handleTabChange(item.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
                         activeTab === item.id 
-                          ? 'bg-primary text-primary-foreground font-medium shadow-md' 
-                          : 'hover:bg-muted/70 text-foreground hover:translate-x-1'
+                          ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
+                          : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
                       }`}
                     >
-                      <item.icon className={`h-5 w-5 ${activeTab === item.id ? '' : 'text-muted-foreground'}`} />
+                      <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
                       <span>{item.label}</span>
                     </button>
                   ))}
                 </nav>
 
                 {/* Explore Section */}
-                <div className="border-t mt-2 pt-2">
-                  <p className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="border-t border-border/30 mt-3 pt-3">
+                  <p className="px-4 py-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
                     Explore
                   </p>
-                  <nav className="space-y-1">
+                  <nav className="space-y-0.5">
                     {exploreItems.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
                           activeTab === item.id 
-                            ? 'bg-primary text-primary-foreground font-medium shadow-md' 
-                            : 'hover:bg-muted/70 text-foreground hover:translate-x-1'
+                            ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
+                            : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
                         }`}
                       >
-                        <item.icon className={`h-5 w-5 ${activeTab === item.id ? '' : 'text-muted-foreground'}`} />
+                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                     <button
                       onClick={() => navigate('/library')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-muted/70 text-foreground hover:translate-x-1"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
                     >
-                      <Library className="h-5 w-5 text-muted-foreground" />
+                      <Library className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
                       <span>Library</span>
                     </button>
                     <button
                       onClick={() => navigate('/arcade')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-muted/70 text-foreground hover:translate-x-1"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
                     >
-                      <Gamepad2 className="h-5 w-5 text-muted-foreground" />
+                      <Gamepad2 className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
                       <span>Arcade</span>
                     </button>
                   </nav>
                 </div>
 
                 {/* Account Section */}
-                <div className="border-t mt-2 pt-2">
-                  <p className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="border-t border-border/30 mt-3 pt-3">
+                  <p className="px-4 py-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
                     Account
                   </p>
-                  <nav className="space-y-1">
+                  <nav className="space-y-0.5">
                     {accountItems.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
                           activeTab === item.id 
-                            ? 'bg-primary text-primary-foreground font-medium shadow-md' 
-                            : 'hover:bg-muted/70 text-foreground hover:translate-x-1'
+                            ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
+                            : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
                         }`}
                       >
-                        <item.icon className={`h-5 w-5 ${activeTab === item.id ? '' : 'text-muted-foreground'}`} />
+                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                     {(isAdmin || isModerator) && (
                       <button
                         onClick={() => navigate('/admin')}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-muted/70 text-foreground hover:translate-x-1"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
                       >
-                        <Shield className="h-5 w-5 text-muted-foreground" />
+                        <Shield className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
                         <span>Admin Panel</span>
                       </button>
                     )}
