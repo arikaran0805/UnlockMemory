@@ -1459,7 +1459,7 @@ const Profile = () => {
                   return (
                     <Card 
                       key={enrollment.id} 
-                      className="bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer border"
+                      className="bg-muted/20 hover:bg-muted/40 transition-all duration-200 cursor-pointer border border-border/30 rounded-2xl hover:-translate-y-0.5"
                       onClick={() => handleTabChange('practice')}
                     >
                       <CardContent className="p-4">
