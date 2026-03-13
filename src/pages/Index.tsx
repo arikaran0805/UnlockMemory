@@ -205,10 +205,9 @@ const Index = () => {
 
             {/* CTA */}
             <div className="flex justify-center pt-4">
-              <Link to="/careers">
-                <Button size="lg" className="h-14 px-12 text-lg font-semibold rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-300">
-                  Get Started
-                </Button>
+              <Link to="/careers" className="group inline-flex items-center gap-2 text-primary font-semibold text-lg hover:gap-3 transition-all duration-300">
+                Find Learning Path
+                <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </Link>
             </div>
           </div>
