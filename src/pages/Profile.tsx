@@ -1235,7 +1235,7 @@ const Profile = () => {
                         </div>
                         <Progress 
                           value={skillProgress} 
-                          className="h-2.5"
+                          className="h-2 [&>div]:rounded-full [&>div]:shadow-[0_0_6px_hsl(var(--primary)/0.25)]"
                         />
                       </div>
                     );
