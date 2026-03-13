@@ -545,8 +545,8 @@ const Library = () => {
           />
           <div className="container mx-auto px-4 lg:px-8 py-10 max-w-6xl relative z-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-              <h1 className="text-3xl font-bold">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+              <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1C2E25', letterSpacing: '-0.025em' }}>
                 {activeNav === "all-courses" && "Course Library"}
                 {activeNav === "my-learning" && "My Learning"}
                 {activeNav === "certificates" && "My Certificates"}
