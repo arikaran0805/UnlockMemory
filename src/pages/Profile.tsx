@@ -1150,8 +1150,8 @@ const Profile = () => {
                   <Button 
                     variant="default" 
                     size="sm" 
-                    className="gap-1.5 rounded-full px-5 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-                    style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
+                    className="btn-glossy gap-1.5 rounded-full px-5 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                    style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.35)' }}
                     onClick={() => {
                       if (career) {
                         // Try to get specific course, otherwise navigate to career board index
