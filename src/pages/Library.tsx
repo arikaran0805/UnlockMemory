@@ -530,8 +530,20 @@ const Library = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto px-4 lg:px-8 py-8 max-w-6xl">
+        <main 
+          className="flex-1 overflow-auto"
+          style={{ 
+            background: 'linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%)',
+          }}
+        >
+          {/* Subtle radial highlight */}
+          <div 
+            className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] z-0"
+            style={{ 
+              background: 'radial-gradient(ellipse at center, rgba(34,197,94,0.04) 0%, transparent 70%)',
+            }}
+          />
+          <div className="container mx-auto px-4 lg:px-8 py-10 max-w-6xl relative z-10">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
               <h1 className="text-3xl font-bold">
