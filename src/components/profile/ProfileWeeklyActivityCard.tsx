@@ -91,11 +91,11 @@ export const ProfileWeeklyActivityCard = ({
 
   if (loading) {
     return (
-      <Card className={cn("card-premium rounded-xl", className)}>
+      <Card className={cn("card-premium", className)}>
         <CardContent className="p-5">
           <div className="space-y-1">
-            <h3 className="text-lg font-bold">Weekly Activity</h3>
-            <p className="text-xs text-muted-foreground">Time spent per day (hrs)</p>
+            <h3 className="text-lg font-semibold tracking-[-0.01em]">Weekly Activity</h3>
+            <p className="text-xs text-muted-foreground font-medium">Time spent per day (hrs)</p>
           </div>
           <div className="flex items-center justify-center h-28 text-sm text-muted-foreground">
             Loading activity...
@@ -106,15 +106,15 @@ export const ProfileWeeklyActivityCard = ({
   }
 
   return (
-    <Card className={cn("card-premium rounded-xl", className)}>
+    <Card className={cn("card-premium", className)}>
       <CardContent className="p-5">
-        <div className="space-y-1 mb-4">
-          <h3 className="text-lg font-bold">Weekly Activity</h3>
-          <p className="text-xs text-muted-foreground">Time spent per day (hrs)</p>
+        <div className="space-y-0.5 mb-5">
+          <h3 className="text-lg font-semibold tracking-[-0.01em]">Weekly Activity</h3>
+          <p className="text-xs text-muted-foreground font-medium">Time spent per day (hrs)</p>
         </div>
 
         <TooltipProvider delayDuration={100}>
-          <div className="flex items-end justify-between gap-2 h-28 px-1">
+          <div className="flex items-end justify-between gap-2.5 h-28 px-1">
             {days.map((date, index) => {
               const daySeconds = daySecondsByIndex[index] || 0;
               const hasActivity = daySeconds > 0;
@@ -130,7 +130,7 @@ export const ProfileWeeklyActivityCard = ({
                 <Tooltip key={toDayKey(date)} open={activeTouchDay === index ? true : undefined}>
                   <TooltipTrigger asChild>
                     <div
-                      className="flex-1 flex flex-col items-center gap-1.5 cursor-pointer select-none"
+                      className="flex-1 flex flex-col items-center gap-1.5 cursor-pointer select-none group"
                       role="button"
                       aria-label={ariaLabel}
                       tabIndex={0}
@@ -147,7 +147,7 @@ export const ProfileWeeklyActivityCard = ({
                       <div className="h-5 flex items-center justify-center">
                         {isBestDay && (
                           <Star 
-                            className="h-3.5 w-3.5 text-amber-500 fill-amber-500 drop-shadow-[0_0_3px_rgba(245,179,1,0.3)]" 
+                            className="h-3 w-3 text-amber-500 fill-amber-500" 
                             aria-label="Best activity day"
                           />
                         )}
@@ -156,18 +156,18 @@ export const ProfileWeeklyActivityCard = ({
                       <div className="w-full relative flex items-end justify-center" style={{ height: "70px" }}>
                         <div
                           className={cn(
-                            "w-full max-w-7 rounded-full transition-all duration-300",
+                            "w-full max-w-[7px] rounded-full transition-all duration-300",
                             isBestDay
-                              ? "bg-primary shadow-md"
+                              ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.3)]"
                               : isToday
-                                ? "bg-primary/80"
+                                ? "bg-primary/75"
                                 : hasActivity
-                                  ? "bg-primary/50"
-                                  : "bg-muted/40",
+                                  ? "bg-primary/40"
+                                  : "bg-muted/50",
                           )}
                           style={{
-                            height: hasActivity ? `${Math.max(heightPercent, 12)}%` : "8px",
-                            minHeight: hasActivity ? "12px" : "8px",
+                            height: hasActivity ? `${Math.max(heightPercent, 12)}%` : "6px",
+                            minHeight: hasActivity ? "12px" : "6px",
                           }}
                         />
                       </div>
@@ -176,10 +176,10 @@ export const ProfileWeeklyActivityCard = ({
                         className={cn(
                           "text-[11px] font-medium transition-colors",
                           isToday
-                            ? "text-primary"
+                            ? "text-primary font-semibold"
                             : hasActivity
-                              ? "text-foreground/80"
-                              : "text-muted-foreground/70",
+                              ? "text-foreground/70"
+                              : "text-muted-foreground/60",
                         )}
                       >
                         {shortDayNames[index]}
@@ -187,12 +187,12 @@ export const ProfileWeeklyActivityCard = ({
                     </div>
                   </TooltipTrigger>
 
-                  <TooltipContent side="top" className="text-center px-3 py-2" sideOffset={8}>
-                    <div className="flex items-center gap-1.5 font-semibold">
+                  <TooltipContent side="top" className="text-center px-3 py-2 rounded-xl" sideOffset={8}>
+                    <div className="flex items-center gap-1.5 font-semibold text-sm">
                       {longDay}
                       {isBestDay && <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" aria-label="Best activity day" />}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {hasActivity ? (
                         <>
                           {formatDuration(daySeconds)}
@@ -209,11 +209,11 @@ export const ProfileWeeklyActivityCard = ({
           </div>
         </TooltipProvider>
 
-        <div className="pt-4 border-t border-border/50">
+        <div className="pt-4 mt-4 border-t border-border/30">
           <div className="flex justify-between items-start">
             <div className="flex flex-col gap-0.5">
-              <span className="text-muted-foreground text-xs font-medium">Total Time</span>
-              <span className="font-bold text-xl tracking-tight">
+              <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">Total Time</span>
+              <span className="font-bold text-xl tracking-tight tabular-nums">
                 {formatDuration(weeklyActivityData.totalSeconds)}
               </span>
               {percentChange !== null && weeklyActivityData.totalSeconds > 0 && (
@@ -230,8 +230,8 @@ export const ProfileWeeklyActivityCard = ({
             </div>
 
             <div className="flex flex-col items-end gap-0.5">
-              <span className="text-muted-foreground text-xs font-medium">Active Days This Week</span>
-              <span className="font-bold text-xl tracking-tight">
+              <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">Active Days</span>
+              <span className="font-bold text-xl tracking-tight tabular-nums">
                 {weeklyActivityData.activeDays} / 7{weeklyActivityData.activeDays >= 5 ? " 🔥" : ""}
               </span>
             </div>
