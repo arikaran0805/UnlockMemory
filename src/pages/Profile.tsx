@@ -1500,11 +1500,9 @@ const Profile = () => {
           {/* Today's Focus Card */}
           <Card className="card-premium animate-stagger-1">
             <CardContent className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="h-4 w-4 text-primary" strokeWidth={2} />
-                <span className="text-[11px] font-semibold text-primary uppercase tracking-[0.12em]">
-                  Today's Focus
-                </span>
+              <div className="space-y-0.5 mb-5">
+                <h3 className="text-lg font-semibold tracking-[-0.01em]">Today's Focus</h3>
+                <p className="text-xs text-muted-foreground font-medium">Recommended for you today</p>
               </div>
               
               <div className="space-y-3">
