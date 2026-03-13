@@ -1593,7 +1593,7 @@ const Profile = () => {
                 </div>
               </div>
               
-               <div>
+               <div className="flex-1 flex flex-col justify-end">
                 <p className="text-sm leading-relaxed font-normal" style={{ color: '#6B7F73' }}>
                   {completedInCareer < careerRelatedSlugs.length 
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
