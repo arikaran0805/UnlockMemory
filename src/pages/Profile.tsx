@@ -1150,7 +1150,8 @@ const Profile = () => {
                   <Button 
                     variant="default" 
                     size="sm" 
-                    className="gap-1.5 rounded-full px-5 shadow-lg shadow-primary/20 font-semibold"
+                    className="gap-1.5 rounded-full px-5 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                    style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
                     onClick={() => {
                       if (career) {
                         // Try to get specific course, otherwise navigate to career board index
@@ -1235,7 +1236,8 @@ const Profile = () => {
                         </div>
                         <Progress 
                           value={skillProgress} 
-                          className="h-2 [&>div]:rounded-full [&>div]:shadow-[0_0_6px_hsl(var(--primary)/0.25)]"
+                          className="h-[6px] rounded-full [&]:bg-[#E6EFE9] [&>div]:rounded-full"
+                          style={{ ['--tw-shadow' as any]: '0 0 6px rgba(34,197,94,0.35)' }}
                         />
                       </div>
                     );
@@ -1294,9 +1296,8 @@ const Profile = () => {
                           {/* Progress gradient arc */}
                           <defs>
                             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="hsl(var(--primary))" />
-                              <stop offset="50%" stopColor="hsl(280 80% 60%)" />
-                              <stop offset="100%" stopColor="hsl(45 93% 47%)" />
+                              <stop offset="0%" stopColor="#8B5CF6" />
+                              <stop offset="100%" stopColor="#22C55E" />
                             </linearGradient>
                             {/* Glow filter for active arc */}
                             <filter id="arcGlow" x="-50%" y="-50%" width="200%" height="200%">
@@ -1397,7 +1398,8 @@ const Profile = () => {
                       {/* Bottom CTA with contextual subtext */}
                       <div className="flex flex-col items-center mt-5 group/cta gap-2">
                         <Button 
-                          className="gap-2 rounded-full px-6 shadow-lg shadow-primary/20 font-semibold bg-gradient-to-b from-primary to-primary/90 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                          className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                          style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
                           onClick={() => {
                             // This is a career action - navigate to first course inside Career Board
                             if (career) {
@@ -1552,34 +1554,41 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - Expand to match Practice Labs height */}
-          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col relative overflow-hidden">
+          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.9)' }}>
             {/* Ambient glow for AI Mentor */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(139,92,246,0.06)' }} />
             <CardContent className="p-5 flex-1 flex flex-col relative">
               <div className="flex items-center gap-3 mb-4">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-full blur-lg" />
-                  <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/25">
-                    <Sparkles className="h-6 w-6 text-white" strokeWidth={1.8} />
+                  <div className="absolute inset-0 rounded-full blur-lg" style={{ background: 'rgba(139,92,246,0.15)' }} />
+                  <div
+                    className="relative w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)', boxShadow: '0 8px 20px rgba(124,58,237,0.3)' }}
+                  >
+                    <Sparkles className="h-6 w-6 text-white" strokeWidth={1.5} />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold tracking-[-0.01em]">AI Mentor</h3>
-                  <p className="text-sm text-muted-foreground font-normal">
+                  <h3 className="text-lg font-bold tracking-[-0.01em]" style={{ color: '#1C2E25' }}>AI Mentor</h3>
+                  <p className="text-sm font-normal" style={{ color: '#6B7F73' }}>
                     Your personal learning assistant
                   </p>
                 </div>
               </div>
               
               <div className="flex-1 flex flex-col justify-between">
-                <p className="text-sm text-muted-foreground leading-relaxed font-normal">
+                <p className="text-sm leading-relaxed font-normal" style={{ color: '#6B7F73' }}>
                   {completedInCareer < careerRelatedSlugs.length 
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
                     : 'Great progress! Ask me about advanced topics, career advice, or explore new learning paths.'}
                 </p>
                 
-                <Button variant="default" className="w-full mt-4 gap-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 font-semibold">
-                  <Sparkles className="h-4 w-4" />
+                <Button
+                  variant="default"
+                  className="w-full mt-4 gap-2 rounded-full font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                  style={{ background: 'linear-gradient(90deg, #7C3AED, #9333EA)', boxShadow: '0 10px 30px rgba(124,58,237,0.35)' }}
+                >
+                  <Sparkles className="h-4 w-4" strokeWidth={1.5} />
                   Ask AI Mentor
                 </Button>
               </div>
@@ -1592,18 +1601,22 @@ const Profile = () => {
       <Card className="card-premium animate-stagger-5">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-accent to-primary/80 flex items-center justify-center shadow-lg shadow-primary/15">
-              <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.8} />
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.25)' }}
+            >
+              <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.5} />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]">Arcade</h3>
-              <p className="text-muted-foreground font-normal">
+              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]" style={{ color: '#1C2E25' }}>Arcade</h3>
+              <p className="font-normal" style={{ color: '#6B7F73' }}>
                 Test your skills with interactive challenges, quizzes, and games to reinforce your learning.
               </p>
             </div>
             <Button 
               onClick={() => navigate('/arcade')} 
-              className="gap-2 rounded-full px-6 bg-gradient-to-b from-primary to-primary/90 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shadow-lg shadow-primary/15 font-semibold"
+              className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+              style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
             >
               <Gamepad2 className="h-4 w-4" />
               Enter Arcade
@@ -2455,7 +2468,7 @@ const Profile = () => {
                 {/* Profile Summary */}
                 <div className="text-center pb-5 mb-5 border-b border-border/30">
                   <div className="mx-auto w-fit avatar-premium">
-                    <Avatar className="h-20 w-20 ring-[3px] ring-primary/15 ring-offset-2 ring-offset-background shadow-lg">
+                    <Avatar className="h-20 w-20 ring-offset-2 ring-offset-background" style={{ boxShadow: '0 0 0 6px hsla(142,70%,45%,0.08)' }}>
                       <AvatarImage src={avatarUrl} alt={fullName} />
                       <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
                         {fullName?.charAt(0)?.toUpperCase() || 'U'}
@@ -2472,13 +2485,16 @@ const Profile = () => {
                     <button
                       key={item.id}
                       onClick={() => handleTabChange(item.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
+                      style={activeTab === item.id ? { background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 20px rgba(34,197,94,0.25)' } : undefined}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] ${
                         activeTab === item.id 
-                          ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
-                          : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
+                          ? 'text-white font-semibold' 
+                          : 'text-[#5F7266] font-medium hover:text-foreground'
                       }`}
+                      onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                      onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
+                      <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? 'text-white' : 'text-[#5F7266]'}`} strokeWidth={1.5} />
                       <span>{item.label}</span>
                     </button>
                   ))}
@@ -2494,28 +2510,35 @@ const Profile = () => {
                       <button
                         key={item.id}
                         onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
+                        style={activeTab === item.id ? { background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 20px rgba(34,197,94,0.25)' } : undefined}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] ${
                           activeTab === item.id 
-                            ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
-                            : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
+                            ? 'text-white font-semibold' 
+                            : 'text-[#5F7266] font-medium hover:text-foreground'
                         }`}
+                        onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                        onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
+                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? 'text-white' : 'text-[#5F7266]'}`} strokeWidth={1.5} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                     <button
                       onClick={() => navigate('/library')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] text-[#5F7266] font-medium hover:text-foreground"
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <Library className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
+                      <Library className="h-[18px] w-[18px] text-[#5F7266]" strokeWidth={1.5} />
                       <span>Library</span>
                     </button>
                     <button
                       onClick={() => navigate('/arcade')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] text-[#5F7266] font-medium hover:text-foreground"
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <Gamepad2 className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
+                      <Gamepad2 className="h-[18px] w-[18px] text-[#5F7266]" strokeWidth={1.5} />
                       <span>Arcade</span>
                     </button>
                   </nav>
@@ -2531,22 +2554,27 @@ const Profile = () => {
                       <button
                         key={item.id}
                         onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
+                        style={activeTab === item.id ? { background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 20px rgba(34,197,94,0.25)' } : undefined}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] ${
                           activeTab === item.id 
-                            ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
-                            : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
+                            ? 'text-white font-semibold' 
+                            : 'text-[#5F7266] font-medium hover:text-foreground'
                         }`}
+                        onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                        onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
+                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? 'text-white' : 'text-[#5F7266]'}`} strokeWidth={1.5} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                     {(isAdmin || isModerator) && (
                       <button
                         onClick={() => navigate('/admin')}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] text-[#5F7266] font-medium hover:text-foreground"
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <Shield className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
+                        <Shield className="h-[18px] w-[18px] text-[#5F7266]" strokeWidth={1.5} />
                         <span>Admin Panel</span>
                       </button>
                     )}

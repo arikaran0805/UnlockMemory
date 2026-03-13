@@ -20,41 +20,39 @@ export const ProfileDashboardHeader = ({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden border-0",
-        "card-premium",
+        "relative overflow-hidden border-0 card-premium",
         className
       )}
     >
-      {/* Subtle ambient glow */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-primary/4 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-56 h-56 bg-accent/4 rounded-full blur-3xl translate-x-1/4 translate-y-1/4" />
-
       <CardContent className="relative p-5 md:p-6 h-[100px] flex items-center">
         <div className="flex items-center justify-between w-full">
           {/* Left - Identity */}
           <div className="flex flex-col gap-1">
-            <h2 className="text-xl md:text-2xl font-bold text-foreground leading-tight tracking-[-0.02em]">
+            <h2 className="text-xl md:text-2xl leading-tight" style={{ fontWeight: 700, color: '#1C2E25', letterSpacing: '-0.02em' }}>
               {fullName || "Learner"}
             </h2>
-            <p className="text-sm text-muted-foreground font-normal tracking-wide">
+            <p className="text-sm font-normal" style={{ color: '#6B7F73' }}>
               Aspiring{" "}
-              <span className="text-primary font-semibold">{careerName}</span>
+              <span className="font-semibold text-primary">{careerName}</span>
             </p>
           </div>
 
           {/* Right - Streak Badge */}
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-400/30 to-orange-500/30 rounded-full blur-lg" />
-              <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Flame className="w-5 h-5 text-white" strokeWidth={2.5} />
-              </div>
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, #FDBA74, #FB923C)',
+                boxShadow: '0 8px 20px rgba(251,146,60,0.35)',
+              }}
+            >
+              <Flame className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-lg font-bold text-foreground tracking-tight tabular-nums">
+              <span className="text-lg font-bold tracking-tight tabular-nums" style={{ color: '#1C2E25' }}>
                 {currentStreak} Days
               </span>
-              <span className="text-[11px] text-muted-foreground font-medium">
+              <span className="text-[11px] font-medium" style={{ color: '#6B7F73' }}>
                 Streak · max {maxStreak}
               </span>
             </div>
