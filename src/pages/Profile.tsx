@@ -1507,15 +1507,15 @@ const Profile = () => {
               
               <div className="space-y-3">
                 {/* Lesson Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
+                    <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">Continue Learning</p>
-                    <p className="text-xs text-muted-foreground truncate">{focusContent.message}</p>
+                    <p className="text-sm font-semibold text-foreground">Continue Learning</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{focusContent.message}</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
 
                 {/* MCQ Suggestion */}
