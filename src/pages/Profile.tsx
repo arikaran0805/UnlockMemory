@@ -1461,7 +1461,7 @@ const Profile = () => {
                   return (
                     <div 
                       key={enrollment.id} 
-                      className="group cursor-pointer transition-all duration-[220ms] ease-out hover:-translate-y-[3px] rounded-[22px] border border-black/[0.06] dark:border-white/[0.08] p-7"
+                      className="group cursor-pointer transition-all duration-[220ms] ease-out hover:-translate-y-[3px] rounded-[24px] border border-black/[0.06] dark:border-white/[0.08] p-7 flex flex-col items-center text-center"
                       style={{
                         background: 'rgba(255,255,255,0.9)',
                         boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
@@ -1469,34 +1469,36 @@ const Profile = () => {
                       onClick={() => handleTabChange('practice')}
                     >
                       {/* Icon */}
-                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0 shadow-lg`}>
-                        {React.cloneElement(labIcons[index % 3] as React.ReactElement, { className: 'h-6 w-6 text-white' })}
+                      <div 
+                        className={`w-16 h-16 rounded-[18px] bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0`}
+                        style={{ boxShadow: '0 10px 24px rgba(34,197,94,0.35)' }}
+                      >
+                        {React.cloneElement(labIcons[index % 3] as React.ReactElement, { className: 'h-7 w-7 text-white' })}
                       </div>
 
                       {/* Title */}
-                      <p className="font-semibold text-lg text-foreground mt-4 truncate tracking-[-0.01em]">
+                      <p className="font-semibold text-xl text-foreground mt-5 truncate w-full tracking-[-0.01em]">
                         {course.name}
                       </p>
 
+                      {/* Badge */}
+                      <span 
+                        className="text-[13px] font-medium px-3.5 py-2 rounded-full mt-4"
+                        style={{ background: 'rgba(34,197,94,0.12)', color: '#16A34A' }}
+                      >
+                        {labTypes[index % 3]}
+                      </span>
 
-                      {/* Badge + CTA */}
-                      <div className="flex items-center justify-between mt-5">
-                        <span 
-                          className="text-[13px] font-medium px-3 py-1.5 rounded-full"
-                          style={{ background: 'rgba(34,197,94,0.12)', color: '#16A34A' }}
-                        >
-                          {labTypes[index % 3]}
-                        </span>
-                        <button 
-                          className="text-sm font-medium text-white px-4 py-2.5 rounded-full transition-transform duration-[220ms] ease-out group-hover:-translate-y-px"
-                          style={{
-                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
-                            boxShadow: '0 6px 16px rgba(34,197,94,0.25)',
-                          }}
-                        >
-                          Start Lab
-                        </button>
-                      </div>
+                      {/* CTA */}
+                      <button 
+                        className="text-sm font-semibold text-white px-5 py-3 rounded-full transition-transform duration-[220ms] ease-out group-hover:-translate-y-0.5 mt-5 w-full"
+                        style={{
+                          background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                          boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                        }}
+                      >
+                        Start Lab →
+                      </button>
                     </div>
                   );
                 })}
