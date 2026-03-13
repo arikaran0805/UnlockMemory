@@ -286,42 +286,64 @@ const Library = () => {
     
     return (
       <Card
-        className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-lg h-[160px]"
+        className="overflow-hidden cursor-pointer group border h-[160px]"
+        style={{
+          background: 'rgba(255,255,255,0.95)',
+          border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: '20px',
+          boxShadow: '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)',
+          transition: 'all 220ms ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)';
+        }}
         onClick={() => navigateToCourse(course.slug, course.id)}
       >
         <div className="flex h-full">
-          {/* Left Section - Dark */}
-          <div className="w-1/3 p-4 flex flex-col justify-between" style={{ background: '#14532d' }}>
+          {/* Left Section - Premium gradient */}
+          <div 
+            className="w-1/3 p-4 flex flex-col justify-between"
+            style={{ background: 'linear-gradient(135deg, #047857, #065F46)', borderRadius: '20px 0 0 20px' }}
+          >
             <div>
-              <span className="text-[10px] font-medium tracking-wider text-slate-400 uppercase">
+              <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 Course
               </span>
               <h3 className="text-sm font-semibold text-white mt-1 leading-tight line-clamp-3">
                 {course.name}
               </h3>
             </div>
-            <div className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-xs mt-2">
+            <div className="flex items-center gap-1 text-xs mt-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
               <span>View all</span>
               <ChevronRight className="h-3 w-3" />
             </div>
           </div>
 
           {/* Right Section - Light */}
-          <div className="w-2/3 bg-card p-4 flex flex-col justify-between">
+          <div className="w-2/3 p-4 flex flex-col justify-between" style={{ background: 'rgba(255,255,255,0.95)' }}>
             <div>
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
                   {course.level || "Beginner"} • {course.lessonCount} Lessons
                 </span>
                 {showProgress && course.progress !== undefined && (
-                  <span className="text-[10px] text-muted-foreground">{course.progress}%</span>
+                  <span className="text-[10px] font-semibold" style={{ color: '#16A34A' }}>{course.progress}%</span>
                 )}
               </div>
               {showProgress && course.progress !== undefined && (
-                <div className="w-full h-1 bg-muted rounded-full overflow-hidden mb-2">
+                <div className="w-full overflow-hidden mb-2" style={{ height: '6px', borderRadius: '999px', background: 'rgba(0,0,0,0.06)' }}>
                   <div 
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${course.progress}%`, background: '#14532d' }}
+                    className="h-full transition-all"
+                    style={{ 
+                      width: `${course.progress}%`, 
+                      background: 'linear-gradient(90deg, #22C55E, #16A34A)',
+                      borderRadius: '999px',
+                    }}
                   />
                 </div>
               )}
@@ -335,7 +357,7 @@ const Library = () => {
                   </span>
                 </div>
               )}
-              <p className="text-xs text-foreground line-clamp-2">
+              <p className="text-xs text-foreground/80 line-clamp-2">
                 {cleanDescription || "Start your learning journey"}
               </p>
             </div>
@@ -354,11 +376,14 @@ const Library = () => {
               <Button 
                 variant="default" 
                 size="sm"
-                className="text-white rounded-full px-4 h-7 text-xs hover:opacity-90" style={{ background: '#14532d' }}
+                className="text-white rounded-full px-4 h-7 text-xs border-0"
+                style={{ 
+                  background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                  boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (showProgress && course.progress && course.progress > 0) {
-                    // Explicit resume action
                     handleResume(course.slug, course.id);
                   } else {
                     navigateToCourse(course.slug, course.id);
@@ -383,11 +408,15 @@ const Library = () => {
     icon?: React.ComponentType<{ className?: string }>; 
     badge?: string;
   }) => (
-    <div className="flex items-center gap-3 mb-6">
-      {Icon && <Icon className="h-5 w-5 text-primary" />}
-      <h2 className="text-xl font-bold">{title}</h2>
+    <div className="flex items-center gap-3 mb-8 mt-2">
+      {Icon && (
+        <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+      )}
+      <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>{title}</h2>
       {badge && (
-        <Badge variant="secondary" className="bg-primary/10 text-primary border-0 gap-1">
+        <Badge variant="secondary" className="bg-primary/10 text-primary border-0 gap-1 px-3 py-1">
           <Sparkles className="h-3 w-3" />
           {badge}
         </Badge>
@@ -501,11 +530,23 @@ const Library = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto px-4 lg:px-8 py-8 max-w-6xl">
+        <main 
+          className="flex-1 overflow-auto"
+          style={{ 
+            background: 'linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%)',
+          }}
+        >
+          {/* Subtle radial highlight */}
+          <div 
+            className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] z-0"
+            style={{ 
+              background: 'radial-gradient(ellipse at center, rgba(34,197,94,0.04) 0%, transparent 70%)',
+            }}
+          />
+          <div className="container mx-auto px-4 lg:px-8 py-10 max-w-6xl relative z-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-              <h1 className="text-3xl font-bold">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+              <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1C2E25', letterSpacing: '-0.025em' }}>
                 {activeNav === "all-courses" && "Course Library"}
                 {activeNav === "my-learning" && "My Learning"}
                 {activeNav === "certificates" && "My Certificates"}
@@ -623,10 +664,20 @@ const Library = () => {
                             <CourseCard key={course.id} course={course} />
                           ))
                         ) : (
-                          <div className="text-center py-16 col-span-full">
-                            <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No courses found</h3>
-                            <p className="text-muted-foreground">
+                          <div 
+                            className="text-center py-16 col-span-full px-8"
+                            style={{
+                              background: 'rgba(255,255,255,0.9)',
+                              border: '1px solid rgba(0,0,0,0.06)',
+                              borderRadius: '24px',
+                              boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                            }}
+                          >
+                            <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                              <BookOpen className="h-10 w-10 text-primary" />
+                            </div>
+                            <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">No courses found</h3>
+                            <p className="text-muted-foreground text-sm">
                               {searchQuery ? "Try a different search term" : "Check back later for new courses"}
                             </p>
                           </div>
@@ -649,7 +700,12 @@ const Library = () => {
                     {/* All Courses Grid */}
                     {filteredCourses.length > 0 && (
                       <section>
-                        <h2 className="text-xl font-bold mb-6">All Courses</h2>
+                        <div className="flex items-center gap-3 mb-8 mt-2">
+                          <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                            <LibraryIcon className="h-5 w-5 text-primary" />
+                          </div>
+                          <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>All Courses</h2>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {filteredCourses.map((course) => (
                             <CourseCard key={course.id} course={course} />
@@ -664,31 +720,79 @@ const Library = () => {
                 {activeNav === "my-learning" && (
                   <div className="space-y-8">
                     {!userId ? (
-                      <div className="text-center py-16">
-                        <GraduationCap className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Sign in to track your learning</h3>
-                        <p className="text-muted-foreground mb-6">
+                      <div 
+                        className="text-center py-16 px-8"
+                        style={{
+                          background: 'rgba(255,255,255,0.9)',
+                          border: '1px solid rgba(0,0,0,0.06)',
+                          borderRadius: '24px',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                          <GraduationCap className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">Sign in to track your learning</h3>
+                        <p className="text-muted-foreground mb-6 text-sm">
                           Create an account to enroll in courses and track your progress
                         </p>
-                        <Button onClick={() => navigate("/auth")}>Sign In</Button>
+                        <Button 
+                          onClick={() => navigate("/auth")}
+                          className="text-white border-0"
+                          style={{ 
+                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                            borderRadius: '999px',
+                            padding: '12px 26px',
+                            boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                            transition: 'all 200ms ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >Sign In</Button>
                       </div>
                     ) : enrolledCourses.length === 0 ? (
-                      <div className="text-center py-16">
-                        <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No courses yet</h3>
-                        <p className="text-muted-foreground mb-6">
+                      <div 
+                        className="text-center py-16 px-8"
+                        style={{
+                          background: 'rgba(255,255,255,0.9)',
+                          border: '1px solid rgba(0,0,0,0.06)',
+                          borderRadius: '24px',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                          <BookOpen className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">No courses yet</h3>
+                        <p className="text-muted-foreground mb-6 text-sm">
                           Start learning by enrolling in a course
                         </p>
-                        <Button onClick={() => setActiveNav("all-courses")}>Browse Courses</Button>
+                        <Button 
+                          onClick={() => setActiveNav("all-courses")}
+                          className="text-white border-0"
+                          style={{ 
+                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                            borderRadius: '999px',
+                            padding: '12px 26px',
+                            boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                            transition: 'all 200ms ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >Browse Courses</Button>
                       </div>
                     ) : (
                       <>
                         {/* In Progress */}
                         <section>
-                          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <Play className="h-5 w-5 text-primary" />
-                            In Progress ({enrolledCourses.filter(c => (c.progress || 0) < 100).length})
-                          </h2>
+                          <div className="flex items-center gap-3 mb-8 mt-2">
+                            <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                              <Play className="h-5 w-5 text-primary" />
+                            </div>
+                            <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
+                              In Progress ({enrolledCourses.filter(c => (c.progress || 0) < 100).length})
+                            </h2>
+                          </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {enrolledCourses
                               .filter(c => (c.progress || 0) < 100)
@@ -701,10 +805,14 @@ const Library = () => {
                         {/* Completed */}
                         {enrolledCourses.filter(c => c.progress === 100).length > 0 && (
                           <section>
-                            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                              Completed ({enrolledCourses.filter(c => c.progress === 100).length})
-                            </h2>
+                            <div className="flex items-center gap-3 mb-8 mt-2">
+                              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                              </div>
+                              <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
+                                Completed ({enrolledCourses.filter(c => c.progress === 100).length})
+                              </h2>
+                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               {enrolledCourses
                                 .filter(c => c.progress === 100)
@@ -732,13 +840,35 @@ const Library = () => {
                         <Button onClick={() => navigate("/auth")}>Sign In</Button>
                       </div>
                     ) : certificates.length === 0 ? (
-                      <div className="text-center py-16">
-                        <Trophy className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No certificates yet</h3>
-                        <p className="text-muted-foreground mb-6">
+                      <div 
+                        className="text-center py-16 px-8"
+                        style={{
+                          background: 'rgba(255,255,255,0.9)',
+                          border: '1px solid rgba(0,0,0,0.06)',
+                          borderRadius: '24px',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                          <Trophy className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">No certificates yet</h3>
+                        <p className="text-muted-foreground mb-6 text-sm">
                           Complete a course to earn your first certificate
                         </p>
-                        <Button onClick={() => setActiveNav("all-courses")}>Start Learning</Button>
+                        <Button 
+                          onClick={() => setActiveNav("all-courses")}
+                          className="text-white border-0"
+                          style={{ 
+                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                            borderRadius: '999px',
+                            padding: '12px 26px',
+                            boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                            transition: 'all 200ms ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >Start Learning</Button>
                       </div>
                     ) : (
                             <div className="flex flex-col gap-4">
