@@ -1464,15 +1464,15 @@ const Profile = () => {
                       className="bg-muted/20 hover:bg-muted/40 transition-all duration-200 cursor-pointer border border-border/30 rounded-2xl hover:-translate-y-0.5"
                       onClick={() => handleTabChange('practice')}
                     >
-                      <CardContent className="p-4">
+                      <CardContent className="p-5">
                         <div className="flex items-start gap-3">
                           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0 shadow-sm`}>
                             {labIcons[index % 3]}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm truncate">{course.name} {labTypes[index % 3]}</p>
-                            <p className="text-xs text-muted-foreground mt-1">Practice your skills</p>
-                            <Badge variant="secondary" className="mt-2 text-xs">
+                            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">Practice your skills with hands-on exercises</p>
+                            <Badge variant="secondary" className="mt-3 text-xs">
                               {labTypes[index % 3]}
                             </Badge>
                           </div>
