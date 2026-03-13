@@ -1443,7 +1443,12 @@ const Profile = () => {
                     <CardDescription className="font-normal">Practice exercises based on your enrolled courses</CardDescription>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => handleTabChange('practice')} className="gap-1">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleTabChange('practice')} 
+                  className="gap-1 rounded-full px-5 border-0 text-white font-semibold"
+                  style={{ background: 'linear-gradient(135deg, #4CAF82, #43A375)' }}
+                >
                   View All <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
