@@ -2541,22 +2541,27 @@ const Profile = () => {
                       <button
                         key={item.id}
                         onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
+                        style={activeTab === item.id ? { background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 20px rgba(34,197,94,0.25)' } : undefined}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] ${
                           activeTab === item.id 
-                            ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
-                            : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
+                            ? 'text-white font-semibold' 
+                            : 'text-[#5F7266] font-medium hover:text-foreground'
                         }`}
+                        onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                        onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
+                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? 'text-white' : 'text-[#5F7266]'}`} strokeWidth={1.5} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                     {(isAdmin || isModerator) && (
                       <button
                         onClick={() => navigate('/admin')}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] text-[#5F7266] font-medium hover:text-foreground"
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <Shield className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
+                        <Shield className="h-[18px] w-[18px] text-[#5F7266]" strokeWidth={1.5} />
                         <span>Admin Panel</span>
                       </button>
                     )}
