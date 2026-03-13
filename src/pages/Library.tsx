@@ -408,11 +408,15 @@ const Library = () => {
     icon?: React.ComponentType<{ className?: string }>; 
     badge?: string;
   }) => (
-    <div className="flex items-center gap-3 mb-6">
-      {Icon && <Icon className="h-5 w-5 text-primary" />}
-      <h2 className="text-xl font-bold">{title}</h2>
+    <div className="flex items-center gap-3 mb-8 mt-2">
+      {Icon && (
+        <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+      )}
+      <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>{title}</h2>
       {badge && (
-        <Badge variant="secondary" className="bg-primary/10 text-primary border-0 gap-1">
+        <Badge variant="secondary" className="bg-primary/10 text-primary border-0 gap-1 px-3 py-1">
           <Sparkles className="h-3 w-3" />
           {badge}
         </Badge>
