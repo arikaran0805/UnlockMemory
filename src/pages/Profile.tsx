@@ -1429,7 +1429,7 @@ const Profile = () => {
           </Card>
 
           {/* Recommended Labs Section - Directly below Career Readiness */}
-          <Card className="card-premium rounded-xl animate-stagger-3">
+          <Card className="card-premium animate-stagger-3">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
