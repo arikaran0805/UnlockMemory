@@ -1437,8 +1437,8 @@ const Profile = () => {
                     <FlaskConical className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Recommended Labs</CardTitle>
-                    <CardDescription>Practice exercises based on your enrolled courses</CardDescription>
+                    <CardTitle className="text-lg tracking-[-0.01em]">Recommended Labs</CardTitle>
+                    <CardDescription className="font-normal">Practice exercises based on your enrolled courses</CardDescription>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => handleTabChange('practice')} className="gap-1">
