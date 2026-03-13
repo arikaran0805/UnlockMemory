@@ -1601,18 +1601,22 @@ const Profile = () => {
       <Card className="card-premium animate-stagger-5">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-accent to-primary/80 flex items-center justify-center shadow-lg shadow-primary/15">
-              <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.8} />
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.25)' }}
+            >
+              <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.5} />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]">Arcade</h3>
-              <p className="text-muted-foreground font-normal">
+              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]" style={{ color: '#1C2E25' }}>Arcade</h3>
+              <p className="font-normal" style={{ color: '#6B7F73' }}>
                 Test your skills with interactive challenges, quizzes, and games to reinforce your learning.
               </p>
             </div>
             <Button 
               onClick={() => navigate('/arcade')} 
-              className="gap-2 rounded-full px-6 bg-gradient-to-b from-primary to-primary/90 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shadow-lg shadow-primary/15 font-semibold"
+              className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+              style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
             >
               <Gamepad2 className="h-4 w-4" />
               Enter Arcade
