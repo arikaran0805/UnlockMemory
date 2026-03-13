@@ -2441,107 +2441,107 @@ const Profile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-2xl ${activeTab === 'dashboard' ? 'dashboard-bg' : 'bg-background'}`}>
+        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' ? 'dashboard-bg' : 'bg-background'}`}>
           {/* Sidebar - hidden for Practice Lab */}
           {activeTab !== 'practice' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
-            <Card className="rounded-xl bg-card/80 backdrop-blur-sm border shadow-lg">
-              <CardContent className="p-4">
+            <Card className="sidebar-premium">
+              <CardContent className="p-5">
                 {/* Profile Summary */}
-                <div className="text-center pb-4 mb-4 border-b border-border/50">
-                  <div className="mx-auto w-fit">
-                    <Avatar className="h-20 w-20 ring-4 ring-primary/20 ring-offset-2 ring-offset-background shadow-lg">
+                <div className="text-center pb-5 mb-5 border-b border-border/30">
+                  <div className="mx-auto w-fit avatar-premium">
+                    <Avatar className="h-20 w-20 ring-[3px] ring-primary/15 ring-offset-2 ring-offset-background shadow-lg">
                       <AvatarImage src={avatarUrl} alt={fullName} />
                       <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
                         {fullName?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <h3 className="font-semibold text-lg truncate mt-3 text-foreground">{fullName || 'User'}</h3>
-                  <p className="text-sm text-muted-foreground truncate">{email}</p>
+                  <h3 className="font-semibold text-lg truncate mt-3 text-foreground tracking-[-0.01em]">{fullName || 'User'}</h3>
+                  <p className="text-sm text-muted-foreground truncate mt-0.5">{email}</p>
                 </div>
                 
                 {/* Navigation */}
-                <nav className="space-y-1">
+                <nav className="space-y-0.5">
                   {sidebarItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => handleTabChange(item.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
                         activeTab === item.id 
-                          ? 'bg-primary text-primary-foreground font-medium shadow-md' 
-                          : 'hover:bg-muted/70 text-foreground hover:translate-x-1'
+                          ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
+                          : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
                       }`}
                     >
-                      <item.icon className={`h-5 w-5 ${activeTab === item.id ? '' : 'text-muted-foreground'}`} />
+                      <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
                       <span>{item.label}</span>
                     </button>
                   ))}
                 </nav>
 
                 {/* Explore Section */}
-                <div className="border-t mt-2 pt-2">
-                  <p className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="border-t border-border/30 mt-3 pt-3">
+                  <p className="px-4 py-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
                     Explore
                   </p>
-                  <nav className="space-y-1">
+                  <nav className="space-y-0.5">
                     {exploreItems.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
                           activeTab === item.id 
-                            ? 'bg-primary text-primary-foreground font-medium shadow-md' 
-                            : 'hover:bg-muted/70 text-foreground hover:translate-x-1'
+                            ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
+                            : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
                         }`}
                       >
-                        <item.icon className={`h-5 w-5 ${activeTab === item.id ? '' : 'text-muted-foreground'}`} />
+                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                     <button
                       onClick={() => navigate('/library')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-muted/70 text-foreground hover:translate-x-1"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
                     >
-                      <Library className="h-5 w-5 text-muted-foreground" />
+                      <Library className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
                       <span>Library</span>
                     </button>
                     <button
                       onClick={() => navigate('/arcade')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-muted/70 text-foreground hover:translate-x-1"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
                     >
-                      <Gamepad2 className="h-5 w-5 text-muted-foreground" />
+                      <Gamepad2 className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
                       <span>Arcade</span>
                     </button>
                   </nav>
                 </div>
 
                 {/* Account Section */}
-                <div className="border-t mt-2 pt-2">
-                  <p className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="border-t border-border/30 mt-3 pt-3">
+                  <p className="px-4 py-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
                     Account
                   </p>
-                  <nav className="space-y-1">
+                  <nav className="space-y-0.5">
                     {accountItems.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-[14px] ${
                           activeTab === item.id 
-                            ? 'bg-primary text-primary-foreground font-medium shadow-md' 
-                            : 'hover:bg-muted/70 text-foreground hover:translate-x-1'
+                            ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25' 
+                            : 'hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground'
                         }`}
                       >
-                        <item.icon className={`h-5 w-5 ${activeTab === item.id ? '' : 'text-muted-foreground'}`} />
+                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? '' : 'text-muted-foreground'}`} strokeWidth={activeTab === item.id ? 2.2 : 1.8} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                     {(isAdmin || isModerator) && (
                       <button
                         onClick={() => navigate('/admin')}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-muted/70 text-foreground hover:translate-x-1"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-muted/60 text-foreground/80 font-medium hover:text-foreground text-[14px]"
                       >
-                        <Shield className="h-5 w-5 text-muted-foreground" />
+                        <Shield className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
                         <span>Admin Panel</span>
                       </button>
                     )}
