@@ -1481,13 +1481,6 @@ const Profile = () => {
                         {course.name}
                       </p>
 
-                      {/* Badge */}
-                      <span 
-                        className="text-[13px] font-medium px-3.5 py-2 rounded-full mt-4"
-                        style={{ background: 'rgba(34,197,94,0.12)', color: '#16A34A' }}
-                      >
-                        {labTypes[index % 3]}
-                      </span>
 
                       {/* CTA */}
                       <button 
