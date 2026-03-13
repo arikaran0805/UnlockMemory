@@ -1588,7 +1588,7 @@ const Profile = () => {
                 
                 <Button
                   variant="default"
-                  className="w-full mt-4 gap-2 rounded-full font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                  className="btn-glossy w-full mt-4 gap-2 rounded-full font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
                   style={{ background: 'linear-gradient(90deg, #7C3AED, #9333EA)', boxShadow: '0 10px 30px rgba(124,58,237,0.35)' }}
                 >
                   <Sparkles className="h-4 w-4" strokeWidth={1.5} />
