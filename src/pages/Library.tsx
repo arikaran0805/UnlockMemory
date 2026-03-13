@@ -664,10 +664,20 @@ const Library = () => {
                             <CourseCard key={course.id} course={course} />
                           ))
                         ) : (
-                          <div className="text-center py-16 col-span-full">
-                            <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No courses found</h3>
-                            <p className="text-muted-foreground">
+                          <div 
+                            className="text-center py-16 col-span-full px-8"
+                            style={{
+                              background: 'rgba(255,255,255,0.9)',
+                              border: '1px solid rgba(0,0,0,0.06)',
+                              borderRadius: '24px',
+                              boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                            }}
+                          >
+                            <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                              <BookOpen className="h-10 w-10 text-primary" />
+                            </div>
+                            <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">No courses found</h3>
+                            <p className="text-muted-foreground text-sm">
                               {searchQuery ? "Try a different search term" : "Check back later for new courses"}
                             </p>
                           </div>
