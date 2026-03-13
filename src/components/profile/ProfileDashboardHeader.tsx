@@ -20,43 +20,42 @@ export const ProfileDashboardHeader = ({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden rounded-2xl border-0",
-        "bg-gradient-to-r from-primary/8 via-primary/5 to-accent/8",
-        "shadow-lg shadow-primary/5",
+        "relative overflow-hidden border-0",
+        "card-premium",
         className
       )}
     >
-      {/* Subtle background glow */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 opacity-50" />
-      <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl translate-x-1/4 translate-y-1/4" />
+      {/* Subtle ambient glow */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-primary/4 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-56 h-56 bg-accent/4 rounded-full blur-3xl translate-x-1/4 translate-y-1/4" />
 
-      <CardContent className="relative p-4 md:p-5 h-[100px] flex items-center">
+      <CardContent className="relative p-5 md:p-6 h-[100px] flex items-center">
         <div className="flex items-center justify-between w-full">
           {/* Left - Identity */}
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-xl md:text-2xl font-bold text-foreground leading-tight tracking-tight">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl md:text-2xl font-bold text-foreground leading-tight tracking-[-0.02em]">
               {fullName || "Learner"}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Aspiring <span className="text-primary font-medium">{careerName}</span>
+            <p className="text-sm text-muted-foreground font-normal tracking-wide">
+              Aspiring{" "}
+              <span className="text-primary font-semibold">{careerName}</span>
             </p>
           </div>
 
-          {/* Right - Streak Display */}
+          {/* Right - Streak Badge */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
-              <Flame className="w-5 h-5 text-white" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-400/30 to-orange-500/30 rounded-full blur-lg" />
+              <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <Flame className="w-5 h-5 text-white" strokeWidth={2.5} />
+              </div>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-lg font-bold text-primary">
+              <span className="text-lg font-bold text-foreground tracking-tight tabular-nums">
                 {currentStreak} Days
               </span>
-              <span className="text-xs text-muted-foreground">
-                Streak
-              </span>
-              <span className="text-xs text-muted-foreground">
-                max {maxStreak}
+              <span className="text-[11px] text-muted-foreground font-medium">
+                Streak · max {maxStreak}
               </span>
             </div>
           </div>
