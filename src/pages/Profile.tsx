@@ -1464,7 +1464,7 @@ const Profile = () => {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0`}>
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0 shadow-sm`}>
                             {labIcons[index % 3]}
                           </div>
                           <div className="flex-1 min-w-0">
