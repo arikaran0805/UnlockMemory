@@ -1478,10 +1478,6 @@ const Profile = () => {
                         {course.name}
                       </p>
 
-                      {/* Description */}
-                      <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
-                        Practice your skills with hands-on coding exercises.
-                      </p>
 
                       {/* Badge + CTA */}
                       <div className="flex items-center justify-between mt-5">
