@@ -1150,7 +1150,7 @@ const Profile = () => {
                   <Button 
                     variant="default" 
                     size="sm" 
-                    className="gap-1.5 rounded-full px-4"
+                    className="gap-1.5 rounded-full px-5 shadow-lg shadow-primary/20 font-semibold"
                     onClick={() => {
                       if (career) {
                         // Try to get specific course, otherwise navigate to career board index
