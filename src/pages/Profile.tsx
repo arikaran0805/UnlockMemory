@@ -1501,7 +1501,7 @@ const Profile = () => {
           <Card className="card-premium animate-stagger-1">
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/15">
+                <div className="icon-glossy w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/15">
                   <Target className="h-5 w-5 text-white" strokeWidth={1.5} />
                 </div>
                 <div className="space-y-0.5">
