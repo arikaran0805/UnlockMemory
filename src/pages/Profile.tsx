@@ -1296,9 +1296,8 @@ const Profile = () => {
                           {/* Progress gradient arc */}
                           <defs>
                             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="hsl(var(--primary))" />
-                              <stop offset="50%" stopColor="hsl(280 80% 60%)" />
-                              <stop offset="100%" stopColor="hsl(45 93% 47%)" />
+                              <stop offset="0%" stopColor="#8B5CF6" />
+                              <stop offset="100%" stopColor="#22C55E" />
                             </linearGradient>
                             {/* Glow filter for active arc */}
                             <filter id="arcGlow" x="-50%" y="-50%" width="200%" height="200%">
