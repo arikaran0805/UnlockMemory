@@ -1552,28 +1552,33 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - Expand to match Practice Labs height */}
-          <Card className="card-premium rounded-xl animate-stagger-3 flex-1 flex flex-col">
-            <CardContent className="p-5 flex-1 flex flex-col">
+          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col relative overflow-hidden">
+            {/* Ambient glow for AI Mentor */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl" />
+            <CardContent className="p-5 flex-1 flex flex-col relative">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/30">
-                  <Sparkles className="h-6 w-6 text-white" />
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-full blur-lg" />
+                  <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/25">
+                    <Sparkles className="h-6 w-6 text-white" strokeWidth={1.8} />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold">AI Mentor</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-lg font-bold tracking-[-0.01em]">AI Mentor</h3>
+                  <p className="text-sm text-muted-foreground font-normal">
                     Your personal learning assistant
                   </p>
                 </div>
               </div>
               
               <div className="flex-1 flex flex-col justify-between">
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed font-normal">
                   {completedInCareer < careerRelatedSlugs.length 
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
                     : 'Great progress! Ask me about advanced topics, career advice, or explore new learning paths.'}
                 </p>
                 
-                <Button variant="default" className="w-full mt-4 gap-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
+                <Button variant="default" className="w-full mt-4 gap-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 font-semibold">
                   <Sparkles className="h-4 w-4" />
                   Ask AI Mentor
                 </Button>
