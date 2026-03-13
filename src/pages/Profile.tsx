@@ -211,39 +211,61 @@ const OngoingCourseCard = ({
 
   return (
     <Card
-      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-lg h-[130px]"
+      className="overflow-hidden cursor-pointer group border-0 h-[130px]"
+      style={{
+        background: 'rgba(255,255,255,0.95)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        borderRadius: '20px',
+        boxShadow: '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)',
+        transition: 'all 220ms ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)';
+      }}
       onClick={onClick}
     >
       <div className="flex h-full">
-        {/* Left Section - Dark */}
-        <div className="w-1/3 p-4 flex flex-col justify-between bg-emerald-900">
+        {/* Left Section - Premium gradient */}
+        <div 
+          className="w-1/3 p-4 flex flex-col justify-between"
+          style={{ background: 'linear-gradient(135deg, #047857, #065F46)', borderRadius: '20px 0 0 20px' }}
+        >
           <div>
-            <span className="text-[10px] font-medium tracking-wider text-slate-400 uppercase">
+            <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.6)' }}>
               Course
             </span>
             <h3 className="text-sm font-semibold text-white mt-1 leading-tight line-clamp-3">
               {course?.name}
             </h3>
           </div>
-          <div className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-xs mt-2">
+          <div className="flex items-center gap-1 text-xs mt-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
             <span>View all</span>
             <ChevronRight className="h-3 w-3" />
           </div>
         </div>
 
         {/* Right Section - Light */}
-        <div className="w-2/3 bg-card p-4 flex flex-col justify-between">
+        <div className="w-2/3 p-4 flex flex-col justify-between" style={{ background: 'rgba(255,255,255,0.95)' }}>
           <div>
             <div className="flex items-center justify-between gap-2 mb-1">
               <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
                 {course?.level || "Beginner"} • {progress.total} Lessons
               </span>
-              <span className="text-[10px] text-muted-foreground">{progressPercent}%</span>
+              <span className="text-[10px] font-semibold" style={{ color: '#16A34A' }}>{progressPercent}%</span>
             </div>
-            <div className="w-full h-1 bg-muted rounded-full overflow-hidden mb-2">
+            <div className="w-full overflow-hidden mb-2" style={{ height: '6px', borderRadius: '999px', background: 'rgba(0,0,0,0.06)' }}>
               <div 
-                className="h-full rounded-full transition-all bg-emerald-900"
-                style={{ width: `${progressPercent}%` }}
+                className="h-full transition-all"
+                style={{ 
+                  width: `${progressPercent}%`, 
+                  background: 'linear-gradient(90deg, #22C55E, #16A34A)',
+                  borderRadius: '999px',
+                }}
               />
             </div>
             {/* Next Lesson */}
@@ -270,7 +292,11 @@ const OngoingCourseCard = ({
             <Button 
               variant="default" 
               size="sm"
-              className="text-white rounded-full px-4 h-7 text-xs hover:opacity-90 bg-emerald-900 hover:bg-emerald-800"
+              className="text-white rounded-full px-4 h-7 text-xs border-0"
+              style={{ 
+                background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 onClick();
