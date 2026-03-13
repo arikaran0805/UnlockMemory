@@ -1755,19 +1755,32 @@ const Profile = () => {
     });
 
     return (
-      <div className="space-y-8">
+      <div 
+        className="space-y-10"
+        style={{ 
+          background: 'linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%)',
+          borderRadius: '16px',
+          padding: '24px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Subtle radial highlight */}
+        <div 
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(34,197,94,0.04) 0%, transparent 70%)' }}
+        />
+
         {/* Header */}
-        <div className="flex items-center justify-between animate-fade-in">
-          <h2 className="text-2xl font-bold">Study Plan</h2>
+        <div className="flex items-center justify-between animate-fade-in relative z-10">
+          <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>Study Plan</h2>
           <Button 
             variant="ghost" 
             onClick={() => {
-              // Guard: if careers data is still loading, don't navigate yet
               if (careersLoading) {
                 toast({ description: "Loading career data...", duration: 1500 });
                 return;
               }
-              // Get career ID and first course to navigate to proper shell
               const career = getCareerBySlug(selectedCareer);
               if (career) {
                 const courseSlugs = getCareerCourseSlugs(career.id);
@@ -1780,16 +1793,21 @@ const Profile = () => {
                 navigate('/arcade');
               }
             }}
-            className="gap-1"
+            className="gap-1 rounded-full px-5 font-medium text-muted-foreground"
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #4CAF82, #43A375)'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = ''; }}
+            style={{ transition: 'all 200ms ease' }}
           >
             My Study Plan <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Ongoing Section */}
-        <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Flame className="h-5 w-5 text-orange-500" />
+        <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.1s' }}>
+          <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(249,115,22,0.08)' }}>
+              <Flame className="h-5 w-5 text-orange-500" />
+            </div>
             Ongoing
           </h3>
           {ongoingCourses.length > 0 ? (
@@ -1804,15 +1822,35 @@ const Profile = () => {
               ))}
             </div>
           ) : (
-            <Card className="bg-muted/30">
-              <CardContent className="text-center py-8">
-                <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">No ongoing courses. Start learning today!</p>
-                <Button className="mt-4" size="sm" onClick={() => navigate('/courses')}>
-                  Browse Courses
-                </Button>
-              </CardContent>
-            </Card>
+            <div
+              className="text-center py-10 px-8"
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(0,0,0,0.06)',
+                borderRadius: '24px',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div className="mx-auto mb-4 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                <BookOpen className="h-10 w-10 text-primary" />
+              </div>
+              <p className="text-muted-foreground mb-4 text-sm">No ongoing courses. Start learning today!</p>
+              <button
+                className="text-white font-semibold border-0 cursor-pointer"
+                style={{ 
+                  background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                  borderRadius: '999px',
+                  padding: '12px 26px',
+                  boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                  transition: 'all 200ms ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                onClick={() => navigate('/courses')}
+              >
+                Browse Courses
+              </button>
+            </div>
           )}
         </div>
 
