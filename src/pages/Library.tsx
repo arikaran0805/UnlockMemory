@@ -690,7 +690,12 @@ const Library = () => {
                     {/* All Courses Grid */}
                     {filteredCourses.length > 0 && (
                       <section>
-                        <h2 className="text-xl font-bold mb-6">All Courses</h2>
+                        <div className="flex items-center gap-3 mb-8 mt-2">
+                          <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                            <LibraryIcon className="h-5 w-5 text-primary" />
+                          </div>
+                          <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>All Courses</h2>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {filteredCourses.map((course) => (
                             <CourseCard key={course.id} course={course} />
