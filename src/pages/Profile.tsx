@@ -1565,7 +1565,7 @@ const Profile = () => {
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full blur-lg" style={{ background: 'rgba(139,92,246,0.15)' }} />
                   <div
-                    className="relative w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                    className="icon-glossy relative w-12 h-12 rounded-full flex items-center justify-center shrink-0"
                     style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)', boxShadow: '0 8px 20px rgba(124,58,237,0.3)' }}
                   >
                     <Sparkles className="h-6 w-6 text-white" strokeWidth={1.5} />
