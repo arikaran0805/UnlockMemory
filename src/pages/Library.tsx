@@ -705,22 +705,66 @@ const Library = () => {
                 {activeNav === "my-learning" && (
                   <div className="space-y-8">
                     {!userId ? (
-                      <div className="text-center py-16">
-                        <GraduationCap className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Sign in to track your learning</h3>
-                        <p className="text-muted-foreground mb-6">
+                      <div 
+                        className="text-center py-16 px-8"
+                        style={{
+                          background: 'rgba(255,255,255,0.9)',
+                          border: '1px solid rgba(0,0,0,0.06)',
+                          borderRadius: '24px',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                          <GraduationCap className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">Sign in to track your learning</h3>
+                        <p className="text-muted-foreground mb-6 text-sm">
                           Create an account to enroll in courses and track your progress
                         </p>
-                        <Button onClick={() => navigate("/auth")}>Sign In</Button>
+                        <Button 
+                          onClick={() => navigate("/auth")}
+                          className="text-white border-0"
+                          style={{ 
+                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                            borderRadius: '999px',
+                            padding: '12px 26px',
+                            boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                            transition: 'all 200ms ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >Sign In</Button>
                       </div>
                     ) : enrolledCourses.length === 0 ? (
-                      <div className="text-center py-16">
-                        <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No courses yet</h3>
-                        <p className="text-muted-foreground mb-6">
+                      <div 
+                        className="text-center py-16 px-8"
+                        style={{
+                          background: 'rgba(255,255,255,0.9)',
+                          border: '1px solid rgba(0,0,0,0.06)',
+                          borderRadius: '24px',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                          <BookOpen className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">No courses yet</h3>
+                        <p className="text-muted-foreground mb-6 text-sm">
                           Start learning by enrolling in a course
                         </p>
-                        <Button onClick={() => setActiveNav("all-courses")}>Browse Courses</Button>
+                        <Button 
+                          onClick={() => setActiveNav("all-courses")}
+                          className="text-white border-0"
+                          style={{ 
+                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                            borderRadius: '999px',
+                            padding: '12px 26px',
+                            boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                            transition: 'all 200ms ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >Browse Courses</Button>
                       </div>
                     ) : (
                       <>
