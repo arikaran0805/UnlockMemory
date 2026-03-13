@@ -1449,8 +1449,8 @@ const Profile = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {enrolledCourses.slice(0, 3).map((enrollment, index) => {
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {enrolledCourses.slice(0, 2).map((enrollment, index) => {
                   const course = enrollment.courses;
                   if (!course) return null;
                   
