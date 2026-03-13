@@ -1554,34 +1554,41 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - Expand to match Practice Labs height */}
-          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col relative overflow-hidden">
+          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.9)' }}>
             {/* Ambient glow for AI Mentor */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(139,92,246,0.06)' }} />
             <CardContent className="p-5 flex-1 flex flex-col relative">
               <div className="flex items-center gap-3 mb-4">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-full blur-lg" />
-                  <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/25">
-                    <Sparkles className="h-6 w-6 text-white" strokeWidth={1.8} />
+                  <div className="absolute inset-0 rounded-full blur-lg" style={{ background: 'rgba(139,92,246,0.15)' }} />
+                  <div
+                    className="relative w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)', boxShadow: '0 8px 20px rgba(124,58,237,0.3)' }}
+                  >
+                    <Sparkles className="h-6 w-6 text-white" strokeWidth={1.5} />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold tracking-[-0.01em]">AI Mentor</h3>
-                  <p className="text-sm text-muted-foreground font-normal">
+                  <h3 className="text-lg font-bold tracking-[-0.01em]" style={{ color: '#1C2E25' }}>AI Mentor</h3>
+                  <p className="text-sm font-normal" style={{ color: '#6B7F73' }}>
                     Your personal learning assistant
                   </p>
                 </div>
               </div>
               
               <div className="flex-1 flex flex-col justify-between">
-                <p className="text-sm text-muted-foreground leading-relaxed font-normal">
+                <p className="text-sm leading-relaxed font-normal" style={{ color: '#6B7F73' }}>
                   {completedInCareer < careerRelatedSlugs.length 
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
                     : 'Great progress! Ask me about advanced topics, career advice, or explore new learning paths.'}
                 </p>
                 
-                <Button variant="default" className="w-full mt-4 gap-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 font-semibold">
-                  <Sparkles className="h-4 w-4" />
+                <Button
+                  variant="default"
+                  className="w-full mt-4 gap-2 rounded-full font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                  style={{ background: 'linear-gradient(90deg, #7C3AED, #9333EA)', boxShadow: '0 10px 30px rgba(124,58,237,0.35)' }}
+                >
+                  <Sparkles className="h-4 w-4" strokeWidth={1.5} />
                   Ask AI Mentor
                 </Button>
               </div>
