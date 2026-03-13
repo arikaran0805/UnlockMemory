@@ -261,13 +261,13 @@ All colors MUST be HSL.
   .progress-premium {
     height: 6px;
     border-radius: 999px;
-    background: hsl(142 25% 92%);
+    background: #E6EFE9;
   }
 
   .progress-premium > div {
-    background: linear-gradient(90deg, hsl(142 70% 45%), hsl(142 70% 38%));
+    background: linear-gradient(90deg, #22C55E, #16A34A);
     border-radius: 999px;
-    box-shadow: 0 0 6px hsl(142 70% 45% / 0.35);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.35);
   }
 
   /* Subtle shine animation */
