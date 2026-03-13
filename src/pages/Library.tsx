@@ -770,10 +770,14 @@ const Library = () => {
                       <>
                         {/* In Progress */}
                         <section>
-                          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <Play className="h-5 w-5 text-primary" />
-                            In Progress ({enrolledCourses.filter(c => (c.progress || 0) < 100).length})
-                          </h2>
+                          <div className="flex items-center gap-3 mb-8 mt-2">
+                            <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                              <Play className="h-5 w-5 text-primary" />
+                            </div>
+                            <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
+                              In Progress ({enrolledCourses.filter(c => (c.progress || 0) < 100).length})
+                            </h2>
+                          </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {enrolledCourses
                               .filter(c => (c.progress || 0) < 100)
