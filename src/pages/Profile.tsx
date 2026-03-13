@@ -1531,15 +1531,15 @@ const Profile = () => {
                 </div>
 
                 {/* Debug & Practice Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 transition-colors cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                    <Code className="h-4 w-4 text-violet-500" />
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 hover:bg-violet-500/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-violet-500/8 flex items-center justify-center shrink-0">
+                    <Code className="h-4 w-4 text-violet-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">Debug & Practice</p>
-                    <p className="text-xs text-muted-foreground">Hands-on coding challenges</p>
+                    <p className="text-sm font-semibold text-foreground">Debug & Practice</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Hands-on coding challenges</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
               </div>
             </CardContent>
