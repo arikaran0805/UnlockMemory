@@ -1445,9 +1445,12 @@ const Profile = () => {
                 </div>
                 <Button 
                   size="sm" 
+                  variant="ghost"
                   onClick={() => handleTabChange('practice')} 
-                  className="gap-1 rounded-full px-5 border-0 text-white font-semibold"
-                  style={{ background: 'linear-gradient(135deg, #4CAF82, #43A375)' }}
+                  className="gap-1 rounded-full px-5 border border-border/60 text-muted-foreground font-semibold hover:text-white hover:border-transparent transition-all duration-200"
+                  style={{}}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #4CAF82, #43A375)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
                   View All <ChevronRight className="h-4 w-4" />
                 </Button>
