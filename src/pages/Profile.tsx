@@ -2455,7 +2455,7 @@ const Profile = () => {
                 {/* Profile Summary */}
                 <div className="text-center pb-5 mb-5 border-b border-border/30">
                   <div className="mx-auto w-fit avatar-premium">
-                    <Avatar className="h-20 w-20 ring-[3px] ring-primary/15 ring-offset-2 ring-offset-background shadow-lg">
+                    <Avatar className="h-20 w-20 ring-offset-2 ring-offset-background" style={{ boxShadow: '0 0 0 6px hsla(142,70%,45%,0.08)' }}>
                       <AvatarImage src={avatarUrl} alt={fullName} />
                       <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
                         {fullName?.charAt(0)?.toUpperCase() || 'U'}
