@@ -1856,9 +1856,11 @@ const Profile = () => {
 
         {/* Completed Section */}
         {completedCourses.length > 0 && (
-          <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+          <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.15s' }}>
+            <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              </div>
               Completed
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1875,9 +1877,11 @@ const Profile = () => {
 
         {/* Featured Section */}
         {featuredCourses.length > 0 && (
-          <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+          <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.2s' }}>
+            <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
               Featured Courses
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
