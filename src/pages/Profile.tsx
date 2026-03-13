@@ -1618,8 +1618,8 @@ const Profile = () => {
             </div>
             <Button 
               onClick={() => navigate('/arcade')} 
-              className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-              style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
+              className="btn-glossy gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+              style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.35)' }}
             >
               <Gamepad2 className="h-4 w-4" />
               Enter Arcade
