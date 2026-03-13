@@ -1605,7 +1605,7 @@ const Profile = () => {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              className="icon-glossy w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.25)' }}
             >
               <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.5} />
