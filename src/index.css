@@ -130,16 +130,16 @@ All colors MUST be HSL.
 
   /* Premium dashboard background */
   .dashboard-bg {
-    background: var(--gradient-dashboard);
+    background: linear-gradient(180deg, hsl(140 25% 98%) 0%, hsl(140 20% 97%) 100%);
     position: relative;
-    isolation: isolate; /* keep decorative overlays behind content */
+    isolation: isolate;
   }
 
   .dashboard-bg::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--gradient-mesh);
+    background: radial-gradient(ellipse 70% 50% at 50% 30%, hsl(142 40% 95% / 0.5) 0px, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -148,8 +148,8 @@ All colors MUST be HSL.
     content: '';
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: radial-gradient(hsl(var(--primary) / 0.02) 1px, transparent 1px);
+    background-size: 20px 20px;
     pointer-events: none;
     z-index: 0;
   }
