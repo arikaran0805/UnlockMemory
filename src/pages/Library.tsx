@@ -825,13 +825,35 @@ const Library = () => {
                         <Button onClick={() => navigate("/auth")}>Sign In</Button>
                       </div>
                     ) : certificates.length === 0 ? (
-                      <div className="text-center py-16">
-                        <Trophy className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No certificates yet</h3>
-                        <p className="text-muted-foreground mb-6">
+                      <div 
+                        className="text-center py-16 px-8"
+                        style={{
+                          background: 'rgba(255,255,255,0.9)',
+                          border: '1px solid rgba(0,0,0,0.06)',
+                          borderRadius: '24px',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
+                          <Trophy className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }} className="mb-2">No certificates yet</h3>
+                        <p className="text-muted-foreground mb-6 text-sm">
                           Complete a course to earn your first certificate
                         </p>
-                        <Button onClick={() => setActiveNav("all-courses")}>Start Learning</Button>
+                        <Button 
+                          onClick={() => setActiveNav("all-courses")}
+                          className="text-white border-0"
+                          style={{ 
+                            background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                            borderRadius: '999px',
+                            padding: '12px 26px',
+                            boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
+                            transition: 'all 200ms ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >Start Learning</Button>
                       </div>
                     ) : (
                             <div className="flex flex-col gap-4">
