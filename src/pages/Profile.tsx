@@ -1755,21 +1755,7 @@ const Profile = () => {
     });
 
     return (
-      <div 
-        className="space-y-10"
-        style={{ 
-          background: 'linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Subtle radial highlight */}
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(34,197,94,0.04) 0%, transparent 70%)' }}
-        />
+      <div className="space-y-10">
 
         {/* Header */}
         <div className="flex items-center justify-between animate-fade-in relative z-10">
@@ -2593,7 +2579,7 @@ const Profile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' ? 'dashboard-bg' : 'bg-background'}`}>
+        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' || activeTab === 'learnings' ? 'dashboard-bg' : 'bg-background'}`}>
           {/* Sidebar - hidden for Practice Lab */}
           {activeTab !== 'practice' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
