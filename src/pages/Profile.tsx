@@ -1946,13 +1946,13 @@ const Profile = () => {
         {/* Completed Section */}
         {completedCourses.length > 0 && (
           <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.15s' }}>
-            <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.06)' }}>
+                <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
               </div>
               Completed
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {completedCourses.map((enrollment) => (
                 <CompletedCourseCard 
                   key={enrollment.id}
@@ -1967,13 +1967,13 @@ const Profile = () => {
         {/* Featured Section */}
         {featuredCourses.length > 0 && (
           <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.2s' }}>
-            <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
-                <Sparkles className="h-5 w-5 text-primary" />
+            <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.06)' }}>
+                <Sparkles className="h-4.5 w-4.5 text-violet-500" />
               </div>
               Featured Courses
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {featuredCourses.map((course, index) => (
                 <FeaturedCourseCard 
                   key={course.id}
