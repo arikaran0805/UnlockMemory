@@ -1861,7 +1861,7 @@ const Profile = () => {
 
         {/* Header */}
         <div className="flex items-center justify-between animate-fade-in relative z-10">
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>Study Plan</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.03em' }}>Study Plan</h2>
           <Button 
             variant="ghost" 
             onClick={() => {
