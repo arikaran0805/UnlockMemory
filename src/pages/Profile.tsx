@@ -1835,12 +1835,12 @@ const Profile = () => {
     const enrolledCourseIds = enrolledCourses.map(e => e.courses?.id);
     const featuredCourses = allCourses.filter(c => !enrolledCourseIds.includes(c.id)).slice(0, 4);
 
-    // Premium gradient colors for featured cards
+    // Softer premium gradient colors for featured cards
     const gradients = [
-      'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-      'linear-gradient(135deg, #10B981, #047857)',
-      'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-      'linear-gradient(135deg, #0EA5E9, #0369A1)',
+      'linear-gradient(135deg, #60A5FA, #3B82F6)',
+      'linear-gradient(135deg, #34D399, #10B981)',
+      'linear-gradient(135deg, #A78BFA, #8B5CF6)',
+      'linear-gradient(135deg, #38BDF8, #0EA5E9)',
     ];
 
     // Split enrolled courses into ongoing and completed
