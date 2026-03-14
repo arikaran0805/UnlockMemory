@@ -1892,14 +1892,14 @@ const Profile = () => {
 
         {/* Ongoing Section */}
         <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.1s' }}>
-          <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
-            <div className="p-2 rounded-xl" style={{ background: 'rgba(249,115,22,0.08)' }}>
-              <Flame className="h-5 w-5 text-orange-500" />
+          <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(249,115,22,0.06)' }}>
+              <Flame className="h-4.5 w-4.5 text-orange-500" />
             </div>
             Ongoing
           </h3>
           {ongoingCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {ongoingCourses.map((enrollment) => (
                 <OngoingCourseCard 
                   key={enrollment.id}
@@ -1911,29 +1911,30 @@ const Profile = () => {
             </div>
           ) : (
             <div
-              className="text-center py-10 px-8"
+              className="text-center py-12 px-8"
               style={{
-                background: 'rgba(255,255,255,0.9)',
-                border: '1px solid rgba(0,0,0,0.06)',
-                borderRadius: '24px',
-                boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(0,0,0,0.04)',
+                borderRadius: '28px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03), 0 8px 24px rgba(0,0,0,0.02)',
               }}
             >
-              <div className="mx-auto mb-4 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
-                <BookOpen className="h-10 w-10 text-primary" />
+              <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.06)', padding: '18px', borderRadius: '20px' }}>
+                <BookOpen className="h-8 w-8 text-primary" style={{ opacity: 0.7 }} />
               </div>
-              <p className="text-muted-foreground mb-4 text-sm">No ongoing courses. Start learning today!</p>
+              <p className="text-muted-foreground mb-5 text-sm">No ongoing courses yet. Start your learning journey.</p>
               <button
-                className="text-white font-semibold border-0 cursor-pointer"
+                className="text-white text-sm font-semibold border-0 cursor-pointer"
                 style={{ 
-                  background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                  background: 'linear-gradient(180deg, hsl(var(--primary)), hsl(142, 76%, 36%))',
                   borderRadius: '999px',
-                  padding: '12px 26px',
-                  boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
-                  transition: 'all 200ms ease',
+                  padding: '10px 24px',
+                  boxShadow: '0 6px 20px hsla(142, 71%, 45%, 0.25)',
+                  transition: 'all 220ms ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px hsla(142, 71%, 45%, 0.35)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px hsla(142, 71%, 45%, 0.25)'; }}
                 onClick={() => navigate('/courses')}
               >
                 Browse Courses
