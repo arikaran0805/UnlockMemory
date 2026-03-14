@@ -209,109 +209,144 @@ const OngoingCourseCard = ({
     }
   };
 
+  // Estimate remaining time
+  const remainingLessons = progress.total - progress.completed;
+  const estimatedRemainingHours = Math.max(1, Math.round((remainingLessons * 15) / 60));
+
+  const iconName = course?.icon || 'BookOpen';
+  const IconComponent = getIcon(iconName, BookOpen);
+
   return (
-    <Card
-      className="overflow-hidden cursor-pointer group border-0 h-[130px]"
+    <div
+      className="cursor-pointer group relative"
       style={{
-        background: 'rgba(255,255,255,0.95)',
-        border: '1px solid rgba(0,0,0,0.06)',
-        borderRadius: '20px',
-        boxShadow: '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)',
-        transition: 'all 220ms ease',
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(0,0,0,0.05)',
+        borderRadius: '28px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)',
+        transition: 'all 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)';
       }}
       onClick={onClick}
     >
-      <div className="flex h-full">
-        {/* Left Section - Premium gradient */}
-        <div 
-          className="w-1/3 p-4 flex flex-col justify-between"
-          style={{ background: 'linear-gradient(135deg, #047857, #065F46)', borderRadius: '20px 0 0 20px' }}
-        >
-          <div>
-            <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              Course
-            </span>
-            <h3 className="text-sm font-semibold text-white mt-1 leading-tight line-clamp-3">
-              {course?.name}
-            </h3>
+      {/* Subtle top-left glass sheen */}
+      <div 
+        className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at top left, rgba(255,255,255,0.6) 0%, transparent 70%)' }}
+      />
+
+      <div className="relative p-6">
+        {/* Top row: Icon badge + metadata */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05))' }}
+            >
+              <IconComponent className="h-5 w-5 text-primary" strokeWidth={1.8} />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-foreground leading-snug tracking-[-0.01em] line-clamp-2">
+                {course?.name}
+              </h3>
+              <span className="text-xs text-muted-foreground mt-0.5 block">
+                {course?.level || "Beginner"} · {progress.total} lessons
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-xs mt-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            <span>View all</span>
-            <ChevronRight className="h-3 w-3" />
+          {/* Progress percentage pill */}
+          <span 
+            className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 tabular-nums"
+            style={{ 
+              background: progressPercent >= 75 ? 'rgba(34,197,94,0.1)' : 'rgba(0,0,0,0.04)',
+              color: progressPercent >= 75 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+            }}
+          >
+            {progressPercent}%
+          </span>
+        </div>
+
+        {/* Description line */}
+        {course?.description && (
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1 mb-4">
+            {course.description.replace(/<[^>]*>/g, '').slice(0, 120)}
+          </p>
+        )}
+
+        {/* Progress bar */}
+        <div className="mb-3">
+          <div className="w-full overflow-hidden" style={{ height: '4px', borderRadius: '999px', background: 'rgba(0,0,0,0.04)' }}>
+            <div 
+              className="h-full transition-all duration-500"
+              style={{ 
+                width: `${progressPercent}%`, 
+                background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(142, 76%, 36%))',
+                borderRadius: '999px',
+              }}
+            />
           </div>
         </div>
 
-        {/* Right Section - Light */}
-        <div className="w-2/3 p-4 flex flex-col justify-between" style={{ background: 'rgba(255,255,255,0.95)' }}>
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
-                {course?.level || "Beginner"} • {progress.total} Lessons
-              </span>
-              <span className="text-[10px] font-semibold" style={{ color: '#16A34A' }}>{progressPercent}%</span>
-            </div>
-            <div className="w-full overflow-hidden mb-2" style={{ height: '6px', borderRadius: '999px', background: 'rgba(0,0,0,0.06)' }}>
-              <div 
-                className="h-full transition-all"
-                style={{ 
-                  width: `${progressPercent}%`, 
-                  background: 'linear-gradient(90deg, #22C55E, #16A34A)',
-                  borderRadius: '999px',
-                }}
-              />
-            </div>
-            {/* Next Lesson */}
-            {nextLesson && (
-              <div className="flex items-center gap-1.5 mb-2">
-                <Play className="h-3 w-3 text-primary fill-primary" />
-                <span className="text-[10px] text-muted-foreground">Next:</span>
-                <span className="text-[10px] font-medium text-foreground truncate">
-                  {nextLesson.title}
-                </span>
-              </div>
-            )}
+        {/* Next lesson */}
+        {nextLesson && (
+          <div className="flex items-center gap-2 mb-4">
+            <Play className="h-3 w-3 text-primary fill-primary shrink-0" />
+            <span className="text-xs text-muted-foreground">Up next:</span>
+            <span className="text-xs font-medium text-foreground truncate">{nextLesson.title}</span>
           </div>
-          
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span className="text-xs">
-                {course?.learning_hours > 0 
-                  ? `${course.learning_hours}h` 
-                  : `${Math.max(1, Math.round((progress.total * 15) / 60))}h`}
-              </span>
-            </div>
-            <Button 
-              variant="default" 
-              size="sm"
-              className="text-white rounded-full px-4 h-7 text-xs border-0"
+        )}
+
+        {/* Bottom: time remaining + CTAs */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs">
+              <Clock className="h-3.5 w-3.5" />
+              ~{estimatedRemainingHours}h left
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span 
+              className="text-xs font-medium text-muted-foreground hidden sm:inline-flex items-center gap-0.5 group-hover:text-foreground transition-colors duration-200"
+            >
+              View roadmap
+              <ChevronRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+            </span>
+            <button 
+              className="text-xs font-semibold text-white border-0 cursor-pointer flex items-center gap-1.5"
               style={{ 
-                background: 'linear-gradient(180deg, #22C55E, #16A34A)',
-                boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+                background: 'linear-gradient(180deg, hsl(var(--primary)), hsl(142, 76%, 36%))',
+                borderRadius: '999px',
+                padding: '8px 18px',
+                boxShadow: '0 4px 14px hsla(142, 71%, 45%, 0.25)',
+                transition: 'all 220ms ease',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px hsla(142, 71%, 45%, 0.35)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px hsla(142, 71%, 45%, 0.25)'; }}
               onClick={(e) => {
                 e.stopPropagation();
                 onClick();
               }}
             >
               Continue
-            </Button>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 
-// CompletedCourseCard component for the learnings section (Library-style)
+// CompletedCourseCard component - premium unified surface
 const CompletedCourseCard = ({ 
   course, 
   onClick 
@@ -319,96 +354,108 @@ const CompletedCourseCard = ({
   course: any;
   onClick: () => void;
 }) => {
+  const iconName = course?.icon || 'BookOpen';
+  const IconComponent = getIcon(iconName, BookOpen);
+
   return (
-    <Card
-      className="overflow-hidden cursor-pointer group border-0 h-[130px]"
+    <div
+      className="cursor-pointer group relative"
       style={{
-        background: 'rgba(255,255,255,0.95)',
-        border: '1px solid rgba(0,0,0,0.06)',
-        borderRadius: '20px',
-        boxShadow: '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)',
-        transition: 'all 220ms ease',
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(0,0,0,0.05)',
+        borderRadius: '28px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)',
+        transition: 'all 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)';
       }}
       onClick={onClick}
     >
-      <div className="flex h-full">
-        {/* Left Section - Premium green gradient */}
-        <div 
-          className="w-1/3 p-4 flex flex-col justify-between"
-          style={{ background: 'linear-gradient(135deg, #047857, #065F46)', borderRadius: '20px 0 0 20px' }}
-        >
-          <div>
-            <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              Completed
-            </span>
-            <h3 className="text-sm font-semibold text-white mt-1 leading-tight line-clamp-3">
-              {course?.name}
-            </h3>
+      {/* Subtle top-left glass sheen */}
+      <div 
+        className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at top left, rgba(255,255,255,0.6) 0%, transparent 70%)' }}
+      />
+
+      <div className="relative p-6">
+        {/* Top row: Icon badge + completed status */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.05))' }}
+            >
+              <IconComponent className="h-5 w-5 text-primary" strokeWidth={1.8} />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-foreground leading-snug tracking-[-0.01em] line-clamp-2">
+                {course?.name}
+              </h3>
+              <span className="text-xs text-muted-foreground mt-0.5 block">
+                {course?.level || "Beginner"} · {course?.learning_hours > 0 ? `${course.learning_hours}h` : '—'}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-xs mt-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          {/* Completed badge */}
+          <span 
+            className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
+            style={{ background: 'rgba(34,197,94,0.1)', color: 'hsl(var(--primary))' }}
+          >
             <CheckCircle2 className="h-3 w-3" />
-            <span>100%</span>
+            Done
+          </span>
+        </div>
+
+        {/* Full progress bar */}
+        <div className="mb-4">
+          <div className="w-full overflow-hidden" style={{ height: '4px', borderRadius: '999px', background: 'rgba(0,0,0,0.04)' }}>
+            <div 
+              className="h-full"
+              style={{ width: '100%', background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(142, 76%, 36%))', borderRadius: '999px' }}
+            />
           </div>
         </div>
 
-        {/* Right Section - Light */}
-        <div className="w-2/3 p-4 flex flex-col justify-between" style={{ background: 'rgba(255,255,255,0.95)' }}>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-medium tracking-wider uppercase flex items-center gap-1" style={{ color: '#16A34A' }}>
-                <CheckCircle2 className="h-3 w-3" />
-                Course Completed
-              </span>
-            </div>
-            <div className="w-full overflow-hidden" style={{ height: '6px', borderRadius: '999px', background: 'rgba(0,0,0,0.06)' }}>
-              <div 
-                className="h-full"
-                style={{ width: '100%', background: 'linear-gradient(90deg, #22C55E, #16A34A)', borderRadius: '999px' }}
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span className="text-xs">
-                {course?.learning_hours > 0 
-                  ? `${course.learning_hours}h` 
-                  : '—'}
-              </span>
-            </div>
-            <button 
-              className="text-xs font-medium border-0 cursor-pointer"
-              style={{ 
-                background: 'rgba(34,197,94,0.1)',
-                color: '#16A34A',
-                padding: '8px 16px',
-                borderRadius: '999px',
-                transition: 'all 200ms ease',
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              Review
-            </button>
-          </div>
+        {/* Bottom: CTAs */}
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Award className="h-3.5 w-3.5" />
+            Course completed
+          </span>
+          <button 
+            className="text-xs font-semibold border-0 cursor-pointer flex items-center gap-1.5"
+            style={{ 
+              background: 'rgba(34,197,94,0.08)',
+              color: 'hsl(var(--primary))',
+              padding: '8px 18px',
+              borderRadius: '999px',
+              transition: 'all 220ms ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.14)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+          >
+            Review
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 
-// FeaturedCourseCard component for the learnings section
+// FeaturedCourseCard - premium editorial card with soft gradient
 const FeaturedCourseCard = ({ 
   course, 
   gradient,
@@ -423,70 +470,125 @@ const FeaturedCourseCard = ({
   useEffect(() => {
     const fetchLessonCount = async () => {
       if (!course?.id) return;
-
-      // Count all lessons regardless of status on public pages
       const { count } = await supabase
         .from('posts')
         .select('*', { count: 'exact', head: true })
         .eq('category_id', course.id);
-
       setLessonCount(count || 0);
     };
-
     fetchLessonCount();
   }, [course?.id]);
 
-  // Use course learning_hours if available, otherwise estimate (avg 15 min per lesson)
   const displayHours = course.learning_hours > 0 
     ? course.learning_hours 
     : Math.max(1, Math.round((lessonCount * 15) / 60));
 
-  // Get the icon component
   const iconName = course?.icon || 'BookOpen';
   const IconComponent = getIcon(iconName, BookOpen);
 
   return (
-    <Card 
-      className="border-0 text-white cursor-pointer overflow-hidden relative"
+    <div 
+      className="cursor-pointer group relative"
       style={{
         background: gradient,
-        borderRadius: '22px',
-        boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
-        transition: 'all 200ms ease',
+        borderRadius: '28px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.04)',
+        transition: 'all 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 16px 36px rgba(0,0,0,0.12)';
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.08)';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.04)';
       }}
       onClick={onClick}
     >
-      <CardContent className="p-[26px] h-44 flex flex-col justify-between relative z-10">
+      {/* Glass sheen overlay */}
+      <div 
+        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)' }}
+      />
+      
+      {/* Watermark icon */}
+      <div className="absolute -right-6 -bottom-6 pointer-events-none transition-transform duration-300 group-hover:scale-110" style={{ opacity: 0.08 }}>
+        <IconComponent className="h-36 w-36 text-white" />
+      </div>
+
+      <div className="relative p-7 flex flex-col justify-between h-[220px]">
         <div>
-          <h4 style={{ fontSize: '20px', fontWeight: 600 }}>{course.name}</h4>
-          <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
+          {/* Badge */}
+          <span 
+            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full mb-3"
+            style={{ background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
+          >
+            <IconComponent className="h-3 w-3" />
+            Course
+          </span>
+          
+          <h4 className="text-lg font-semibold text-white leading-snug tracking-[-0.01em] line-clamp-2">
+            {course.name}
+          </h4>
+          
+          {course.description && (
+            <p className="text-xs leading-relaxed line-clamp-1 mt-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              {course.description.replace(/<[^>]*>/g, '').slice(0, 80)}
+            </p>
+          )}
+        </div>
+
+        <div>
+          {/* Metadata */}
+          <div className="flex items-center gap-3 text-xs mb-4" style={{ color: 'rgba(255,255,255,0.75)' }}>
             <span className="flex items-center gap-1">
-              <FileText className="h-4 w-4" />
-              {lessonCount} Lessons
+              <FileText className="h-3.5 w-3.5" />
+              {lessonCount} lessons
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-3.5 w-3.5" />
               {displayHours}h
+            </span>
+            <span className="flex items-center gap-1">
+              <TrendingUp className="h-3.5 w-3.5" />
+              {course.level || 'Beginner'}
+            </span>
+          </div>
+
+          {/* CTA row */}
+          <div className="flex items-center justify-between">
+            <button 
+              className="text-xs font-semibold border-0 cursor-pointer flex items-center gap-1.5"
+              style={{ 
+                background: 'rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(8px)',
+                color: '#fff',
+                padding: '8px 18px',
+                borderRadius: '999px',
+                transition: 'all 220ms ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+            >
+              Explore
+              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            </button>
+            <span 
+              className="text-xs font-medium hidden sm:inline-flex items-center gap-0.5 transition-colors duration-200"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
+            >
+              Preview path
+              <ChevronRight className="h-3 w-3" />
             </span>
           </div>
         </div>
-        <div className="flex justify-end">
-          <IconComponent className="h-12 w-12" style={{ color: 'rgba(255,255,255,0.15)' }} />
-        </div>
-      </CardContent>
-      {/* Large watermark icon */}
-      <div className="absolute -right-4 -bottom-4 pointer-events-none" style={{ opacity: 0.08 }}>
-        <IconComponent className="h-32 w-32 text-white" />
       </div>
-    </Card>
+    </div>
   );
 };
 
@@ -1733,12 +1835,12 @@ const Profile = () => {
     const enrolledCourseIds = enrolledCourses.map(e => e.courses?.id);
     const featuredCourses = allCourses.filter(c => !enrolledCourseIds.includes(c.id)).slice(0, 4);
 
-    // Premium gradient colors for featured cards
+    // Softer premium gradient colors for featured cards
     const gradients = [
-      'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-      'linear-gradient(135deg, #10B981, #047857)',
-      'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-      'linear-gradient(135deg, #0EA5E9, #0369A1)',
+      'linear-gradient(135deg, #60A5FA, #3B82F6)',
+      'linear-gradient(135deg, #34D399, #10B981)',
+      'linear-gradient(135deg, #A78BFA, #8B5CF6)',
+      'linear-gradient(135deg, #38BDF8, #0EA5E9)',
     ];
 
     // Split enrolled courses into ongoing and completed
@@ -1759,7 +1861,7 @@ const Profile = () => {
 
         {/* Header */}
         <div className="flex items-center justify-between animate-fade-in relative z-10">
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>Study Plan</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.03em' }}>Study Plan</h2>
           <Button 
             variant="ghost" 
             onClick={() => {
@@ -1790,14 +1892,14 @@ const Profile = () => {
 
         {/* Ongoing Section */}
         <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.1s' }}>
-          <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
-            <div className="p-2 rounded-xl" style={{ background: 'rgba(249,115,22,0.08)' }}>
-              <Flame className="h-5 w-5 text-orange-500" />
+          <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(249,115,22,0.06)' }}>
+              <Flame className="h-4.5 w-4.5 text-orange-500" />
             </div>
             Ongoing
           </h3>
           {ongoingCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {ongoingCourses.map((enrollment) => (
                 <OngoingCourseCard 
                   key={enrollment.id}
@@ -1809,29 +1911,30 @@ const Profile = () => {
             </div>
           ) : (
             <div
-              className="text-center py-10 px-8"
+              className="text-center py-12 px-8"
               style={{
-                background: 'rgba(255,255,255,0.9)',
-                border: '1px solid rgba(0,0,0,0.06)',
-                borderRadius: '24px',
-                boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(0,0,0,0.04)',
+                borderRadius: '28px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03), 0 8px 24px rgba(0,0,0,0.02)',
               }}
             >
-              <div className="mx-auto mb-4 w-fit" style={{ background: 'rgba(34,197,94,0.08)', padding: '16px', borderRadius: '14px' }}>
-                <BookOpen className="h-10 w-10 text-primary" />
+              <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.06)', padding: '18px', borderRadius: '20px' }}>
+                <BookOpen className="h-8 w-8 text-primary" style={{ opacity: 0.7 }} />
               </div>
-              <p className="text-muted-foreground mb-4 text-sm">No ongoing courses. Start learning today!</p>
+              <p className="text-muted-foreground mb-5 text-sm">No ongoing courses yet. Start your learning journey.</p>
               <button
-                className="text-white font-semibold border-0 cursor-pointer"
+                className="text-white text-sm font-semibold border-0 cursor-pointer"
                 style={{ 
-                  background: 'linear-gradient(180deg, #22C55E, #16A34A)',
+                  background: 'linear-gradient(180deg, hsl(var(--primary)), hsl(142, 76%, 36%))',
                   borderRadius: '999px',
-                  padding: '12px 26px',
-                  boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
-                  transition: 'all 200ms ease',
+                  padding: '10px 24px',
+                  boxShadow: '0 6px 20px hsla(142, 71%, 45%, 0.25)',
+                  transition: 'all 220ms ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px hsla(142, 71%, 45%, 0.35)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px hsla(142, 71%, 45%, 0.25)'; }}
                 onClick={() => navigate('/courses')}
               >
                 Browse Courses
@@ -1843,13 +1946,13 @@ const Profile = () => {
         {/* Completed Section */}
         {completedCourses.length > 0 && (
           <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.15s' }}>
-            <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.06)' }}>
+                <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
               </div>
               Completed
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {completedCourses.map((enrollment) => (
                 <CompletedCourseCard 
                   key={enrollment.id}
@@ -1864,13 +1967,13 @@ const Profile = () => {
         {/* Featured Section */}
         {featuredCourses.length > 0 && (
           <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.2s' }}>
-            <h3 className="flex items-center gap-3" style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)' }}>
-                <Sparkles className="h-5 w-5 text-primary" />
+            <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.06)' }}>
+                <Sparkles className="h-4.5 w-4.5 text-violet-500" />
               </div>
               Featured Courses
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {featuredCourses.map((course, index) => (
                 <FeaturedCourseCard 
                   key={course.id}
