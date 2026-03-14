@@ -346,7 +346,7 @@ const OngoingCourseCard = ({
   );
 };
 
-// CompletedCourseCard component for the learnings section (Library-style)
+// CompletedCourseCard component - premium unified surface
 const CompletedCourseCard = ({ 
   course, 
   onClick 
@@ -354,92 +354,104 @@ const CompletedCourseCard = ({
   course: any;
   onClick: () => void;
 }) => {
+  const iconName = course?.icon || 'BookOpen';
+  const IconComponent = getIcon(iconName, BookOpen);
+
   return (
-    <Card
-      className="overflow-hidden cursor-pointer group border-0 h-[130px]"
+    <div
+      className="cursor-pointer group relative"
       style={{
-        background: 'rgba(255,255,255,0.95)',
-        border: '1px solid rgba(0,0,0,0.06)',
-        borderRadius: '20px',
-        boxShadow: '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)',
-        transition: 'all 220ms ease',
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(0,0,0,0.05)',
+        borderRadius: '28px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)',
+        transition: 'all 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)';
       }}
       onClick={onClick}
     >
-      <div className="flex h-full">
-        {/* Left Section - Premium green gradient */}
-        <div 
-          className="w-1/3 p-4 flex flex-col justify-between"
-          style={{ background: 'linear-gradient(135deg, #047857, #065F46)', borderRadius: '20px 0 0 20px' }}
-        >
-          <div>
-            <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              Completed
-            </span>
-            <h3 className="text-sm font-semibold text-white mt-1 leading-tight line-clamp-3">
-              {course?.name}
-            </h3>
+      {/* Subtle top-left glass sheen */}
+      <div 
+        className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at top left, rgba(255,255,255,0.6) 0%, transparent 70%)' }}
+      />
+
+      <div className="relative p-6">
+        {/* Top row: Icon badge + completed status */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.05))' }}
+            >
+              <IconComponent className="h-5 w-5 text-primary" strokeWidth={1.8} />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-foreground leading-snug tracking-[-0.01em] line-clamp-2">
+                {course?.name}
+              </h3>
+              <span className="text-xs text-muted-foreground mt-0.5 block">
+                {course?.level || "Beginner"} · {course?.learning_hours > 0 ? `${course.learning_hours}h` : '—'}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-xs mt-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          {/* Completed badge */}
+          <span 
+            className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
+            style={{ background: 'rgba(34,197,94,0.1)', color: 'hsl(var(--primary))' }}
+          >
             <CheckCircle2 className="h-3 w-3" />
-            <span>100%</span>
+            Done
+          </span>
+        </div>
+
+        {/* Full progress bar */}
+        <div className="mb-4">
+          <div className="w-full overflow-hidden" style={{ height: '4px', borderRadius: '999px', background: 'rgba(0,0,0,0.04)' }}>
+            <div 
+              className="h-full"
+              style={{ width: '100%', background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(142, 76%, 36%))', borderRadius: '999px' }}
+            />
           </div>
         </div>
 
-        {/* Right Section - Light */}
-        <div className="w-2/3 p-4 flex flex-col justify-between" style={{ background: 'rgba(255,255,255,0.95)' }}>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-medium tracking-wider uppercase flex items-center gap-1" style={{ color: '#16A34A' }}>
-                <CheckCircle2 className="h-3 w-3" />
-                Course Completed
-              </span>
-            </div>
-            <div className="w-full overflow-hidden" style={{ height: '6px', borderRadius: '999px', background: 'rgba(0,0,0,0.06)' }}>
-              <div 
-                className="h-full"
-                style={{ width: '100%', background: 'linear-gradient(90deg, #22C55E, #16A34A)', borderRadius: '999px' }}
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span className="text-xs">
-                {course?.learning_hours > 0 
-                  ? `${course.learning_hours}h` 
-                  : '—'}
-              </span>
-            </div>
-            <button 
-              className="text-xs font-medium border-0 cursor-pointer"
-              style={{ 
-                background: 'rgba(34,197,94,0.1)',
-                color: '#16A34A',
-                padding: '8px 16px',
-                borderRadius: '999px',
-                transition: 'all 200ms ease',
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              Review
-            </button>
-          </div>
+        {/* Bottom: CTAs */}
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Award className="h-3.5 w-3.5" />
+            Course completed
+          </span>
+          <button 
+            className="text-xs font-semibold border-0 cursor-pointer flex items-center gap-1.5"
+            style={{ 
+              background: 'rgba(34,197,94,0.08)',
+              color: 'hsl(var(--primary))',
+              padding: '8px 18px',
+              borderRadius: '999px',
+              transition: 'all 220ms ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.14)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+          >
+            Review
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 
