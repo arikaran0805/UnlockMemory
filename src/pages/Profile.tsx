@@ -1755,21 +1755,7 @@ const Profile = () => {
     });
 
     return (
-      <div 
-        className="space-y-10"
-        style={{ 
-          background: 'linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Subtle radial highlight */}
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(34,197,94,0.04) 0%, transparent 70%)' }}
-        />
+      <div className="space-y-10">
 
         {/* Header */}
         <div className="flex items-center justify-between animate-fade-in relative z-10">
