@@ -455,7 +455,7 @@ const CompletedCourseCard = ({
   );
 };
 
-// FeaturedCourseCard component for the learnings section
+// FeaturedCourseCard - premium editorial card with soft gradient
 const FeaturedCourseCard = ({ 
   course, 
   gradient,
@@ -470,70 +470,125 @@ const FeaturedCourseCard = ({
   useEffect(() => {
     const fetchLessonCount = async () => {
       if (!course?.id) return;
-
-      // Count all lessons regardless of status on public pages
       const { count } = await supabase
         .from('posts')
         .select('*', { count: 'exact', head: true })
         .eq('category_id', course.id);
-
       setLessonCount(count || 0);
     };
-
     fetchLessonCount();
   }, [course?.id]);
 
-  // Use course learning_hours if available, otherwise estimate (avg 15 min per lesson)
   const displayHours = course.learning_hours > 0 
     ? course.learning_hours 
     : Math.max(1, Math.round((lessonCount * 15) / 60));
 
-  // Get the icon component
   const iconName = course?.icon || 'BookOpen';
   const IconComponent = getIcon(iconName, BookOpen);
 
   return (
-    <Card 
-      className="border-0 text-white cursor-pointer overflow-hidden relative"
+    <div 
+      className="cursor-pointer group relative"
       style={{
         background: gradient,
-        borderRadius: '22px',
-        boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
-        transition: 'all 200ms ease',
+        borderRadius: '28px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.04)',
+        transition: 'all 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 16px 36px rgba(0,0,0,0.12)';
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.08)';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.04)';
       }}
       onClick={onClick}
     >
-      <CardContent className="p-[26px] h-44 flex flex-col justify-between relative z-10">
+      {/* Glass sheen overlay */}
+      <div 
+        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)' }}
+      />
+      
+      {/* Watermark icon */}
+      <div className="absolute -right-6 -bottom-6 pointer-events-none transition-transform duration-300 group-hover:scale-110" style={{ opacity: 0.08 }}>
+        <IconComponent className="h-36 w-36 text-white" />
+      </div>
+
+      <div className="relative p-7 flex flex-col justify-between h-[220px]">
         <div>
-          <h4 style={{ fontSize: '20px', fontWeight: 600 }}>{course.name}</h4>
-          <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
+          {/* Badge */}
+          <span 
+            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full mb-3"
+            style={{ background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
+          >
+            <IconComponent className="h-3 w-3" />
+            Course
+          </span>
+          
+          <h4 className="text-lg font-semibold text-white leading-snug tracking-[-0.01em] line-clamp-2">
+            {course.name}
+          </h4>
+          
+          {course.description && (
+            <p className="text-xs leading-relaxed line-clamp-1 mt-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              {course.description.replace(/<[^>]*>/g, '').slice(0, 80)}
+            </p>
+          )}
+        </div>
+
+        <div>
+          {/* Metadata */}
+          <div className="flex items-center gap-3 text-xs mb-4" style={{ color: 'rgba(255,255,255,0.75)' }}>
             <span className="flex items-center gap-1">
-              <FileText className="h-4 w-4" />
-              {lessonCount} Lessons
+              <FileText className="h-3.5 w-3.5" />
+              {lessonCount} lessons
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-3.5 w-3.5" />
               {displayHours}h
+            </span>
+            <span className="flex items-center gap-1">
+              <TrendingUp className="h-3.5 w-3.5" />
+              {course.level || 'Beginner'}
+            </span>
+          </div>
+
+          {/* CTA row */}
+          <div className="flex items-center justify-between">
+            <button 
+              className="text-xs font-semibold border-0 cursor-pointer flex items-center gap-1.5"
+              style={{ 
+                background: 'rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(8px)',
+                color: '#fff',
+                padding: '8px 18px',
+                borderRadius: '999px',
+                transition: 'all 220ms ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+            >
+              Explore
+              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            </button>
+            <span 
+              className="text-xs font-medium hidden sm:inline-flex items-center gap-0.5 transition-colors duration-200"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
+            >
+              Preview path
+              <ChevronRight className="h-3 w-3" />
             </span>
           </div>
         </div>
-        <div className="flex justify-end">
-          <IconComponent className="h-12 w-12" style={{ color: 'rgba(255,255,255,0.15)' }} />
-        </div>
-      </CardContent>
-      {/* Large watermark icon */}
-      <div className="absolute -right-4 -bottom-4 pointer-events-none" style={{ opacity: 0.08 }}>
-        <IconComponent className="h-32 w-32 text-white" />
       </div>
-    </Card>
+    </div>
   );
 };
 
