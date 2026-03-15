@@ -185,7 +185,7 @@ All colors MUST be HSL.
 @layer components {
   /* Premium card styling */
   .card-premium {
-    @apply relative overflow-hidden;
+    @apply relative;
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
