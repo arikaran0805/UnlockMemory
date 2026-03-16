@@ -186,11 +186,12 @@ All colors MUST be HSL.
   /* Premium card styling — overrides shadcn Card defaults */
   .card-premium {
     @apply relative;
+    overflow: visible !important;
     background: rgba(255, 255, 255, 0.92) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(0, 0, 0, 0.05) !important;
-    border-radius: 28px !important;
+    border-radius: 24px !important;
     box-shadow: 
       0 2px 8px rgba(0, 0, 0, 0.04),
       0 8px 24px rgba(0, 0, 0, 0.03),
@@ -205,10 +206,10 @@ All colors MUST be HSL.
     left: 0;
     right: 50%;
     bottom: 50%;
-    background: radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
-    border-radius: 28px;
+    border-radius: 24px;
   }
 
   .card-premium > * {
@@ -219,10 +220,31 @@ All colors MUST be HSL.
   .card-premium:hover {
     background: rgba(255, 255, 255, 0.96) !important;
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.08),
-      0 2px 8px rgba(0, 0, 0, 0.04),
+      0 12px 40px rgba(0, 0, 0, 0.07),
+      0 4px 12px rgba(0, 0, 0, 0.04),
       inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
     transform: translateY(-4px);
+  }
+
+  .dark .card-premium {
+    background: rgba(20, 30, 24, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.2),
+      0 8px 24px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .dark .card-premium::before {
+    background: radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+  }
+
+  .dark .card-premium:hover {
+    background: rgba(20, 30, 24, 0.92) !important;
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
   }
 
   /* Premium sidebar styling */
