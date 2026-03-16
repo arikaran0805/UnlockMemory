@@ -20,7 +20,7 @@ export const ProfileDashboardHeader = ({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden border-0 card-premium",
+        "card-premium",
         className
       )}
     >

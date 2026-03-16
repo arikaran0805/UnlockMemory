@@ -1748,7 +1748,7 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - Expand to match Practice Labs height */}
-          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.9)' }}>
+          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col">
             {/* Ambient glow for AI Mentor */}
             <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(139,92,246,0.06)' }} />
             <CardContent className="p-5 flex-1 flex flex-col relative">
