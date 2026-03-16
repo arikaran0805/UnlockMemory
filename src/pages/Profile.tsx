@@ -1995,36 +1995,81 @@ const Profile = () => {
     const totalBookmarks = bookmarks.length + problemBookmarks.length;
     const isLoading = bookmarksLoading || problemBookmarksLoading;
 
+    const BookmarkSectionHeader = ({ title, icon: Icon, count, iconColor = "text-primary" }: { title: string; icon: React.ComponentType<{ className?: string }>; count: number; iconColor?: string }) => (
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'hsl(var(--primary) / 0.08)' }}>
+          <Icon className={`h-4.5 w-4.5 ${iconColor}`} />
+        </div>
+        <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
+        <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">{count}</span>
+      </div>
+    );
+
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Bookmarks</h2>
-          <Badge variant="secondary">{totalBookmarks} Saved</Badge>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Bookmarks</h2>
+            <p className="text-sm text-muted-foreground mt-1">Your saved courses, lessons, and problems</p>
+          </div>
+          <div
+            className="px-4 py-2 rounded-full text-sm font-medium"
+            style={{
+              background: 'hsl(var(--primary) / 0.08)',
+              color: 'hsl(var(--primary))',
+            }}
+          >
+            {totalBookmarks} Saved
+          </div>
         </div>
         
         {isLoading ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Loading bookmarks...</p>
+          <div className="text-center py-12">
+            <div className="w-10 h-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">Loading bookmarks...</p>
           </div>
         ) : totalBookmarks > 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-10">
             {/* Course Bookmarks */}
             {courseBookmarks.length > 0 && (
               <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Courses ({courseBookmarks.length})
-                </h3>
-                <div className="grid gap-4">
+                <BookmarkSectionHeader title="Courses" icon={BookOpen} count={courseBookmarks.length} />
+                <div className="grid gap-3">
                   {courseBookmarks.map((bookmark) => (
-                    <Card 
+                    <div
                       key={bookmark.id}
-                      className="card-premium hover:scale-[1.01] transition-transform"
+                      className="group cursor-pointer"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.88)',
+                        backdropFilter: 'blur(16px)',
+                        WebkitBackdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(0, 0, 0, 0.05)',
+                        borderRadius: '18px',
+                        padding: '16px 20px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                        transition: 'all 0.25s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)';
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)';
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
+                      }}
+                      onClick={() => navigate(`/course/${bookmark.courses?.slug}`)}
                     >
-                      <CardContent className="p-4 flex items-center gap-4">
+                      <div className="flex items-center gap-4">
+                        {/* Course Thumbnail */}
                         <div 
-                          className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden flex-shrink-0 cursor-pointer"
-                          onClick={() => navigate(`/course/${bookmark.courses?.slug}`)}
+                          className="w-[72px] h-[72px] rounded-2xl overflow-hidden flex-shrink-0"
+                          style={{
+                            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))',
+                            boxShadow: '0 2px 8px hsl(var(--primary) / 0.1)',
+                          }}
                         >
                           {bookmark.courses?.featured_image ? (
                             <img 
@@ -2034,29 +2079,44 @@ const Profile = () => {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <BookOpen className="h-6 w-6 text-primary" />
+                              <BookOpen className="h-7 w-7 text-primary" />
                             </div>
                           )}
                         </div>
-                        <div 
-                          className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() => navigate(`/course/${bookmark.courses?.slug}`)}
-                        >
-                          <h4 className="font-semibold truncate">{bookmark.courses?.name}</h4>
-                          <Badge variant="outline" className="mt-1">
-                            {bookmark.courses?.level || 'Beginner'}
-                          </Badge>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 py-1">
+                          <h4 className="text-base font-semibold text-foreground tracking-tight truncate">
+                            {bookmark.courses?.name}
+                          </h4>
+                          <div className="mt-2">
+                            <span
+                              className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full"
+                              style={{
+                                background: 'hsl(var(--secondary))',
+                                color: 'hsl(var(--secondary-foreground))',
+                              }}
+                            >
+                              {bookmark.courses?.level || 'Beginner'}
+                            </span>
+                          </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => toggleBookmark(bookmark.course_id || undefined)}
-                          className="flex-shrink-0"
+
+                        {/* Bookmark Remove Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleBookmark(bookmark.course_id || undefined);
+                          }}
+                          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+                          style={{
+                            background: 'hsl(var(--primary) / 0.08)',
+                          }}
                         >
-                          <BookmarkX className="h-5 w-5 text-muted-foreground hover:text-destructive" />
-                        </Button>
-                      </CardContent>
-                    </Card>
+                          <Bookmark className="h-4.5 w-4.5 text-primary fill-primary" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -2065,44 +2125,67 @@ const Profile = () => {
             {/* Lesson Bookmarks */}
             {lessonBookmarks.length > 0 && (
               <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Lessons ({lessonBookmarks.length})
-                </h3>
-                <div className="grid gap-4">
+                <BookmarkSectionHeader title="Lessons" icon={FileText} count={lessonBookmarks.length} />
+                <div className="grid gap-3">
                   {lessonBookmarks.map((bookmark) => (
-                    <Card 
+                    <div
                       key={bookmark.id}
-                      className="card-premium hover:scale-[1.01] transition-transform"
+                      className="group cursor-pointer"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.88)',
+                        backdropFilter: 'blur(16px)',
+                        WebkitBackdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(0, 0, 0, 0.05)',
+                        borderRadius: '18px',
+                        padding: '16px 20px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                        transition: 'all 0.25s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)';
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)';
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
+                      }}
+                      onClick={() => navigate(`/course/${bookmark.posts?.courses?.slug}?lesson=${bookmark.posts?.slug}`)}
                     >
-                      <CardContent className="p-4 flex items-center gap-4">
+                      <div className="flex items-center gap-4">
                         <div 
-                          className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 cursor-pointer"
-                          onClick={() => navigate(`/course/${bookmark.posts?.courses?.slug}?lesson=${bookmark.posts?.slug}`)}
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                          style={{
+                            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))',
+                          }}
                         >
                           <FileText className="h-6 w-6 text-primary" />
                         </div>
-                        <div 
-                          className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() => navigate(`/course/${bookmark.posts?.courses?.slug}?lesson=${bookmark.posts?.slug}`)}
-                        >
-                          <h4 className="font-semibold truncate">{bookmark.posts?.title}</h4>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
+                        <div className="flex-1 min-w-0 py-1">
+                          <h4 className="text-base font-semibold text-foreground tracking-tight truncate">
+                            {bookmark.posts?.title}
+                          </h4>
+                          <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
                             {bookmark.posts?.excerpt 
                               ? bookmark.posts.excerpt.replace(/<[^>]*>/g, '').slice(0, 100) 
                               : 'No description'}
                           </p>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => toggleBookmark(undefined, bookmark.post_id || undefined)}
-                          className="flex-shrink-0"
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleBookmark(undefined, bookmark.post_id || undefined);
+                          }}
+                          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+                          style={{
+                            background: 'hsl(var(--primary) / 0.08)',
+                          }}
                         >
-                          <BookmarkX className="h-5 w-5 text-muted-foreground hover:text-destructive" />
-                        </Button>
-                      </CardContent>
-                    </Card>
+                          <Bookmark className="h-4.5 w-4.5 text-primary fill-primary" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -2111,48 +2194,82 @@ const Profile = () => {
             {/* Problem Bookmarks */}
             {problemBookmarks.length > 0 && (
               <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <Code className="h-5 w-5 text-orange-500" />
-                  Saved Problems ({problemBookmarks.length})
-                </h3>
-                <div className="grid gap-4">
+                <BookmarkSectionHeader title="Saved Problems" icon={Code} count={problemBookmarks.length} iconColor="text-orange-500" />
+                <div className="grid gap-3">
                   {problemBookmarks.map((bookmark) => {
                     const problem = bookmark.problem;
-                    const difficultyColor = 
-                      problem?.difficulty === 'Easy' ? 'text-green-500' :
-                      problem?.difficulty === 'Medium' ? 'text-yellow-500' : 'text-red-500';
+                    const difficultyStyles: Record<string, { bg: string; text: string }> = {
+                      'Easy': { bg: 'hsl(142 70% 45% / 0.1)', text: 'hsl(142 70% 35%)' },
+                      'Medium': { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 40%)' },
+                      'Hard': { bg: 'hsl(0 84% 60% / 0.1)', text: 'hsl(0 84% 45%)' },
+                    };
+                    const dStyle = difficultyStyles[problem?.difficulty || 'Easy'] || difficultyStyles['Easy'];
                     
                     return (
-                      <Card 
+                      <div
                         key={bookmark.id}
-                        className="card-premium hover:scale-[1.01] transition-transform"
+                        className="group cursor-pointer"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.88)',
+                          backdropFilter: 'blur(16px)',
+                          WebkitBackdropFilter: 'blur(16px)',
+                          border: '1px solid rgba(0, 0, 0, 0.05)',
+                          borderRadius: '18px',
+                          padding: '16px 20px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                          transition: 'all 0.25s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-3px)';
+                          e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)';
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)';
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
+                        }}
+                        onClick={() => problem?.skill_id && navigate(`/practice/${problem.skill_id}/problem/${problem.slug}`)}
                       >
-                        <CardContent className="p-4 flex items-center gap-4">
+                        <div className="flex items-center gap-4">
                           <div 
-                            className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 flex items-center justify-center flex-shrink-0 cursor-pointer"
-                            onClick={() => problem?.skill_id && navigate(`/practice/${problem.skill_id}/problem/${problem.slug}`)}
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                            style={{
+                              background: 'linear-gradient(135deg, hsl(30 90% 55% / 0.12), hsl(30 90% 55% / 0.04))',
+                            }}
                           >
                             <Code className="h-6 w-6 text-orange-500" />
                           </div>
-                          <div 
-                            className="flex-1 min-w-0 cursor-pointer"
-                            onClick={() => problem?.skill_id && navigate(`/practice/${problem.skill_id}/problem/${problem.slug}`)}
-                          >
-                            <h4 className="font-semibold truncate">{problem?.title || 'Unknown Problem'}</h4>
-                            <span className={`text-sm font-medium ${difficultyColor}`}>
-                              {problem?.difficulty || 'Unknown'}
-                            </span>
+                          <div className="flex-1 min-w-0 py-1">
+                            <h4 className="text-base font-semibold text-foreground tracking-tight truncate">
+                              {problem?.title || 'Unknown Problem'}
+                            </h4>
+                            <div className="mt-2">
+                              <span
+                                className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full"
+                                style={{
+                                  background: dStyle.bg,
+                                  color: dStyle.text,
+                                }}
+                              >
+                                {problem?.difficulty || 'Unknown'}
+                              </span>
+                            </div>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => toggleProblemBookmark(bookmark.problem_id)}
-                            className="flex-shrink-0"
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleProblemBookmark(bookmark.problem_id);
+                            }}
+                            className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+                            style={{
+                              background: 'hsl(var(--primary) / 0.08)',
+                            }}
                           >
-                            <BookmarkX className="h-5 w-5 text-muted-foreground hover:text-destructive" />
-                          </Button>
-                        </CardContent>
-                      </Card>
+                            <Bookmark className="h-4.5 w-4.5 text-primary fill-primary" />
+                          </button>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -2160,14 +2277,37 @@ const Profile = () => {
             )}
           </div>
         ) : (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Bookmark className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No bookmarks yet</h3>
-              <p className="text-muted-foreground mb-4">Save lessons, courses, and problems for quick access.</p>
-              <Button onClick={() => navigate('/courses')}>Browse Courses</Button>
-            </CardContent>
-          </Card>
+          <div
+            className="text-center py-16 px-8"
+            style={{
+              background: 'rgba(255, 255, 255, 0.88)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(0, 0, 0, 0.05)',
+              borderRadius: '24px',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            <div 
+              className="mx-auto mb-5 w-fit p-4 rounded-2xl"
+              style={{ background: 'hsl(var(--primary) / 0.08)' }}
+            >
+              <Bookmark className="h-10 w-10 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">No bookmarks yet</h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+              Save courses, lessons, and problems for quick access later.
+            </p>
+            <Button 
+              onClick={() => navigate('/courses')}
+              className="text-primary-foreground border-0 rounded-full px-6"
+              style={{ 
+                background: 'linear-gradient(180deg, hsl(var(--primary)), hsl(142 60% 35%))',
+                boxShadow: '0 8px 20px hsl(var(--primary) / 0.25)',
+              }}
+            >
+              Browse Courses
+            </Button>
+          </div>
         )}
       </div>
     );
