@@ -90,6 +90,9 @@ export function LessonRightSidebar({
   const hasEditedCode = codeEditContext?.hasEditedCode ?? false;
   const editedCodeBlock = codeEditContext?.editedCodeBlock ?? null;
 
+  // Messaging system
+  const messaging = useMessaging(userId);
+
   // Calculate scroll offset based on header visibility
   const scrollOffset = isHeaderVisible
     ? (showAnnouncement ? 140 : 104)
