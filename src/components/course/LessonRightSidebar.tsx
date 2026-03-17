@@ -338,6 +338,28 @@ export function LessonRightSidebar({
         )}
         </div>
       </div>
+      {/* Messaging Popup */}
+      {userId && (
+        <MessagingPopup
+          view={messaging.view}
+          connections={messaging.connections}
+          activeConnection={messaging.activeConnection}
+          messages={messaging.messages}
+          isLoading={messaging.isLoading}
+          isSending={messaging.isSending}
+          totalUnread={messaging.totalUnread}
+          userId={userId}
+          lessonId={lessonId}
+          onOpenChat={messaging.openChat}
+          onSendMessage={messaging.sendMessage}
+          onCollapse={messaging.collapse}
+          onExpand={messaging.expand}
+          onClose={messaging.close}
+          onBackToList={messaging.backToList}
+          onSetView={messaging.setView}
+          onFetchConnections={messaging.fetchConnections}
+        />
+      )}
     </aside>
   );
 }
