@@ -288,6 +288,7 @@ export function LessonRightSidebar({
                 variant="outline"
                 size="sm"
                 className="w-full text-sm border-border/50 hover:bg-muted/50"
+                onClick={() => messaging.openMessaging(lessonId)}
               >
                 <HelpCircle className="h-3.5 w-3.5 mr-2" />
                 Ask a Question
