@@ -1,0 +1,309 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+export type MessagingView = "closed" | "empty" | "list" | "chat" | "collapsed";
+
+export interface TeamConnection {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  role_label: string;
+  connection_type: string;
+  status: string;
+  last_message_at: string | null;
+}
+
+export interface Conversation {
+  id: string;
+  connection_id: string;
+  lesson_id: string | null;
+  conversation_type: string;
+  last_message_preview: string | null;
+  last_message_at: string | null;
+  unread_count_learner: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_type: string;
+  sender_id: string;
+  message_text: string | null;
+  message_type: string;
+  attachment_url: string | null;
+  attachment_name: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface ConnectionWithConversation extends TeamConnection {
+  conversation?: Conversation;
+}
+
+export function useMessaging(userId: string | undefined) {
+  const [view, setView] = useState<MessagingView>("closed");
+  const [connections, setConnections] = useState<ConnectionWithConversation[]>([]);
+  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [totalUnread, setTotalUnread] = useState(0);
+  const previousView = useRef<MessagingView>("closed");
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Fetch connections with latest conversation data
+  const fetchConnections = useCallback(async () => {
+    if (!userId) return;
+    setIsLoading(true);
+    try {
+      const { data: conns } = await supabase
+        .from("team_connections")
+        .select("*")
+        .eq("learner_id", userId)
+        .eq("status", "active")
+        .order("last_message_at", { ascending: false, nullsFirst: false });
+
+      if (!conns || conns.length === 0) {
+        setConnections([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: convos } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("learner_id", userId);
+
+      const merged: ConnectionWithConversation[] = (conns || []).map((c) => {
+        const convo = convos?.find((cv) => cv.connection_id === c.id);
+        return { ...c, conversation: convo || undefined };
+      });
+
+      setConnections(merged);
+      const unread = (convos || []).reduce((sum, cv) => sum + (cv.unread_count_learner || 0), 0);
+      setTotalUnread(unread);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
+
+  // Fetch messages for a conversation
+  const fetchMessages = useCallback(async (conversationId: string) => {
+    const { data } = await supabase
+      .from("conversation_messages")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true })
+      .limit(50);
+    setMessages(data || []);
+  }, []);
+
+  // Open messaging popup
+  const openMessaging = useCallback(async (lessonId?: string) => {
+    if (!userId) return;
+    await fetchConnections();
+    if (connections.length === 0) {
+      // Re-check after fetch
+      const { data: conns } = await supabase
+        .from("team_connections")
+        .select("id")
+        .eq("learner_id", userId)
+        .eq("status", "active")
+        .limit(1);
+      setView(conns && conns.length > 0 ? "list" : "empty");
+    } else {
+      setView("list");
+    }
+  }, [userId, connections.length, fetchConnections]);
+
+  // Open a specific chat
+  const openChat = useCallback(async (connectionId: string, lessonId?: string) => {
+    if (!userId) return;
+    setActiveConnectionId(connectionId);
+    setIsLoading(true);
+
+    // Find or create conversation
+    let { data: convo } = await supabase
+      .from("conversations")
+      .select("*")
+      .eq("learner_id", userId)
+      .eq("connection_id", connectionId)
+      .maybeSingle();
+
+    if (!convo) {
+      const { data: newConvo } = await supabase
+        .from("conversations")
+        .insert({
+          learner_id: userId,
+          connection_id: connectionId,
+          lesson_id: lessonId || null,
+          conversation_type: lessonId ? "lesson" : "direct",
+        })
+        .select()
+        .single();
+      convo = newConvo;
+    }
+
+    if (convo) {
+      setActiveConversation(convo);
+      await fetchMessages(convo.id);
+
+      // Mark as read
+      if (convo.unread_count_learner > 0) {
+        await supabase
+          .from("conversations")
+          .update({ unread_count_learner: 0 })
+          .eq("id", convo.id);
+      }
+    }
+
+    setIsLoading(false);
+    setView("chat");
+  }, [userId, fetchMessages]);
+
+  // Send message
+  const sendMessage = useCallback(async (text: string, attachmentUrl?: string, attachmentName?: string) => {
+    if (!userId || !activeConversation) return;
+    setIsSending(true);
+
+    const newMsg: Partial<ChatMessage> = {
+      id: crypto.randomUUID(),
+      conversation_id: activeConversation.id,
+      sender_type: "learner",
+      sender_id: userId,
+      message_text: text || null,
+      message_type: attachmentUrl ? "attachment" : "text",
+      attachment_url: attachmentUrl || null,
+      attachment_name: attachmentName || null,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistic update
+    setMessages((prev) => [...prev, newMsg as ChatMessage]);
+
+    try {
+      await supabase.from("conversation_messages").insert({
+        conversation_id: activeConversation.id,
+        sender_type: "learner",
+        sender_id: userId,
+        message_text: text || null,
+        message_type: attachmentUrl ? "attachment" : "text",
+        attachment_url: attachmentUrl || null,
+        attachment_name: attachmentName || null,
+      });
+
+      // Update conversation preview
+      await supabase
+        .from("conversations")
+        .update({
+          last_message_preview: text ? text.slice(0, 100) : attachmentName || "Attachment",
+          last_message_at: new Date().toISOString(),
+        })
+        .eq("id", activeConversation.id);
+
+      // Update connection last_message_at
+      await supabase
+        .from("team_connections")
+        .update({ last_message_at: new Date().toISOString() })
+        .eq("id", activeConversation.connection_id);
+    } finally {
+      setIsSending(false);
+    }
+  }, [userId, activeConversation]);
+
+  // Collapse
+  const collapse = useCallback(() => {
+    previousView.current = view;
+    setView("collapsed");
+  }, [view]);
+
+  // Expand from collapsed
+  const expand = useCallback(() => {
+    const target = previousView.current === "closed" || previousView.current === "collapsed" ? "list" : previousView.current;
+    setView(target);
+  }, []);
+
+  // Close
+  const close = useCallback(() => {
+    setView("closed");
+    setActiveConnectionId(null);
+    setActiveConversation(null);
+    setMessages([]);
+  }, []);
+
+  // Back to list from chat
+  const backToList = useCallback(() => {
+    setActiveConnectionId(null);
+    setActiveConversation(null);
+    setMessages([]);
+    setView("list");
+  }, []);
+
+  // Realtime subscription for new messages
+  useEffect(() => {
+    if (!activeConversation) return;
+
+    channelRef.current = supabase
+      .channel(`messages-${activeConversation.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "conversation_messages",
+          filter: `conversation_id=eq.${activeConversation.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as ChatMessage;
+          if (newMsg.sender_id !== userId) {
+            setMessages((prev) => {
+              if (prev.find((m) => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channelRef.current?.unsubscribe();
+    };
+  }, [activeConversation, userId]);
+
+  // Session persistence
+  useEffect(() => {
+    if (view !== "closed") {
+      sessionStorage.setItem("messaging_view", view);
+      if (activeConnectionId) {
+        sessionStorage.setItem("messaging_active_connection", activeConnectionId);
+      }
+    } else {
+      sessionStorage.removeItem("messaging_view");
+      sessionStorage.removeItem("messaging_active_connection");
+    }
+  }, [view, activeConnectionId]);
+
+  const activeConnection = connections.find((c) => c.id === activeConnectionId) || null;
+
+  return {
+    view,
+    connections,
+    activeConnection,
+    activeConversation,
+    messages,
+    isLoading,
+    isSending,
+    totalUnread,
+    openMessaging,
+    openChat,
+    sendMessage,
+    collapse,
+    expand,
+    close,
+    backToList,
+    setView,
+    fetchConnections,
+  };
+}

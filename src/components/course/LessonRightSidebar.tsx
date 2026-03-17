@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
+import { useMessaging } from "@/hooks/useMessaging";
+import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
 import {
   GitBranch,
@@ -87,6 +89,9 @@ export function LessonRightSidebar({
   
   const hasEditedCode = codeEditContext?.hasEditedCode ?? false;
   const editedCodeBlock = codeEditContext?.editedCodeBlock ?? null;
+
+  // Messaging system
+  const messaging = useMessaging(userId);
 
   // Calculate scroll offset based on header visibility
   const scrollOffset = isHeaderVisible
@@ -283,6 +288,7 @@ export function LessonRightSidebar({
                 variant="outline"
                 size="sm"
                 className="w-full text-sm border-border/50 hover:bg-muted/50"
+                onClick={() => messaging.openMessaging(lessonId)}
               >
                 <HelpCircle className="h-3.5 w-3.5 mr-2" />
                 Ask a Question
@@ -332,6 +338,28 @@ export function LessonRightSidebar({
         )}
         </div>
       </div>
+      {/* Messaging Popup */}
+      {userId && (
+        <MessagingPopup
+          view={messaging.view}
+          connections={messaging.connections}
+          activeConnection={messaging.activeConnection}
+          messages={messaging.messages}
+          isLoading={messaging.isLoading}
+          isSending={messaging.isSending}
+          totalUnread={messaging.totalUnread}
+          userId={userId}
+          lessonId={lessonId}
+          onOpenChat={messaging.openChat}
+          onSendMessage={messaging.sendMessage}
+          onCollapse={messaging.collapse}
+          onExpand={messaging.expand}
+          onClose={messaging.close}
+          onBackToList={messaging.backToList}
+          onSetView={messaging.setView}
+          onFetchConnections={messaging.fetchConnections}
+        />
+      )}
     </aside>
   );
 }
