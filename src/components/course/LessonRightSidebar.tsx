@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
+import { useMessaging } from "@/hooks/useMessaging";
+import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
 import {
   GitBranch,
