@@ -826,6 +826,113 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_url: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message_text: string | null
+          message_type: string
+          sender_id: string
+          sender_type: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_text?: string | null
+          message_type?: string
+          sender_id: string
+          sender_type?: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_text?: string | null
+          message_type?: string
+          sender_id?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          connection_id: string
+          conversation_type: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          learner_id: string
+          lesson_id: string | null
+          unread_count_learner: number
+          unread_count_team: number
+          updated_at: string
+        }
+        Insert: {
+          connection_id: string
+          conversation_type?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          learner_id: string
+          lesson_id?: string | null
+          unread_count_learner?: number
+          unread_count_team?: number
+          updated_at?: string
+        }
+        Update: {
+          connection_id?: string
+          conversation_type?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          learner_id?: string
+          lesson_id?: string | null
+          unread_count_learner?: number
+          unread_count_team?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "team_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_annotation_replies: {
         Row: {
           annotation_id: string
@@ -3514,6 +3621,63 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      team_connections: {
+        Row: {
+          avatar_url: string | null
+          connected_user_id: string | null
+          connection_type: string
+          created_at: string
+          display_name: string
+          id: string
+          last_message_at: string | null
+          learner_id: string
+          role_label: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          connected_user_id?: string | null
+          connection_type?: string
+          created_at?: string
+          display_name: string
+          id?: string
+          last_message_at?: string | null
+          learner_id: string
+          role_label?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          connected_user_id?: string | null
+          connection_type?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          last_message_at?: string | null
+          learner_id?: string
+          role_label?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_connections_connected_user_id_fkey"
+            columns: ["connected_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_connections_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teams: {
         Row: {
