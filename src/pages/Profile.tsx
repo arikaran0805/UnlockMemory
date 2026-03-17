@@ -2006,7 +2006,7 @@ const Profile = () => {
     );
 
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 -mx-4 -mt-4 px-8 pt-8 pb-8 rounded-2xl" style={{ background: 'linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%)' }}>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
