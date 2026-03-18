@@ -273,7 +273,7 @@ export function LessonRightSidebar({
         </Card>
 
         {/* SECTION 4: Ask / Confusion Box */}
-        {userId && (
+        {(
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
