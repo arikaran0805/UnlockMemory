@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
@@ -272,7 +273,7 @@ export function LessonRightSidebar({
         </Card>
 
         {/* SECTION 4: Ask / Confusion Box */}
-        {userId && (
+        {(
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -288,7 +289,13 @@ export function LessonRightSidebar({
                 variant="outline"
                 size="sm"
                 className="w-full text-sm border-border/50 hover:bg-muted/50"
-                onClick={() => messaging.openMessaging(lessonId)}
+                onClick={() => {
+                  if (!userId) {
+                    toast.error("Please log in to ask a question");
+                    return;
+                  }
+                  messaging.openMessaging(lessonId);
+                }}
               >
                 <HelpCircle className="h-3.5 w-3.5 mr-2" />
                 Ask a Question
