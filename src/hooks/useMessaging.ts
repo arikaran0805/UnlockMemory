@@ -102,20 +102,38 @@ export function useMessaging(userId: string | undefined) {
   // Open messaging popup
   const openMessaging = useCallback(async (lessonId?: string) => {
     if (!userId) return;
-    await fetchConnections();
-    if (connections.length === 0) {
-      // Re-check after fetch
-      const { data: conns } = await supabase
-        .from("team_connections")
-        .select("id")
-        .eq("learner_id", userId)
-        .eq("status", "active")
-        .limit(1);
-      setView(conns && conns.length > 0 ? "list" : "empty");
-    } else {
+    setIsLoading(true);
+    
+    // Always fetch fresh from DB to avoid stale state
+    const { data: conns } = await supabase
+      .from("team_connections")
+      .select("*")
+      .eq("learner_id", userId)
+      .eq("status", "active")
+      .order("last_message_at", { ascending: false, nullsFirst: false });
+
+    if (conns && conns.length > 0) {
+      // Also fetch conversations
+      const { data: convos } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("learner_id", userId);
+
+      const merged: ConnectionWithConversation[] = conns.map((c) => {
+        const convo = convos?.find((cv) => cv.connection_id === c.id);
+        return { ...c, conversation: convo || undefined };
+      });
+
+      setConnections(merged);
+      const unread = (convos || []).reduce((sum, cv) => sum + (cv.unread_count_learner || 0), 0);
+      setTotalUnread(unread);
       setView("list");
+    } else {
+      setConnections([]);
+      setView("empty");
     }
-  }, [userId, connections.length, fetchConnections]);
+    setIsLoading(false);
+  }, [userId]);
 
   // Open a specific chat
   const openChat = useCallback(async (connectionId: string, lessonId?: string) => {
