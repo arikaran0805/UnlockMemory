@@ -7,4 +7,4 @@ export { ChatHeader } from "./ChatHeader";
 export { ChatMessageList } from "./ChatMessageList";
 export { ChatMessageBubble } from "./ChatMessageBubble";
 export { ChatComposer } from "./ChatComposer";
-export { NewConnectionModal } from "./NewConnectionModal";
+export { NewConnectionModal, NewConnectionContent } from "./NewConnectionModal";
