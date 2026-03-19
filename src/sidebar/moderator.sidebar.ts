@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Activity,
   Award,
+  MessageCircle,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
