@@ -18,6 +18,8 @@ import AdminMedia from "@/pages/AdminMedia";
 import AdminAnalytics from "@/pages/AdminAnalytics";
 import AdminModeratorActivity from "@/pages/AdminModeratorActivity";
 import AdminUsers from "@/pages/AdminUsers";
+import SeniorModeratorMessageRequests from "@/pages/SeniorModeratorMessageRequests";
+import ConversationDetail from "@/pages/ConversationDetail";
 import NotFound from "@/pages/NotFound";
 
 /**
