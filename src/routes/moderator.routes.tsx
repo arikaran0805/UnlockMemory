@@ -10,6 +10,8 @@ import AdminApprovals from "@/pages/AdminApprovals";
 import AdminComments from "@/pages/AdminComments";
 import AdminModeratorActivity from "@/pages/AdminModeratorActivity";
 import ModeratorCertificates from "@/pages/ModeratorCertificates";
+import ModeratorMessageRequests from "@/pages/ModeratorMessageRequests";
+import ConversationDetail from "@/pages/ConversationDetail";
 import NotFound from "@/pages/NotFound";
 
 /**
