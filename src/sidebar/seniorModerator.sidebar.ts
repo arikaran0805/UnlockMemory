@@ -14,6 +14,7 @@ import {
   Image,
   GraduationCap,
   MessageSquarePlus,
+  MessageCircle,
   CheckSquare,
   BarChart3,
   Users,
