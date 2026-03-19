@@ -14,6 +14,7 @@ import {
   Image,
   GraduationCap,
   MessageSquarePlus,
+  MessageCircle,
   CheckSquare,
   BarChart3,
   Users,
@@ -69,7 +70,15 @@ const analyticsSection: SidebarSection = {
   ],
 };
 
-// Section 6: Activity
+// Section 6: Messaging
+const messagingSection: SidebarSection = {
+  title: "Messaging",
+  items: [
+    { icon: MessageCircle, label: "Message Requests", path: "/senior-moderator/message-requests" },
+  ],
+};
+
+// Section 7: Team
 const activitySection: SidebarSection = {
   title: "Team",
   items: [
@@ -84,6 +93,7 @@ export const seniorModeratorSidebarConfig: SidebarConfig = {
     contentSection,
     moderationSection,
     analyticsSection,
+    messagingSection,
     activitySection,
   ],
   roleLabel: "Senior Moderator",

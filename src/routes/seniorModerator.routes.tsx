@@ -18,6 +18,8 @@ import AdminMedia from "@/pages/AdminMedia";
 import AdminAnalytics from "@/pages/AdminAnalytics";
 import AdminModeratorActivity from "@/pages/AdminModeratorActivity";
 import AdminUsers from "@/pages/AdminUsers";
+import SeniorModeratorMessageRequests from "@/pages/SeniorModeratorMessageRequests";
+import ConversationDetail from "@/pages/ConversationDetail";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -49,6 +51,8 @@ const SeniorModeratorRoutes = () => {
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="activity" element={<AdminModeratorActivity />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="message-requests" element={<SeniorModeratorMessageRequests />} />
+          <Route path="message-requests/:id" element={<ConversationDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SeniorModeratorLayout>

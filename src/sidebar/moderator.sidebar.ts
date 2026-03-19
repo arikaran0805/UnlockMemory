@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Activity,
   Award,
+  MessageCircle,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
@@ -41,7 +42,15 @@ const reviewSection: SidebarSection = {
   ],
 };
 
-// Section 4: Activity
+// Section 4: Messaging
+const messagingSection: SidebarSection = {
+  title: "Messaging",
+  items: [
+    { icon: MessageCircle, label: "Message Requests", path: "/moderator/message-requests" },
+  ],
+};
+
+// Section 5: Activity
 const activitySection: SidebarSection = {
   title: "Activity",
   items: [
@@ -54,6 +63,7 @@ export const moderatorSidebarConfig: SidebarConfig = {
     overviewSection,
     contentSection,
     reviewSection,
+    messagingSection,
     activitySection,
   ],
   roleLabel: "Moderator",
