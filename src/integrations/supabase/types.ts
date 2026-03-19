@@ -826,6 +826,47 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_assignments: {
+        Row: {
+          assigned_by_user_id: string
+          assigned_to_role: string
+          assigned_to_user_id: string
+          assignment_note: string | null
+          created_at: string
+          from_role: string | null
+          id: string
+          thread_id: string
+        }
+        Insert: {
+          assigned_by_user_id: string
+          assigned_to_role: string
+          assigned_to_user_id: string
+          assignment_note?: string | null
+          created_at?: string
+          from_role?: string | null
+          id?: string
+          thread_id: string
+        }
+        Update: {
+          assigned_by_user_id?: string
+          assigned_to_role?: string
+          assigned_to_user_id?: string
+          assignment_note?: string | null
+          created_at?: string
+          from_role?: string | null
+          id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_assignments_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_messages: {
         Row: {
           attachment_name: string | null
@@ -872,6 +913,101 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_status_logs: {
+        Row: {
+          changed_by_role: string
+          changed_by_user_id: string
+          created_at: string
+          id: string
+          new_status: string
+          old_status: string | null
+          thread_id: string
+        }
+        Insert: {
+          changed_by_role: string
+          changed_by_user_id: string
+          created_at?: string
+          id?: string
+          new_status: string
+          old_status?: string | null
+          thread_id: string
+        }
+        Update: {
+          changed_by_role?: string
+          changed_by_user_id?: string
+          created_at?: string
+          id?: string
+          new_status?: string
+          old_status?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_status_logs_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_threads: {
+        Row: {
+          assigned_moderator_user_id: string | null
+          assigned_senior_moderator_user_id: string | null
+          created_at: string
+          current_owner_role: string
+          current_status: string
+          id: string
+          learner_user_id: string
+          post_id: string | null
+          routing_type: string
+          team_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_moderator_user_id?: string | null
+          assigned_senior_moderator_user_id?: string | null
+          created_at?: string
+          current_owner_role?: string
+          current_status?: string
+          id?: string
+          learner_user_id: string
+          post_id?: string | null
+          routing_type?: string
+          team_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_moderator_user_id?: string | null
+          assigned_senior_moderator_user_id?: string | null
+          created_at?: string
+          current_owner_role?: string
+          current_status?: string
+          id?: string
+          learner_user_id?: string
+          post_id?: string | null
+          routing_type?: string
+          team_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_threads_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_threads_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -2500,6 +2636,8 @@ export type Database = {
           code_theme: string | null
           content: string
           created_at: string
+          created_by_team_id: string | null
+          created_by_type: string
           deleted_at: string | null
           excerpt: string | null
           featured_image: string | null
@@ -2508,6 +2646,7 @@ export type Database = {
           post_rank: string | null
           post_type: string | null
           published_at: string | null
+          related_senior_moderator_user_id: string | null
           slug: string
           status: string
           submitted_at: string | null
@@ -2523,6 +2662,8 @@ export type Database = {
           code_theme?: string | null
           content: string
           created_at?: string
+          created_by_team_id?: string | null
+          created_by_type?: string
           deleted_at?: string | null
           excerpt?: string | null
           featured_image?: string | null
@@ -2531,6 +2672,7 @@ export type Database = {
           post_rank?: string | null
           post_type?: string | null
           published_at?: string | null
+          related_senior_moderator_user_id?: string | null
           slug: string
           status?: string
           submitted_at?: string | null
@@ -2546,6 +2688,8 @@ export type Database = {
           code_theme?: string | null
           content?: string
           created_at?: string
+          created_by_team_id?: string | null
+          created_by_type?: string
           deleted_at?: string | null
           excerpt?: string | null
           featured_image?: string | null
@@ -2554,6 +2698,7 @@ export type Database = {
           post_rank?: string | null
           post_type?: string | null
           published_at?: string | null
+          related_senior_moderator_user_id?: string | null
           slug?: string
           status?: string
           submitted_at?: string | null
@@ -2580,6 +2725,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_created_by_team_id_fkey"
+            columns: ["created_by_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -3679,6 +3831,38 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          role_in_team: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role_in_team?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role_in_team?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           archived_at: string | null
@@ -3687,6 +3871,7 @@ export type Database = {
           created_by: string | null
           id: string
           name: string
+          senior_moderator_user_id: string | null
           updated_at: string
         }
         Insert: {
@@ -3696,6 +3881,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
+          senior_moderator_user_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -3705,6 +3891,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
+          senior_moderator_user_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3713,6 +3900,53 @@ export type Database = {
             columns: ["career_id"]
             isOneToOne: false
             referencedRelation: "careers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thread_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          is_visible_to_learner: boolean
+          message_content: string
+          message_type: string
+          sender_role: string
+          sender_user_id: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          is_visible_to_learner?: boolean
+          message_content: string
+          message_type?: string
+          sender_role?: string
+          sender_user_id: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          is_visible_to_learner?: boolean
+          message_content?: string
+          message_type?: string
+          sender_role?: string
+          sender_user_id?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_threads"
             referencedColumns: ["id"]
           },
         ]
