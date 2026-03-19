@@ -42,7 +42,15 @@ const reviewSection: SidebarSection = {
   ],
 };
 
-// Section 4: Activity
+// Section 4: Messaging
+const messagingSection: SidebarSection = {
+  title: "Messaging",
+  items: [
+    { icon: MessageCircle, label: "Message Requests", path: "/moderator/message-requests" },
+  ],
+};
+
+// Section 5: Activity
 const activitySection: SidebarSection = {
   title: "Activity",
   items: [
