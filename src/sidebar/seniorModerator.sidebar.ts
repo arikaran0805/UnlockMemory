@@ -70,7 +70,15 @@ const analyticsSection: SidebarSection = {
   ],
 };
 
-// Section 6: Activity
+// Section 6: Messaging
+const messagingSection: SidebarSection = {
+  title: "Messaging",
+  items: [
+    { icon: MessageCircle, label: "Message Requests", path: "/senior-moderator/message-requests" },
+  ],
+};
+
+// Section 7: Team
 const activitySection: SidebarSection = {
   title: "Team",
   items: [
