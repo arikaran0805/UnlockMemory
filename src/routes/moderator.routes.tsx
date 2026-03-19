@@ -34,6 +34,8 @@ const ModeratorRoutes = () => {
           <Route path="certificates" element={<ModeratorCertificates />} />
           <Route path="comments" element={<AdminComments />} />
           <Route path="activity" element={<AdminModeratorActivity />} />
+          <Route path="message-requests" element={<ModeratorMessageRequests />} />
+          <Route path="message-requests/:id" element={<ConversationDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </ModeratorLayout>

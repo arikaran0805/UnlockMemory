@@ -63,6 +63,7 @@ export const moderatorSidebarConfig: SidebarConfig = {
     overviewSection,
     contentSection,
     reviewSection,
+    messagingSection,
     activitySection,
   ],
   roleLabel: "Moderator",

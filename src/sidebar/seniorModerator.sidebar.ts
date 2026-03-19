@@ -93,6 +93,7 @@ export const seniorModeratorSidebarConfig: SidebarConfig = {
     contentSection,
     moderationSection,
     analyticsSection,
+    messagingSection,
     activitySection,
   ],
   roleLabel: "Senior Moderator",
