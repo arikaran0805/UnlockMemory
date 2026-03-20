@@ -191,10 +191,6 @@ const AdminSettings = () => {
         og_description: ogDescription,
         code_theme: codeTheme,
       };
-        og_title: ogTitle,
-        og_description: ogDescription,
-        code_theme: codeTheme,
-      };
 
       if (settingsId) {
         const { error } = await supabase.from("site_settings").update(updates).eq("id", settingsId);
