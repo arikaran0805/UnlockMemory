@@ -210,7 +210,7 @@ const Header = ({
                 <img 
                   src={siteSettings.logo_url} 
                   alt={siteSettings.site_name} 
-                  className="h-10 w-auto transition-all duration-300 group-hover:scale-105" 
+                  className="h-9 sm:h-10 md:h-12 w-auto transition-all duration-300 group-hover:scale-[1.03] group-hover:opacity-100 opacity-90" 
                 />
               ) : (
                 <>
