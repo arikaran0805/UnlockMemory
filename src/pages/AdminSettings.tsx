@@ -110,6 +110,7 @@ const AdminSettings = () => {
       setSiteDescription(data.site_description || "");
       setSiteUrl(data.site_url || "");
       setLogoUrl(data.logo_url || "");
+      setFaviconUrl(data.favicon_url || "");
       setMetaTitle(data.meta_title || "");
       setMetaDescription(data.meta_description || "");
       setOgImage(data.og_image || "");
