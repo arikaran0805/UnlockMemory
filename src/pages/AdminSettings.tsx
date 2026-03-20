@@ -41,6 +41,8 @@ const AdminSettings = () => {
   const [siteUrl, setSiteUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [faviconUrl, setFaviconUrl] = useState("");
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [requireEmailVerification, setRequireEmailVerification] = useState(false);
