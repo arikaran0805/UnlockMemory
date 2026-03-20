@@ -150,6 +150,31 @@ const AdminSettings = () => {
     }
   };
 
+  const handleFaviconUpload = async (file: File) => {
+    setUploadingFavicon(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `favicon-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("site-assets")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("site-assets")
+        .getPublicUrl(fileName);
+
+      setFaviconUrl(publicUrl);
+      setHasChanges(true);
+      toast({ title: "Favicon uploaded successfully" });
+    } catch (error: any) {
+      toast({ title: "Error uploading favicon", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingFavicon(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
