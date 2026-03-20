@@ -3464,6 +3464,7 @@ export type Database = {
           course_bubble_text: string | null
           created_at: string
           facebook_url: string | null
+          favicon_url: string | null
           github_url: string | null
           hero_headline: string | null
           hero_highlight_color: string | null
@@ -3516,6 +3517,7 @@ export type Database = {
           course_bubble_text?: string | null
           created_at?: string
           facebook_url?: string | null
+          favicon_url?: string | null
           github_url?: string | null
           hero_headline?: string | null
           hero_highlight_color?: string | null
@@ -3568,6 +3570,7 @@ export type Database = {
           course_bubble_text?: string | null
           created_at?: string
           facebook_url?: string | null
+          favicon_url?: string | null
           github_url?: string | null
           hero_headline?: string | null
           hero_highlight_color?: string | null
