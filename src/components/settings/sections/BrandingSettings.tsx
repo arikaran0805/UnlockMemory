@@ -22,6 +22,10 @@ interface BrandingSettingsProps {
   readOnly?: boolean;
   codeTheme?: string;
   setCodeTheme?: (value: string) => void;
+  faviconUrl?: string;
+  onFaviconUpload?: (file: File) => Promise<void>;
+  uploadingFavicon?: boolean;
+  setFaviconUrl?: (value: string) => void;
 }
 
 const BrandingSettings = ({
