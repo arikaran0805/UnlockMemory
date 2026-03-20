@@ -205,7 +205,7 @@ const Header = ({
         <div className="container mx-auto px-6 lg:px-12">
           <div className="flex h-16 items-center justify-between">
             {/* Logo and Brand */}
-            <Link to="/" className="flex items-center gap-3 group relative">
+            <Link to="/" className="flex items-center gap-2.5 group relative">
               {siteSettings.logo_url ? (
                 <img 
                   src={siteSettings.logo_url} 
@@ -213,25 +213,18 @@ const Header = ({
                   className="h-9 sm:h-10 md:h-12 w-auto transition-all duration-300 group-hover:scale-[1.03] group-hover:opacity-100 opacity-90" 
                 />
               ) : (
-                <>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full transition-all duration-300 group-hover:bg-primary/40" />
-                    <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                      <span className="text-2xl font-black text-primary-foreground tracking-tight">
-                        {siteSettings.site_name.charAt(0)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="hidden sm:flex flex-col">
-                    <span className="text-xl font-black tracking-tight text-foreground">
-                      {siteSettings.site_name}
-                    </span>
-                    <span className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                      Learn & Grow
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full transition-all duration-300 group-hover:bg-primary/40" />
+                  <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-lg transition-all duration-300 group-hover:scale-[1.03]">
+                    <span className="text-lg sm:text-xl md:text-2xl font-black text-primary-foreground tracking-tight">
+                      {siteSettings.site_name.charAt(0)}
                     </span>
                   </div>
-                </>
+                </div>
               )}
+              <span className="hidden sm:inline text-lg md:text-xl font-bold tracking-tight text-foreground transition-opacity duration-300 group-hover:opacity-80">
+                {siteSettings.site_name}
+              </span>
             </Link>
 
             {/* Spacer to push icons to the right */}
