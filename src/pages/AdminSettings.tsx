@@ -287,17 +287,21 @@ const AdminSettings = () => {
         );
       case "branding":
         return (
-          <BrandingSettings
-            logoUrl={logoUrl}
-            setLogoUrl={(v) => { setLogoUrl(v); setHasChanges(true); }}
-            siteName={siteName}
-            onLogoUpload={handleLogoUpload}
-            uploadingLogo={uploadingLogo}
-            readOnly={isReadOnly}
-            codeTheme={codeTheme}
-            setCodeTheme={(v) => { setCodeTheme(v); setHasChanges(true); }}
-          />
-        );
+           <BrandingSettings
+             logoUrl={logoUrl}
+             setLogoUrl={(v) => { setLogoUrl(v); setHasChanges(true); }}
+             siteName={siteName}
+             onLogoUpload={handleLogoUpload}
+             uploadingLogo={uploadingLogo}
+             readOnly={isReadOnly}
+             codeTheme={codeTheme}
+             setCodeTheme={(v) => { setCodeTheme(v); setHasChanges(true); }}
+             faviconUrl={faviconUrl}
+             onFaviconUpload={handleFaviconUpload}
+             uploadingFavicon={uploadingFavicon}
+             setFaviconUrl={(v) => { setFaviconUrl(v); setHasChanges(true); }}
+           />
+         );
       case "email":
         return (
           <EmailSettings
