@@ -205,25 +205,22 @@ const Header = ({
         <div className="container mx-auto px-6 lg:px-12">
           <div className="flex h-16 items-center justify-between">
             {/* Logo and Brand */}
-            <Link to="/" className="flex items-center gap-2.5 group relative">
+            <Link to="/" className="flex items-center gap-[10px] group relative transition-transform duration-200 ease-out hover:scale-[1.03]">
               {siteSettings.logo_url ? (
                 <img 
                   src={siteSettings.logo_url} 
                   alt={siteSettings.site_name} 
-                  className="h-9 sm:h-10 md:h-12 w-auto transition-all duration-300 group-hover:scale-[1.03] group-hover:opacity-100 opacity-90" 
+                  className="h-8 sm:h-8 md:h-9 w-auto transition-all duration-200" 
                 />
               ) : (
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full transition-all duration-300 group-hover:bg-primary/40" />
-                  <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-lg transition-all duration-300 group-hover:scale-[1.03]">
-                    <span className="text-lg sm:text-xl md:text-2xl font-black text-primary-foreground tracking-tight">
-                      {siteSettings.site_name.charAt(0)}
-                    </span>
-                  </div>
+                <div className="relative flex h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-xl bg-primary shadow-sm transition-all duration-200">
+                  <span className="text-base sm:text-lg md:text-xl font-black text-primary-foreground">
+                    {siteSettings.site_name.charAt(0)}
+                  </span>
                 </div>
               )}
-              <span className="hidden sm:inline text-lg md:text-xl font-bold tracking-tight text-foreground transition-opacity duration-300 group-hover:opacity-80">
-                {siteSettings.site_name}
+              <span className="hidden sm:inline text-base md:text-lg tracking-[-0.02em] text-foreground/90 transition-colors duration-200 group-hover:text-foreground">
+                <span className="font-medium">Unlock</span><span className="font-semibold">Memory</span>
               </span>
             </Link>
 
