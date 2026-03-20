@@ -22,6 +22,10 @@ interface BrandingSettingsProps {
   readOnly?: boolean;
   codeTheme?: string;
   setCodeTheme?: (value: string) => void;
+  faviconUrl?: string;
+  onFaviconUpload?: (file: File) => Promise<void>;
+  uploadingFavicon?: boolean;
+  setFaviconUrl?: (value: string) => void;
 }
 
 const BrandingSettings = ({
@@ -33,6 +37,10 @@ const BrandingSettings = ({
   readOnly = false,
   codeTheme = "",
   setCodeTheme,
+  faviconUrl = "",
+  onFaviconUpload,
+  uploadingFavicon = false,
+  setFaviconUrl,
 }: BrandingSettingsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
@@ -132,8 +140,12 @@ const BrandingSettings = ({
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="flex items-start gap-6">
-            <div className="w-16 h-16 rounded-lg border-2 border-dashed border-[#E8EBE7] flex items-center justify-center bg-[#FAFBF9]">
-              <span className="text-2xl">🧠</span>
+            <div className="w-16 h-16 rounded-lg border-2 border-dashed border-[#E8EBE7] flex items-center justify-center bg-[#FAFBF9] overflow-hidden">
+              {faviconUrl ? (
+                <img src={faviconUrl} alt="Favicon" className="w-full h-full object-contain p-1" />
+              ) : (
+                <span className="text-2xl">🧠</span>
+              )}
             </div>
             <div className="flex-1 space-y-3">
               <input
@@ -142,16 +154,34 @@ const BrandingSettings = ({
                 accept="image/*,.ico"
                 className="hidden"
                 disabled={readOnly}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file && onFaviconUpload) {
+                    await onFaviconUpload(file);
+                  }
+                  e.target.value = "";
+                }}
               />
               <Button
                 variant="outline"
                 onClick={() => faviconInputRef.current?.click()}
-                disabled={readOnly}
+                disabled={readOnly || uploadingFavicon}
                 className="border-[#E8EBE7] hover:bg-[#FAFBF9] text-[#0F2A1D]"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Upload Favicon
+                {uploadingFavicon ? "Uploading..." : "Upload Favicon"}
               </Button>
+              {faviconUrl && !readOnly && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setFaviconUrl?.("")}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove
+                </Button>
+              )}
               <p className="text-xs text-[#1E1E1E]/40">
                 Recommended: ICO or PNG, 32x32px or 64x64px
               </p>

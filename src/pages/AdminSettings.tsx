@@ -41,6 +41,8 @@ const AdminSettings = () => {
   const [siteUrl, setSiteUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [faviconUrl, setFaviconUrl] = useState("");
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [requireEmailVerification, setRequireEmailVerification] = useState(false);
@@ -108,6 +110,7 @@ const AdminSettings = () => {
       setSiteDescription(data.site_description || "");
       setSiteUrl(data.site_url || "");
       setLogoUrl(data.logo_url || "");
+      setFaviconUrl(data.favicon_url || "");
       setMetaTitle(data.meta_title || "");
       setMetaDescription(data.meta_description || "");
       setOgImage(data.og_image || "");
@@ -147,6 +150,31 @@ const AdminSettings = () => {
     }
   };
 
+  const handleFaviconUpload = async (file: File) => {
+    setUploadingFavicon(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `favicon-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("site-assets")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("site-assets")
+        .getPublicUrl(fileName);
+
+      setFaviconUrl(publicUrl);
+      setHasChanges(true);
+      toast({ title: "Favicon uploaded successfully" });
+    } catch (error: any) {
+      toast({ title: "Error uploading favicon", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingFavicon(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -155,6 +183,7 @@ const AdminSettings = () => {
         site_description: siteDescription,
         site_url: siteUrl,
         logo_url: logoUrl,
+        favicon_url: faviconUrl,
         meta_title: metaTitle,
         meta_description: metaDescription,
         og_image: ogImage,
@@ -258,17 +287,21 @@ const AdminSettings = () => {
         );
       case "branding":
         return (
-          <BrandingSettings
-            logoUrl={logoUrl}
-            setLogoUrl={(v) => { setLogoUrl(v); setHasChanges(true); }}
-            siteName={siteName}
-            onLogoUpload={handleLogoUpload}
-            uploadingLogo={uploadingLogo}
-            readOnly={isReadOnly}
-            codeTheme={codeTheme}
-            setCodeTheme={(v) => { setCodeTheme(v); setHasChanges(true); }}
-          />
-        );
+           <BrandingSettings
+             logoUrl={logoUrl}
+             setLogoUrl={(v) => { setLogoUrl(v); setHasChanges(true); }}
+             siteName={siteName}
+             onLogoUpload={handleLogoUpload}
+             uploadingLogo={uploadingLogo}
+             readOnly={isReadOnly}
+             codeTheme={codeTheme}
+             setCodeTheme={(v) => { setCodeTheme(v); setHasChanges(true); }}
+             faviconUrl={faviconUrl}
+             onFaviconUpload={handleFaviconUpload}
+             uploadingFavicon={uploadingFavicon}
+             setFaviconUrl={(v) => { setFaviconUrl(v); setHasChanges(true); }}
+           />
+         );
       case "email":
         return (
           <EmailSettings
