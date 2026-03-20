@@ -37,6 +37,10 @@ const BrandingSettings = ({
   readOnly = false,
   codeTheme = "",
   setCodeTheme,
+  faviconUrl = "",
+  onFaviconUpload,
+  uploadingFavicon = false,
+  setFaviconUrl,
 }: BrandingSettingsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
