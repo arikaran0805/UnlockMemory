@@ -52,7 +52,7 @@ export interface ResolvedOwner {
  * Resolves the owner for a doubt based on source context.
  * Follows hierarchy: direct owner → senior moderator → super moderator → fallback
  */
-async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner | null> {
+export async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner | null> {
   const { course_id, post_id, source_type } = context;
 
   if (course_id) {
