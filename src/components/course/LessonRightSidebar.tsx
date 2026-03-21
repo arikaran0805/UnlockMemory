@@ -351,6 +351,7 @@ export function LessonRightSidebar({
           view={messaging.view}
           connections={messaging.connections}
           activeConnection={messaging.activeConnection}
+          activeConversationId={messaging.activeConversationId}
           messages={messaging.messages}
           isLoading={messaging.isLoading}
           isSending={messaging.isSending}
@@ -359,13 +360,15 @@ export function LessonRightSidebar({
           lessonId={lessonId}
           onOpenChat={messaging.openChat}
           onSendMessage={messaging.sendMessage}
+          onEditMessage={messaging.editMessage}
+          onDeleteMessage={messaging.deleteMessage}
           onCollapse={messaging.collapse}
           onExpand={messaging.expand}
           onClose={messaging.close}
           onBackToList={messaging.backToList}
           onSetView={messaging.setView}
-           onFetchConnections={messaging.fetchConnections}
-           onDeleteConnection={messaging.deleteConnection}
+          onFetchConnections={messaging.fetchConnections}
+          onDeleteConnection={messaging.deleteConnection}
         />
       )}
     </aside>
