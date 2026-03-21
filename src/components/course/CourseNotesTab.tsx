@@ -240,11 +240,27 @@ export function CourseNotesTab({
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Only show Go to Lesson for lesson-type notes */}
-                {onNavigateToLesson && selectedNote.entity_type === 'lesson' && selectedNote.lesson_id && (
+                {selectedNote.entity_type === 'lesson' && selectedNote.lesson_id && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onNavigateToLesson(selectedNote.lesson_id!)}
+                    onClick={async () => {
+                      const lessonId = selectedNote.lesson_id!;
+                      try {
+                        const { data: post } = await supabase
+                          .from('posts')
+                          .select('slug, courses!inner(slug)')
+                          .eq('id', lessonId)
+                          .maybeSingle();
+                        if (post?.slug && (post as any).courses?.slug) {
+                          window.open(`/course/${(post as any).courses.slug}?lesson=${post.slug}&tab=lessons`, '_blank');
+                        } else if (onNavigateToLesson) {
+                          onNavigateToLesson(lessonId);
+                        }
+                      } catch {
+                        if (onNavigateToLesson) onNavigateToLesson(lessonId);
+                      }
+                    }}
                   >
                     <BookOpen className="h-3.5 w-3.5 mr-1.5" />
                     Go to Lesson
