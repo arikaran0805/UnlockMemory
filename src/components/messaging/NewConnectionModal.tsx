@@ -16,12 +16,15 @@ interface NewConnectionContentProps {
   onConnect: (type: string, name: string) => void;
   courseId?: string;
   userId?: string;
-  onDirectConnect?: (targetUserId: string, displayName: string, roleLabel: string, avatarUrl: string | null) => void;
+  onDirectConnect?: (connectionId: string) => void;
 }
 
-interface NewConnectionModalProps extends NewConnectionContentProps {
+interface NewConnectionModalProps extends Omit<NewConnectionContentProps, 'courseId' | 'userId' | 'onDirectConnect'> {
   open: boolean;
   onClose: () => void;
+  courseId?: string;
+  userId?: string;
+  onDirectConnect?: (connectionId: string) => void;
 }
 
 interface TeamMember {
@@ -198,12 +201,12 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         .maybeSingle();
 
       if (existing) {
-        onDirectConnect(member.id, member.full_name, member.role_label, member.avatar_url);
+        onDirectConnect(existing.id);
         return;
       }
 
-      // Create new connection
-      await supabase.from("team_connections").insert({
+      // Create new connection and get ID back
+      const { data: newConn } = await supabase.from("team_connections").insert({
         learner_id: userId,
         connected_user_id: member.id,
         connection_type: "instructor",
@@ -211,9 +214,11 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         avatar_url: member.avatar_url,
         role_label: member.role_label,
         status: "active",
-      });
+      }).select("id").single();
 
-      onDirectConnect(member.id, member.full_name, member.role_label, member.avatar_url);
+      if (newConn) {
+        onDirectConnect(newConn.id);
+      }
     } catch (err) {
       console.error("Failed to connect:", err);
     } finally {
