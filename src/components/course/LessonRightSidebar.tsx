@@ -1,14 +1,13 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
 import { useMessaging } from "@/hooks/useMessaging";
+import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
 import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
 import {
