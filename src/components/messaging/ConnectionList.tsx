@@ -3,8 +3,10 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConnectionListItem } from "./ConnectionListItem";
+import { SuggestedMentorBanner } from "./SuggestedMentorBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectionWithConversation } from "@/hooks/useMessaging";
+import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
 
 interface ConnectionListProps {
   connections: ConnectionWithConversation[];
@@ -12,9 +14,11 @@ interface ConnectionListProps {
   onSelectConnection: (connectionId: string) => void;
   onNewConnection: () => void;
   onDeleteConnection?: (connectionId: string) => void;
+  suggestedMentor?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
+  onAskSuggestedMentor?: () => void;
 }
 
-export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection }: ConnectionListProps) {
+export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection, suggestedMentor, onAskSuggestedMentor }: ConnectionListProps) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -52,6 +56,16 @@ export function ConnectionList({ connections, isLoading, onSelectConnection, onN
         </div>
         New Connection
       </button>
+
+      {/* Suggested mentor for current lesson */}
+      {suggestedMentor && onAskSuggestedMentor && (
+        <SuggestedMentorBanner
+          mentor={suggestedMentor.mentor}
+          context={suggestedMentor.context}
+          variant="list"
+          onAsk={onAskSuggestedMentor}
+        />
+      )}
 
       {/* List */}
       <ScrollArea className="flex-1 px-1">

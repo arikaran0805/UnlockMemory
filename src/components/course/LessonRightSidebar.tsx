@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,7 @@ import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
 import { useMessaging } from "@/hooks/useMessaging";
-import { useDoubtSystem } from "@/hooks/useDoubtSystem";
+import { useDoubtSystem, resolveOwner } from "@/hooks/useDoubtSystem";
 import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
 import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
@@ -110,7 +110,24 @@ export function LessonRightSidebar({
     }
   }, [messaging, routeDoubt, lessonId, courseId]);
 
-  // Calculate scroll offset based on header visibility
+  // Resolve suggested mentor for current lesson
+  useEffect(() => {
+    if (!lessonId || !courseId) return;
+    const ctx = { source_type: "lesson" as const, source_id: lessonId, source_title: lessonTitle, course_id: courseId, lesson_id: lessonId };
+    resolveOwner(ctx).then((resolved) => {
+      if (resolved) {
+        messaging.setSuggestedMentor({ mentor: resolved, context: { source_type: "lesson", source_title: lessonTitle } });
+      } else {
+        messaging.setSuggestedMentor(null);
+      }
+    });
+  }, [lessonId, courseId, lessonTitle]);
+
+  const handleAskSuggestedMentor = useCallback(() => {
+    if (!messaging.suggestedMentor) return;
+    messaging.showMentorPreview(messaging.suggestedMentor.mentor, messaging.suggestedMentor.context);
+  }, [messaging]);
+
   const scrollOffset = isHeaderVisible
     ? (showAnnouncement ? 140 : 104)
     : (showAnnouncement ? 76 : 40);
@@ -345,7 +362,9 @@ export function LessonRightSidebar({
           onFetchConnections={messaging.fetchConnections}
           onDeleteConnection={messaging.deleteConnection}
           mentorPreview={messaging.mentorPreview}
+          suggestedMentor={messaging.suggestedMentor}
           onStartMentorChat={handleStartMentorChat}
+          onAskSuggestedMentor={handleAskSuggestedMentor}
         />
       )}
     </aside>

@@ -1,5 +1,5 @@
-import { useMemo, useCallback } from "react";
-import { useDoubtSystem } from "@/hooks/useDoubtSystem";
+import { useMemo, useCallback, useEffect } from "react";
+import { useDoubtSystem, resolveOwner } from "@/hooks/useDoubtSystem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -106,7 +106,24 @@ export const LearningCockpit = ({
     }
   }, [messaging, routeDoubt, lessonId, courseId]);
 
-  // Calculate scroll offset based on context
+  // Resolve suggested mentor for current lesson
+  useEffect(() => {
+    if (!lessonId || !courseId) return;
+    const ctx = { source_type: "lesson" as const, source_id: lessonId, source_title: lessonTitle, course_id: courseId, lesson_id: lessonId };
+    resolveOwner(ctx).then((resolved) => {
+      if (resolved) {
+        messaging.setSuggestedMentor({ mentor: resolved, context: { source_type: "lesson", source_title: lessonTitle } });
+      } else {
+        messaging.setSuggestedMentor(null);
+      }
+    });
+  }, [lessonId, courseId, lessonTitle]);
+
+  const handleAskSuggestedMentor = useCallback(() => {
+    if (!messaging.suggestedMentor) return;
+    messaging.showMentorPreview(messaging.suggestedMentor.mentor, messaging.suggestedMentor.context);
+  }, [messaging]);
+
   // Career Board: Primary (64px) + CareerScopedHeader (48px) = 112px base
   // Standard: Primary (64px) + Secondary (40px) = 104px base
   const scrollOffset = isCareerBoard
@@ -320,7 +337,9 @@ export const LearningCockpit = ({
         onFetchConnections={messaging.fetchConnections}
         onDeleteConnection={messaging.deleteConnection}
         mentorPreview={messaging.mentorPreview}
+        suggestedMentor={messaging.suggestedMentor}
         onStartMentorChat={handleStartMentorChat}
+        onAskSuggestedMentor={handleAskSuggestedMentor}
       />
     </>
   );

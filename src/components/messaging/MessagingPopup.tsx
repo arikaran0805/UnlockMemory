@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, MessageCircle, Minus, X, HelpCircle } from "lucide-react";
+import { SuggestedMentorBanner } from "./SuggestedMentorBanner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { ConnectionEmptyState } from "./ConnectionEmptyState";
@@ -40,7 +41,9 @@ interface MessagingPopupProps {
   onFetchConnections: () => void;
   onDeleteConnection?: (connectionId: string) => void;
   mentorPreview?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
+  suggestedMentor?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
   onStartMentorChat?: () => void;
+  onAskSuggestedMentor?: () => void;
 }
 
 export function MessagingPopup({
@@ -69,7 +72,9 @@ export function MessagingPopup({
   onFetchConnections,
   onDeleteConnection,
   mentorPreview,
+  suggestedMentor,
   onStartMentorChat,
+  onAskSuggestedMentor,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
@@ -325,6 +330,8 @@ export function MessagingPopup({
                 onSelectConnection={(id) => onOpenChat(id, lessonId)}
                 onNewConnection={() => setShowNewConnection(true)}
                 onDeleteConnection={onDeleteConnection}
+                suggestedMentor={suggestedMentor}
+                onAskSuggestedMentor={onAskSuggestedMentor}
               />
             )}
 
@@ -351,6 +358,15 @@ export function MessagingPopup({
                   onDeleteMessage={onDeleteMessage}
                   isOtherTyping={isOtherTyping}
                 />
+                {suggestedMentor && onAskSuggestedMentor && activeConnection && 
+                  (activeConnection as any).connected_user_id !== suggestedMentor.mentor.user_id && (
+                  <SuggestedMentorBanner
+                    mentor={suggestedMentor.mentor}
+                    context={suggestedMentor.context}
+                    variant="chat"
+                    onAsk={onAskSuggestedMentor}
+                  />
+                )}
                 <ChatComposer
                   onSend={onSendMessage}
                   onSendVoice={onSendVoice}
