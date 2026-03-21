@@ -305,14 +305,40 @@ const Header = ({
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {(isAdmin || isModerator) && (
+                      {(isAdmin || isModerator || isSeniorModerator || isSuperModerator) && (
                         <>
-                          <DropdownMenuItem asChild>
-                            <Link to="/admin" className="cursor-pointer">
-                              <Shield className="mr-2 h-4 w-4" />
-                              {isAdmin ? 'Admin Dashboard' : 'Moderator Dashboard'}
-                            </Link>
-                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/admin" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Admin Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {isSuperModerator && !isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/super-moderator" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Super Moderator Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {isSeniorModerator && !isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/senior-moderator" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Senior Moderator Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {isModerator && !isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/moderator" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Moderator Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                         </>
                       )}
