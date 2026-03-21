@@ -1851,7 +1851,8 @@ const Profile = () => {
       </div>
 
       {/* Arcade Section */}
-      <Card className="card-premium animate-stagger-5">
+      {/* Arcade Section - tertiary tier */}
+      <Card className="card-premium card-tertiary animate-stagger-5">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div
