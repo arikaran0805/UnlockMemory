@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -239,11 +240,26 @@ export function CourseNotesTab({
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Only show Go to Lesson for lesson-type notes */}
-                {onNavigateToLesson && selectedNote.entity_type === 'lesson' && selectedNote.lesson_id && (
+                {selectedNote.entity_type === 'lesson' && selectedNote.lesson_id && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onNavigateToLesson(selectedNote.lesson_id!)}
+                    onClick={async () => {
+                      const lessonId = selectedNote.lesson_id!;
+                      try {
+                        const [postRes, courseRes] = await Promise.all([
+                          supabase.from('posts').select('slug').eq('id', lessonId).maybeSingle(),
+                          courseId ? supabase.from('courses').select('slug').eq('id', courseId).maybeSingle() : Promise.resolve({ data: null }),
+                        ]);
+                        if (postRes.data?.slug && courseRes.data?.slug) {
+                          window.open(`/course/${courseRes.data.slug}?lesson=${postRes.data.slug}&tab=lessons`, '_blank');
+                        } else if (onNavigateToLesson) {
+                          onNavigateToLesson(lessonId);
+                        }
+                      } catch {
+                        if (onNavigateToLesson) onNavigateToLesson(lessonId);
+                      }
+                    }}
                   >
                     <BookOpen className="h-3.5 w-3.5 mr-1.5" />
                     Go to Lesson

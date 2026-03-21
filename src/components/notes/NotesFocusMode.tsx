@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -461,9 +462,25 @@ export function NotesFocusMode({
                 )}
                 
                 {/* Only show "Go to lesson" for lesson-type notes */}
-                {onNavigateToLesson && selectedNote.entity_type === 'lesson' && selectedNote.lesson_id && (
+                {selectedNote.entity_type === 'lesson' && selectedNote.lesson_id && (
                   <button
-                    onClick={() => onNavigateToLesson(selectedNote.lesson_id!)}
+                    onClick={async () => {
+                      const lessonId = selectedNote.lesson_id!;
+                      const noteCourseId = selectedNote.course_id;
+                      try {
+                        const [postRes, courseRes] = await Promise.all([
+                          supabase.from('posts').select('slug').eq('id', lessonId).maybeSingle(),
+                          supabase.from('courses').select('slug').eq('id', noteCourseId).maybeSingle(),
+                        ]);
+                        if (postRes.data?.slug && courseRes.data?.slug) {
+                          window.open(`/course/${courseRes.data.slug}?lesson=${postRes.data.slug}&tab=lessons`, '_blank');
+                        } else if (onNavigateToLesson) {
+                          onNavigateToLesson(lessonId);
+                        }
+                      } catch {
+                        if (onNavigateToLesson) onNavigateToLesson(lessonId);
+                      }
+                    }}
                     className="text-primary hover:text-primary/80 hover:underline transition-colors flex items-center gap-0.5 font-medium"
                   >
                     Go to lesson
