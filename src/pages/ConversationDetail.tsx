@@ -62,8 +62,6 @@ const ConversationDetail = () => {
   const [assignNote, setAssignNote] = useState("");
   const [showAssignPanel, setShowAssignPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState("");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
