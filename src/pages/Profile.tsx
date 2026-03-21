@@ -1413,10 +1413,10 @@ const Profile = () => {
                         >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
-                            <div className="text-primary transition-transform duration-150 group-hover:scale-110">
+                            <div className="text-primary/70 transition-transform duration-200 group-hover:scale-110">
                               {renderSkillIcon(skill.icon)}
                             </div>
-                            <span className="font-medium">{skill.skill_name}</span>
+                            <span className="font-medium" style={{ color: '#1D1D1F' }}>{skill.skill_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold tabular-nums">{skillProgress}%</span>
