@@ -25,6 +25,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -40,6 +41,13 @@ const Login = () => {
     saveRedirectPath(safeRedirectParam);
     console.log("[auth-redirect] localStorage post_auth_redirect:", peekRedirectPath());
   }, [redirectParam, safeRedirectParam]);
+
+  // Fetch logo
+  useEffect(() => {
+    supabase.from('site_settings').select('logo_url').limit(1).maybeSingle().then(({ data }) => {
+      if (data?.logo_url) setLogoUrl(data.logo_url);
+    });
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -190,10 +198,14 @@ const Login = () => {
         
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12">
           <Link to="/" className="flex items-center gap-3 mb-12">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary shadow-glow">
-              <span className="text-3xl font-black text-primary-foreground">U</span>
-            </div>
-            <span className="text-3xl font-black text-foreground">UnlockMemory</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt="UnlockMemory" className="h-12 w-auto" />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-glow">
+                <span className="text-3xl font-black text-primary-foreground">U</span>
+              </div>
+            )}
+            <span className="text-3xl tracking-[-0.02em] text-foreground"><span className="font-medium">Unlock</span><span className="font-bold">Memory</span></span>
           </Link>
 
           <div className="relative w-80 h-96 mb-12">
@@ -238,10 +250,14 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
           <Link to="/" className="flex lg:hidden items-center justify-center gap-3 mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-              <span className="text-2xl font-bold text-primary-foreground">U</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground">UnlockMemory</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt="UnlockMemory" className="h-10 w-auto" />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-glow">
+                <span className="text-2xl font-bold text-primary-foreground">U</span>
+              </div>
+            )}
+            <span className="text-2xl tracking-[-0.02em] text-foreground"><span className="font-medium">Unlock</span><span className="font-bold">Memory</span></span>
           </Link>
 
           {roleChangedReason && (

@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { trackSocialMediaClick } from "@/lib/socialAnalytics";
 
 const Footer = () => {
-  const [siteName, setSiteName] = useState("EmojiLearn");
+  const [siteName, setSiteName] = useState("UnlockMemory");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [siteDescription, setSiteDescription] = useState("Learn through visuals that stick.");
   const [footerCategories, setFooterCategories] = useState<any[]>([]);
   const [socialLinks, setSocialLinks] = useState({
@@ -26,12 +27,13 @@ const Footer = () => {
   const fetchSiteSettings = async () => {
     const { data } = await supabase
       .from("site_settings")
-      .select("site_name, site_description, twitter_url, facebook_url, instagram_url, linkedin_url, youtube_url, github_url")
+      .select("site_name, site_description, logo_url, twitter_url, facebook_url, instagram_url, linkedin_url, youtube_url, github_url")
       .limit(1)
       .maybeSingle();
 
     if (data) {
-      setSiteName(data.site_name || "EmojiLearn");
+      setSiteName(data.site_name || "UnlockMemory");
+      setLogoUrl(data.logo_url || null);
       setSiteDescription(data.site_description || "Learn through visuals that stick.");
       setSocialLinks({
         twitter: data.twitter_url || "",
@@ -63,12 +65,18 @@ const Footer = () => {
         <div className="py-12 grid grid-cols-1 md:grid-cols-12 gap-12">
           {/* Brand Column */}
           <div className="md:col-span-4 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-foreground flex items-center justify-center">
-                <span className="text-2xl">📖</span>
-              </div>
-              <span className="text-2xl font-black text-foreground">{siteName}</span>
-            </div>
+            <Link to="/" className="flex items-center gap-3">
+              {logoUrl ? (
+                <img src={logoUrl} alt={siteName} className="h-10 w-auto" />
+              ) : (
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                  <span className="text-lg font-black text-primary-foreground">{siteName.charAt(0)}</span>
+                </div>
+              )}
+              <span className="text-xl tracking-[-0.02em] text-foreground">
+                <span className="font-medium">Unlock</span><span className="font-semibold">Memory</span>
+              </span>
+            </Link>
             <p className="text-muted-foreground leading-relaxed max-w-sm">
               {siteDescription}
             </p>
