@@ -334,6 +334,8 @@ export function MessagingPopup({
                 />
                 <ChatComposer
                   onSend={onSendMessage}
+                  onSendVoice={onSendVoice}
+                  onSendAttachment={onSendAttachment}
                   isSending={isSending}
                   placeholder="Ask about this lesson..."
                   onTyping={emitTyping}
