@@ -11,9 +11,10 @@ interface ConnectionListProps {
   isLoading: boolean;
   onSelectConnection: (connectionId: string) => void;
   onNewConnection: () => void;
+  onDeleteConnection?: (connectionId: string) => void;
 }
 
-export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection }: ConnectionListProps) {
+export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection }: ConnectionListProps) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -75,6 +76,7 @@ export function ConnectionList({ connections, isLoading, onSelectConnection, onN
                 key={conn.id}
                 connection={conn}
                 onClick={() => onSelectConnection(conn.id)}
+                onDelete={onDeleteConnection}
               />
             ))
           )}

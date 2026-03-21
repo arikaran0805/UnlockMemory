@@ -28,6 +28,7 @@ interface MessagingPopupProps {
   onBackToList: () => void;
   onSetView: (view: MessagingView) => void;
   onFetchConnections: () => void;
+  onDeleteConnection?: (connectionId: string) => void;
 }
 
 export function MessagingPopup({
@@ -48,6 +49,7 @@ export function MessagingPopup({
   onBackToList,
   onSetView,
   onFetchConnections,
+  onDeleteConnection,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
 
@@ -167,6 +169,7 @@ export function MessagingPopup({
                 isLoading={isLoading}
                 onSelectConnection={(id) => onOpenChat(id, lessonId)}
                 onNewConnection={() => setShowNewConnection(true)}
+                onDeleteConnection={onDeleteConnection}
               />
             )}
 

@@ -364,7 +364,8 @@ export function LessonRightSidebar({
           onClose={messaging.close}
           onBackToList={messaging.backToList}
           onSetView={messaging.setView}
-          onFetchConnections={messaging.fetchConnections}
+           onFetchConnections={messaging.fetchConnections}
+           onDeleteConnection={messaging.deleteConnection}
         />
       )}
     </aside>
