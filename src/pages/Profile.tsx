@@ -1572,8 +1572,31 @@ const Profile = () => {
                         );
                       })()}
 
-                      {/* Bottom CTA with contextual subtext */}
-                      
+                      {/* Bottom CTA */}
+                      <div className="flex flex-col items-center mt-5">
+                        <Button 
+                          className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                          style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
+                          onClick={() => {
+                            if (career) {
+                              if (skills.length > 0) {
+                                const courseInfo = getCourseForSkill(career.id, skills[0].skill_name);
+                                if (courseInfo) {
+                                  navigateToCourseInCareerBoard(career.slug, courseInfo.courseSlug);
+                                  return;
+                                }
+                              }
+                              navigate(`/career-board/${career.slug}`);
+                              return;
+                            }
+                            navigate('/arcade');
+                          }}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          Career Board
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   );
                 })()}
