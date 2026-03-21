@@ -94,17 +94,9 @@ const ConversationDetail = () => {
       .eq("id", messageId)
       .eq("sender_user_id", userId);
     if (!error) {
-      setEditingMsgId(null);
-      setEditingText("");
-      // Refetch to update UI
-      await (thread && void 0); // no-op to keep consistent
-      // Optimistic update
-      const updatedMessages = messages.map((m) =>
-        m.id === messageId ? { ...m, message_content: newText.trim() } : m
-      );
-      // We need to use the refetch from the hook instead
+      await refetch();
     }
-  }, [userId, messages]);
+  }, [userId, refetch]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!userId) return;
@@ -113,7 +105,8 @@ const ConversationDetail = () => {
       .delete()
       .eq("id", messageId)
       .eq("sender_user_id", userId);
-  }, [userId]);
+    await refetch();
+  }, [userId, refetch]);
 
   if (isLoading) {
     return (
