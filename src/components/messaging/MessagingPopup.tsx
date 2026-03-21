@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, MessageCircle, Minus, X } from "lucide-react";
+import { ArrowLeft, MessageCircle, Minus, X, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { ConnectionEmptyState } from "./ConnectionEmptyState";
@@ -9,8 +9,10 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatComposer } from "./ChatComposer";
 import { MessagingCollapsedBar } from "./MessagingCollapsedBar";
 import { NewConnectionContent } from "./NewConnectionModal";
+import { MentorPreviewContent } from "./MentorPreviewContent";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import type { MessagingView, ConnectionWithConversation, ChatMessage } from "@/hooks/useMessaging";
+import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
 
 interface MessagingPopupProps {
   view: MessagingView;
