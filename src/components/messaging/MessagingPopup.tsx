@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, MessageCircle, Minus, X, HelpCircle } from "lucide-react";
+import { SuggestedMentorBanner } from "./SuggestedMentorBanner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { ConnectionEmptyState } from "./ConnectionEmptyState";
