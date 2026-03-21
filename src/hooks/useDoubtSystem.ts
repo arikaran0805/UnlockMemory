@@ -55,9 +55,7 @@ export interface ResolvedOwner {
 async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner | null> {
   const { course_id, post_id, source_type } = context;
 
-  // 1. Try course-level assignment (direct owner)
   if (course_id) {
-    // Check default_senior_moderator on the course
     const { data: course } = await supabase
       .from("courses")
       .select("assigned_to, default_senior_moderator, author_id")
@@ -65,60 +63,39 @@ async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner 
       .maybeSingle();
 
     if (course) {
-      // Try assigned_to first (direct moderator)
       if (course.assigned_to) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, avatar_url")
           .eq("id", course.assigned_to)
           .maybeSingle();
         if (profile) {
-          return {
-            user_id: profile.id,
-            user_name: profile.full_name || "Moderator",
-            role: "moderator",
-            routed_mode: "direct_owner",
-          };
+          return { user_id: profile.id, user_name: profile.full_name || "Moderator", avatar_url: profile.avatar_url, role: "moderator", routed_mode: "direct_owner" };
         }
       }
-
-      // Try default_senior_moderator
       if (course.default_senior_moderator) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, avatar_url")
           .eq("id", course.default_senior_moderator)
           .maybeSingle();
         if (profile) {
-          return {
-            user_id: profile.id,
-            user_name: profile.full_name || "Senior Moderator",
-            role: "senior_moderator",
-            routed_mode: "team_queue",
-          };
+          return { user_id: profile.id, user_name: profile.full_name || "Senior Moderator", avatar_url: profile.avatar_url, role: "senior_moderator", routed_mode: "team_queue" };
         }
       }
-
-      // Try author_id
       if (course.author_id) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, avatar_url")
           .eq("id", course.author_id)
           .maybeSingle();
         if (profile) {
-          return {
-            user_id: profile.id,
-            user_name: profile.full_name || "Author",
-            role: "moderator",
-            routed_mode: "direct_owner",
-          };
+          return { user_id: profile.id, user_name: profile.full_name || "Author", avatar_url: profile.avatar_url, role: "moderator", routed_mode: "direct_owner" };
         }
       }
     }
   }
 
-  // 2. Try post-level assignment
   if (post_id || source_type === "post") {
     const pid = post_id || context.source_id;
     const { data: post } = await supabase
@@ -130,27 +107,19 @@ async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner 
     if (post?.author_id) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, avatar_url")
         .eq("id", post.author_id)
         .maybeSingle();
       if (profile) {
-        return {
-          user_id: profile.id,
-          user_name: profile.full_name || "Author",
-          role: "moderator",
-          routed_mode: "direct_owner",
-        };
+        return { user_id: profile.id, user_name: profile.full_name || "Author", avatar_url: profile.avatar_url, role: "moderator", routed_mode: "direct_owner" };
       }
     }
-
-    // If post has a category_id (course), try that course's owner
     if (post?.category_id && !course_id) {
       const resolved = await resolveOwner({ ...context, course_id: post.category_id });
       if (resolved) return resolved;
     }
   }
 
-  // 3. Fallback: find any super moderator
   const { data: superMods } = await supabase
     .from("user_roles")
     .select("user_id")
@@ -160,20 +129,14 @@ async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner 
   if (superMods && superMods.length > 0) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, avatar_url")
       .eq("id", superMods[0].user_id)
       .maybeSingle();
     if (profile) {
-      return {
-        user_id: profile.id,
-        user_name: profile.full_name || "Super Moderator",
-        role: "super_moderator",
-        routed_mode: "fallback_queue",
-      };
+      return { user_id: profile.id, user_name: profile.full_name || "Super Moderator", avatar_url: profile.avatar_url, role: "super_moderator", routed_mode: "fallback_queue" };
     }
   }
 
-  // 4. Fallback: find any admin
   const { data: admins } = await supabase
     .from("user_roles")
     .select("user_id")
@@ -183,16 +146,11 @@ async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner 
   if (admins && admins.length > 0) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, avatar_url")
       .eq("id", admins[0].user_id)
       .maybeSingle();
     if (profile) {
-      return {
-        user_id: profile.id,
-        user_name: profile.full_name || "Admin",
-        role: "senior_moderator",
-        routed_mode: "fallback_queue",
-      };
+      return { user_id: profile.id, user_name: profile.full_name || "Admin", avatar_url: profile.avatar_url, role: "senior_moderator", routed_mode: "fallback_queue" };
     }
   }
 
