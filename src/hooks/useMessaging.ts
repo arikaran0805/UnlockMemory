@@ -307,28 +307,62 @@ export function useMessaging(userId: string | undefined) {
 
   const deleteConnection = useCallback(async (connectionId: string) => {
     if (!userId) return;
-    // Delete related conversations & messages first, then the connection
-    const { data: convos } = await supabase
+
+    const { data: convos, error: convoLookupError } = await supabase
       .from("conversations")
       .select("id")
-      .eq("connection_id", connectionId);
-    
+      .eq("connection_id", connectionId)
+      .eq("learner_id", userId);
+
+    if (convoLookupError) {
+      console.error("Failed to look up conversations for deletion:", convoLookupError);
+      return;
+    }
+
     if (convos && convos.length > 0) {
       const convoIds = convos.map((c) => c.id);
-      await supabase.from("conversation_messages").delete().in("conversation_id", convoIds);
-      await supabase.from("conversations").delete().eq("connection_id", connectionId);
+
+      const { error: messagesDeleteError } = await supabase
+        .from("conversation_messages")
+        .delete()
+        .in("conversation_id", convoIds);
+
+      if (messagesDeleteError) {
+        console.error("Failed to delete conversation messages:", messagesDeleteError);
+        return;
+      }
+
+      const { error: conversationsDeleteError } = await supabase
+        .from("conversations")
+        .delete()
+        .eq("connection_id", connectionId)
+        .eq("learner_id", userId);
+
+      if (conversationsDeleteError) {
+        console.error("Failed to delete conversations:", conversationsDeleteError);
+        return;
+      }
     }
-    
-    await supabase.from("team_connections").delete().eq("id", connectionId).eq("learner_id", userId);
-    
-    // If we were viewing this connection, go back to list
+
+    const { error: connectionDeleteError } = await supabase
+      .from("team_connections")
+      .delete()
+      .eq("id", connectionId)
+      .eq("learner_id", userId);
+
+    if (connectionDeleteError) {
+      console.error("Failed to delete connection:", connectionDeleteError);
+      return;
+    }
+
     if (activeConnectionId === connectionId) {
       setActiveConnectionId(null);
       setActiveConversation(null);
       setMessages([]);
+      setView("list");
     }
-    
-    fetchConnections();
+
+    await fetchConnections();
   }, [userId, activeConnectionId, fetchConnections]);
 
   return {
