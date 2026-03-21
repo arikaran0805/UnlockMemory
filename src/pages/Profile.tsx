@@ -1248,7 +1248,7 @@ const Profile = () => {
   
   const readinessPercentage = calculateWeightedReadiness();
 
-  // Determine focus message based on progress
+  // Determine focus message and active course based on progress
   const getFocusContent = () => {
     // Find first incomplete course in career path
     const incompleteCourse = careerEnrolledCourses.find(e => {
@@ -1264,6 +1264,9 @@ const Profile = () => {
         message: `Complete ${incompleteCourse.courses?.name}`,
         subtext: estimatedMins > 0 ? `~${Math.ceil(estimatedMins / 60)}h remaining` : "Almost there!",
         currentCourse: incompleteCourse.courses?.name,
+        activeCourseSlug: incompleteCourse.courses?.slug as string | undefined,
+        activeCourseId: incompleteCourse.courses?.id as string | undefined,
+        activeCourseName: incompleteCourse.courses?.name as string | undefined,
       };
     }
     
@@ -1272,6 +1275,9 @@ const Profile = () => {
         message: "Build your foundation",
         subtext: `Reach ${30}% career readiness`,
         currentCourse: undefined,
+        activeCourseSlug: undefined,
+        activeCourseId: undefined,
+        activeCourseName: undefined,
       };
     }
     
@@ -1280,6 +1286,9 @@ const Profile = () => {
         message: "Strengthen your skills",
         subtext: `Reach interview-ready status`,
         currentCourse: undefined,
+        activeCourseSlug: undefined,
+        activeCourseId: undefined,
+        activeCourseName: undefined,
       };
     }
     
@@ -1287,6 +1296,9 @@ const Profile = () => {
       message: "Keep the momentum",
       subtext: "You're doing great!",
       currentCourse: undefined,
+      activeCourseSlug: undefined,
+      activeCourseId: undefined,
+      activeCourseName: undefined,
     };
   };
   
