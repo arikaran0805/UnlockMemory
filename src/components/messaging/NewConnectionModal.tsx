@@ -16,7 +16,7 @@ interface NewConnectionContentProps {
   onConnect: (type: string, name: string) => void;
   courseId?: string;
   userId?: string;
-  onDirectConnect?: (targetUserId: string, displayName: string, roleLabel: string, avatarUrl: string | null) => void;
+  onDirectConnect?: (connectionId: string) => void;
 }
 
 interface NewConnectionModalProps extends Omit<NewConnectionContentProps, 'courseId' | 'userId' | 'onDirectConnect'> {
