@@ -356,10 +356,10 @@ export function useMessaging(userId: string | undefined) {
               if (prev.find((m) => m.id === newMsg.id)) return prev;
               return [...prev, newMsg];
             });
-            // Mark as delivered immediately since we received it
+            // Mark as seen immediately since chat is open
             supabase
               .from("conversation_messages")
-              .update({ delivery_status: "delivered", delivered_at: new Date().toISOString() } as any)
+              .update({ delivery_status: "seen", delivered_at: new Date().toISOString(), seen_at: new Date().toISOString(), is_read: true })
               .eq("id", newMsg.id)
               .then(() => {});
           }
