@@ -106,11 +106,11 @@ export const ProfileWeeklyActivityCard = ({
   }
 
   return (
-    <Card className={cn("card-premium", className)}>
-      <CardContent className="p-5">
-        <div className="space-y-0.5 mb-5">
-          <h3 className="text-lg font-semibold tracking-[-0.01em]">Weekly Activity</h3>
-          <p className="text-xs text-muted-foreground font-medium">Time spent per day (hrs)</p>
+    <Card className={cn("card-premium card-tertiary", className)}>
+      <CardContent className="p-6">
+        <div className="space-y-0.5 mb-6">
+          <h3 className="text-lg font-semibold tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>Weekly Activity</h3>
+          <p className="text-xs font-medium" style={{ color: '#6E6E73' }}>Time spent per day (hrs)</p>
         </div>
 
         <TooltipProvider delayDuration={100}>
