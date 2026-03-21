@@ -1822,8 +1822,8 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold tracking-[-0.01em]" style={{ color: '#1C2E25' }}>AI Mentor</h3>
-                  <p className="text-sm font-normal" style={{ color: '#6B7F73' }}>
+                  <h3 className="text-lg font-bold tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>AI Mentor</h3>
+                  <p className="text-sm font-normal" style={{ color: '#6E6E73' }}>
                     Your personal learning assistant
                   </p>
                 </div>
