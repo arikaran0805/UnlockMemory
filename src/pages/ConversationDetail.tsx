@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useThreadDetail } from "@/hooks/useConversationThreads";
@@ -55,6 +55,11 @@ const ConversationDetail = () => {
   const [selectedModerator, setSelectedModerator] = useState("");
   const [assignNote, setAssignNote] = useState("");
   const [showAssignPanel, setShowAssignPanel] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length]);
 
   const handleSendReply = async () => {
     if (!replyText.trim()) return;
@@ -151,6 +156,7 @@ const ConversationDetail = () => {
                     <p className="text-sm text-muted-foreground">No messages yet</p>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Reply Composer */}
