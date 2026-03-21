@@ -874,10 +874,13 @@ export type Database = {
           attachment_url: string | null
           conversation_id: string
           created_at: string
+          delivered_at: string | null
+          delivery_status: string | null
           id: string
           is_read: boolean
           message_text: string | null
           message_type: string
+          seen_at: string | null
           sender_id: string
           sender_type: string
         }
@@ -887,10 +890,13 @@ export type Database = {
           attachment_url?: string | null
           conversation_id: string
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           id?: string
           is_read?: boolean
           message_text?: string | null
           message_type?: string
+          seen_at?: string | null
           sender_id: string
           sender_type?: string
         }
@@ -900,10 +906,13 @@ export type Database = {
           attachment_url?: string | null
           conversation_id?: string
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           id?: string
           is_read?: boolean
           message_text?: string | null
           message_type?: string
+          seen_at?: string | null
           sender_id?: string
           sender_type?: string
         }
@@ -3253,8 +3262,10 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_online: boolean | null
           last_activity_date: string | null
           last_freeze_date: string | null
+          last_seen_at: string | null
           max_streak: number | null
           selected_career: string | null
           streak_freezes_available: number
@@ -3269,8 +3280,10 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          is_online?: boolean | null
           last_activity_date?: string | null
           last_freeze_date?: string | null
+          last_seen_at?: string | null
           max_streak?: number | null
           selected_career?: string | null
           streak_freezes_available?: number
@@ -3285,8 +3298,10 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_online?: boolean | null
           last_activity_date?: string | null
           last_freeze_date?: string | null
+          last_seen_at?: string | null
           max_streak?: number | null
           selected_career?: string | null
           streak_freezes_available?: number

@@ -126,12 +126,25 @@ export default {
             opacity: "0",
           },
         },
+        "typing-dot": {
+          "0%, 60%, 100%": {
+            opacity: "0.3",
+            transform: "scale(0.8)",
+          },
+          "30%": {
+            opacity: "1",
+            transform: "scale(1)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "gradient-shift": "gradient-shift 3s ease-in-out infinite",
         "typing": "typing 4s steps(30) infinite",
+        "typing-1": "typing-dot 1.4s ease-in-out infinite",
+        "typing-2": "typing-dot 1.4s ease-in-out 0.2s infinite",
+        "typing-3": "typing-dot 1.4s ease-in-out 0.4s infinite",
       },
     },
   },

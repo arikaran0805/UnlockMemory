@@ -274,6 +274,7 @@ export const LearningCockpit = ({
         view={messaging.view}
         connections={messaging.connections}
         activeConnection={messaging.activeConnection}
+        activeConversationId={messaging.activeConversationId}
         messages={messaging.messages}
         isLoading={messaging.isLoading}
         isSending={messaging.isSending}

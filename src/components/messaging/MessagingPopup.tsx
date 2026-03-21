@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, MessageCircle, Minus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { ConnectionEmptyState } from "./ConnectionEmptyState";
 import { ConnectionList } from "./ConnectionList";
 import { ChatHeader } from "./ChatHeader";
@@ -8,12 +9,14 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatComposer } from "./ChatComposer";
 import { MessagingCollapsedBar } from "./MessagingCollapsedBar";
 import { NewConnectionContent } from "./NewConnectionModal";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import type { MessagingView, ConnectionWithConversation, ChatMessage } from "@/hooks/useMessaging";
 
 interface MessagingPopupProps {
   view: MessagingView;
   connections: ConnectionWithConversation[];
   activeConnection: ConnectionWithConversation | null;
+  activeConversationId?: string | null;
   messages: ChatMessage[];
   isLoading: boolean;
   isSending: boolean;
@@ -38,6 +41,7 @@ export function MessagingPopup({
   view,
   connections,
   activeConnection,
+  activeConversationId,
   messages,
   isLoading,
   isSending,
@@ -60,6 +64,28 @@ export function MessagingPopup({
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
 
+  // Typing indicator
+  const { isOtherTyping, emitTyping, stopTyping } = useTypingIndicator(
+    activeConversationId || null,
+    userId
+  );
+
+  // Mark messages as seen when chat is open
+  useEffect(() => {
+    if (view !== "chat" || !activeConversationId || !userId) return;
+    const unreadMessages = messages.filter(
+      (m) => m.sender_id !== userId && (m as any).delivery_status !== "seen"
+    );
+    if (unreadMessages.length === 0) return;
+
+    const ids = unreadMessages.map((m) => m.id);
+    supabase
+      .from("conversation_messages")
+      .update({ delivery_status: "seen", seen_at: new Date().toISOString(), is_read: true } as any)
+      .in("id", ids)
+      .then(() => {});
+  }, [view, activeConversationId, messages, userId]);
+
   if (view === "closed") return null;
 
   if (view === "collapsed") {
@@ -74,8 +100,6 @@ export function MessagingPopup({
 
     setIsAutoConnecting(true);
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-
       // Find the course with author, assigned_to, and default_senior_moderator
       const { data: course } = await supabase
         .from("courses")
@@ -88,11 +112,8 @@ export function MessagingPopup({
         return;
       }
 
-      // Priority: default_senior_moderator > assigned_to > author_id
-      // Also check if the course belongs to a team via course_assignments
       let targetUserId = course.default_senior_moderator || course.assigned_to || course.author_id;
 
-      // If no direct author, check team assignment
       if (!targetUserId) {
         const { data: teamAssignment } = await supabase
           .from("course_assignments")
@@ -103,13 +124,11 @@ export function MessagingPopup({
           .maybeSingle();
 
         if (teamAssignment?.team_id) {
-          // Get the team's senior moderator
           const { data: team } = await supabase
             .from("teams")
             .select("senior_moderator_user_id")
             .eq("id", teamAssignment.team_id)
             .single();
-
           targetUserId = team?.senior_moderator_user_id || null;
         }
       }
@@ -119,7 +138,6 @@ export function MessagingPopup({
         return;
       }
 
-      // Check if connection already exists
       const { data: existing } = await supabase
         .from("team_connections")
         .select("id")
@@ -134,17 +152,9 @@ export function MessagingPopup({
         return;
       }
 
-      // Get profile and roles in parallel
       const [profileRes, rolesRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, avatar_url")
-          .eq("id", targetUserId)
-          .single(),
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", targetUserId),
+        supabase.from("profiles").select("full_name, avatar_url").eq("id", targetUserId).single(),
+        supabase.from("user_roles").select("role").eq("user_id", targetUserId),
       ]);
 
       const profile = profileRes.data;
@@ -155,7 +165,6 @@ export function MessagingPopup({
           ? "Moderator"
           : "Instructor";
 
-      // Create connection
       const { data: newConn } = await supabase
         .from("team_connections")
         .insert({
@@ -186,7 +195,6 @@ export function MessagingPopup({
   };
 
   const handleNewConnection = async (type: string, name: string) => {
-    const { supabase } = await import("@/integrations/supabase/client");
     await supabase.from("team_connections").insert({
       learner_id: userId,
       connection_type: type,
@@ -273,6 +281,7 @@ export function MessagingPopup({
           onBack={onBackToList}
           onCollapse={onCollapse}
           onClose={onClose}
+          isOtherTyping={isOtherTyping}
         />
       )}
 
@@ -284,7 +293,6 @@ export function MessagingPopup({
               courseId={courseId}
               userId={userId}
               onDirectConnect={async (connectionId: string) => {
-                // Go straight to chat — don't show list in between
                 onOpenChat(connectionId, lessonId);
                 setShowNewConnection(false);
                 onFetchConnections();
@@ -318,11 +326,14 @@ export function MessagingPopup({
                   isLoading={isLoading}
                   onEditMessage={onEditMessage}
                   onDeleteMessage={onDeleteMessage}
+                  isOtherTyping={isOtherTyping}
                 />
                 <ChatComposer
                   onSend={onSendMessage}
                   isSending={isSending}
                   placeholder="Ask about this lesson..."
+                  onTyping={emitTyping}
+                  onStopTyping={stopTyping}
                 />
               </>
             )}

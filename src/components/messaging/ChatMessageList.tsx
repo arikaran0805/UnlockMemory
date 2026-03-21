@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "./ChatMessageBubble";
+import { TypingIndicator } from "./TypingIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChatMessage } from "@/hooks/useMessaging";
 
@@ -10,14 +11,15 @@ interface ChatMessageListProps {
   isLoading: boolean;
   onEditMessage?: (messageId: string, newText: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  isOtherTyping?: boolean;
 }
 
-export function ChatMessageList({ messages, currentUserId, isLoading, onEditMessage, onDeleteMessage }: ChatMessageListProps) {
+export function ChatMessageList({ messages, currentUserId, isLoading, onEditMessage, onDeleteMessage, isOtherTyping }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, isOtherTyping]);
 
   if (isLoading) {
     return (
@@ -31,7 +33,7 @@ export function ChatMessageList({ messages, currentUserId, isLoading, onEditMess
     );
   }
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !isOtherTyping) {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
@@ -61,6 +63,7 @@ export function ChatMessageList({ messages, currentUserId, isLoading, onEditMess
             onDelete={onDeleteMessage}
           />
         ))}
+        {isOtherTyping && <TypingIndicator />}
         <div ref={bottomRef} />
       </div>
     </ScrollArea>
