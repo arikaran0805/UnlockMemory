@@ -1736,37 +1736,64 @@ const Profile = () => {
               
               <div className="space-y-3">
                 {/* Lesson Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                <div 
+                  onClick={todaysFocus.handleContinueLearning}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+                >
                   <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
                     <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">Continue Learning</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{focusContent.message}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {todaysFocus.nextLesson 
+                        ? todaysFocus.nextLesson.title 
+                        : todaysFocus.hasActiveCourse 
+                          ? "All lessons completed!" 
+                          : "Start your learning journey"}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
 
                 {/* MCQ Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/4 border border-amber-500/8 hover:bg-amber-500/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                <div 
+                  onClick={todaysFocus.handleDailyQuiz}
+                  className={`flex items-center gap-3 p-3 rounded-2xl bg-amber-500/4 border border-amber-500/8 transition-all duration-200 ${
+                    todaysFocus.hasCompletedLessons ? 'hover:bg-amber-500/8 cursor-pointer hover:-translate-y-0.5' : 'opacity-60 cursor-default'
+                  }`}
+                >
                   <div className="w-9 h-9 rounded-xl bg-amber-500/8 flex items-center justify-center shrink-0">
                     <HelpCircle className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">Daily Quiz</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Test your knowledge with MCQs</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {todaysFocus.hasCompletedLessons 
+                        ? "Test your knowledge with MCQs" 
+                        : "Complete lessons to unlock quiz"}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
 
                 {/* Debug & Practice Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 hover:bg-violet-500/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                <div 
+                  onClick={todaysFocus.handleDebugPractice}
+                  className={`flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 transition-all duration-200 ${
+                    todaysFocus.nextLesson ? 'hover:bg-violet-500/8 cursor-pointer hover:-translate-y-0.5' : 'opacity-60 cursor-default'
+                  }`}
+                >
                   <div className="w-9 h-9 rounded-xl bg-violet-500/8 flex items-center justify-center shrink-0">
                     <Code className="h-4 w-4 text-violet-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">Debug & Practice</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Hands-on coding challenges</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {todaysFocus.nextLesson 
+                        ? "Hands-on coding challenges" 
+                        : "No practice available for today"}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
