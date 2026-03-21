@@ -2066,7 +2066,7 @@ const Profile = () => {
     );
 
     return (
-      <div className="space-y-8 -mx-4 -mt-4 px-8 pt-8 pb-8 min-h-[calc(100vh-2rem)]" style={{ background: 'linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%)' }}>
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -2882,7 +2882,7 @@ const Profile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' || activeTab === 'learnings' ? 'dashboard-bg' : 'bg-background'}`}>
+        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' || activeTab === 'learnings' || activeTab === 'bookmarks' ? 'dashboard-bg' : 'bg-background'}`}>
           {/* Sidebar - hidden for Practice Lab */}
           {activeTab !== 'practice' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
