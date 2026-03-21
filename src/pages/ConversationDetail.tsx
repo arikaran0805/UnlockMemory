@@ -409,10 +409,13 @@ const ConversationDetail = () => {
   );
 };
 
-function MessageBubble({ message, currentUserId }: { message: ThreadMessage; currentUserId: string }) {
+function MessageBubble({ message, currentUserId, onEdit, onDelete }: { message: ThreadMessage; currentUserId: string; onEdit?: (id: string, text: string) => void; onDelete?: (id: string) => void }) {
   const isOwn = message.sender_user_id === currentUserId;
   const isSystem = message.message_type === "system_event";
   const isInternal = message.message_type === "internal_note";
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(message.message_content);
+  const [showActions, setShowActions] = useState(false);
 
   if (isSystem) {
     return (
@@ -445,7 +448,32 @@ function MessageBubble({ message, currentUserId }: { message: ThreadMessage; cur
       : "Moderator";
 
   return (
-    <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+    <div
+      className={cn("flex group", isOwn ? "justify-end" : "justify-start")}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => { if (!isEditing) setShowActions(false); }}
+    >
+      {/* Action buttons for own messages */}
+      {isOwn && showActions && !isEditing && (
+        <div className="flex items-center gap-0.5 mr-1 self-center">
+          {onEdit && (
+            <button
+              onClick={() => { setIsEditing(true); setEditText(message.message_content); }}
+              className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground transition-colors"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(message.id)}
+              className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
       <div className={cn(
         "max-w-[80%] rounded-2xl px-4 py-2.5",
         isOwn
@@ -462,7 +490,38 @@ function MessageBubble({ message, currentUserId }: { message: ThreadMessage; cur
             {isOwn ? "You" : message.sender_name} · {roleLabel}
           </span>
         </div>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message_content}</p>
+        {isEditing ? (
+          <div className="space-y-1.5">
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="w-full bg-background/80 text-foreground text-sm rounded-lg px-2 py-1.5 border border-border/40 resize-none focus:outline-none focus:ring-1 focus:ring-primary/30"
+              rows={2}
+              autoFocus
+            />
+            <div className="flex gap-1 justify-end">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  if (editText.trim() && onEdit) {
+                    onEdit(message.id, editText.trim());
+                    setIsEditing(false);
+                  }
+                }}
+                className="p-1 rounded-md hover:bg-primary/20 text-primary"
+              >
+                <Check className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message_content}</p>
+        )}
         <p className={cn(
           "text-[10px] mt-1",
           isOwn ? "text-primary-foreground/50" : "text-muted-foreground/60"
