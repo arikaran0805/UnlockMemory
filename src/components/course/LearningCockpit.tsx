@@ -251,18 +251,32 @@ export const LearningCockpit = ({
                   Need help?
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-4 pb-4 pt-0">
+              <CardContent className="px-4 pb-4 pt-0 space-y-2">
                 <p className="text-sm text-muted-foreground mb-3">
                   Stuck here? Ask a question about this lesson.
                 </p>
-                <Button
+                <AskDoubtButton
+                  context={{
+                    source_type: "lesson",
+                    source_id: lessonId || "",
+                    source_title: lessonTitle,
+                    course_id: courseId,
+                    lesson_id: lessonId,
+                  }}
                   variant="outline"
                   size="sm"
                   className="w-full text-sm border-border/60 bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors duration-200"
+                  label="Ask a Doubt"
+                  messaging={messaging}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-sm text-muted-foreground hover:text-foreground"
                   onClick={() => messaging.openMessaging(lessonId)}
                 >
-                  <HelpCircle className="h-3.5 w-3.5 mr-2" />
-                  Ask a Question
+                  <MessageSquareCode className="h-3.5 w-3.5 mr-2" />
+                  Open Chat
                 </Button>
               </CardContent>
             </Card>

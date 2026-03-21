@@ -54,6 +54,7 @@ const SeniorModeratorRoutes = () => {
           <Route path="users" element={<AdminUsers />} />
           <Route path="message-requests" element={<SeniorModeratorMessageRequests />} />
           <Route path="message-requests/:id" element={<ConversationDetail />} />
+          <Route path="doubts" element={<StaffDoubts />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SeniorModeratorLayout>
