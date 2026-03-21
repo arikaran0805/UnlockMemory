@@ -362,7 +362,9 @@ export function LessonRightSidebar({
           onFetchConnections={messaging.fetchConnections}
           onDeleteConnection={messaging.deleteConnection}
           mentorPreview={messaging.mentorPreview}
+          suggestedMentor={messaging.suggestedMentor}
           onStartMentorChat={handleStartMentorChat}
+          onAskSuggestedMentor={handleAskSuggestedMentor}
         />
       )}
     </aside>
