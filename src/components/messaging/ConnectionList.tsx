@@ -11,6 +11,7 @@ interface ConnectionListProps {
   isLoading: boolean;
   onSelectConnection: (connectionId: string) => void;
   onNewConnection: () => void;
+  onDeleteConnection?: (connectionId: string) => void;
 }
 
 export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection }: ConnectionListProps) {
