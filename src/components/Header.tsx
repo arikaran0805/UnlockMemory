@@ -205,16 +205,16 @@ const Header = ({
         <div className="container mx-auto px-6 lg:px-12">
           <div className="flex h-16 items-center justify-between">
             {/* Logo and Brand */}
-            <Link to="/" className="flex items-center gap-[10px] group relative transition-transform duration-200 ease-out hover:scale-[1.03]">
+            <Link to="/" className="flex items-center gap-3 group relative transition-transform duration-200 ease-out hover:scale-[1.03]">
               {siteSettings.logo_url ? (
                 <img 
                   src={siteSettings.logo_url} 
                   alt={siteSettings.site_name} 
-                  className="h-8 sm:h-8 md:h-9 w-auto transition-all duration-200" 
+                  className="h-9 sm:h-9 md:h-10 w-auto transition-all duration-200" 
                 />
               ) : (
-                <div className="relative flex h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-xl bg-primary shadow-sm transition-all duration-200">
-                  <span className="text-base sm:text-lg md:text-xl font-black text-primary-foreground">
+                <div className="relative flex h-9 w-9 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-xl bg-primary shadow-sm transition-all duration-200">
+                  <span className="text-lg sm:text-lg md:text-xl font-black text-primary-foreground">
                     {siteSettings.site_name.charAt(0)}
                   </span>
                 </div>
