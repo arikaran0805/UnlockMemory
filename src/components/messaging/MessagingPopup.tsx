@@ -279,24 +279,10 @@ export function MessagingPopup({
               onConnect={handleNewConnection}
               courseId={courseId}
               userId={userId}
-              onDirectConnect={async (targetUserId, displayName, roleLabel, avatarUrl) => {
+              onDirectConnect={async (connectionId: string) => {
                 setShowNewConnection(false);
-                onFetchConnections();
-                // Find the connection for this user and open chat
-                const { data: conn } = await import("@/integrations/supabase/client").then(m =>
-                  m.supabase
-                    .from("team_connections")
-                    .select("id")
-                    .eq("learner_id", userId)
-                    .eq("connected_user_id", targetUserId)
-                    .eq("status", "active")
-                    .maybeSingle()
-                );
-                if (conn) {
-                  onOpenChat(conn.id, lessonId);
-                } else {
-                  onSetView("list");
-                }
+                await onFetchConnections();
+                onOpenChat(connectionId, lessonId);
               }}
             />
           </div>
