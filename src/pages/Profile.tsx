@@ -1787,8 +1787,8 @@ const Profile = () => {
                     <Code className="h-4 w-4 text-violet-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">Debug & Practice</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Debug & Practice</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#6E6E73' }}>
                       {todaysFocus.nextLesson 
                         ? "Hands-on coding challenges" 
                         : "No practice available for today"}
