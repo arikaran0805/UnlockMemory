@@ -1,5 +1,5 @@
-import { useMemo, useCallback } from "react";
-import { useDoubtSystem } from "@/hooks/useDoubtSystem";
+import { useMemo, useCallback, useEffect } from "react";
+import { useDoubtSystem, resolveOwner } from "@/hooks/useDoubtSystem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
