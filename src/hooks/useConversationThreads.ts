@@ -118,6 +118,7 @@ async function syncThreadReplyToLearnerConversation(params: {
     sender_id: senderUserId,
     message_text: content,
     message_type: normalizedType,
+    delivery_status: "sent",
   });
 
   await supabase
@@ -382,6 +383,51 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
   useEffect(() => {
     fetchThread();
   }, [fetchThread]);
+
+  // Mark learner's conversation_messages as "seen" when moderator opens the thread
+  useEffect(() => {
+    if (!thread || !userId) return;
+
+    const markLearnerMessagesSeen = async () => {
+      // Find the connection between this moderator and the learner
+      const { data: connection } = await supabase
+        .from("team_connections")
+        .select("id")
+        .eq("learner_id", thread.learner_user_id)
+        .eq("connected_user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (!connection) return;
+
+      // Find the conversation
+      const { data: conversation } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("learner_id", thread.learner_user_id)
+        .eq("connection_id", connection.id)
+        .maybeSingle();
+
+      if (!conversation) return;
+
+      // Mark all learner messages as seen
+      const now = new Date().toISOString();
+      await supabase
+        .from("conversation_messages")
+        .update({ delivery_status: "seen", seen_at: now, delivered_at: now, is_read: true })
+        .eq("conversation_id", conversation.id)
+        .eq("sender_type", "learner")
+        .neq("delivery_status", "seen");
+
+      // Reset unread count for team
+      await supabase
+        .from("conversations")
+        .update({ unread_count_team: 0 })
+        .eq("id", conversation.id);
+    };
+
+    markLearnerMessagesSeen();
+  }, [thread, userId]);
 
   // Realtime subscription for new messages
   useEffect(() => {
