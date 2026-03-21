@@ -84,9 +84,9 @@ export function MessagingPopup({
     <div
       className={cn(
         "fixed bottom-4 right-4 z-[60]",
-        "w-[360px] bg-card/97 backdrop-blur-2xl",
-        "border border-border/25 rounded-[22px]",
-        "shadow-[0_8px_40px_hsl(var(--foreground)/0.08),0_2px_12px_hsl(var(--foreground)/0.04)]",
+        "w-[360px] bg-card",
+        "border border-border rounded-[22px]",
+        "shadow-[0_4px_24px_hsl(var(--foreground)/0.06),0_1px_8px_hsl(var(--foreground)/0.03)]",
         "flex flex-col overflow-hidden",
         "animate-in slide-in-from-bottom-4 fade-in duration-300",
         view === "chat" ? "h-[520px]" : "h-[440px]"
