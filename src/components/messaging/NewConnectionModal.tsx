@@ -319,8 +319,13 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         const Icon = ct.icon;
         return (
           <button
+            type="button"
             key={ct.type}
-            onClick={() => onConnect(ct.type, ct.label)}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onConnect(ct.type, ct.label);
+            }}
             className="w-full flex items-center gap-3 p-3 rounded-2xl text-left hover:bg-muted/40 transition-all duration-200 group"
           >
             <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary/12 transition-colors">
