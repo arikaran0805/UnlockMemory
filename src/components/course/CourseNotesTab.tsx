@@ -247,13 +247,12 @@ export function CourseNotesTab({
                     onClick={async () => {
                       const lessonId = selectedNote.lesson_id!;
                       try {
-                        const { data: post } = await supabase
-                          .from('posts')
-                          .select('slug, courses!inner(slug)')
-                          .eq('id', lessonId)
-                          .maybeSingle();
-                        if (post?.slug && (post as any).courses?.slug) {
-                          window.open(`/course/${(post as any).courses.slug}?lesson=${post.slug}&tab=lessons`, '_blank');
+                        const [postRes, courseRes] = await Promise.all([
+                          supabase.from('posts').select('slug').eq('id', lessonId).maybeSingle(),
+                          courseId ? supabase.from('courses').select('slug').eq('id', courseId).maybeSingle() : Promise.resolve({ data: null }),
+                        ]);
+                        if (postRes.data?.slug && courseRes.data?.slug) {
+                          window.open(`/course/${courseRes.data.slug}?lesson=${postRes.data.slug}&tab=lessons`, '_blank');
                         } else if (onNavigateToLesson) {
                           onNavigateToLesson(lessonId);
                         }
