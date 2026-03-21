@@ -369,7 +369,7 @@ export function NewConnectionModal({ open, onClose, onConnect, courseId, userId,
             New Connection
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Choose how you'd like to connect
+            Choose who you'd like to connect
           </p>
         </DialogHeader>
         <NewConnectionContent onConnect={onConnect} courseId={courseId} userId={userId} onDirectConnect={onDirectConnect} />

@@ -237,7 +237,7 @@ export function MessagingPopup({
                 {showNewConnection ? "New Connection" : "Messaging"}
               </h3>
               {showNewConnection && (
-                <p className="text-xs text-muted-foreground truncate">Choose how you'd like to connect</p>
+                <p className="text-xs text-muted-foreground truncate">Choose who you'd like to connect</p>
               )}
             </div>
             {!showNewConnection && totalUnread > 0 && (
