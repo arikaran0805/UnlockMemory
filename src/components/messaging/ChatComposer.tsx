@@ -6,9 +6,11 @@ interface ChatComposerProps {
   onSend: (text: string) => void;
   isSending: boolean;
   placeholder?: string;
+  onTyping?: () => void;
+  onStopTyping?: () => void;
 }
 
-export function ChatComposer({ onSend, isSending, placeholder }: ChatComposerProps) {
+export function ChatComposer({ onSend, isSending, placeholder, onTyping, onStopTyping }: ChatComposerProps) {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -16,12 +18,13 @@ export function ChatComposer({ onSend, isSending, placeholder }: ChatComposerPro
 
   const handleSend = useCallback(() => {
     if (!canSend) return;
+    onStopTyping?.();
     onSend(text.trim());
     setText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-  }, [canSend, text, onSend]);
+  }, [canSend, text, onSend, onStopTyping]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -35,6 +38,13 @@ export function ChatComposer({ onSend, isSending, placeholder }: ChatComposerPro
     if (el) {
       el.style.height = "auto";
       el.style.height = Math.min(el.scrollHeight, 100) + "px";
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    if (e.target.value.trim()) {
+      onTyping?.();
     }
   };
 
@@ -53,7 +63,7 @@ export function ChatComposer({ onSend, isSending, placeholder }: ChatComposerPro
         <textarea
           ref={textareaRef}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleChange}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || "Type a message..."}
