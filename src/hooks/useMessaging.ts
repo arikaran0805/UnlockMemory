@@ -239,6 +239,7 @@ export function useMessaging(userId: string | undefined) {
       attachment_name: attachmentName || null,
       is_read: false,
       created_at: new Date().toISOString(),
+      delivery_status: "sent",
     };
 
     // Optimistic update
