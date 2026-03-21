@@ -1631,7 +1631,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Recommended Labs Section - Directly below Career Readiness */}
+          {/* Recommended Labs Section */}
           <Card className="card-premium animate-stagger-3">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
