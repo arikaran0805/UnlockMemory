@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Paperclip, Check, CheckCheck, Pencil, Trash2, X, Check as CheckIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { ChatMessage } from "@/hooks/useMessaging";
 import type { ChatMessage } from "@/hooks/useMessaging";
 
 interface ChatMessageBubbleProps {
