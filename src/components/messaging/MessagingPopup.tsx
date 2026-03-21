@@ -241,11 +241,11 @@ export function MessagingPopup({
       {showStandardHeader && (
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
           <div className="flex items-center gap-2.5 min-w-0">
-            {showNewConnection ? (
+            {showNewConnection || view === "mentor_preview" ? (
               <button
-                onClick={() => setShowNewConnection(false)}
+                onClick={() => { setShowNewConnection(false); if (view === "mentor_preview") onSetView("list"); }}
                 className="p-1.5 -ml-1 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-                aria-label="Back to messaging"
+                aria-label="Back"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
@@ -256,7 +256,7 @@ export function MessagingPopup({
             )}
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-foreground truncate">
-                {showNewConnection ? "New Connection" : "Messaging"}
+                {showNewConnection ? "New Connection" : view === "mentor_preview" ? "Ask a Doubt" : "Messaging"}
               </h3>
               {showNewConnection && (
                 <p className="text-xs text-muted-foreground truncate">Choose who you'd like to connect</p>
