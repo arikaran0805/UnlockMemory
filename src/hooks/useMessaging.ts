@@ -32,11 +32,13 @@ export interface ChatMessage {
   message_type: string;
   attachment_url: string | null;
   attachment_name: string | null;
+  attachment_size?: number | null;
   is_read: boolean;
   created_at: string;
   delivery_status?: string;
   delivered_at?: string | null;
   seen_at?: string | null;
+  voice_duration_seconds?: number | null;
 }
 
 export interface ConnectionWithConversation extends TeamConnection {
