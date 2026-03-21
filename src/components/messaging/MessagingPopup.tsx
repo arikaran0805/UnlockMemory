@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, MessageCircle, Minus, X } from "lucide-react";
+import { ArrowLeft, MessageCircle, Minus, X, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { ConnectionEmptyState } from "./ConnectionEmptyState";
@@ -9,8 +9,10 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatComposer } from "./ChatComposer";
 import { MessagingCollapsedBar } from "./MessagingCollapsedBar";
 import { NewConnectionContent } from "./NewConnectionModal";
+import { MentorPreviewContent } from "./MentorPreviewContent";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import type { MessagingView, ConnectionWithConversation, ChatMessage } from "@/hooks/useMessaging";
+import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
 
 interface MessagingPopupProps {
   view: MessagingView;
@@ -37,6 +39,8 @@ interface MessagingPopupProps {
   onSetView: (view: MessagingView) => void;
   onFetchConnections: () => void;
   onDeleteConnection?: (connectionId: string) => void;
+  mentorPreview?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
+  onStartMentorChat?: () => void;
 }
 
 export function MessagingPopup({
@@ -64,6 +68,8 @@ export function MessagingPopup({
   onSetView,
   onFetchConnections,
   onDeleteConnection,
+  mentorPreview,
+  onStartMentorChat,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
@@ -218,7 +224,7 @@ export function MessagingPopup({
     onSetView("list");
   };
 
-  const showStandardHeader = view === "empty" || view === "list" || showNewConnection;
+  const showStandardHeader = view === "empty" || view === "list" || view === "mentor_preview" || showNewConnection;
 
   return (
     <div
@@ -235,11 +241,11 @@ export function MessagingPopup({
       {showStandardHeader && (
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
           <div className="flex items-center gap-2.5 min-w-0">
-            {showNewConnection ? (
+            {showNewConnection || view === "mentor_preview" ? (
               <button
-                onClick={() => setShowNewConnection(false)}
+                onClick={() => { setShowNewConnection(false); if (view === "mentor_preview") onSetView("list"); }}
                 className="p-1.5 -ml-1 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-                aria-label="Back to messaging"
+                aria-label="Back"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
@@ -250,7 +256,7 @@ export function MessagingPopup({
             )}
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-foreground truncate">
-                {showNewConnection ? "New Connection" : "Messaging"}
+                {showNewConnection ? "New Connection" : view === "mentor_preview" ? "Ask a Doubt" : "Messaging"}
               </h3>
               {showNewConnection && (
                 <p className="text-xs text-muted-foreground truncate">Choose who you'd like to connect</p>
@@ -319,6 +325,15 @@ export function MessagingPopup({
                 onSelectConnection={(id) => onOpenChat(id, lessonId)}
                 onNewConnection={() => setShowNewConnection(true)}
                 onDeleteConnection={onDeleteConnection}
+              />
+            )}
+
+            {view === "mentor_preview" && mentorPreview && (
+              <MentorPreviewContent
+                mentor={mentorPreview.mentor}
+                context={mentorPreview.context}
+                isConnecting={isAutoConnecting}
+                onStartConversation={() => onStartMentorChat?.()}
               />
             )}
 

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type MessagingView = "closed" | "empty" | "list" | "chat" | "collapsed";
+import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
+
+export type MessagingView = "closed" | "empty" | "list" | "chat" | "collapsed" | "mentor_preview";
 
 export interface TeamConnection {
   id: string;
@@ -59,6 +61,7 @@ export function useMessaging(userId: string | undefined) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
+  const [mentorPreview, setMentorPreview] = useState<{ mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null>(null);
   const previousView = useRef<MessagingView>("closed");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const hasRestoredSession = useRef(false);
@@ -676,6 +679,13 @@ export function useMessaging(userId: string | undefined) {
     }
   }, [userId, activeConversation, ensureThread]);
 
+  // Show mentor preview inside popup
+  const showMentorPreview = useCallback((mentor: ResolvedOwner, context: { source_type: string; source_title: string }) => {
+    setMentorPreview({ mentor, context });
+    setView("mentor_preview");
+    sessionStorage.setItem("messaging_view", "mentor_preview");
+  }, []);
+
   return {
     view,
     connections,
@@ -686,6 +696,7 @@ export function useMessaging(userId: string | undefined) {
     isLoading,
     isSending,
     totalUnread,
+    mentorPreview,
     openMessaging,
     openChat,
     sendMessage,
@@ -700,5 +711,6 @@ export function useMessaging(userId: string | undefined) {
     setView,
     fetchConnections,
     deleteConnection,
+    showMentorPreview,
   };
 }

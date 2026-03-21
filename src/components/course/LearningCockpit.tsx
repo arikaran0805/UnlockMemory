@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
+import { useDoubtSystem } from "@/hooks/useDoubtSystem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -87,6 +88,23 @@ export const LearningCockpit = ({
   isCareerBoard = false,
 }: LearningCockpitProps) => {
   const messaging = useMessaging(userId);
+  const { routeDoubt } = useDoubtSystem(userId);
+
+  const handleStartMentorChat = useCallback(async () => {
+    if (!messaging.mentorPreview) return;
+    const context = {
+      source_type: messaging.mentorPreview.context.source_type as any,
+      source_id: lessonId || "",
+      source_title: messaging.mentorPreview.context.source_title,
+      course_id: courseId,
+      lesson_id: lessonId,
+    };
+    const result = await routeDoubt(context);
+    if (result) {
+      messaging.fetchConnections();
+      messaging.openChat(result.connectionId);
+    }
+  }, [messaging, routeDoubt, lessonId, courseId]);
 
   // Calculate scroll offset based on context
   // Career Board: Primary (64px) + CareerScopedHeader (48px) = 112px base
@@ -301,6 +319,8 @@ export const LearningCockpit = ({
         onSetView={messaging.setView}
         onFetchConnections={messaging.fetchConnections}
         onDeleteConnection={messaging.deleteConnection}
+        mentorPreview={messaging.mentorPreview}
+        onStartMentorChat={handleStartMentorChat}
       />
     </>
   );
