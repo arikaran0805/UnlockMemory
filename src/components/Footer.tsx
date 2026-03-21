@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { trackSocialMediaClick } from "@/lib/socialAnalytics";
 
 const Footer = () => {
-  const [siteName, setSiteName] = useState("EmojiLearn");
+  const [siteName, setSiteName] = useState("UnlockMemory");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [siteDescription, setSiteDescription] = useState("Learn through visuals that stick.");
   const [footerCategories, setFooterCategories] = useState<any[]>([]);
   const [socialLinks, setSocialLinks] = useState({
