@@ -1862,8 +1862,8 @@ const Profile = () => {
               <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.5} />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]" style={{ color: '#1C2E25' }}>Arcade</h3>
-              <p className="font-normal" style={{ color: '#6B7F73' }}>
+              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]" style={{ color: '#1D1D1F' }}>Arcade</h3>
+              <p className="font-normal" style={{ color: '#6E6E73' }}>
                 Test your skills with interactive challenges, quizzes, and games to reinforce your learning.
               </p>
             </div>
