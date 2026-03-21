@@ -38,11 +38,12 @@ export const useTodaysFocus = (userId: string | null, activeCourseSlug?: string,
         // Get all published lessons for the course, ordered
         const { data: lessons } = await supabase
           .from("posts")
-          .select("id, title, slug, sort_order")
+          .select("id, title, slug, post_rank, created_at")
           .eq("category_id", activeCourseId)
           .eq("status", "published")
           .is("deleted_at", null)
-          .order("sort_order", { ascending: true });
+          .order("post_rank", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: true });
 
         if (!lessons || lessons.length === 0) {
           setData({ nextLesson: null, hasActiveCourse: true, hasCompletedLessons: false, loading: false });
