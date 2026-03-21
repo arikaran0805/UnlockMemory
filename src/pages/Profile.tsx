@@ -1619,6 +1619,7 @@ const Profile = () => {
                             navigate('/arcade');
                           }}
                         >
+                          <Layout className="h-4 w-4" />
                           Career Board
                           <ChevronRight className="h-4 w-4" />
                         </Button>
