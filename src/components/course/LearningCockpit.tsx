@@ -257,7 +257,7 @@ export const LearningCockpit = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full text-sm border-border/50 hover:bg-muted/50"
+                  className="w-full text-sm border-border/60 bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors duration-200"
                   onClick={() => messaging.openMessaging(lessonId)}
                 >
                   <HelpCircle className="h-3.5 w-3.5 mr-2" />
