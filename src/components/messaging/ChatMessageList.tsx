@@ -8,9 +8,11 @@ interface ChatMessageListProps {
   messages: ChatMessage[];
   currentUserId: string;
   isLoading: boolean;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
-export function ChatMessageList({ messages, currentUserId, isLoading }: ChatMessageListProps) {
+export function ChatMessageList({ messages, currentUserId, isLoading, onEditMessage, onDeleteMessage }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,6 +57,8 @@ export function ChatMessageList({ messages, currentUserId, isLoading }: ChatMess
             key={msg.id}
             message={msg}
             isOwn={msg.sender_id === currentUserId}
+            onEdit={onEditMessage}
+            onDelete={onDeleteMessage}
           />
         ))}
         <div ref={bottomRef} />
