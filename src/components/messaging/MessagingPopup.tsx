@@ -328,6 +328,15 @@ export function MessagingPopup({
               />
             )}
 
+            {view === "mentor_preview" && mentorPreview && (
+              <MentorPreviewContent
+                mentor={mentorPreview.mentor}
+                context={mentorPreview.context}
+                isConnecting={isAutoConnecting}
+                onStartConversation={() => onStartMentorChat?.()}
+              />
+            )}
+
             {view === "chat" && (
               <>
                 <ChatMessageList
