@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useLayoutEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "./ChatMessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
@@ -16,10 +16,28 @@ interface ChatMessageListProps {
 
 export function ChatMessageList({ messages, currentUserId, isLoading, onEditMessage, onDeleteMessage, isOtherTyping }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const isFirstLoad = useRef(true);
+  const prevMessageCount = useRef(0);
 
+  // Instant scroll on first load, smooth on new messages
+  useLayoutEffect(() => {
+    if (messages.length === 0) return;
+    if (isFirstLoad.current) {
+      // Use instant scroll on initial load to jump to bottom immediately
+      bottomRef.current?.scrollIntoView({ behavior: "instant" as ScrollBehavior });
+      isFirstLoad.current = false;
+    } else if (messages.length !== prevMessageCount.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevMessageCount.current = messages.length;
+  }, [messages.length]);
+
+  // Also scroll when typing indicator appears
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, isOtherTyping]);
+    if (isOtherTyping) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [isOtherTyping]);
 
   if (isLoading) {
     return (
