@@ -1392,7 +1392,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
                 {/* Skill Progress Bars */}
                 <div className="space-y-3 max-h-[400px] overflow-y-auto overflow-x-visible pr-2 py-2 pl-2 -ml-2 -mt-2">
                   {skills.map((skill, index) => {
