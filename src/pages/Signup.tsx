@@ -213,9 +213,13 @@ const Signup = () => {
         
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12">
           <Link to="/" className="flex items-center gap-3 mb-12">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-glow">
-              <span className="text-3xl font-black text-primary-foreground">U</span>
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt="UnlockMemory" className="h-12 w-auto" />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-glow">
+                <span className="text-3xl font-black text-primary-foreground">U</span>
+              </div>
+            )}
             <span className="text-3xl tracking-[-0.02em] text-foreground"><span className="font-medium">Unlock</span><span className="font-bold">Memory</span></span>
           </Link>
 
