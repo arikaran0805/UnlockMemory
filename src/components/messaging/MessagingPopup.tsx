@@ -334,6 +334,10 @@ export function MessagingPopup({
                 context={mentorPreview.context}
                 isConnecting={isAutoConnecting}
                 onStartConversation={() => onStartMentorChat?.()}
+                onConnectOther={() => {
+                  setShowNewConnection(true);
+                  onSetView("list");
+                }}
               />
             )}
 
