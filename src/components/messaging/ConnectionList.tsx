@@ -76,6 +76,7 @@ export function ConnectionList({ connections, isLoading, onSelectConnection, onN
                 key={conn.id}
                 connection={conn}
                 onClick={() => onSelectConnection(conn.id)}
+                onDelete={onDeleteConnection}
               />
             ))
           )}
