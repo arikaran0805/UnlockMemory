@@ -1762,7 +1762,7 @@ const Profile = () => {
                     todaysFocus.hasCompletedLessons ? 'hover:bg-amber-50/80 cursor-pointer hover:-translate-y-0.5' : 'opacity-50 cursor-default'
                   }`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/8 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
                     <HelpCircle className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
