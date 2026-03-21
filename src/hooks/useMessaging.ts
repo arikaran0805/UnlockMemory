@@ -406,6 +406,27 @@ export function useMessaging(userId: string | undefined) {
     }
   }, [view, activeConnectionId]);
 
+  // Restore session on mount — rehydrate chat if it was open before refresh
+  useEffect(() => {
+    if (hasRestoredSession.current || !userId) return;
+    hasRestoredSession.current = true;
+
+    const savedView = sessionStorage.getItem("messaging_view") as MessagingView | null;
+    const savedConnectionId = sessionStorage.getItem("messaging_active_connection");
+
+    if (!savedView || savedView === "closed") return;
+
+    if (savedView === "chat" && savedConnectionId) {
+      // Re-open the chat with the saved connection
+      openChat(savedConnectionId);
+    } else if (savedView === "list" || savedView === "empty") {
+      openMessaging();
+    } else if (savedView === "collapsed") {
+      fetchConnections();
+      setView("collapsed");
+    }
+  }, [userId, openChat, openMessaging, fetchConnections]);
+
   const activeConnection = connections.find((c) => c.id === activeConnectionId) || null;
 
   // Edit a message
