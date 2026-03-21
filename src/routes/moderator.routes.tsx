@@ -12,6 +12,7 @@ import AdminModeratorActivity from "@/pages/AdminModeratorActivity";
 import ModeratorCertificates from "@/pages/ModeratorCertificates";
 import ModeratorMessageRequests from "@/pages/ModeratorMessageRequests";
 import ConversationDetail from "@/pages/ConversationDetail";
+import StaffDoubts from "@/pages/StaffDoubts";
 import NotFound from "@/pages/NotFound";
 
 /**
