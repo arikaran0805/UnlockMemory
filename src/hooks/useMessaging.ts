@@ -519,6 +519,163 @@ export function useMessaging(userId: string | undefined) {
     await fetchConnections();
   }, [userId, activeConnectionId, fetchConnections]);
 
+  // Send voice message
+  const sendVoiceMessage = useCallback(async (blob: Blob, duration: number) => {
+    if (!userId || !activeConversation) return;
+    setIsSending(true);
+
+    const fileName = `${userId}/${Date.now()}_voice.webm`;
+    try {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("chat-attachments")
+        .upload(fileName, blob, { contentType: blob.type, upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(uploadData.path);
+      const voiceUrl = urlData.publicUrl;
+
+      const optimisticMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        conversation_id: activeConversation.id,
+        sender_type: "learner",
+        sender_id: userId,
+        message_text: null,
+        message_type: "voice",
+        attachment_url: voiceUrl,
+        attachment_name: "Voice message",
+        is_read: false,
+        created_at: new Date().toISOString(),
+        delivery_status: "sent",
+        voice_duration_seconds: duration,
+      };
+
+      setMessages((prev) => [...prev, optimisticMsg]);
+
+      await supabase.from("conversation_messages").insert({
+        conversation_id: activeConversation.id,
+        sender_type: "learner",
+        sender_id: userId,
+        message_text: null,
+        message_type: "voice",
+        attachment_url: voiceUrl,
+        attachment_name: "Voice message",
+        delivery_status: "sent",
+      });
+
+      const now = new Date().toISOString();
+      await supabase.from("conversations").update({
+        last_message_preview: "🎤 Voice message",
+        last_message_at: now,
+      }).eq("id", activeConversation.id);
+
+      await supabase.from("team_connections").update({ last_message_at: now }).eq("id", activeConversation.connection_id);
+
+      // Sync to thread
+      try {
+        const threadId = await ensureThread(activeConversation.connection_id, userId);
+        if (threadId) {
+          await supabase.from("thread_messages").insert({
+            thread_id: threadId,
+            sender_user_id: userId,
+            sender_role: "learner",
+            message_content: "🎤 Voice message",
+            message_type: "normal",
+            is_visible_to_learner: true,
+          });
+          await supabase.from("conversation_threads").update({ updated_at: now, current_status: "open" }).eq("id", threadId);
+        }
+      } catch (e) {
+        console.error("Thread sync error:", e);
+      }
+    } catch (err) {
+      console.error("Voice upload failed:", err);
+    } finally {
+      setIsSending(false);
+    }
+  }, [userId, activeConversation, ensureThread]);
+
+  // Send attachment/file
+  const sendAttachment = useCallback(async (file: File) => {
+    if (!userId || !activeConversation) return;
+    setIsSending(true);
+
+    const fileName = `${userId}/${Date.now()}_${file.name}`;
+    const isImage = file.type.startsWith("image/");
+
+    try {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("chat-attachments")
+        .upload(fileName, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(uploadData.path);
+      const fileUrl = urlData.publicUrl;
+      const msgType = isImage ? "image" : "file";
+
+      const optimisticMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        conversation_id: activeConversation.id,
+        sender_type: "learner",
+        sender_id: userId,
+        message_text: null,
+        message_type: msgType,
+        attachment_url: fileUrl,
+        attachment_name: file.name,
+        attachment_size: file.size,
+        is_read: false,
+        created_at: new Date().toISOString(),
+        delivery_status: "sent",
+      };
+
+      setMessages((prev) => [...prev, optimisticMsg]);
+
+      await supabase.from("conversation_messages").insert({
+        conversation_id: activeConversation.id,
+        sender_type: "learner",
+        sender_id: userId,
+        message_text: null,
+        message_type: msgType,
+        attachment_url: fileUrl,
+        attachment_name: file.name,
+        attachment_size: file.size,
+        delivery_status: "sent",
+      });
+
+      const now = new Date().toISOString();
+      const preview = isImage ? "📷 Photo" : `📎 ${file.name}`;
+      await supabase.from("conversations").update({
+        last_message_preview: preview,
+        last_message_at: now,
+      }).eq("id", activeConversation.id);
+
+      await supabase.from("team_connections").update({ last_message_at: now }).eq("id", activeConversation.connection_id);
+
+      // Sync to thread
+      try {
+        const threadId = await ensureThread(activeConversation.connection_id, userId);
+        if (threadId) {
+          await supabase.from("thread_messages").insert({
+            thread_id: threadId,
+            sender_user_id: userId,
+            sender_role: "learner",
+            message_content: preview,
+            message_type: "normal",
+            is_visible_to_learner: true,
+          });
+          await supabase.from("conversation_threads").update({ updated_at: now, current_status: "open" }).eq("id", threadId);
+        }
+      } catch (e) {
+        console.error("Thread sync error:", e);
+      }
+    } catch (err) {
+      console.error("Attachment upload failed:", err);
+    } finally {
+      setIsSending(false);
+    }
+  }, [userId, activeConversation, ensureThread]);
+
   return {
     view,
     connections,
@@ -532,6 +689,8 @@ export function useMessaging(userId: string | undefined) {
     openMessaging,
     openChat,
     sendMessage,
+    sendVoiceMessage,
+    sendAttachment,
     editMessage,
     deleteMessage,
     collapse,
