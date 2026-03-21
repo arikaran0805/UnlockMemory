@@ -1156,6 +1156,26 @@ const Profile = () => {
       }
     }
   };
+  // Compute active course for Today's Focus (must be before early returns for hooks)
+  const activeFocusCourse = React.useMemo(() => {
+    const careerObj = getCareerBySlug(selectedCareer);
+    const slugs = careerObj ? getCareerCourseSlugs(careerObj.id) : [];
+    const careerEnrolled = enrolledCourses.filter(e => slugs.includes(e.courses?.slug));
+    const incomplete = careerEnrolled.find(e => {
+      const progress = courseProgressMap[e.courses?.slug];
+      return progress && progress.completed < progress.total;
+    });
+    if (incomplete) {
+      return { slug: incomplete.courses?.slug, id: incomplete.courses?.id, name: incomplete.courses?.name };
+    }
+    // Fallback: first enrolled course
+    if (careerEnrolled.length > 0) {
+      return { slug: careerEnrolled[0].courses?.slug, id: careerEnrolled[0].courses?.id, name: careerEnrolled[0].courses?.name };
+    }
+    return { slug: undefined, id: undefined, name: undefined };
+  }, [enrolledCourses, courseProgressMap, selectedCareer]);
+
+  const todaysFocus = useTodaysFocus(userId, activeFocusCourse.slug, activeFocusCourse.id, activeFocusCourse.name);
 
   if (loading) {
     return (
