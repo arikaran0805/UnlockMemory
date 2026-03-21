@@ -1640,8 +1640,8 @@ const Profile = () => {
                     <FlaskConical className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg tracking-[-0.01em]">Recommended Labs</CardTitle>
-                    <CardDescription className="font-normal">Practice exercises based on your enrolled courses</CardDescription>
+                    <CardTitle className="text-lg tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>Recommended Labs</CardTitle>
+                    <CardDescription className="font-normal" style={{ color: '#6E6E73' }}>Practice exercises based on your enrolled courses</CardDescription>
                   </div>
                 </div>
                 <Button 
