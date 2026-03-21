@@ -1339,13 +1339,13 @@ const Profile = () => {
             currentStreak={currentStreak}
             maxStreak={maxStreak}
           />
-          {/* Career Readiness */}
-          <Card className="card-premium animate-stagger-2">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
+          {/* Career Readiness - Primary tier */}
+          <Card className="card-premium card-primary animate-stagger-2">
+            <CardContent className="p-7">
+              <div className="flex items-center justify-between mb-7">
                 <div>
-                  <h3 className="text-xl font-bold tracking-[-0.02em] text-foreground">Career Readiness</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5 font-normal">Your progress toward becoming job-ready</p>
+                  <h3 className="text-xl font-bold tracking-[-0.02em]" style={{ color: '#1D1D1F' }}>Career Readiness</h3>
+                  <p className="text-sm mt-1 font-normal" style={{ color: '#6E6E73' }}>Your progress toward becoming job-ready</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Primary CTA: Career Board - Navigate to first course in career path */}
