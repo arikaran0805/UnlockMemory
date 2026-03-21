@@ -61,6 +61,7 @@ export function useMessaging(userId: string | undefined) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
+  const [mentorPreview, setMentorPreview] = useState<{ mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null>(null);
   const [suggestedMentor, setSuggestedMentor] = useState<{ mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null>(null);
   const previousView = useRef<MessagingView>("closed");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
