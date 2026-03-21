@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConnectionPresence } from "@/hooks/useConnectionPresence";
 import type { ConnectionWithConversation } from "@/hooks/useMessaging";
 
 interface ConnectionListItemProps {
@@ -17,6 +18,8 @@ export function ConnectionListItem({ connection, onClick, onDelete }: Connection
   const unread = connection.conversation?.unread_count_learner || 0;
   const preview = connection.conversation?.last_message_preview;
   const lastAt = connection.conversation?.last_message_at || connection.last_message_at;
+  const connectedUserId = (connection as any).connected_user_id;
+  const presence = useConnectionPresence(connectedUserId);
 
   const formatTime = (iso: string | null) => {
     if (!iso) return "";
@@ -50,7 +53,12 @@ export function ConnectionListItem({ connection, onClick, onDelete }: Connection
             {connection.display_name?.charAt(0)?.toUpperCase() || "T"}
           </AvatarFallback>
         </Avatar>
-        <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-primary border-2 border-card" />
+        <div
+          className={cn(
+            "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card transition-colors duration-300",
+            presence.is_online ? "bg-emerald-500" : "bg-muted-foreground/40"
+          )}
+        />
       </div>
 
       {/* Content */}

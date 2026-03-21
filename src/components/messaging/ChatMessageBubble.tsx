@@ -20,6 +20,8 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
     minute: "2-digit",
   });
 
+  const deliveryStatus = (message as any).delivery_status || (message.is_read ? "seen" : "sent");
+
   if (message.message_type === "system") {
     return (
       <div className="flex justify-center py-2">
@@ -29,6 +31,19 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
       </div>
     );
   }
+
+  const renderStatusIcon = () => {
+    if (!isOwn) return null;
+    switch (deliveryStatus) {
+      case "seen":
+        return <CheckCheck className="h-3 w-3 text-emerald-500 transition-colors duration-300" />;
+      case "delivered":
+        return <CheckCheck className="h-3 w-3 transition-colors duration-300" />;
+      case "sent":
+      default:
+        return <Check className="h-3 w-3 transition-colors duration-300" />;
+    }
+  };
 
   return (
     <div
@@ -122,11 +137,7 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
           isOwn ? "text-primary-foreground/60" : "text-muted-foreground"
         )}>
           <span className="text-[10px]">{time}</span>
-          {isOwn && (
-            message.is_read
-              ? <CheckCheck className="h-3 w-3" />
-              : <Check className="h-3 w-3" />
-          )}
+          {renderStatusIcon()}
         </div>
       </div>
     </div>
