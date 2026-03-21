@@ -65,6 +65,76 @@ export interface TeamMember {
 
 type StatusFilter = "all" | ThreadStatus | "unassigned";
 
+async function syncThreadReplyToLearnerConversation(params: {
+  thread: ConversationThread;
+  senderUserId: string;
+  senderRole: SenderRole;
+  content: string;
+  messageType: MessageType;
+}) {
+  const { thread, senderUserId, senderRole, content, messageType } = params;
+
+  if (senderRole === "learner" || !content.trim()) return;
+
+  const { data: connection } = await supabase
+    .from("team_connections")
+    .select("id")
+    .eq("learner_id", thread.learner_user_id)
+    .eq("connected_user_id", senderUserId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!connection) return;
+
+  let { data: conversation } = await supabase
+    .from("conversations")
+    .select("id, unread_count_learner")
+    .eq("learner_id", thread.learner_user_id)
+    .eq("connection_id", connection.id)
+    .maybeSingle();
+
+  if (!conversation) {
+    const { data: createdConversation } = await supabase
+      .from("conversations")
+      .insert({
+        learner_id: thread.learner_user_id,
+        connection_id: connection.id,
+        conversation_type: "direct",
+      })
+      .select("id, unread_count_learner")
+      .single();
+
+    conversation = createdConversation;
+  }
+
+  if (!conversation) return;
+
+  const now = new Date().toISOString();
+  const normalizedType = messageType === "system_event" ? "system" : "text";
+
+  await supabase.from("conversation_messages").insert({
+    conversation_id: conversation.id,
+    sender_type: senderRole,
+    sender_id: senderUserId,
+    message_text: content,
+    message_type: normalizedType,
+  });
+
+  await supabase
+    .from("conversations")
+    .update({
+      last_message_preview: content.slice(0, 100),
+      last_message_at: now,
+      unread_count_learner: (conversation.unread_count_learner || 0) + 1,
+    })
+    .eq("id", conversation.id);
+
+  await supabase
+    .from("team_connections")
+    .update({ last_message_at: now })
+    .eq("id", connection.id);
+}
+
 export function useConversationThreads(
   userId: string | undefined,
   role: "moderator" | "senior_moderator",
@@ -387,6 +457,16 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
           ...data,
           sender_name: profile?.full_name || profile?.email || "You",
         } as ThreadMessage]);
+      }
+
+      if (thread && senderRole !== "learner" && isVisibleToLearner) {
+        await syncThreadReplyToLearnerConversation({
+          thread,
+          senderUserId: userId,
+          senderRole,
+          content: content.trim(),
+          messageType,
+        });
       }
 
       // Update thread status
