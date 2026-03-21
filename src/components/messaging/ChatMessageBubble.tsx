@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Paperclip, Check, CheckCheck, Pencil, Trash2, X, Check as CheckIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ChatMessage } from "@/hooks/useMessaging";
 
 interface ChatMessageBubbleProps {
@@ -20,7 +21,7 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
     minute: "2-digit",
   });
 
-  const deliveryStatus = (message as any).delivery_status || (message.is_read ? "seen" : "sent");
+  const deliveryStatus = message.delivery_status || (message.is_read ? "seen" : "sent");
 
   if (message.message_type === "system") {
     return (
@@ -32,17 +33,45 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
     );
   }
 
+  const formatSeenTime = (ts: string | null | undefined) => {
+    if (!ts) return "";
+    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   const renderStatusIcon = () => {
     if (!isOwn) return null;
-    switch (deliveryStatus) {
-      case "seen":
-        return <CheckCheck className="h-3 w-3 text-emerald-500 transition-colors duration-300" />;
-      case "delivered":
-        return <CheckCheck className="h-3 w-3 transition-colors duration-300" />;
-      case "sent":
-      default:
-        return <Check className="h-3 w-3 transition-colors duration-300" />;
-    }
+
+    const icon = (() => {
+      switch (deliveryStatus) {
+        case "seen":
+          return <CheckCheck className="h-3 w-3 text-emerald-500 transition-colors duration-300" />;
+        case "delivered":
+          return <CheckCheck className="h-3 w-3 transition-colors duration-300" />;
+        case "sent":
+        default:
+          return <Check className="h-3 w-3 transition-colors duration-300" />;
+      }
+    })();
+
+    const tooltipText =
+      deliveryStatus === "seen"
+        ? `Seen at ${formatSeenTime(message.seen_at)}`
+        : deliveryStatus === "delivered"
+          ? `Delivered at ${formatSeenTime(message.delivered_at)}`
+          : "Sent";
+
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex cursor-default">{icon}</span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px] px-2 py-1">
+            {tooltipText}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   return (
