@@ -3,6 +3,7 @@ import { Send, Paperclip, Smile, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VoiceRecordingBar } from "./VoiceRecordingBar";
 import { AttachmentPreview } from "./AttachmentPreview";
+import { EmojiPicker } from "./EmojiPicker";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { toast } from "sonner";
 
