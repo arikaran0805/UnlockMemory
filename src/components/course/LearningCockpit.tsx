@@ -269,15 +269,6 @@ export const LearningCockpit = ({
                   label="Ask a Doubt"
                   messaging={messaging}
                 />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => messaging.openMessaging(lessonId)}
-                >
-                  <MessageSquareCode className="h-3.5 w-3.5 mr-2" />
-                  Open Chat
-                </Button>
               </CardContent>
             </Card>
 

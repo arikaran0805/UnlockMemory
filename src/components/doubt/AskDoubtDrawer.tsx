@@ -1,18 +1,17 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { Send, BookOpen, FileText, HelpCircle, Loader2 } from "lucide-react";
-import type { DoubtSourceContext } from "@/hooks/useDoubtSystem";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BookOpen, FileText, HelpCircle, Loader2, MessageCircle, User } from "lucide-react";
+import type { DoubtSourceContext, ResolvedOwner } from "@/hooks/useDoubtSystem";
 
 interface AskDoubtDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   context: DoubtSourceContext;
-  isSubmitting: boolean;
-  onSubmit: (message: string) => void;
+  mentor: ResolvedOwner | null;
+  isConnecting: boolean;
+  onStartConversation: () => void;
 }
 
 const sourceIcons: Record<string, typeof BookOpen> = {
@@ -24,15 +23,14 @@ const sourceIcons: Record<string, typeof BookOpen> = {
   bookmark: BookOpen,
 };
 
-export function AskDoubtDrawer({ open, onOpenChange, context, isSubmitting, onSubmit }: AskDoubtDrawerProps) {
-  const [message, setMessage] = useState("");
-  const Icon = sourceIcons[context.source_type] || HelpCircle;
+const roleLabels: Record<string, string> = {
+  moderator: "Moderator",
+  senior_moderator: "Senior Moderator",
+  super_moderator: "Super Moderator",
+};
 
-  const handleSubmit = () => {
-    if (!message.trim() || isSubmitting) return;
-    onSubmit(message.trim());
-    setMessage("");
-  };
+export function AskDoubtDrawer({ open, onOpenChange, context, mentor, isConnecting, onStartConversation }: AskDoubtDrawerProps) {
+  const Icon = sourceIcons[context.source_type] || HelpCircle;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -47,8 +45,8 @@ export function AskDoubtDrawer({ open, onOpenChange, context, isSubmitting, onSu
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {/* Context Card */}
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
+          {/* Source Context */}
           <div className="rounded-xl border border-border/40 bg-muted/20 p-4 space-y-2">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-lg bg-primary/10 text-primary flex-shrink-0">
@@ -64,43 +62,46 @@ export function AskDoubtDrawer({ open, onOpenChange, context, isSubmitting, onSu
             </Badge>
           </div>
 
-          {/* Message Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Your Question</label>
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Describe your doubt clearly... What are you confused about? What have you tried?"
-              className="min-h-[140px] resize-none bg-muted/20 border-border/30 text-sm"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              Enter to send · Shift+Enter for new line
-            </p>
-          </div>
+          {/* Mentor Profile */}
+          {mentor && (
+            <div className="flex flex-col items-center text-center space-y-4 py-4">
+              <Avatar className="h-20 w-20 border-2 border-primary/20">
+                {mentor.avatar_url ? (
+                  <AvatarImage src={mentor.avatar_url} alt={mentor.user_name} />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
+                  {mentor.user_name?.charAt(0)?.toUpperCase() || <User className="h-8 w-8" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-foreground">{mentor.user_name}</h3>
+                <Badge variant="secondary" className="text-xs">
+                  {roleLabels[mentor.role] || mentor.role}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground max-w-[260px]">
+                This mentor is assigned to help you with this content. Start a conversation to ask your doubt.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
+        {/* Footer CTA */}
         <div className="px-5 py-4 border-t border-border/30 bg-muted/10">
           <Button
-            onClick={handleSubmit}
-            disabled={!message.trim() || isSubmitting}
+            onClick={onStartConversation}
+            disabled={isConnecting || !mentor}
             className="w-full"
           >
-            {isSubmitting ? (
+            {isConnecting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Routing your doubt...
+                Connecting...
               </>
             ) : (
               <>
-                <Send className="h-4 w-4 mr-2" />
-                Send Doubt
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Start Asking
               </>
             )}
           </Button>
