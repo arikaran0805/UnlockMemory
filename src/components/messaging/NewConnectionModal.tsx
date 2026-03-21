@@ -29,6 +29,7 @@ interface TeamMember {
   full_name: string;
   avatar_url: string | null;
   role_label: string;
+  courses: { name: string; icon: string | null }[];
 }
 
 export function NewConnectionContent({ onConnect, courseId, userId, onDirectConnect }: NewConnectionContentProps) {
