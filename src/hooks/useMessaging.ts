@@ -421,15 +421,18 @@ export function useMessaging(userId: string | undefined) {
 
     if (!savedView || savedView === "closed") return;
 
-    if (savedView === "chat" && savedConnectionId) {
-      // Re-open the chat with the saved connection
-      openChat(savedConnectionId);
-    } else if (savedView === "list" || savedView === "empty") {
-      openMessaging();
-    } else if (savedView === "collapsed") {
-      fetchConnections();
-      setView("collapsed");
-    }
+    const restore = async () => {
+      if (savedView === "chat" && savedConnectionId) {
+        await fetchConnections();
+        openChat(savedConnectionId);
+      } else if (savedView === "list" || savedView === "empty") {
+        openMessaging();
+      } else if (savedView === "collapsed") {
+        fetchConnections();
+        setView("collapsed");
+      }
+    };
+    restore();
   }, [userId, openChat, openMessaging, fetchConnections]);
 
   const activeConnection = connections.find((c) => c.id === activeConnectionId) || null;
