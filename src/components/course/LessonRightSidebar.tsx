@@ -1,14 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
 import { useMessaging } from "@/hooks/useMessaging";
+import { useDoubtSystem } from "@/hooks/useDoubtSystem";
+import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
 import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
 import {
@@ -18,7 +18,6 @@ import {
   Play,
   FileText,
   HelpCircle,
-  User,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -93,6 +92,23 @@ export function LessonRightSidebar({
 
   // Messaging system
   const messaging = useMessaging(userId);
+  const { routeDoubt } = useDoubtSystem(userId);
+
+  const handleStartMentorChat = useCallback(async () => {
+    if (!messaging.mentorPreview) return;
+    const context = {
+      source_type: messaging.mentorPreview.context.source_type as any,
+      source_id: lessonId || "",
+      source_title: messaging.mentorPreview.context.source_title,
+      course_id: courseId,
+      lesson_id: lessonId,
+    };
+    const result = await routeDoubt(context);
+    if (result) {
+      messaging.fetchConnections();
+      messaging.openChat(result.connectionId);
+    }
+  }, [messaging, routeDoubt, lessonId, courseId]);
 
   // Calculate scroll offset based on header visibility
   const scrollOffset = isHeaderVisible
@@ -272,77 +288,34 @@ export function LessonRightSidebar({
           </CardContent>
         </Card>
 
-        {/* SECTION 4: Ask / Confusion Box */}
-        {(
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                Need help?
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <p className="text-sm text-muted-foreground mb-3">
-                Stuck here? Ask a question about this lesson.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-sm border-border/50 hover:bg-muted/50"
-                onClick={() => {
-                  if (!userId) {
-                    toast.error("Please log in to ask a question");
-                    return;
-                  }
-                  messaging.openMessaging(lessonId);
-                }}
-              >
-                <HelpCircle className="h-3.5 w-3.5 mr-2" />
-                Ask a Question
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* SECTION 5: Instructor / Moderator Presence */}
-        {assignedModerator && (
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                Instructor Support
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 border border-border/50">
-                  <AvatarImage src={assignedModerator.avatar_url || undefined} />
-                  <AvatarFallback className="bg-muted text-muted-foreground text-sm">
-                    {assignedModerator.full_name?.charAt(0)?.toUpperCase() || "M"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {assignedModerator.full_name || "Instructor"}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="text-xs px-1.5 py-0 h-5 bg-muted/50"
-                    >
-                      {assignedModerator.role === "senior_moderator"
-                        ? "Senior Moderator"
-                        : "Moderator"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Usually replies in 2–4 hrs
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        {/* SECTION 4: Ask a Doubt - Clean entry point */}
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              Need help?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <p className="text-sm text-muted-foreground mb-3">
+              Stuck here? Ask a question about this lesson.
+            </p>
+            <AskDoubtButton
+              context={{
+                source_type: "lesson",
+                source_id: lessonId || "",
+                source_title: lessonTitle,
+                course_id: courseId,
+                lesson_id: lessonId,
+              }}
+              variant="outline"
+              size="sm"
+              className="w-full text-sm border-border/60 bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors duration-200"
+              label="Ask a Doubt"
+              messaging={messaging}
+            />
+          </CardContent>
+        </Card>
         </div>
       </div>
       {/* Messaging Popup */}
@@ -371,6 +344,8 @@ export function LessonRightSidebar({
           onSetView={messaging.setView}
           onFetchConnections={messaging.fetchConnections}
           onDeleteConnection={messaging.deleteConnection}
+          mentorPreview={messaging.mentorPreview}
+          onStartMentorChat={handleStartMentorChat}
         />
       )}
     </aside>
