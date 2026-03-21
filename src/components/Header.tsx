@@ -51,6 +51,8 @@ const Header = ({
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
+  const [isSeniorModerator, setIsSeniorModerator] = useState(false);
+  const [isSuperModerator, setIsSuperModerator] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({ site_name: "BlogHub" });
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -117,6 +119,8 @@ const Header = ({
       } else {
         setIsAdmin(false);
         setIsModerator(false);
+        setIsSeniorModerator(false);
+        setIsSuperModerator(false);
       }
     });
 
@@ -156,19 +160,16 @@ const Header = ({
   }, []);
 
   const checkUserRoles = async (userId: string) => {
-    // Check admin role
-    const { data: adminData } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: 'admin'
-    });
-    setIsAdmin(!!adminData);
-
-    // Check moderator role
-    const { data: modData } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: 'moderator'
-    });
-    setIsModerator(!!modData);
+    const [adminRes, modRes, seniorRes, superRes] = await Promise.all([
+      supabase.rpc('has_role', { _user_id: userId, _role: 'admin' }),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'moderator' }),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'senior_moderator' }),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'super_moderator' }),
+    ]);
+    setIsAdmin(!!adminRes.data);
+    setIsModerator(!!modRes.data);
+    setIsSeniorModerator(!!seniorRes.data);
+    setIsSuperModerator(!!superRes.data);
   };
 
   const handleLogout = async () => {
@@ -304,14 +305,40 @@ const Header = ({
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {(isAdmin || isModerator) && (
+                      {(isAdmin || isModerator || isSeniorModerator || isSuperModerator) && (
                         <>
-                          <DropdownMenuItem asChild>
-                            <Link to="/admin" className="cursor-pointer">
-                              <Shield className="mr-2 h-4 w-4" />
-                              {isAdmin ? 'Admin Dashboard' : 'Moderator Dashboard'}
-                            </Link>
-                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/admin" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Admin Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {isSuperModerator && !isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/super-moderator" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Super Moderator Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {isSeniorModerator && !isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/senior-moderator" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Senior Moderator Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {isModerator && !isAdmin && (
+                            <DropdownMenuItem asChild>
+                              <Link to="/moderator" className="cursor-pointer">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Moderator Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                         </>
                       )}
