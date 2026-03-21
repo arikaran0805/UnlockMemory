@@ -25,6 +25,8 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   usePageTracking();
+  const { user } = useAuth();
+  usePresence(user?.id);
   const location = useLocation();
   const navigate = useNavigate();
   const prevLocationRef = useRef(location.pathname);
