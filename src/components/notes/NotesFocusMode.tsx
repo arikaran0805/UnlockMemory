@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
