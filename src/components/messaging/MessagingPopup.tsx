@@ -224,7 +224,7 @@ export function MessagingPopup({
     onSetView("list");
   };
 
-  const showStandardHeader = view === "empty" || view === "list" || showNewConnection;
+  const showStandardHeader = view === "empty" || view === "list" || view === "mentor_preview" || showNewConnection;
 
   return (
     <div
