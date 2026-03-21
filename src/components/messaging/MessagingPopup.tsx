@@ -251,7 +251,8 @@ export function MessagingPopup({
           <>
             {view === "empty" && (
               <ConnectionEmptyState
-                onConnectTeam={() => setShowNewConnection(true)}
+                onConnectTeam={handleAutoConnect}
+                isConnecting={isAutoConnecting}
               />
             )}
 

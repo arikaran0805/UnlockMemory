@@ -1,11 +1,12 @@
-import { MessageCircle, Users, ArrowRight } from "lucide-react";
+import { MessageCircle, Users, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ConnectionEmptyStateProps {
   onConnectTeam: () => void;
+  isConnecting?: boolean;
 }
 
-export function ConnectionEmptyState({ onConnectTeam }: ConnectionEmptyStateProps) {
+export function ConnectionEmptyState({ onConnectTeam, isConnecting }: ConnectionEmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
       {/* Icon container */}
@@ -29,10 +30,20 @@ export function ConnectionEmptyState({ onConnectTeam }: ConnectionEmptyStateProp
       {/* Actions */}
       <Button
         onClick={onConnectTeam}
+        disabled={isConnecting}
         className="w-full max-w-[200px] h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm shadow-sm"
       >
-        Connect a Team
-        <ArrowRight className="h-4 w-4 ml-1" />
+        {isConnecting ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            Connecting...
+          </>
+        ) : (
+          <>
+            Connect a Team
+            <ArrowRight className="h-4 w-4 ml-1" />
+          </>
+        )}
       </Button>
       <button className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors">
         Learn how this works
