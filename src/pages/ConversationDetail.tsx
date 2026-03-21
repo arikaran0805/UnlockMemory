@@ -48,6 +48,7 @@ const ConversationDetail = () => {
     assignToModerator,
     escalateToSenior,
     markResolved,
+    refetch,
   } = useThreadDetail(id, userId);
 
   const [replyText, setReplyText] = useState("");
