@@ -65,12 +65,18 @@ const Footer = () => {
         <div className="py-12 grid grid-cols-1 md:grid-cols-12 gap-12">
           {/* Brand Column */}
           <div className="md:col-span-4 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-foreground flex items-center justify-center">
-                <span className="text-2xl">📖</span>
-              </div>
-              <span className="text-2xl font-black text-foreground">{siteName}</span>
-            </div>
+            <Link to="/" className="flex items-center gap-3">
+              {logoUrl ? (
+                <img src={logoUrl} alt={siteName} className="h-10 w-auto" />
+              ) : (
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                  <span className="text-lg font-black text-primary-foreground">{siteName.charAt(0)}</span>
+                </div>
+              )}
+              <span className="text-xl tracking-[-0.02em] text-foreground">
+                <span className="font-medium">Unlock</span><span className="font-semibold">Memory</span>
+              </span>
+            </Link>
             <p className="text-muted-foreground leading-relaxed max-w-sm">
               {siteDescription}
             </p>
