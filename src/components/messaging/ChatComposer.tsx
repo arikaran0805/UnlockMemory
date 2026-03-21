@@ -220,12 +220,26 @@ export function ChatComposer({
           />
 
           {/* Emoji */}
-          <button
-            className="p-1 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 mb-0.5"
-            title="Emoji"
-          >
-            <Smile className="h-4 w-4" />
-          </button>
+          <div className="relative flex-shrink-0 mb-0.5">
+            <button
+              onClick={() => setShowEmoji(prev => !prev)}
+              className={cn(
+                "p-1 rounded-lg transition-colors",
+                showEmoji
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+              )}
+              title="Emoji"
+            >
+              <Smile className="h-4 w-4" />
+            </button>
+            {showEmoji && (
+              <EmojiPicker
+                onSelect={handleEmojiSelect}
+                onClose={() => setShowEmoji(false)}
+              />
+            )}
+          </div>
 
           {/* Send or Mic */}
           {hasText || selectedFile ? (
