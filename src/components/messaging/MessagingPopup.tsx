@@ -26,6 +26,8 @@ interface MessagingPopupProps {
   courseId?: string;
   onOpenChat: (connectionId: string, lessonId?: string) => void;
   onSendMessage: (text: string) => void;
+  onSendVoice?: (blob: Blob, duration: number) => void;
+  onSendAttachment?: (file: File) => void;
   onEditMessage?: (messageId: string, newText: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onCollapse: () => void;
