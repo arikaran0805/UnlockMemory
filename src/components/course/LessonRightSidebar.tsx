@@ -360,6 +360,8 @@ export function LessonRightSidebar({
           lessonId={lessonId}
           onOpenChat={messaging.openChat}
           onSendMessage={messaging.sendMessage}
+          onSendVoice={messaging.sendVoiceMessage}
+          onSendAttachment={messaging.sendAttachment}
           onEditMessage={messaging.editMessage}
           onDeleteMessage={messaging.deleteMessage}
           onCollapse={messaging.collapse}
