@@ -1438,8 +1438,7 @@ const Profile = () => {
                         </div>
                         <Progress 
                           value={skillProgress} 
-                          className="h-[6px] rounded-full [&]:bg-[#E6EFE9] [&>div]:rounded-full"
-                          style={{ ['--tw-shadow' as any]: '0 0 6px rgba(34,197,94,0.35)' }}
+                          className="h-[6px] rounded-full progress-animate [&]:bg-muted/60 [&>div]:rounded-full [&>div]:bg-primary"
                         />
                       </div>
                     );
