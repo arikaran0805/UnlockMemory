@@ -39,6 +39,8 @@ interface MessagingPopupProps {
   onSetView: (view: MessagingView) => void;
   onFetchConnections: () => void;
   onDeleteConnection?: (connectionId: string) => void;
+  mentorPreview?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
+  onStartMentorChat?: () => void;
 }
 
 export function MessagingPopup({
