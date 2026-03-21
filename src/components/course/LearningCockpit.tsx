@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
+import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useMessaging } from "@/hooks/useMessaging";
 import { MessagingPopup } from "@/components/messaging/MessagingPopup";
