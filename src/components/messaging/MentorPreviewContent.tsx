@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, FileText, HelpCircle, Loader2, MessageCircle, User, Users, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useConnectionPresence, formatLastSeen } from "@/hooks/useConnectionPresence";
 import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
 
 interface MentorPreviewContentProps {
@@ -31,32 +32,30 @@ const roleLabels: Record<string, string> = {
 
 interface MentorStats {
   courseNames: string[];
-  publishedPosts: number;
+  lessonsCount: number;
   doubtsResolved: number;
 }
 
 export function MentorPreviewContent({ mentor, context, isConnecting, onStartConversation, onConnectOther }: MentorPreviewContentProps) {
   const Icon = sourceIcons[context.source_type] || HelpCircle;
-  const [stats, setStats] = useState<MentorStats>({ courseNames: [], publishedPosts: 0, doubtsResolved: 0 });
+  const [stats, setStats] = useState<MentorStats>({ courseNames: [], lessonsCount: 0, doubtsResolved: 0 });
+  const presence = useConnectionPresence(mentor.user_id);
 
   useEffect(() => {
     if (!mentor.user_id) return;
 
     const fetchStats = async () => {
-      const [coursesRes, postsRes, doubtsRes] = await Promise.all([
-        // Courses assigned to or authored by this mentor
+      const [coursesRes, lessonsRes, doubtsRes] = await Promise.all([
         supabase
           .from("courses")
           .select("name")
           .or(`assigned_to.eq.${mentor.user_id},author_id.eq.${mentor.user_id},default_senior_moderator.eq.${mentor.user_id}`)
           .limit(5),
-        // Published posts by this mentor
+        // Lessons created by this mentor
         supabase
-          .from("posts")
+          .from("course_lessons")
           .select("id", { count: "exact", head: true })
-          .eq("author_id", mentor.user_id)
-          .eq("status", "published"),
-        // Doubts resolved by this mentor
+          .eq("created_by", mentor.user_id),
         supabase
           .from("doubt_threads")
           .select("id", { count: "exact", head: true })
@@ -66,13 +65,17 @@ export function MentorPreviewContent({ mentor, context, isConnecting, onStartCon
 
       setStats({
         courseNames: (coursesRes.data || []).map((c) => c.name),
-        publishedPosts: postsRes.count || 0,
+        lessonsCount: lessonsRes.count || 0,
         doubtsResolved: doubtsRes.count || 0,
       });
     };
 
     fetchStats();
   }, [mentor.user_id]);
+
+  const presenceText = presence.is_online
+    ? "Online"
+    : formatLastSeen(presence.last_seen_at);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -89,22 +92,30 @@ export function MentorPreviewContent({ mentor, context, isConnecting, onStartCon
             </div>
           </div>
           <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 bg-background/50">
-            Context will be shared with mentor
+            Your question will be shared with this mentor
           </Badge>
         </div>
 
         {/* Mentor Profile */}
         <div className="flex flex-col items-center text-center space-y-2.5 py-2">
-          <Avatar className="h-14 w-14 border-2 border-primary/20">
-            {mentor.avatar_url ? (
-              <AvatarImage src={mentor.avatar_url} alt={mentor.user_name} />
-            ) : null}
-            <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
-              {mentor.user_name?.charAt(0)?.toUpperCase() || <User className="h-5 w-5" />}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-14 w-14 border-2 border-primary/20">
+              {mentor.avatar_url ? (
+                <AvatarImage src={mentor.avatar_url} alt={mentor.user_name} />
+              ) : null}
+              <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
+                {mentor.user_name?.charAt(0)?.toUpperCase() || <User className="h-5 w-5" />}
+              </AvatarFallback>
+            </Avatar>
+            {presence.is_online && (
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
+            )}
+          </div>
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-foreground">{mentor.user_name}</h3>
+            <p className={`text-[10px] ${presence.is_online ? 'text-green-500' : 'text-muted-foreground'}`}>
+              {presenceText}
+            </p>
             <Badge variant="secondary" className="text-[10px]">
               {roleLabels[mentor.role] || mentor.role}
             </Badge>
@@ -115,15 +126,15 @@ export function MentorPreviewContent({ mentor, context, isConnecting, onStartCon
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-border/30 bg-muted/15 p-2.5 text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
-              <FileText className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Posts</span>
+              <BookOpen className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Lessons</span>
             </div>
-            <p className="text-sm font-semibold text-foreground">{stats.publishedPosts}</p>
+            <p className="text-sm font-semibold text-foreground">{stats.lessonsCount}</p>
           </div>
           <div className="rounded-lg border border-border/30 bg-muted/15 p-2.5 text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Resolved</span>
+              <span className="text-xs text-muted-foreground">Doubts Solved</span>
             </div>
             <p className="text-sm font-semibold text-foreground">{stats.doubtsResolved}</p>
           </div>
