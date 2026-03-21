@@ -358,6 +358,15 @@ export function MessagingPopup({
                   onDeleteMessage={onDeleteMessage}
                   isOtherTyping={isOtherTyping}
                 />
+                {suggestedMentor && onAskSuggestedMentor && activeConnection && 
+                  (activeConnection as any).connected_user_id !== suggestedMentor.mentor.user_id && (
+                  <SuggestedMentorBanner
+                    mentor={suggestedMentor.mentor}
+                    context={suggestedMentor.context}
+                    variant="chat"
+                    onAsk={onAskSuggestedMentor}
+                  />
+                )}
                 <ChatComposer
                   onSend={onSendMessage}
                   onSendVoice={onSendVoice}
