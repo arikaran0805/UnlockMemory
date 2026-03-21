@@ -69,17 +69,20 @@ export function ConnectionListItem({ connection, onClick, onDelete }: Connection
               </span>
             )}
             {/* 3-dot menu */}
-            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
                   onClick={(e) => e.stopPropagation()}
-                  className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-muted/60 transition-all duration-150 text-muted-foreground hover:text-foreground"
+                  className={cn(
+                    "p-1 rounded-md hover:bg-muted/60 transition-all duration-150 text-muted-foreground hover:text-foreground",
+                    menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  )}
                   aria-label="More options"
                 >
                   <MoreVertical className="h-3.5 w-3.5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36 rounded-xl" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuContent align="end" sideOffset={4} className="w-36 rounded-xl z-[100]" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
