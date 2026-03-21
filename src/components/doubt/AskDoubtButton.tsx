@@ -1,10 +1,9 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDoubtSystem, type DoubtSourceContext } from "@/hooks/useDoubtSystem";
 import { useMessaging } from "@/hooks/useMessaging";
-import { AskDoubtDrawer } from "./AskDoubtDrawer";
 import { toast } from "sonner";
 
 interface AskDoubtButtonProps {
@@ -26,47 +25,40 @@ export function AskDoubtButton({
   messaging,
 }: AskDoubtButtonProps) {
   const { userId } = useAuth();
-  const { isSubmitting, submitDoubt } = useDoubtSystem(userId);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { isSubmitting, routeDoubt } = useDoubtSystem(userId);
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback(async () => {
     if (!userId) {
       toast.error("Please sign in to ask a doubt");
       return;
     }
-    setDrawerOpen(true);
-  }, [userId]);
-
-  const handleSubmit = useCallback(async (message: string) => {
-    const result = await submitDoubt(context, message);
-    if (result) {
-      setDrawerOpen(false);
-      // Open chat with the assigned mentor
-      if (messaging) {
-        messaging.openChat(result.connectionId);
-      }
+    if (!messaging) {
+      toast.error("Messaging not available");
+      return;
     }
-  }, [context, submitDoubt, messaging]);
+
+    const result = await routeDoubt(context);
+    if (result) {
+      // Refresh connections and open chat directly
+      messaging.fetchConnections();
+      messaging.openChat(result.connectionId);
+    }
+  }, [userId, context, routeDoubt, messaging]);
 
   return (
-    <>
-      <Button
-        variant={variant}
-        size={size}
-        className={className}
-        onClick={handleClick}
-      >
+    <Button
+      variant={variant}
+      size={size}
+      className={className}
+      onClick={handleClick}
+      disabled={isSubmitting}
+    >
+      {isSubmitting ? (
+        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+      ) : (
         <HelpCircle className="h-3.5 w-3.5 mr-2" />
-        {label}
-      </Button>
-
-      <AskDoubtDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        context={context}
-        isSubmitting={isSubmitting}
-        onSubmit={handleSubmit}
-      />
-    </>
+      )}
+      {isSubmitting ? "Connecting..." : label}
+    </Button>
   );
 }
