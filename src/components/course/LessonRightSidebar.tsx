@@ -7,7 +7,7 @@ import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
 import { useMessaging } from "@/hooks/useMessaging";
-import { useDoubtSystem } from "@/hooks/useDoubtSystem";
+import { useDoubtSystem, resolveOwner } from "@/hooks/useDoubtSystem";
 import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
 import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
