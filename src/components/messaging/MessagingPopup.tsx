@@ -28,6 +28,7 @@ interface MessagingPopupProps {
   onBackToList: () => void;
   onSetView: (view: MessagingView) => void;
   onFetchConnections: () => void;
+  onDeleteConnection?: (connectionId: string) => void;
 }
 
 export function MessagingPopup({
