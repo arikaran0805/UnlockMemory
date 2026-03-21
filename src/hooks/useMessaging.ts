@@ -465,6 +465,7 @@ export function useMessaging(userId: string | undefined) {
     connections,
     activeConnection,
     activeConversation,
+    activeConversationId: activeConversation?.id || null,
     messages,
     isLoading,
     isSending,
