@@ -92,6 +92,23 @@ export function LessonRightSidebar({
 
   // Messaging system
   const messaging = useMessaging(userId);
+  const { routeDoubt } = useDoubtSystem(userId);
+
+  const handleStartMentorChat = useCallback(async () => {
+    if (!messaging.mentorPreview) return;
+    const context = {
+      source_type: messaging.mentorPreview.context.source_type as any,
+      source_id: lessonId || "",
+      source_title: messaging.mentorPreview.context.source_title,
+      course_id: courseId,
+      lesson_id: lessonId,
+    };
+    const result = await routeDoubt(context);
+    if (result) {
+      messaging.fetchConnections();
+      messaging.openChat(result.connectionId);
+    }
+  }, [messaging, routeDoubt, lessonId, courseId]);
 
   // Calculate scroll offset based on header visibility
   const scrollOffset = isHeaderVisible
