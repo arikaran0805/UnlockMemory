@@ -288,6 +288,7 @@ export const LearningCockpit = ({
         onBackToList={messaging.backToList}
         onSetView={messaging.setView}
         onFetchConnections={messaging.fetchConnections}
+        onDeleteConnection={messaging.deleteConnection}
       />
     </>
   );
