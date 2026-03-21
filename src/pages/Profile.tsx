@@ -1667,14 +1667,14 @@ const Profile = () => {
                   const labIcons = [<Zap className="h-4 w-4" />, <Target className="h-4 w-4" />, <Award className="h-4 w-4" />];
                   const labColors = ['from-emerald-500 to-teal-600', 'from-blue-500 to-indigo-600', 'from-purple-500 to-pink-600'];
                   
-                  return (
-                    <div 
-                      key={enrollment.id} 
-                      className="group cursor-pointer transition-all duration-[220ms] ease-out hover:-translate-y-[3px] rounded-[24px] border border-black/[0.06] dark:border-white/[0.08] p-7 flex flex-col items-center text-center"
-                      style={{
-                        background: 'rgba(255,255,255,0.9)',
-                        boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
-                      }}
+                    return (
+                      <div 
+                        key={enrollment.id} 
+                        className="group cursor-pointer transition-all duration-[250ms] ease-out hover:-translate-y-[3px] hover:scale-[1.01] rounded-[22px] border border-border/40 p-7 flex flex-col items-center text-center"
+                        style={{
+                          background: 'rgba(255,255,255,0.92)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+                        }}
                       onClick={() => handleTabChange('practice')}
                     >
                       {/* Icon */}
