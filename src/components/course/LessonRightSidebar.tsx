@@ -17,7 +17,6 @@ import {
   Play,
   FileText,
   HelpCircle,
-  User,
   Sparkles,
   Zap,
 } from "lucide-react";
