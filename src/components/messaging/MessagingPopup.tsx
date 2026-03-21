@@ -280,9 +280,10 @@ export function MessagingPopup({
               courseId={courseId}
               userId={userId}
               onDirectConnect={async (connectionId: string) => {
-                setShowNewConnection(false);
-                await onFetchConnections();
+                // Go straight to chat — don't show list in between
                 onOpenChat(connectionId, lessonId);
+                setShowNewConnection(false);
+                onFetchConnections();
               }}
             />
           </div>
