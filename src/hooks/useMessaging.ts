@@ -44,9 +44,14 @@ export interface ConnectionWithConversation extends TeamConnection {
 }
 
 export function useMessaging(userId: string | undefined) {
-  const [view, setView] = useState<MessagingView>("closed");
+  const [view, setView] = useState<MessagingView>(() => {
+    const saved = sessionStorage.getItem("messaging_view") as MessagingView | null;
+    return saved && saved !== "closed" ? saved : "closed";
+  });
   const [connections, setConnections] = useState<ConnectionWithConversation[]>([]);
-  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
+  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(
+    () => sessionStorage.getItem("messaging_active_connection")
+  );
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +59,7 @@ export function useMessaging(userId: string | undefined) {
   const [totalUnread, setTotalUnread] = useState(0);
   const previousView = useRef<MessagingView>("closed");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const hasRestoredSession = useRef(false);
 
   // Fetch connections with latest conversation data
   const fetchConnections = useCallback(async () => {
@@ -399,6 +405,27 @@ export function useMessaging(userId: string | undefined) {
       sessionStorage.removeItem("messaging_active_connection");
     }
   }, [view, activeConnectionId]);
+
+  // Restore session on mount — rehydrate chat if it was open before refresh
+  useEffect(() => {
+    if (hasRestoredSession.current || !userId) return;
+    hasRestoredSession.current = true;
+
+    const savedView = sessionStorage.getItem("messaging_view") as MessagingView | null;
+    const savedConnectionId = sessionStorage.getItem("messaging_active_connection");
+
+    if (!savedView || savedView === "closed") return;
+
+    if (savedView === "chat" && savedConnectionId) {
+      // Re-open the chat with the saved connection
+      openChat(savedConnectionId);
+    } else if (savedView === "list" || savedView === "empty") {
+      openMessaging();
+    } else if (savedView === "collapsed") {
+      fetchConnections();
+      setView("collapsed");
+    }
+  }, [userId, openChat, openMessaging, fetchConnections]);
 
   const activeConnection = connections.find((c) => c.id === activeConnectionId) || null;
 
