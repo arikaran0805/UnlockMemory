@@ -126,6 +126,16 @@ export default {
             opacity: "0",
           },
         },
+        "typing-dot": {
+          "0%, 60%, 100%": {
+            opacity: "0.3",
+            transform: "scale(0.8)",
+          },
+          "30%": {
+            opacity: "1",
+            transform: "scale(1)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
