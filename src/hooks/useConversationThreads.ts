@@ -118,6 +118,7 @@ async function syncThreadReplyToLearnerConversation(params: {
     sender_id: senderUserId,
     message_text: content,
     message_type: normalizedType,
+    delivery_status: "sent",
   });
 
   await supabase
