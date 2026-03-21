@@ -169,6 +169,7 @@ export function MessagingPopup({
                 isLoading={isLoading}
                 onSelectConnection={(id) => onOpenChat(id, lessonId)}
                 onNewConnection={() => setShowNewConnection(true)}
+                onDeleteConnection={onDeleteConnection}
               />
             )}
 
