@@ -275,7 +275,30 @@ export function MessagingPopup({
       <div className="flex-1 flex flex-col min-h-0">
         {showNewConnection ? (
           <div className="flex-1 overflow-y-auto">
-            <NewConnectionContent onConnect={handleNewConnection} />
+            <NewConnectionContent
+              onConnect={handleNewConnection}
+              courseId={courseId}
+              userId={userId}
+              onDirectConnect={async (targetUserId, displayName, roleLabel, avatarUrl) => {
+                setShowNewConnection(false);
+                onFetchConnections();
+                // Find the connection for this user and open chat
+                const { data: conn } = await import("@/integrations/supabase/client").then(m =>
+                  m.supabase
+                    .from("team_connections")
+                    .select("id")
+                    .eq("learner_id", userId)
+                    .eq("connected_user_id", targetUserId)
+                    .eq("status", "active")
+                    .maybeSingle()
+                );
+                if (conn) {
+                  onOpenChat(conn.id, lessonId);
+                } else {
+                  onSetView("list");
+                }
+              }}
+            />
           </div>
         ) : (
           <>
