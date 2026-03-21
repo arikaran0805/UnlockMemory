@@ -49,6 +49,7 @@ export function MessagingPopup({
   onBackToList,
   onSetView,
   onFetchConnections,
+  onDeleteConnection,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
 
