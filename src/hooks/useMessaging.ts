@@ -91,15 +91,16 @@ export function useMessaging(userId: string | undefined) {
     }
   }, [userId]);
 
-  // Fetch messages for a conversation
+  // Fetch messages for a conversation (load most recent, then display in order)
   const fetchMessages = useCallback(async (conversationId: string) => {
     const { data } = await supabase
       .from("conversation_messages")
       .select("*")
       .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true })
-      .limit(50);
-    setMessages(data || []);
+      .order("created_at", { ascending: false })
+      .limit(100);
+    // Reverse to show oldest first in UI
+    setMessages((data || []).reverse());
   }, []);
 
   // Open messaging popup
@@ -210,13 +211,21 @@ export function useMessaging(userId: string | undefined) {
       setActiveConversation(convo);
       await fetchMessages(convo.id);
 
-      // Mark as read
+      // Mark as read + mark all incoming messages as seen
       if (convo.unread_count_learner > 0) {
         await supabase
           .from("conversations")
           .update({ unread_count_learner: 0 })
           .eq("id", convo.id);
       }
+
+      // Mark all messages from other side as "seen"
+      await supabase
+        .from("conversation_messages")
+        .update({ delivery_status: "seen", seen_at: new Date().toISOString(), is_read: true })
+        .eq("conversation_id", convo.id)
+        .neq("sender_id", userId)
+        .neq("delivery_status", "seen");
     }
 
     setIsLoading(false);
@@ -347,10 +356,10 @@ export function useMessaging(userId: string | undefined) {
               if (prev.find((m) => m.id === newMsg.id)) return prev;
               return [...prev, newMsg];
             });
-            // Mark as delivered immediately since we received it
+            // Mark as seen immediately since chat is open
             supabase
               .from("conversation_messages")
-              .update({ delivery_status: "delivered", delivered_at: new Date().toISOString() } as any)
+              .update({ delivery_status: "seen", delivered_at: new Date().toISOString(), seen_at: new Date().toISOString(), is_read: true })
               .eq("id", newMsg.id)
               .then(() => {});
           }
