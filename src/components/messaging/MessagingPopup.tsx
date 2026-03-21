@@ -330,6 +330,8 @@ export function MessagingPopup({
                 onSelectConnection={(id) => onOpenChat(id, lessonId)}
                 onNewConnection={() => setShowNewConnection(true)}
                 onDeleteConnection={onDeleteConnection}
+                suggestedMentor={suggestedMentor}
+                onAskSuggestedMentor={onAskSuggestedMentor}
               />
             )}
 
