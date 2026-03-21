@@ -1419,7 +1419,7 @@ const Profile = () => {
                             <span className="font-medium" style={{ color: '#1D1D1F' }}>{skill.skill_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold tabular-nums">{skillProgress}%</span>
+                            <span className="font-semibold tabular-nums" style={{ color: '#1D1D1F' }}>{skillProgress}%</span>
                             {/* Secondary contextual CTA - visible on hover */}
                             <Button
                               variant="outline"
