@@ -24,6 +24,10 @@ import {
   FileText,
   Users,
   MessageCircle,
+  Pencil,
+  Trash2,
+  X,
+  Check,
 } from "lucide-react";
 import type { SenderRole, MessageType, ThreadMessage } from "@/hooks/useConversationThreads";
 
