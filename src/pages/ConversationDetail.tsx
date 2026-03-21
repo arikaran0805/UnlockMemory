@@ -58,8 +58,9 @@ const ConversationDetail = () => {
 
   const handleSendReply = async () => {
     if (!replyText.trim()) return;
-    await sendMessage(replyText, senderRole, "normal", true);
+    const text = replyText.trim();
     setReplyText("");
+    await sendMessage(text, senderRole, "normal", true);
   };
 
   const handleSendInternalNote = async () => {
@@ -177,7 +178,7 @@ const ConversationDetail = () => {
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1.5">⌘+Enter to send</p>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">Enter to send · Shift+Enter for new line</p>
                 </div>
               )}
             </CardContent>
