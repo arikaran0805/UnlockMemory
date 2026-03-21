@@ -49,6 +49,13 @@ const Signup = () => {
     saveRedirectPath(redirectParam);
   }, [redirectParam]);
 
+  // Fetch logo
+  useEffect(() => {
+    supabase.from('site_settings').select('logo_url').limit(1).maybeSingle().then(({ data }) => {
+      if (data?.logo_url) setLogoUrl(data.logo_url);
+    });
+  }, []);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
