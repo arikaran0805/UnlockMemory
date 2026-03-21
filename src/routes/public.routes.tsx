@@ -35,6 +35,7 @@ import FixErrorWorkspace from "@/pages/FixErrorWorkspace";
 import EliminateWrongWorkspace from "@/pages/EliminateWrongWorkspace";
 import ChoosePlan from "@/pages/ChoosePlan";
 import Checkout from "@/pages/Checkout";
+import MyDoubts from "@/pages/MyDoubts";
 
 /**
  * Public Routes - No authentication required
