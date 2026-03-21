@@ -344,6 +344,8 @@ export function LessonRightSidebar({
           onSetView={messaging.setView}
           onFetchConnections={messaging.fetchConnections}
           onDeleteConnection={messaging.deleteConnection}
+          mentorPreview={messaging.mentorPreview}
+          onStartMentorChat={handleStartMentorChat}
         />
       )}
     </aside>
