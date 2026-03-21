@@ -477,11 +477,80 @@ export function useDoubtSystem(userId: string | undefined) {
     }
   }, [userId]);
 
+  /**
+   * Route a doubt without sending a message - just create connection and open chat
+   */
+  const routeDoubt = useCallback(async (
+    context: DoubtSourceContext
+  ): Promise<{ connectionId: string } | null> => {
+    if (!userId) return null;
+    setIsSubmitting(true);
+
+    try {
+      // 1. Resolve owner
+      const owner = await resolveOwner(context);
+      if (!owner) {
+        toast.error("Could not find a mentor to route your doubt to.");
+        return null;
+      }
+
+      // 2. Ensure team_connection exists
+      let { data: connection } = await supabase
+        .from("team_connections")
+        .select("id")
+        .eq("learner_id", userId)
+        .eq("connected_user_id", owner.user_id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (!connection) {
+        const roleLabel = owner.role === "senior_moderator" ? "Senior Moderator"
+          : owner.role === "super_moderator" ? "Super Moderator"
+          : "Moderator";
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("id", owner.user_id)
+          .maybeSingle();
+
+        const { data: newConn } = await supabase
+          .from("team_connections")
+          .insert({
+            learner_id: userId,
+            connected_user_id: owner.user_id,
+            display_name: owner.user_name,
+            avatar_url: profile?.avatar_url || null,
+            role_label: roleLabel,
+            connection_type: "doubt_auto",
+            status: "active",
+          })
+          .select("id")
+          .single();
+        connection = newConn;
+      }
+
+      if (!connection) {
+        toast.error("Failed to create connection");
+        return null;
+      }
+
+      return { connectionId: connection.id };
+    } catch (err) {
+      console.error("Route doubt error:", err);
+      toast.error("Something went wrong. Please try again.");
+      return null;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [userId]);
+
   return {
     isSubmitting,
     myDoubts,
     isLoadingDoubts,
     submitDoubt,
+    routeDoubt,
     fetchMyDoubts,
   };
 }
