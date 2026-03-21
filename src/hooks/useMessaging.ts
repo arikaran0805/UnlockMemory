@@ -369,6 +369,34 @@ export function useMessaging(userId: string | undefined) {
   const activeConnection = connections.find((c) => c.id === activeConnectionId) || null;
 
   const deleteConnection = useCallback(async (connectionId: string) => {
+  // Edit a message
+  const editMessage = useCallback(async (messageId: string, newText: string) => {
+    if (!userId || !newText.trim()) return;
+    const { error } = await supabase
+      .from("conversation_messages")
+      .update({ message_text: newText.trim() })
+      .eq("id", messageId)
+      .eq("sender_id", userId);
+    if (!error) {
+      setMessages((prev) =>
+        prev.map((m) => m.id === messageId ? { ...m, message_text: newText.trim() } : m)
+      );
+    }
+  }, [userId]);
+
+  // Delete a message
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!userId) return;
+    const { error } = await supabase
+      .from("conversation_messages")
+      .delete()
+      .eq("id", messageId)
+      .eq("sender_id", userId);
+    if (!error) {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    }
+  }, [userId]);
+
     if (!userId) return;
 
     const { data: convos, error: convoLookupError } = await supabase
@@ -440,6 +468,8 @@ export function useMessaging(userId: string | undefined) {
     openMessaging,
     openChat,
     sendMessage,
+    editMessage,
+    deleteMessage,
     collapse,
     expand,
     close,
