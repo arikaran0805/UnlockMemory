@@ -679,6 +679,13 @@ export function useMessaging(userId: string | undefined) {
     }
   }, [userId, activeConversation, ensureThread]);
 
+  // Show mentor preview inside popup
+  const showMentorPreview = useCallback((mentor: ResolvedOwner, context: { source_type: string; source_title: string }) => {
+    setMentorPreview({ mentor, context });
+    setView("mentor_preview");
+    sessionStorage.setItem("messaging_view", "mentor_preview");
+  }, []);
+
   return {
     view,
     connections,
@@ -689,6 +696,7 @@ export function useMessaging(userId: string | undefined) {
     isLoading,
     isSending,
     totalUnread,
+    mentorPreview,
     openMessaging,
     openChat,
     sendMessage,
@@ -703,5 +711,6 @@ export function useMessaging(userId: string | undefined) {
     setView,
     fetchConnections,
     deleteConnection,
+    showMentorPreview,
   };
 }
