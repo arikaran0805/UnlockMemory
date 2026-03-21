@@ -3,6 +3,7 @@ import { Send, Paperclip, Smile, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VoiceRecordingBar } from "./VoiceRecordingBar";
 import { AttachmentPreview } from "./AttachmentPreview";
+import { EmojiPicker } from "./EmojiPicker";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ export function ChatComposer({
   const [text, setText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,10 +58,30 @@ export function ChatComposer({
   const handleSend = useCallback(() => {
     if (!canSend) return;
     onStopTyping?.();
+    setShowEmoji(false);
     onSend(text.trim());
     setText("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
   }, [canSend, text, onSend, onStopTyping]);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    const el = textareaRef.current;
+    if (el) {
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const newText = text.slice(0, start) + emoji + text.slice(end);
+      setText(newText);
+      // Restore cursor after emoji
+      requestAnimationFrame(() => {
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+        el.focus();
+      });
+    } else {
+      setText(prev => prev + emoji);
+    }
+    onTyping?.();
+  }, [text, onTyping]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -198,12 +220,26 @@ export function ChatComposer({
           />
 
           {/* Emoji */}
-          <button
-            className="p-1 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 mb-0.5"
-            title="Emoji"
-          >
-            <Smile className="h-4 w-4" />
-          </button>
+          <div className="relative flex-shrink-0 mb-0.5">
+            <button
+              onClick={() => setShowEmoji(prev => !prev)}
+              className={cn(
+                "p-1 rounded-lg transition-colors",
+                showEmoji
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+              )}
+              title="Emoji"
+            >
+              <Smile className="h-4 w-4" />
+            </button>
+            {showEmoji && (
+              <EmojiPicker
+                onSelect={handleEmojiSelect}
+                onClose={() => setShowEmoji(false)}
+              />
+            )}
+          </div>
 
           {/* Send or Mic */}
           {hasText || selectedFile ? (
