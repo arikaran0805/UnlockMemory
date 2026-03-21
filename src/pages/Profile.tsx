@@ -1719,17 +1719,17 @@ const Profile = () => {
         </div>
 
         {/* Right Column - Today's Focus + Weekly Activity + AI Mentor */}
-        <div className="flex flex-col space-y-6 h-full min-h-full">
+        <div className="flex flex-col space-y-7 h-full min-h-full">
           {/* Today's Focus Card */}
           <Card className="card-premium animate-stagger-1">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-5">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/15">
                   <Target className="h-5 w-5 text-white" strokeWidth={1.5} />
                 </div>
                 <div className="space-y-0.5">
-                  <h3 className="text-lg font-semibold tracking-[-0.01em]">Today's Focus</h3>
-                  <p className="text-xs text-muted-foreground font-medium">Recommended for you today</p>
+                  <h3 className="text-lg font-semibold tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>Today's Focus</h3>
+                  <p className="text-xs font-medium" style={{ color: '#6E6E73' }}>Recommended for you today</p>
                 </div>
               </div>
               
