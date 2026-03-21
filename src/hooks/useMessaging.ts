@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type MessagingView = "closed" | "empty" | "list" | "chat" | "collapsed";
+import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
+
+export type MessagingView = "closed" | "empty" | "list" | "chat" | "collapsed" | "mentor_preview";
 
 export interface TeamConnection {
   id: string;
