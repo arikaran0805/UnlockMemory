@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
 import { useMessaging } from "@/hooks/useMessaging";
+import { useDoubtSystem } from "@/hooks/useDoubtSystem";
 import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
 import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
