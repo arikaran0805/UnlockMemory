@@ -162,7 +162,10 @@ const ConversationDetail = () => {
                       placeholder="Type your reply..."
                       className="min-h-[60px] resize-none bg-muted/30 border-border/30"
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSendReply();
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendReply();
+                        }
                       }}
                     />
                     <Button
