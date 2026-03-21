@@ -256,8 +256,13 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
             <div className="space-y-1">
               {filteredMembers.map((member) => (
                 <button
+                  type="button"
                   key={member.id}
-                  onClick={() => handleMemberClick(member)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handleMemberClick(member);
+                  }}
                   disabled={connectingId === member.id}
                   className="w-full flex items-center gap-3 p-3 rounded-2xl text-left hover:bg-muted/40 transition-all duration-200 group disabled:opacity-60"
                 >
