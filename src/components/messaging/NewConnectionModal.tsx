@@ -36,6 +36,7 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!courseId) return;
@@ -46,7 +47,6 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
     if (!courseId) return;
     setIsLoadingMembers(true);
     try {
-      // Get the career(s) this course belongs to
       const { data: careerCourses } = await supabase
         .from("career_courses")
         .select("career_id")
@@ -54,10 +54,8 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         .is("deleted_at", null);
 
       const careerIds = (careerCourses || []).map((cc) => cc.career_id);
-
       const userIds = new Set<string>();
 
-      // Get users assigned to the career (super moderators)
       if (careerIds.length > 0) {
         const { data: careerAssigns } = await supabase
           .from("career_assignments")
@@ -66,14 +64,12 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         (careerAssigns || []).forEach((a) => userIds.add(a.user_id));
       }
 
-      // Get users directly assigned to this course
       const { data: courseAssigns } = await supabase
         .from("course_assignments")
         .select("user_id")
         .eq("course_id", courseId);
       (courseAssigns || []).forEach((a) => userIds.add(a.user_id));
 
-      // Get course author and assigned_to
       const { data: course } = await supabase
         .from("courses")
         .select("author_id, assigned_to, default_senior_moderator")
@@ -84,7 +80,6 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
       if (course?.assigned_to) userIds.add(course.assigned_to);
       if (course?.default_senior_moderator) userIds.add(course.default_senior_moderator);
 
-      // Remove current user
       if (userId) userIds.delete(userId);
 
       if (userIds.size === 0) {
@@ -95,11 +90,50 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
 
       const ids = Array.from(userIds);
 
-      // Fetch profiles and roles in parallel
-      const [profilesRes, rolesRes] = await Promise.all([
+      // Fetch profiles, roles, and course assignments in parallel
+      const [profilesRes, rolesRes, allCourseAssigns] = await Promise.all([
         supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids),
         supabase.from("user_roles").select("user_id, role").in("user_id", ids),
+        supabase.from("course_assignments").select("user_id, course_id").in("user_id", ids),
       ]);
+
+      // Fetch course details for badges
+      const assignedCourseIds = [...new Set((allCourseAssigns.data || []).map((a) => a.course_id))];
+      let courseMap = new Map<string, { name: string; icon: string | null }>();
+      if (assignedCourseIds.length > 0) {
+        const { data: coursesData } = await supabase
+          .from("courses")
+          .select("id, name, icon")
+          .in("id", assignedCourseIds);
+        (coursesData || []).forEach((c) => courseMap.set(c.id, { name: c.name, icon: c.icon }));
+      }
+
+      // Also check courses authored by these users
+      const { data: authoredCourses } = await supabase
+        .from("courses")
+        .select("id, name, icon, author_id")
+        .in("author_id", ids)
+        .is("deleted_at", null);
+
+      (authoredCourses || []).forEach((c) => {
+        if (!courseMap.has(c.id)) courseMap.set(c.id, { name: c.name, icon: c.icon });
+      });
+
+      // Build user -> courses map
+      const userCoursesMap = new Map<string, Map<string, { name: string; icon: string | null }>>();
+      (allCourseAssigns.data || []).forEach((a) => {
+        const info = courseMap.get(a.course_id);
+        if (info) {
+          if (!userCoursesMap.has(a.user_id)) userCoursesMap.set(a.user_id, new Map());
+          userCoursesMap.get(a.user_id)!.set(a.course_id, info);
+        }
+      });
+      (authoredCourses || []).forEach((c) => {
+        if (c.author_id) {
+          if (!userCoursesMap.has(c.author_id)) userCoursesMap.set(c.author_id, new Map());
+          userCoursesMap.get(c.author_id)!.set(c.id, { name: c.name, icon: c.icon });
+        }
+      });
 
       const profiles = profilesRes.data || [];
       const roles = rolesRes.data || [];
@@ -122,11 +156,13 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
               : userRoles.includes("moderator")
                 ? "Moderator"
                 : "Instructor";
+          const userCourses = userCoursesMap.get(p.id);
           return {
             id: p.id,
             full_name: p.full_name || "Team Member",
             avatar_url: p.avatar_url,
             role_label: roleLabel,
+            courses: userCourses ? Array.from(userCourses.values()) : [],
           };
         });
 
@@ -137,6 +173,16 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
       setIsLoadingMembers(false);
     }
   };
+
+  const filteredMembers = teamMembers.filter((m) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      m.full_name.toLowerCase().includes(q) ||
+      m.role_label.toLowerCase().includes(q) ||
+      m.courses.some((c) => c.name.toLowerCase().includes(q))
+    );
+  });
 
   const handleMemberClick = async (member: TeamMember) => {
     if (!userId || !onDirectConnect) return;
