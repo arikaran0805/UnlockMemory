@@ -1737,7 +1737,7 @@ const Profile = () => {
                 {/* Lesson Suggestion */}
                 <div 
                   onClick={todaysFocus.handleContinueLearning}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-all duration-250 cursor-pointer hover:-translate-y-0.5"
                 >
                   <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
                     <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
