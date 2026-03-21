@@ -119,6 +119,8 @@ const Header = ({
       } else {
         setIsAdmin(false);
         setIsModerator(false);
+        setIsSeniorModerator(false);
+        setIsSuperModerator(false);
       }
     });
 
