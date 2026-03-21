@@ -20,6 +20,7 @@ import AdminModeratorActivity from "@/pages/AdminModeratorActivity";
 import AdminUsers from "@/pages/AdminUsers";
 import SeniorModeratorMessageRequests from "@/pages/SeniorModeratorMessageRequests";
 import ConversationDetail from "@/pages/ConversationDetail";
+import StaffDoubts from "@/pages/StaffDoubts";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -53,6 +54,7 @@ const SeniorModeratorRoutes = () => {
           <Route path="users" element={<AdminUsers />} />
           <Route path="message-requests" element={<SeniorModeratorMessageRequests />} />
           <Route path="message-requests/:id" element={<ConversationDetail />} />
+          <Route path="doubts" element={<StaffDoubts />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SeniorModeratorLayout>

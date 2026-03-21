@@ -12,6 +12,7 @@ import AdminModeratorActivity from "@/pages/AdminModeratorActivity";
 import ModeratorCertificates from "@/pages/ModeratorCertificates";
 import ModeratorMessageRequests from "@/pages/ModeratorMessageRequests";
 import ConversationDetail from "@/pages/ConversationDetail";
+import StaffDoubts from "@/pages/StaffDoubts";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -36,6 +37,7 @@ const ModeratorRoutes = () => {
           <Route path="activity" element={<AdminModeratorActivity />} />
           <Route path="message-requests" element={<ModeratorMessageRequests />} />
           <Route path="message-requests/:id" element={<ConversationDetail />} />
+          <Route path="doubts" element={<StaffDoubts />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </ModeratorLayout>

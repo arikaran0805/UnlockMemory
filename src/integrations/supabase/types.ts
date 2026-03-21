@@ -1588,6 +1588,174 @@ export type Database = {
         }
         Relationships: []
       }
+      doubt_assignments: {
+        Row: {
+          assignment_type: string
+          created_at: string
+          created_by: string | null
+          doubt_thread_id: string
+          from_role: string | null
+          from_user_id: string | null
+          id: string
+          note: string | null
+          to_role: string | null
+          to_user_id: string | null
+        }
+        Insert: {
+          assignment_type?: string
+          created_at?: string
+          created_by?: string | null
+          doubt_thread_id: string
+          from_role?: string | null
+          from_user_id?: string | null
+          id?: string
+          note?: string | null
+          to_role?: string | null
+          to_user_id?: string | null
+        }
+        Update: {
+          assignment_type?: string
+          created_at?: string
+          created_by?: string | null
+          doubt_thread_id?: string
+          from_role?: string | null
+          from_user_id?: string | null
+          id?: string
+          note?: string | null
+          to_role?: string | null
+          to_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doubt_assignments_doubt_thread_id_fkey"
+            columns: ["doubt_thread_id"]
+            isOneToOne: false
+            referencedRelation: "doubt_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doubt_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          doubt_thread_id: string
+          event_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          doubt_thread_id: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          doubt_thread_id?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doubt_events_doubt_thread_id_fkey"
+            columns: ["doubt_thread_id"]
+            isOneToOne: false
+            referencedRelation: "doubt_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doubt_threads: {
+        Row: {
+          assigned_team_id: string | null
+          assigned_user_id: string | null
+          closed_at: string | null
+          conversation_thread_id: string | null
+          course_id: string | null
+          created_at: string
+          current_owner_role: string | null
+          first_response_at: string | null
+          id: string
+          learner_user_id: string
+          lesson_id: string | null
+          post_id: string | null
+          practice_id: string | null
+          priority: string
+          quiz_id: string | null
+          resolved_at: string | null
+          routed_mode: string
+          source_id: string | null
+          source_title: string | null
+          source_type: string
+          source_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          closed_at?: string | null
+          conversation_thread_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          current_owner_role?: string | null
+          first_response_at?: string | null
+          id?: string
+          learner_user_id: string
+          lesson_id?: string | null
+          post_id?: string | null
+          practice_id?: string | null
+          priority?: string
+          quiz_id?: string | null
+          resolved_at?: string | null
+          routed_mode?: string
+          source_id?: string | null
+          source_title?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          closed_at?: string | null
+          conversation_thread_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          current_owner_role?: string | null
+          first_response_at?: string | null
+          id?: string
+          learner_user_id?: string
+          lesson_id?: string | null
+          post_id?: string | null
+          practice_id?: string | null
+          priority?: string
+          quiz_id?: string | null
+          resolved_at?: string | null
+          routed_mode?: string
+          source_id?: string | null
+          source_title?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doubt_threads_conversation_thread_id_fkey"
+            columns: ["conversation_thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eliminate_wrong_attempts: {
         Row: {
           created_at: string

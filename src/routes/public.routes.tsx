@@ -35,6 +35,7 @@ import FixErrorWorkspace from "@/pages/FixErrorWorkspace";
 import EliminateWrongWorkspace from "@/pages/EliminateWrongWorkspace";
 import ChoosePlan from "@/pages/ChoosePlan";
 import Checkout from "@/pages/Checkout";
+import MyDoubts from "@/pages/MyDoubts";
 
 /**
  * Public Routes - No authentication required
@@ -78,6 +79,7 @@ export const publicRoutes = [
   
   <Route key="choose-plan" path="/choose-plan" element={<ChoosePlan />} />,
   <Route key="checkout" path="/checkout" element={<Checkout />} />,
+  <Route key="my-doubts" path="/my-doubts" element={<MyDoubts />} />,
   <Route key="profile" path="/profile" element={<Profile />} />,
   <Route key="access-denied" path="/access-denied" element={<AccessDenied />} />,
   <Route key="unauthorized" path="/unauthorized" element={<AccessDenied />} />,
