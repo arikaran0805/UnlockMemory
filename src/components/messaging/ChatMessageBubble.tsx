@@ -22,7 +22,7 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
     minute: "2-digit",
   });
 
-  const deliveryStatus = (message as any).delivery_status || (message.is_read ? "seen" : "sent");
+  const deliveryStatus = message.delivery_status || (message.is_read ? "seen" : "sent");
 
   if (message.message_type === "system") {
     return (
