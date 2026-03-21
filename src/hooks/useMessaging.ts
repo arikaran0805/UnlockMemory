@@ -135,6 +135,46 @@ export function useMessaging(userId: string | undefined) {
     setIsLoading(false);
   }, [userId]);
 
+  // Ensure a conversation_thread exists for the moderator inbox
+  const ensureThread = useCallback(async (connectionId: string, learnerId: string) => {
+    // Check if a thread already exists for this connection
+    const { data: connection } = await supabase
+      .from("team_connections")
+      .select("connected_user_id, role_label")
+      .eq("id", connectionId)
+      .single();
+
+    if (!connection?.connected_user_id) return null;
+
+    // Check existing thread
+    const { data: existingThread } = await supabase
+      .from("conversation_threads")
+      .select("id")
+      .eq("learner_user_id", learnerId)
+      .or(`assigned_moderator_user_id.eq.${connection.connected_user_id},assigned_senior_moderator_user_id.eq.${connection.connected_user_id}`)
+      .maybeSingle();
+
+    if (existingThread) return existingThread.id;
+
+    // Determine routing based on role
+    const isSenior = connection.role_label === "Senior Moderator" || connection.role_label === "Super Moderator";
+
+    const { data: newThread } = await supabase
+      .from("conversation_threads")
+      .insert({
+        learner_user_id: learnerId,
+        assigned_moderator_user_id: isSenior ? null : connection.connected_user_id,
+        assigned_senior_moderator_user_id: isSenior ? connection.connected_user_id : null,
+        current_owner_role: isSenior ? "senior_moderator" : "moderator",
+        current_status: "new",
+        routing_type: isSenior ? "team_senior_moderator" : "direct_moderator",
+      })
+      .select("id")
+      .single();
+
+    return newThread?.id || null;
+  }, []);
+
   // Open a specific chat
   const openChat = useCallback(async (connectionId: string, lessonId?: string) => {
     if (!userId) return;
@@ -226,10 +266,33 @@ export function useMessaging(userId: string | undefined) {
         .from("team_connections")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", activeConversation.connection_id);
+
+      // Sync to thread_messages for moderator inbox
+      try {
+        const threadId = await ensureThread(activeConversation.connection_id, userId);
+        if (threadId) {
+          await supabase.from("thread_messages").insert({
+            thread_id: threadId,
+            sender_user_id: userId,
+            sender_role: "learner",
+            message_content: text || attachmentName || "Attachment",
+            message_type: "normal",
+            is_visible_to_learner: true,
+          });
+
+          // Update thread timestamp and status
+          await supabase
+            .from("conversation_threads")
+            .update({ updated_at: new Date().toISOString(), current_status: "open" })
+            .eq("id", threadId);
+        }
+      } catch (threadErr) {
+        console.error("Failed to sync to thread:", threadErr);
+      }
     } finally {
       setIsSending(false);
     }
-  }, [userId, activeConversation]);
+  }, [userId, activeConversation, ensureThread]);
 
   // Collapse
   const collapse = useCallback(() => {
