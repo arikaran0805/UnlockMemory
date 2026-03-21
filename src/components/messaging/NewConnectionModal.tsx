@@ -270,10 +270,9 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
                         {member.courses.slice(0, 3).map((c, i) => (
                           <span
                             key={i}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/8 text-[10px] font-medium text-primary"
+                            className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/8 text-[10px] font-medium text-primary truncate max-w-[100px]"
                           >
-                            {c.icon && <span className="text-xs">{c.icon}</span>}
-                            <span className="truncate max-w-[80px]">{c.name}</span>
+                            {c.name}
                           </span>
                         ))}
                         {member.courses.length > 3 && (
