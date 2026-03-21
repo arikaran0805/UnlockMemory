@@ -266,10 +266,33 @@ export function useMessaging(userId: string | undefined) {
         .from("team_connections")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", activeConversation.connection_id);
+
+      // Sync to thread_messages for moderator inbox
+      try {
+        const threadId = await ensureThread(activeConversation.connection_id, userId);
+        if (threadId) {
+          await supabase.from("thread_messages").insert({
+            thread_id: threadId,
+            sender_user_id: userId,
+            sender_role: "learner",
+            message_content: text || attachmentName || "Attachment",
+            message_type: "normal",
+            is_visible_to_learner: true,
+          });
+
+          // Update thread timestamp and status
+          await supabase
+            .from("conversation_threads")
+            .update({ updated_at: new Date().toISOString(), current_status: "open" })
+            .eq("id", threadId);
+        }
+      } catch (threadErr) {
+        console.error("Failed to sync to thread:", threadErr);
+      }
     } finally {
       setIsSending(false);
     }
-  }, [userId, activeConversation]);
+  }, [userId, activeConversation, ensureThread]);
 
   // Collapse
   const collapse = useCallback(() => {
