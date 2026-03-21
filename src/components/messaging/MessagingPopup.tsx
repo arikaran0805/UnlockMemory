@@ -20,6 +20,7 @@ interface MessagingPopupProps {
   totalUnread: number;
   userId: string;
   lessonId?: string;
+  courseId?: string;
   onOpenChat: (connectionId: string, lessonId?: string) => void;
   onSendMessage: (text: string) => void;
   onCollapse: () => void;
