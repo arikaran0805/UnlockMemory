@@ -319,6 +319,8 @@ export const LearningCockpit = ({
         onSetView={messaging.setView}
         onFetchConnections={messaging.fetchConnections}
         onDeleteConnection={messaging.deleteConnection}
+        mentorPreview={messaging.mentorPreview}
+        onStartMentorChat={handleStartMentorChat}
       />
     </>
   );
