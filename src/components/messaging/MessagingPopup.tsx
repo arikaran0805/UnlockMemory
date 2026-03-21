@@ -20,6 +20,7 @@ interface MessagingPopupProps {
   totalUnread: number;
   userId: string;
   lessonId?: string;
+  courseId?: string;
   onOpenChat: (connectionId: string, lessonId?: string) => void;
   onSendMessage: (text: string) => void;
   onCollapse: () => void;
@@ -41,6 +42,7 @@ export function MessagingPopup({
   totalUnread,
   userId,
   lessonId,
+  courseId,
   onOpenChat,
   onSendMessage,
   onCollapse,
@@ -52,12 +54,102 @@ export function MessagingPopup({
   onDeleteConnection,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
+  const [isAutoConnecting, setIsAutoConnecting] = useState(false);
 
   if (view === "closed") return null;
 
   if (view === "collapsed") {
     return <MessagingCollapsedBar unreadCount={totalUnread} onExpand={onExpand} />;
   }
+
+  const handleAutoConnect = async () => {
+    if (!courseId) {
+      setShowNewConnection(true);
+      return;
+    }
+
+    setIsAutoConnecting(true);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+
+      // Find the course author or assigned moderator
+      const { data: course } = await supabase
+        .from("courses")
+        .select("author_id, assigned_to, name")
+        .eq("id", courseId)
+        .single();
+
+      const authorId = course?.assigned_to || course?.author_id;
+
+      if (!authorId) {
+        setShowNewConnection(true);
+        return;
+      }
+
+      // Check if connection already exists
+      const { data: existing } = await supabase
+        .from("team_connections")
+        .select("id")
+        .eq("learner_id", userId)
+        .eq("connected_user_id", authorId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (existing) {
+        onFetchConnections();
+        onOpenChat(existing.id, lessonId);
+        return;
+      }
+
+      // Get author profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", authorId)
+        .single();
+
+      // Determine role label
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authorId);
+
+      const roleList = (roles || []).map((r) => r.role);
+      const roleLabel = roleList.includes("senior_moderator")
+        ? "Senior Moderator"
+        : roleList.includes("moderator")
+          ? "Moderator"
+          : "Instructor";
+
+      // Create connection
+      const { data: newConn } = await supabase
+        .from("team_connections")
+        .insert({
+          learner_id: userId,
+          connected_user_id: authorId,
+          connection_type: "instructor",
+          display_name: profile?.full_name || "Course Instructor",
+          avatar_url: profile?.avatar_url || null,
+          role_label: roleLabel,
+          status: "active",
+        })
+        .select()
+        .single();
+
+      onFetchConnections();
+
+      if (newConn) {
+        onOpenChat(newConn.id, lessonId);
+      } else {
+        onSetView("list");
+      }
+    } catch (err) {
+      console.error("Auto-connect failed:", err);
+      setShowNewConnection(true);
+    } finally {
+      setIsAutoConnecting(false);
+    }
+  };
 
   const handleNewConnection = async (type: string, name: string) => {
     const { supabase } = await import("@/integrations/supabase/client");
@@ -159,7 +251,8 @@ export function MessagingPopup({
           <>
             {view === "empty" && (
               <ConnectionEmptyState
-                onConnectTeam={() => setShowNewConnection(true)}
+                onConnectTeam={handleAutoConnect}
+                isConnecting={isAutoConnecting}
               />
             )}
 
