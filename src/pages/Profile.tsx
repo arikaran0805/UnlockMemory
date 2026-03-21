@@ -1779,8 +1779,8 @@ const Profile = () => {
                 {/* Debug & Practice Suggestion */}
                 <div 
                   onClick={todaysFocus.handleDebugPractice}
-                  className={`flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 transition-all duration-200 ${
-                    todaysFocus.nextLesson ? 'hover:bg-violet-500/8 cursor-pointer hover:-translate-y-0.5' : 'opacity-60 cursor-default'
+                  className={`flex items-center gap-3 p-3.5 rounded-2xl bg-violet-50/50 border border-violet-200/30 transition-all duration-250 ${
+                    todaysFocus.nextLesson ? 'hover:bg-violet-50/80 cursor-pointer hover:-translate-y-0.5' : 'opacity-50 cursor-default'
                   }`}
                 >
                   <div className="w-9 h-9 rounded-xl bg-violet-500/8 flex items-center justify-center shrink-0">
