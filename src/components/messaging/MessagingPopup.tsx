@@ -72,16 +72,45 @@ export function MessagingPopup({
     try {
       const { supabase } = await import("@/integrations/supabase/client");
 
-      // Find the course author or assigned moderator
+      // Find the course with author, assigned_to, and default_senior_moderator
       const { data: course } = await supabase
         .from("courses")
-        .select("author_id, assigned_to, name")
+        .select("author_id, assigned_to, default_senior_moderator, name")
         .eq("id", courseId)
         .single();
 
-      const authorId = course?.assigned_to || course?.author_id;
+      if (!course) {
+        setShowNewConnection(true);
+        return;
+      }
 
-      if (!authorId) {
+      // Priority: default_senior_moderator > assigned_to > author_id
+      // Also check if the course belongs to a team via course_assignments
+      let targetUserId = course.default_senior_moderator || course.assigned_to || course.author_id;
+
+      // If no direct author, check team assignment
+      if (!targetUserId) {
+        const { data: teamAssignment } = await supabase
+          .from("course_assignments")
+          .select("team_id")
+          .eq("course_id", courseId)
+          .not("team_id", "is", null)
+          .limit(1)
+          .maybeSingle();
+
+        if (teamAssignment?.team_id) {
+          // Get the team's senior moderator
+          const { data: team } = await supabase
+            .from("teams")
+            .select("senior_moderator_user_id")
+            .eq("id", teamAssignment.team_id)
+            .single();
+
+          targetUserId = team?.senior_moderator_user_id || null;
+        }
+      }
+
+      if (!targetUserId) {
         setShowNewConnection(true);
         return;
       }
@@ -91,7 +120,7 @@ export function MessagingPopup({
         .from("team_connections")
         .select("id")
         .eq("learner_id", userId)
-        .eq("connected_user_id", authorId)
+        .eq("connected_user_id", targetUserId)
         .eq("status", "active")
         .maybeSingle();
 
@@ -101,20 +130,21 @@ export function MessagingPopup({
         return;
       }
 
-      // Get author profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("id", authorId)
-        .single();
+      // Get profile and roles in parallel
+      const [profileRes, rolesRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", targetUserId)
+          .single(),
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", targetUserId),
+      ]);
 
-      // Determine role label
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", authorId);
-
-      const roleList = (roles || []).map((r) => r.role);
+      const profile = profileRes.data;
+      const roleList = (rolesRes.data || []).map((r) => r.role);
       const roleLabel = roleList.includes("senior_moderator")
         ? "Senior Moderator"
         : roleList.includes("moderator")
@@ -126,7 +156,7 @@ export function MessagingPopup({
         .from("team_connections")
         .insert({
           learner_id: userId,
-          connected_user_id: authorId,
+          connected_user_id: targetUserId,
           connection_type: "instructor",
           display_name: profile?.full_name || "Course Instructor",
           avatar_url: profile?.avatar_url || null,
