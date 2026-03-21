@@ -3,8 +3,10 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConnectionListItem } from "./ConnectionListItem";
+import { SuggestedMentorBanner } from "./SuggestedMentorBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectionWithConversation } from "@/hooks/useMessaging";
+import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
 
 interface ConnectionListProps {
   connections: ConnectionWithConversation[];
@@ -12,6 +14,8 @@ interface ConnectionListProps {
   onSelectConnection: (connectionId: string) => void;
   onNewConnection: () => void;
   onDeleteConnection?: (connectionId: string) => void;
+  suggestedMentor?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
+  onAskSuggestedMentor?: () => void;
 }
 
 export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection }: ConnectionListProps) {
