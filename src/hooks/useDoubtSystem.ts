@@ -39,9 +39,10 @@ export interface DoubtThread {
   source_course_name?: string;
 }
 
-interface ResolvedOwner {
+export interface ResolvedOwner {
   user_id: string;
   user_name: string;
+  avatar_url?: string | null;
   role: "moderator" | "senior_moderator" | "super_moderator";
   team_id?: string;
   routed_mode: string;
