@@ -368,7 +368,6 @@ export function useMessaging(userId: string | undefined) {
 
   const activeConnection = connections.find((c) => c.id === activeConnectionId) || null;
 
-  const deleteConnection = useCallback(async (connectionId: string) => {
   // Edit a message
   const editMessage = useCallback(async (messageId: string, newText: string) => {
     if (!userId || !newText.trim()) return;
@@ -397,6 +396,7 @@ export function useMessaging(userId: string | undefined) {
     }
   }, [userId]);
 
+  const deleteConnection = useCallback(async (connectionId: string) => {
     if (!userId) return;
 
     const { data: convos, error: convoLookupError } = await supabase
