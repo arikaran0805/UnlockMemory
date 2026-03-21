@@ -280,6 +280,7 @@ export const LearningCockpit = ({
         totalUnread={messaging.totalUnread}
         userId={userId}
         lessonId={lessonId}
+        courseId={courseId}
         onOpenChat={messaging.openChat}
         onSendMessage={messaging.sendMessage}
         onCollapse={messaging.collapse}
