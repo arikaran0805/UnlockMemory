@@ -1743,8 +1743,8 @@ const Profile = () => {
                     <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">Continue Learning</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Continue Learning</p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: '#6E6E73' }}>
                       {todaysFocus.nextLesson 
                         ? todaysFocus.nextLesson.title 
                         : todaysFocus.hasActiveCourse 
