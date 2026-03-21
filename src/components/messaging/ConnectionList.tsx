@@ -14,7 +14,7 @@ interface ConnectionListProps {
   onDeleteConnection?: (connectionId: string) => void;
 }
 
-export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection }: ConnectionListProps) {
+export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection }: ConnectionListProps) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
