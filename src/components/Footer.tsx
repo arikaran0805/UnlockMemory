@@ -27,7 +27,7 @@ const Footer = () => {
   const fetchSiteSettings = async () => {
     const { data } = await supabase
       .from("site_settings")
-      .select("site_name, site_description, twitter_url, facebook_url, instagram_url, linkedin_url, youtube_url, github_url")
+      .select("site_name, site_description, logo_url, twitter_url, facebook_url, instagram_url, linkedin_url, youtube_url, github_url")
       .limit(1)
       .maybeSingle();
 
