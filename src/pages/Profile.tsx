@@ -1348,30 +1348,6 @@ const Profile = () => {
                   <p className="text-sm mt-1 font-normal" style={{ color: '#6E6E73' }}>Your progress toward becoming job-ready</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Primary CTA: Career Board - Navigate to first course in career path */}
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="gap-1.5 rounded-full px-5 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-                    style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
-                    onClick={() => {
-                      if (career) {
-                        // Try to get specific course, otherwise navigate to career board index
-                        if (skills.length > 0) {
-                          const courseInfo = getCourseForSkill(career.id, skills[0].skill_name);
-                          if (courseInfo) {
-                            navigateToCourseInCareerBoard(career.slug, courseInfo.courseSlug);
-                            return;
-                          }
-                        }
-                        // Fallback: navigate to career board shell which auto-redirects to first course
-                        navigate(`/career-board/${career.slug}`);
-                      }
-                    }}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    <span className="font-medium">Career Board</span>
-                  </Button>
                   {/* Readiness Level Badge with Tooltip */}
                   <Tooltip>
                     <TooltipTrigger asChild>
