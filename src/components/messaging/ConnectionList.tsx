@@ -57,6 +57,16 @@ export function ConnectionList({ connections, isLoading, onSelectConnection, onN
         New Connection
       </button>
 
+      {/* Suggested mentor for current lesson */}
+      {suggestedMentor && onAskSuggestedMentor && (
+        <SuggestedMentorBanner
+          mentor={suggestedMentor.mentor}
+          context={suggestedMentor.context}
+          variant="list"
+          onAsk={onAskSuggestedMentor}
+        />
+      )}
+
       {/* List */}
       <ScrollArea className="flex-1 px-1">
         <div className="space-y-0.5 px-1 pb-2">
