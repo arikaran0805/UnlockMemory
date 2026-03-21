@@ -700,6 +700,7 @@ export function useMessaging(userId: string | undefined) {
     isSending,
     totalUnread,
     mentorPreview,
+    suggestedMentor,
     openMessaging,
     openChat,
     sendMessage,
@@ -715,5 +716,6 @@ export function useMessaging(userId: string | undefined) {
     fetchConnections,
     deleteConnection,
     showMentorPreview,
+    setSuggestedMentor,
   };
 }
