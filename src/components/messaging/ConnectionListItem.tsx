@@ -1,14 +1,19 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConnectionWithConversation } from "@/hooks/useMessaging";
 
 interface ConnectionListItemProps {
   connection: ConnectionWithConversation;
   onClick: () => void;
+  onDelete?: (connectionId: string) => void;
 }
 
-export function ConnectionListItem({ connection, onClick }: ConnectionListItemProps) {
+export function ConnectionListItem({ connection, onClick, onDelete }: ConnectionListItemProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const unread = connection.conversation?.unread_count_learner || 0;
   const preview = connection.conversation?.last_message_preview;
   const lastAt = connection.conversation?.last_message_at || connection.last_message_at;
@@ -29,13 +34,13 @@ export function ConnectionListItem({ connection, onClick }: ConnectionListItemPr
   };
 
   return (
-    <button
-      onClick={onClick}
+    <div
       className={cn(
-        "w-full flex items-center gap-3 px-4 py-3 text-left rounded-2xl transition-all duration-200",
+        "group relative w-full flex items-center gap-3 px-4 py-3 text-left rounded-2xl transition-all duration-200 cursor-pointer",
         "hover:bg-muted/40 hover:shadow-sm",
         unread > 0 && "bg-primary/[0.03]"
       )}
+      onClick={() => { if (!menuOpen) onClick(); }}
     >
       {/* Avatar */}
       <div className="relative flex-shrink-0">
@@ -45,7 +50,6 @@ export function ConnectionListItem({ connection, onClick }: ConnectionListItemPr
             {connection.display_name?.charAt(0)?.toUpperCase() || "T"}
           </AvatarFallback>
         </Avatar>
-        {/* Online dot */}
         <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-primary border-2 border-card" />
       </div>
 
@@ -58,11 +62,38 @@ export function ConnectionListItem({ connection, onClick }: ConnectionListItemPr
           )}>
             {connection.display_name}
           </span>
-          {lastAt && (
-            <span className="text-[11px] text-muted-foreground flex-shrink-0">
-              {formatTime(lastAt)}
-            </span>
-          )}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {lastAt && (
+              <span className="text-[11px] text-muted-foreground">
+                {formatTime(lastAt)}
+              </span>
+            )}
+            {/* 3-dot menu */}
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-muted/60 transition-all duration-150 text-muted-foreground hover:text-foreground"
+                  aria-label="More options"
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-36 rounded-xl" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.(connection.id);
+                    setMenuOpen(false);
+                  }}
+                  className="text-destructive focus:text-destructive gap-2 cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         <div className="flex items-center justify-between gap-2 mt-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -88,6 +119,6 @@ export function ConnectionListItem({ connection, onClick }: ConnectionListItemPr
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
