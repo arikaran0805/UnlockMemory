@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Twitter, Facebook, Instagram, Linkedin, Youtube, Github } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Twitter, Facebook, Instagram, Linkedin, Youtube, Github, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { trackSocialMediaClick } from "@/lib/socialAnalytics";
 
@@ -58,111 +57,74 @@ const Footer = () => {
     }
   };
 
+  const socialEntries = [
+    { key: "twitter", url: socialLinks.twitter, Icon: Twitter },
+    { key: "facebook", url: socialLinks.facebook, Icon: Facebook },
+    { key: "instagram", url: socialLinks.instagram, Icon: Instagram },
+    { key: "linkedin", url: socialLinks.linkedin, Icon: Linkedin },
+    { key: "youtube", url: socialLinks.youtube, Icon: Youtube },
+    { key: "github", url: socialLinks.github, Icon: Github },
+  ].filter(e => e.url);
+
   return (
-    <footer className="bg-background border-t border-border">
-      <div className="container px-4">
-        {/* Main Footer */}
-        <div className="py-12 grid grid-cols-1 md:grid-cols-12 gap-12">
+    <footer className="relative border-t border-border/40 bg-muted/30">
+      {/* Main Footer */}
+      <div className="mx-auto max-w-[1280px] px-6 lg:px-12 pt-16 pb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-y-12 gap-x-8">
+
           {/* Brand Column */}
-          <div className="md:col-span-4 space-y-6">
-            <Link to="/" className="flex items-center gap-3">
+          <div className="sm:col-span-2 lg:col-span-4 space-y-5">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2.5 group transition-transform duration-200 ease-out hover:scale-[1.03]"
+            >
               {logoUrl ? (
-                <img src={logoUrl} alt={siteName} className="h-10 w-auto" />
+                <img src={logoUrl} alt={siteName} className="h-9 w-auto" />
               ) : (
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                  <span className="text-lg font-black text-primary-foreground">{siteName.charAt(0)}</span>
+                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
+                  <span className="text-base font-black text-primary-foreground">{siteName.charAt(0)}</span>
                 </div>
               )}
-              <span className="text-xl tracking-[-0.02em] text-foreground">
-                <span className="font-medium">Unlock</span><span className="font-semibold">Memory</span>
+              <span className="text-lg tracking-[0.01em] text-foreground">
+                <span className="font-medium">Unlock</span>
+                <span className="font-semibold">Memory</span>
               </span>
             </Link>
-            <p className="text-muted-foreground leading-relaxed max-w-sm">
+
+            <p className="text-sm leading-relaxed text-muted-foreground/70 max-w-[280px]">
               {siteDescription}
             </p>
 
             {/* Social Links */}
-            <div className="flex gap-2">
-              {socialLinks.twitter && (
-                <a
-                  href={socialLinks.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackSocialMediaClick("twitter")}
-                  className="w-10 h-10 border border-border flex items-center justify-center hover:bg-foreground hover:text-background hover:border-foreground transition-colors"
-                >
-                  <Twitter className="h-4 w-4" />
-                </a>
-              )}
-              {socialLinks.facebook && (
-                <a
-                  href={socialLinks.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackSocialMediaClick("facebook")}
-                  className="w-10 h-10 border border-border flex items-center justify-center hover:bg-foreground hover:text-background hover:border-foreground transition-colors"
-                >
-                  <Facebook className="h-4 w-4" />
-                </a>
-              )}
-              {socialLinks.instagram && (
-                <a
-                  href={socialLinks.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackSocialMediaClick("instagram")}
-                  className="w-10 h-10 border border-border flex items-center justify-center hover:bg-foreground hover:text-background hover:border-foreground transition-colors"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-              )}
-              {socialLinks.linkedin && (
-                <a
-                  href={socialLinks.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackSocialMediaClick("linkedin")}
-                  className="w-10 h-10 border border-border flex items-center justify-center hover:bg-foreground hover:text-background hover:border-foreground transition-colors"
-                >
-                  <Linkedin className="h-4 w-4" />
-                </a>
-              )}
-              {socialLinks.youtube && (
-                <a
-                  href={socialLinks.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackSocialMediaClick("youtube")}
-                  className="w-10 h-10 border border-border flex items-center justify-center hover:bg-foreground hover:text-background hover:border-foreground transition-colors"
-                >
-                  <Youtube className="h-4 w-4" />
-                </a>
-              )}
-              {socialLinks.github && (
-                <a
-                  href={socialLinks.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackSocialMediaClick("github")}
-                  className="w-10 h-10 border border-border flex items-center justify-center hover:bg-foreground hover:text-background hover:border-foreground transition-colors"
-                >
-                  <Github className="h-4 w-4" />
-                </a>
-              )}
-            </div>
+            {socialEntries.length > 0 && (
+              <div className="flex items-center gap-1.5 pt-1">
+                {socialEntries.map(({ key, url, Icon }) => (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackSocialMediaClick(key)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-primary hover:bg-primary/8 transition-all duration-200"
+                  >
+                    <Icon className="h-[15px] w-[15px]" strokeWidth={1.6} />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Links */}
-          <div className="md:col-span-2">
-            <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+          {/* Courses Column */}
+          <div className="lg:col-span-2">
+            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
               Courses
             </h4>
-            <ul className="space-y-4">
+            <ul className="space-y-2.5">
               {footerCategories.map((cat) => (
                 <li key={cat.slug}>
                   <Link
                     to={`/course/${cat.slug}`}
-                    className="text-foreground hover:text-primary transition-colors"
+                    className="text-[14px] text-foreground/75 hover:text-primary transition-all duration-200 hover:translate-x-0.5 inline-block"
                   >
                     {cat.name}
                   </Link>
@@ -171,73 +133,76 @@ const Footer = () => {
             </ul>
           </div>
 
-          <div className="md:col-span-2">
-            <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+          {/* Company Column */}
+          <div className="lg:col-span-2">
+            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
               Company
             </h4>
-            <ul className="space-y-4">
-              <li>
-                <Link to="/about" className="text-foreground hover:text-primary transition-colors">
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link to="/courses" className="text-foreground hover:text-primary transition-colors">
-                  All Courses
-                </Link>
-              </li>
+            <ul className="space-y-2.5">
+              {[
+                { to: "/about", label: "About" },
+                { to: "/contact", label: "Contact" },
+                { to: "/courses", label: "All Courses" },
+              ].map(link => (
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className="text-[14px] text-foreground/75 hover:text-primary transition-all duration-200 hover:translate-x-0.5 inline-block"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div className="md:col-span-2">
-            <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+          {/* Legal Column */}
+          <div className="lg:col-span-2">
+            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
               Legal
             </h4>
-            <ul className="space-y-4">
-              <li>
-                <Link to="/privacy" className="text-foreground hover:text-primary transition-colors">
-                  Privacy
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="text-foreground hover:text-primary transition-colors">
-                  Terms
-                </Link>
-              </li>
+            <ul className="space-y-2.5">
+              {[
+                { to: "/privacy", label: "Privacy Policy" },
+                { to: "/terms", label: "Terms of Service" },
+              ].map(link => (
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className="text-[14px] text-foreground/75 hover:text-primary transition-all duration-200 hover:translate-x-0.5 inline-block"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Newsletter teaser */}
-          <div className="md:col-span-2">
-            <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+          {/* Newsletter / CTA Column */}
+          <div className="sm:col-span-2 lg:col-span-2">
+            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
               Stay Updated
             </h4>
-            <p className="text-sm text-muted-foreground mb-4">
-              Get notified about new courses and features.
+            <p className="text-[13px] leading-relaxed text-muted-foreground/60 mb-4">
+              Get notified about new courses, features, and learning tips.
             </p>
             <Link to="/contact">
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-none border-foreground text-foreground hover:bg-foreground hover:text-background"
-              >
+              <button className="group inline-flex items-center gap-2 text-[13px] font-medium text-foreground/80 px-4 py-2 rounded-lg border border-border/60 hover:border-primary/40 hover:text-primary hover:bg-primary/4 transition-all duration-200">
                 Subscribe
-              </Button>
+                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={1.8} />
+              </button>
             </Link>
           </div>
         </div>
+      </div>
 
-        {/* Bottom Bar */}
-        <div className="py-6 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+      {/* Bottom Bar */}
+      <div className="border-t border-border/30">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-12 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <p className="text-[12px] text-muted-foreground/50">
             © {new Date().getFullYear()} {siteName}. All rights reserved.
           </p>
-          <p className="text-sm text-muted-foreground font-mono">
+          <p className="text-[12px] text-muted-foreground/40">
             Crafted with passion for learning
           </p>
         </div>
