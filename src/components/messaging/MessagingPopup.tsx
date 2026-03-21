@@ -53,6 +53,8 @@ export function MessagingPopup({
   courseId,
   onOpenChat,
   onSendMessage,
+  onSendVoice,
+  onSendAttachment,
   onEditMessage,
   onDeleteMessage,
   onCollapse,
