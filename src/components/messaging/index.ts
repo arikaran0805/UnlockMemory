@@ -8,4 +8,8 @@ export { ChatMessageList } from "./ChatMessageList";
 export { ChatMessageBubble } from "./ChatMessageBubble";
 export { ChatComposer } from "./ChatComposer";
 export { TypingIndicator } from "./TypingIndicator";
+export { VoiceMessageBubble } from "./VoiceMessageBubble";
+export { VoiceRecordingBar } from "./VoiceRecordingBar";
+export { AttachmentPreview } from "./AttachmentPreview";
+export { ImageLightbox } from "./ImageLightbox";
 export { NewConnectionModal, NewConnectionContent } from "./NewConnectionModal";
