@@ -422,7 +422,8 @@ export function useMessaging(userId: string | undefined) {
     if (!savedView || savedView === "closed") return;
 
     if (savedView === "chat" && savedConnectionId) {
-      // Re-open the chat with the saved connection
+      // Fetch connections first so activeConnection resolves, then open chat
+      await fetchConnections();
       openChat(savedConnectionId);
     } else if (savedView === "list" || savedView === "empty") {
       openMessaging();
