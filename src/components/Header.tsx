@@ -160,19 +160,16 @@ const Header = ({
   }, []);
 
   const checkUserRoles = async (userId: string) => {
-    // Check admin role
-    const { data: adminData } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: 'admin'
-    });
-    setIsAdmin(!!adminData);
-
-    // Check moderator role
-    const { data: modData } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: 'moderator'
-    });
-    setIsModerator(!!modData);
+    const [adminRes, modRes, seniorRes, superRes] = await Promise.all([
+      supabase.rpc('has_role', { _user_id: userId, _role: 'admin' }),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'moderator' }),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'senior_moderator' }),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'super_moderator' }),
+    ]);
+    setIsAdmin(!!adminRes.data);
+    setIsModerator(!!modRes.data);
+    setIsSeniorModerator(!!seniorRes.data);
+    setIsSuperModerator(!!superRes.data);
   };
 
   const handleLogout = async () => {
