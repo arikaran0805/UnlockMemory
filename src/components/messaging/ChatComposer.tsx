@@ -58,10 +58,30 @@ export function ChatComposer({
   const handleSend = useCallback(() => {
     if (!canSend) return;
     onStopTyping?.();
+    setShowEmoji(false);
     onSend(text.trim());
     setText("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
   }, [canSend, text, onSend, onStopTyping]);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    const el = textareaRef.current;
+    if (el) {
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const newText = text.slice(0, start) + emoji + text.slice(end);
+      setText(newText);
+      // Restore cursor after emoji
+      requestAnimationFrame(() => {
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+        el.focus();
+      });
+    } else {
+      setText(prev => prev + emoji);
+    }
+    onTyping?.();
+  }, [text, onTyping]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
