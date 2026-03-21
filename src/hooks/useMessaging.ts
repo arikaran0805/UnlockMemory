@@ -91,15 +91,16 @@ export function useMessaging(userId: string | undefined) {
     }
   }, [userId]);
 
-  // Fetch messages for a conversation
+  // Fetch messages for a conversation (load most recent, then display in order)
   const fetchMessages = useCallback(async (conversationId: string) => {
     const { data } = await supabase
       .from("conversation_messages")
       .select("*")
       .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true })
-      .limit(50);
-    setMessages(data || []);
+      .order("created_at", { ascending: false })
+      .limit(100);
+    // Reverse to show oldest first in UI
+    setMessages((data || []).reverse());
   }, []);
 
   // Open messaging popup
