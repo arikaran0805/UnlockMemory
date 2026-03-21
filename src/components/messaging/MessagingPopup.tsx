@@ -41,7 +41,9 @@ interface MessagingPopupProps {
   onFetchConnections: () => void;
   onDeleteConnection?: (connectionId: string) => void;
   mentorPreview?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
+  suggestedMentor?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
   onStartMentorChat?: () => void;
+  onAskSuggestedMentor?: () => void;
 }
 
 export function MessagingPopup({
