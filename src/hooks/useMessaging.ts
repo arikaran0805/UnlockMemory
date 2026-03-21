@@ -326,7 +326,7 @@ export function useMessaging(userId: string | undefined) {
     setView("list");
   }, []);
 
-  // Realtime subscription for new messages
+  // Realtime subscription for new messages and status updates
   useEffect(() => {
     if (!activeConversation) return;
 
@@ -347,7 +347,28 @@ export function useMessaging(userId: string | undefined) {
               if (prev.find((m) => m.id === newMsg.id)) return prev;
               return [...prev, newMsg];
             });
+            // Mark as delivered immediately since we received it
+            supabase
+              .from("conversation_messages")
+              .update({ delivery_status: "delivered", delivered_at: new Date().toISOString() } as any)
+              .eq("id", newMsg.id)
+              .then(() => {});
           }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversation_messages",
+          filter: `conversation_id=eq.${activeConversation.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as ChatMessage;
+          setMessages((prev) =>
+            prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m)
+          );
         }
       )
       .subscribe();
