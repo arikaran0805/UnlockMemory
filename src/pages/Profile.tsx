@@ -1396,20 +1396,7 @@ const Profile = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold tabular-nums" style={{ color: '#1D1D1F' }}>{skillProgress}%</span>
-                            {/* Secondary contextual CTA - visible on hover */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hidden group-hover:inline-flex items-center gap-1 h-6 text-[11px] font-medium text-primary/80 border-primary/30 bg-transparent px-2 py-0 rounded-full transition-all duration-150 hover:bg-primary/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSkillClick(skill.skill_name);
-                              }}
-                            >
-                              View Courses
-                              <ChevronRight className="h-3 w-3" />
-                            </Button>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:hidden transition-opacity duration-150" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
                           </div>
                         </div>
                         <Progress 
