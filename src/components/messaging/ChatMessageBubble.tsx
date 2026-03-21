@@ -95,7 +95,7 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
             <div className="flex gap-1 justify-end">
               <button
                 onClick={() => setIsEditing(false)}
-                className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground"
+                className="p-1 rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -106,7 +106,7 @@ export function ChatMessageBubble({ message, isOwn, onEdit, onDelete }: ChatMess
                     setIsEditing(false);
                   }
                 }}
-                className="p-1 rounded-md hover:bg-primary/20 text-primary"
+                className="p-1 rounded-md bg-background/80 hover:bg-background text-primary"
               >
                 <CheckIcon className="h-3.5 w-3.5" />
               </button>
