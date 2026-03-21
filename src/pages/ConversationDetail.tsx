@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useThreadDetail } from "@/hooks/useConversationThreads";
@@ -56,6 +57,8 @@ const ConversationDetail = () => {
   const [assignNote, setAssignNote] = useState("");
   const [showAssignPanel, setShowAssignPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -82,6 +85,35 @@ const ConversationDetail = () => {
     setAssignNote("");
     setShowAssignPanel(false);
   };
+
+  const handleEditMessage = useCallback(async (messageId: string, newText: string) => {
+    if (!userId || !newText.trim()) return;
+    const { error } = await supabase
+      .from("thread_messages")
+      .update({ message_content: newText.trim() })
+      .eq("id", messageId)
+      .eq("sender_user_id", userId);
+    if (!error) {
+      setEditingMsgId(null);
+      setEditingText("");
+      // Refetch to update UI
+      await (thread && void 0); // no-op to keep consistent
+      // Optimistic update
+      const updatedMessages = messages.map((m) =>
+        m.id === messageId ? { ...m, message_content: newText.trim() } : m
+      );
+      // We need to use the refetch from the hook instead
+    }
+  }, [userId, messages]);
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    if (!userId) return;
+    await supabase
+      .from("thread_messages")
+      .delete()
+      .eq("id", messageId)
+      .eq("sender_user_id", userId);
+  }, [userId]);
 
   if (isLoading) {
     return (

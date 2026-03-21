@@ -23,6 +23,8 @@ interface MessagingPopupProps {
   courseId?: string;
   onOpenChat: (connectionId: string, lessonId?: string) => void;
   onSendMessage: (text: string) => void;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   onCollapse: () => void;
   onExpand: () => void;
   onClose: () => void;
@@ -45,6 +47,8 @@ export function MessagingPopup({
   courseId,
   onOpenChat,
   onSendMessage,
+  onEditMessage,
+  onDeleteMessage,
   onCollapse,
   onExpand,
   onClose,
@@ -312,6 +316,8 @@ export function MessagingPopup({
                   messages={messages}
                   currentUserId={userId}
                   isLoading={isLoading}
+                  onEditMessage={onEditMessage}
+                  onDeleteMessage={onDeleteMessage}
                 />
                 <ChatComposer
                   onSend={onSendMessage}
