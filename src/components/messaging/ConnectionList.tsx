@@ -18,7 +18,7 @@ interface ConnectionListProps {
   onAskSuggestedMentor?: () => void;
 }
 
-export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection }: ConnectionListProps) {
+export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection, suggestedMentor, onAskSuggestedMentor }: ConnectionListProps) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
