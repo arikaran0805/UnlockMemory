@@ -58,8 +58,9 @@ const ConversationDetail = () => {
 
   const handleSendReply = async () => {
     if (!replyText.trim()) return;
-    await sendMessage(replyText, senderRole, "normal", true);
+    const text = replyText.trim();
     setReplyText("");
+    await sendMessage(text, senderRole, "normal", true);
   };
 
   const handleSendInternalNote = async () => {
