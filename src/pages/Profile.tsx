@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCourseNavigation } from "@/hooks/useCourseNavigation";
+import { useTodaysFocus } from "@/hooks/useTodaysFocus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1155,6 +1156,26 @@ const Profile = () => {
       }
     }
   };
+  // Compute active course for Today's Focus (must be before early returns for hooks)
+  const activeFocusCourse = React.useMemo(() => {
+    const careerObj = getCareerBySlug(selectedCareer);
+    const slugs = careerObj ? getCareerCourseSlugs(careerObj.id) : [];
+    const careerEnrolled = enrolledCourses.filter(e => slugs.includes(e.courses?.slug));
+    const incomplete = careerEnrolled.find(e => {
+      const progress = courseProgressMap[e.courses?.slug];
+      return progress && progress.completed < progress.total;
+    });
+    if (incomplete) {
+      return { slug: incomplete.courses?.slug, id: incomplete.courses?.id, name: incomplete.courses?.name };
+    }
+    // Fallback: first enrolled course
+    if (careerEnrolled.length > 0) {
+      return { slug: careerEnrolled[0].courses?.slug, id: careerEnrolled[0].courses?.id, name: careerEnrolled[0].courses?.name };
+    }
+    return { slug: undefined, id: undefined, name: undefined };
+  }, [enrolledCourses, courseProgressMap, selectedCareer]);
+
+  const todaysFocus = useTodaysFocus(userId, activeFocusCourse.slug, activeFocusCourse.id, activeFocusCourse.name);
 
   if (loading) {
     return (
@@ -1248,7 +1269,7 @@ const Profile = () => {
   
   const readinessPercentage = calculateWeightedReadiness();
 
-  // Determine focus message based on progress
+  // Determine focus message and active course based on progress
   const getFocusContent = () => {
     // Find first incomplete course in career path
     const incompleteCourse = careerEnrolledCourses.find(e => {
@@ -1264,6 +1285,9 @@ const Profile = () => {
         message: `Complete ${incompleteCourse.courses?.name}`,
         subtext: estimatedMins > 0 ? `~${Math.ceil(estimatedMins / 60)}h remaining` : "Almost there!",
         currentCourse: incompleteCourse.courses?.name,
+        activeCourseSlug: incompleteCourse.courses?.slug as string | undefined,
+        activeCourseId: incompleteCourse.courses?.id as string | undefined,
+        activeCourseName: incompleteCourse.courses?.name as string | undefined,
       };
     }
     
@@ -1272,6 +1296,9 @@ const Profile = () => {
         message: "Build your foundation",
         subtext: `Reach ${30}% career readiness`,
         currentCourse: undefined,
+        activeCourseSlug: undefined,
+        activeCourseId: undefined,
+        activeCourseName: undefined,
       };
     }
     
@@ -1280,6 +1307,9 @@ const Profile = () => {
         message: "Strengthen your skills",
         subtext: `Reach interview-ready status`,
         currentCourse: undefined,
+        activeCourseSlug: undefined,
+        activeCourseId: undefined,
+        activeCourseName: undefined,
       };
     }
     
@@ -1287,6 +1317,9 @@ const Profile = () => {
       message: "Keep the momentum",
       subtext: "You're doing great!",
       currentCourse: undefined,
+      activeCourseSlug: undefined,
+      activeCourseId: undefined,
+      activeCourseName: undefined,
     };
   };
   
@@ -1703,37 +1736,64 @@ const Profile = () => {
               
               <div className="space-y-3">
                 {/* Lesson Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                <div 
+                  onClick={todaysFocus.handleContinueLearning}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+                >
                   <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
                     <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">Continue Learning</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{focusContent.message}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {todaysFocus.nextLesson 
+                        ? todaysFocus.nextLesson.title 
+                        : todaysFocus.hasActiveCourse 
+                          ? "All lessons completed!" 
+                          : "Start your learning journey"}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
 
                 {/* MCQ Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/4 border border-amber-500/8 hover:bg-amber-500/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                <div 
+                  onClick={todaysFocus.handleDailyQuiz}
+                  className={`flex items-center gap-3 p-3 rounded-2xl bg-amber-500/4 border border-amber-500/8 transition-all duration-200 ${
+                    todaysFocus.hasCompletedLessons ? 'hover:bg-amber-500/8 cursor-pointer hover:-translate-y-0.5' : 'opacity-60 cursor-default'
+                  }`}
+                >
                   <div className="w-9 h-9 rounded-xl bg-amber-500/8 flex items-center justify-center shrink-0">
                     <HelpCircle className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">Daily Quiz</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Test your knowledge with MCQs</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {todaysFocus.hasCompletedLessons 
+                        ? "Test your knowledge with MCQs" 
+                        : "Complete lessons to unlock quiz"}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
 
                 {/* Debug & Practice Suggestion */}
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 hover:bg-violet-500/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                <div 
+                  onClick={todaysFocus.handleDebugPractice}
+                  className={`flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 transition-all duration-200 ${
+                    todaysFocus.nextLesson ? 'hover:bg-violet-500/8 cursor-pointer hover:-translate-y-0.5' : 'opacity-60 cursor-default'
+                  }`}
+                >
                   <div className="w-9 h-9 rounded-xl bg-violet-500/8 flex items-center justify-center shrink-0">
                     <Code className="h-4 w-4 text-violet-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">Debug & Practice</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Hands-on coding challenges</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {todaysFocus.nextLesson 
+                        ? "Hands-on coding challenges" 
+                        : "No practice available for today"}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 </div>
