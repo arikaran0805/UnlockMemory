@@ -68,6 +68,8 @@ export function MessagingPopup({
   onSetView,
   onFetchConnections,
   onDeleteConnection,
+  mentorPreview,
+  onStartMentorChat,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
