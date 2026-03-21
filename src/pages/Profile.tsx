@@ -1569,12 +1569,12 @@ const Profile = () => {
                         {/* Center content */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <div className="relative">
-                            <span className="text-5xl font-bold bg-gradient-to-br from-primary via-purple-500 to-amber-500 bg-clip-text text-transparent">
+                            <span className="text-5xl font-bold" style={{ color: '#1D1D1F' }}>
                               {readinessPercentage}
                             </span>
-                            <span className="text-2xl font-bold text-muted-foreground">%</span>
+                            <span className="text-2xl font-bold" style={{ color: '#6E6E73' }}>%</span>
                           </div>
-                          <span className="text-sm text-muted-foreground mt-1">Career Ready</span>
+                          <span className="text-sm mt-1" style={{ color: '#6E6E73' }}>Career Ready</span>
                         </div>
                       </div>
 
