@@ -211,13 +211,21 @@ export function useMessaging(userId: string | undefined) {
       setActiveConversation(convo);
       await fetchMessages(convo.id);
 
-      // Mark as read
+      // Mark as read + mark all incoming messages as seen
       if (convo.unread_count_learner > 0) {
         await supabase
           .from("conversations")
           .update({ unread_count_learner: 0 })
           .eq("id", convo.id);
       }
+
+      // Mark all messages from other side as "seen"
+      await supabase
+        .from("conversation_messages")
+        .update({ delivery_status: "seen", seen_at: new Date().toISOString(), is_read: true })
+        .eq("conversation_id", convo.id)
+        .neq("sender_id", userId)
+        .neq("delivery_status", "seen");
     }
 
     setIsLoading(false);

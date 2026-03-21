@@ -70,18 +70,18 @@ export function MessagingPopup({
     userId
   );
 
-  // Mark messages as seen when chat is open
+  // Mark incoming messages as seen when chat is open and new messages arrive
   useEffect(() => {
     if (view !== "chat" || !activeConversationId || !userId) return;
     const unreadMessages = messages.filter(
-      (m) => m.sender_id !== userId && (m as any).delivery_status !== "seen"
+      (m) => m.sender_id !== userId && m.delivery_status !== "seen"
     );
     if (unreadMessages.length === 0) return;
 
     const ids = unreadMessages.map((m) => m.id);
     supabase
       .from("conversation_messages")
-      .update({ delivery_status: "seen", seen_at: new Date().toISOString(), is_read: true } as any)
+      .update({ delivery_status: "seen", seen_at: new Date().toISOString(), is_read: true })
       .in("id", ids)
       .then(() => {});
   }, [view, activeConversationId, messages, userId]);
