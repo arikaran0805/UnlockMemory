@@ -1405,12 +1405,12 @@ const Profile = () => {
                       return <IconComp className="h-5 w-5" />;
                     };
                     
-                    return (
-                      <div 
-                        key={skill.id} 
-                        className="group cursor-pointer hover:bg-primary/5 rounded-lg p-3 -m-1 transition-all duration-150 border border-transparent hover:border-primary/20 hover:shadow-md hover:translate-y-[-1px] active:translate-y-0"
-                        onClick={() => handleSkillClick(skill.skill_name)}
-                      >
+                      return (
+                        <div 
+                          key={skill.id} 
+                          className="group cursor-pointer hover:bg-muted/40 rounded-xl p-3.5 -m-1 transition-all duration-200 border border-transparent hover:border-border/40"
+                          onClick={() => handleSkillClick(skill.skill_name)}
+                        >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
                             <div className="text-primary transition-transform duration-150 group-hover:scale-110">
