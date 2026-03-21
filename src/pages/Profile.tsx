@@ -1326,11 +1326,11 @@ const Profile = () => {
   const focusContent = getFocusContent();
 
   const renderDashboard = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
         {/* Left Column - Dashboard Header + Career Readiness + Practice Labs */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-7">
           {/* Premium Dashboard Header */}
           <ProfileDashboardHeader
             className="animate-stagger-1"
@@ -1339,13 +1339,13 @@ const Profile = () => {
             currentStreak={currentStreak}
             maxStreak={maxStreak}
           />
-          {/* Career Readiness */}
-          <Card className="card-premium animate-stagger-2">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
+          {/* Career Readiness - Primary tier */}
+          <Card className="card-premium card-primary animate-stagger-2">
+            <CardContent className="p-7">
+              <div className="flex items-center justify-between mb-7">
                 <div>
-                  <h3 className="text-xl font-bold tracking-[-0.02em] text-foreground">Career Readiness</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5 font-normal">Your progress toward becoming job-ready</p>
+                  <h3 className="text-xl font-bold tracking-[-0.02em]" style={{ color: '#1D1D1F' }}>Career Readiness</h3>
+                  <p className="text-sm mt-1 font-normal" style={{ color: '#6E6E73' }}>Your progress toward becoming job-ready</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Primary CTA: Career Board - Navigate to first course in career path */}
@@ -1392,7 +1392,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
                 {/* Skill Progress Bars */}
                 <div className="space-y-3 max-h-[400px] overflow-y-auto overflow-x-visible pr-2 py-2 pl-2 -ml-2 -mt-2">
                   {skills.map((skill, index) => {
@@ -1405,21 +1405,21 @@ const Profile = () => {
                       return <IconComp className="h-5 w-5" />;
                     };
                     
-                    return (
-                      <div 
-                        key={skill.id} 
-                        className="group cursor-pointer hover:bg-primary/5 rounded-lg p-3 -m-1 transition-all duration-150 border border-transparent hover:border-primary/20 hover:shadow-md hover:translate-y-[-1px] active:translate-y-0"
-                        onClick={() => handleSkillClick(skill.skill_name)}
-                      >
+                      return (
+                        <div 
+                          key={skill.id} 
+                          className="group cursor-pointer hover:bg-muted/40 rounded-xl p-3.5 -m-1 transition-all duration-200 border border-transparent hover:border-border/40"
+                          onClick={() => handleSkillClick(skill.skill_name)}
+                        >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
-                            <div className="text-primary transition-transform duration-150 group-hover:scale-110">
+                            <div className="text-primary/70 transition-transform duration-200 group-hover:scale-110">
                               {renderSkillIcon(skill.icon)}
                             </div>
-                            <span className="font-medium">{skill.skill_name}</span>
+                            <span className="font-medium" style={{ color: '#1D1D1F' }}>{skill.skill_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold tabular-nums">{skillProgress}%</span>
+                            <span className="font-semibold tabular-nums" style={{ color: '#1D1D1F' }}>{skillProgress}%</span>
                             {/* Secondary contextual CTA - visible on hover */}
                             <Button
                               variant="outline"
@@ -1438,8 +1438,7 @@ const Profile = () => {
                         </div>
                         <Progress 
                           value={skillProgress} 
-                          className="h-[6px] rounded-full [&]:bg-[#E6EFE9] [&>div]:rounded-full"
-                          style={{ ['--tw-shadow' as any]: '0 0 6px rgba(34,197,94,0.35)' }}
+                          className="h-[6px] rounded-full progress-animate [&]:bg-muted/60 [&>div]:rounded-full [&>div]:bg-primary"
                         />
                       </div>
                     );
@@ -1570,12 +1569,12 @@ const Profile = () => {
                         {/* Center content */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <div className="relative">
-                            <span className="text-5xl font-bold bg-gradient-to-br from-primary via-purple-500 to-amber-500 bg-clip-text text-transparent">
+                            <span className="text-5xl font-bold" style={{ color: '#1D1D1F' }}>
                               {readinessPercentage}
                             </span>
-                            <span className="text-2xl font-bold text-muted-foreground">%</span>
+                            <span className="text-2xl font-bold" style={{ color: '#6E6E73' }}>%</span>
                           </div>
-                          <span className="text-sm text-muted-foreground mt-1">Career Ready</span>
+                          <span className="text-sm mt-1" style={{ color: '#6E6E73' }}>Career Ready</span>
                         </div>
                       </div>
 
@@ -1632,7 +1631,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Recommended Labs Section - Directly below Career Readiness */}
+          {/* Recommended Labs Section */}
           <Card className="card-premium animate-stagger-3">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -1641,8 +1640,8 @@ const Profile = () => {
                     <FlaskConical className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg tracking-[-0.01em]">Recommended Labs</CardTitle>
-                    <CardDescription className="font-normal">Practice exercises based on your enrolled courses</CardDescription>
+                    <CardTitle className="text-lg tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>Recommended Labs</CardTitle>
+                    <CardDescription className="font-normal" style={{ color: '#6E6E73' }}>Practice exercises based on your enrolled courses</CardDescription>
                   </div>
                 </div>
                 <Button 
@@ -1668,14 +1667,14 @@ const Profile = () => {
                   const labIcons = [<Zap className="h-4 w-4" />, <Target className="h-4 w-4" />, <Award className="h-4 w-4" />];
                   const labColors = ['from-emerald-500 to-teal-600', 'from-blue-500 to-indigo-600', 'from-purple-500 to-pink-600'];
                   
-                  return (
-                    <div 
-                      key={enrollment.id} 
-                      className="group cursor-pointer transition-all duration-[220ms] ease-out hover:-translate-y-[3px] rounded-[24px] border border-black/[0.06] dark:border-white/[0.08] p-7 flex flex-col items-center text-center"
-                      style={{
-                        background: 'rgba(255,255,255,0.9)',
-                        boxShadow: '0 8px 20px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03)',
-                      }}
+                    return (
+                      <div 
+                        key={enrollment.id} 
+                        className="group cursor-pointer transition-all duration-[250ms] ease-out hover:-translate-y-[3px] hover:scale-[1.01] rounded-[22px] border border-border/40 p-7 flex flex-col items-center text-center"
+                        style={{
+                          background: 'rgba(255,255,255,0.92)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+                        }}
                       onClick={() => handleTabChange('practice')}
                     >
                       {/* Icon */}
@@ -1687,7 +1686,7 @@ const Profile = () => {
                       </div>
 
                       {/* Title */}
-                      <p className="font-semibold text-xl text-foreground mt-5 w-full tracking-[-0.01em] line-clamp-2 leading-snug">
+                      <p className="font-semibold text-xl mt-5 w-full tracking-[-0.01em] line-clamp-2 leading-snug" style={{ color: '#1D1D1F' }}>
                         {course.name}
                       </p>
 
@@ -1720,17 +1719,17 @@ const Profile = () => {
         </div>
 
         {/* Right Column - Today's Focus + Weekly Activity + AI Mentor */}
-        <div className="flex flex-col space-y-6 h-full min-h-full">
+        <div className="flex flex-col space-y-7 h-full min-h-full">
           {/* Today's Focus Card */}
           <Card className="card-premium animate-stagger-1">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-5">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/15">
                   <Target className="h-5 w-5 text-white" strokeWidth={1.5} />
                 </div>
                 <div className="space-y-0.5">
-                  <h3 className="text-lg font-semibold tracking-[-0.01em]">Today's Focus</h3>
-                  <p className="text-xs text-muted-foreground font-medium">Recommended for you today</p>
+                  <h3 className="text-lg font-semibold tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>Today's Focus</h3>
+                  <p className="text-xs font-medium" style={{ color: '#6E6E73' }}>Recommended for you today</p>
                 </div>
               </div>
               
@@ -1738,14 +1737,14 @@ const Profile = () => {
                 {/* Lesson Suggestion */}
                 <div 
                   onClick={todaysFocus.handleContinueLearning}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-primary/4 border border-primary/8 hover:bg-primary/8 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-all duration-250 cursor-pointer hover:-translate-y-0.5"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">Continue Learning</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Continue Learning</p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: '#6E6E73' }}>
                       {todaysFocus.nextLesson 
                         ? todaysFocus.nextLesson.title 
                         : todaysFocus.hasActiveCourse 
@@ -1759,16 +1758,16 @@ const Profile = () => {
                 {/* MCQ Suggestion */}
                 <div 
                   onClick={todaysFocus.handleDailyQuiz}
-                  className={`flex items-center gap-3 p-3 rounded-2xl bg-amber-500/4 border border-amber-500/8 transition-all duration-200 ${
-                    todaysFocus.hasCompletedLessons ? 'hover:bg-amber-500/8 cursor-pointer hover:-translate-y-0.5' : 'opacity-60 cursor-default'
+                  className={`flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/30 transition-all duration-250 ${
+                    todaysFocus.hasCompletedLessons ? 'hover:bg-amber-50/80 cursor-pointer hover:-translate-y-0.5' : 'opacity-50 cursor-default'
                   }`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/8 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
                     <HelpCircle className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">Daily Quiz</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Daily Quiz</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#6E6E73' }}>
                       {todaysFocus.hasCompletedLessons 
                         ? "Test your knowledge with MCQs" 
                         : "Complete lessons to unlock quiz"}
@@ -1780,16 +1779,16 @@ const Profile = () => {
                 {/* Debug & Practice Suggestion */}
                 <div 
                   onClick={todaysFocus.handleDebugPractice}
-                  className={`flex items-center gap-3 p-3 rounded-2xl bg-violet-500/4 border border-violet-500/8 transition-all duration-200 ${
-                    todaysFocus.nextLesson ? 'hover:bg-violet-500/8 cursor-pointer hover:-translate-y-0.5' : 'opacity-60 cursor-default'
+                  className={`flex items-center gap-3 p-3.5 rounded-2xl bg-violet-50/50 border border-violet-200/30 transition-all duration-250 ${
+                    todaysFocus.nextLesson ? 'hover:bg-violet-50/80 cursor-pointer hover:-translate-y-0.5' : 'opacity-50 cursor-default'
                   }`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-violet-500/8 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
                     <Code className="h-4 w-4 text-violet-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">Debug & Practice</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Debug & Practice</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#6E6E73' }}>
                       {todaysFocus.nextLesson 
                         ? "Hands-on coding challenges" 
                         : "No practice available for today"}
@@ -1807,8 +1806,8 @@ const Profile = () => {
             weeklyActivityData={weeklyActivityData}
           />
 
-          {/* AI Mentor Card - Expand to match Practice Labs height */}
-          <Card className="card-premium animate-stagger-3 flex-1 flex flex-col">
+          {/* AI Mentor Card - tertiary tier */}
+          <Card className="card-premium card-tertiary animate-stagger-3 flex-1 flex flex-col">
             {/* Ambient glow for AI Mentor */}
             <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(139,92,246,0.06)' }} />
             <CardContent className="p-5 flex-1 flex flex-col relative">
@@ -1823,15 +1822,15 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold tracking-[-0.01em]" style={{ color: '#1C2E25' }}>AI Mentor</h3>
-                  <p className="text-sm font-normal" style={{ color: '#6B7F73' }}>
+                  <h3 className="text-lg font-bold tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>AI Mentor</h3>
+                  <p className="text-sm font-normal" style={{ color: '#6E6E73' }}>
                     Your personal learning assistant
                   </p>
                 </div>
               </div>
               
                <div className="flex-1 flex flex-col justify-end">
-                <p className="text-sm leading-relaxed font-normal" style={{ color: '#6B7F73' }}>
+                <p className="text-sm leading-relaxed font-normal" style={{ color: '#6E6E73' }}>
                   {completedInCareer < careerRelatedSlugs.length 
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
                     : 'Great progress! Ask me about advanced topics, career advice, or explore new learning paths.'}
@@ -1852,7 +1851,8 @@ const Profile = () => {
       </div>
 
       {/* Arcade Section */}
-      <Card className="card-premium animate-stagger-5">
+      {/* Arcade Section - tertiary tier */}
+      <Card className="card-premium card-tertiary animate-stagger-5">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div
@@ -1862,8 +1862,8 @@ const Profile = () => {
               <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.5} />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]" style={{ color: '#1C2E25' }}>Arcade</h3>
-              <p className="font-normal" style={{ color: '#6B7F73' }}>
+              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]" style={{ color: '#1D1D1F' }}>Arcade</h3>
+              <p className="font-normal" style={{ color: '#6E6E73' }}>
                 Test your skills with interactive challenges, quizzes, and games to reinforce your learning.
               </p>
             </div>
