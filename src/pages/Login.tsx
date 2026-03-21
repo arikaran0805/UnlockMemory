@@ -250,9 +250,13 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
           <Link to="/" className="flex lg:hidden items-center justify-center gap-3 mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-glow">
-              <span className="text-2xl font-bold text-primary-foreground">U</span>
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt="UnlockMemory" className="h-10 w-auto" />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-glow">
+                <span className="text-2xl font-bold text-primary-foreground">U</span>
+              </div>
+            )}
             <span className="text-2xl tracking-[-0.02em] text-foreground"><span className="font-medium">Unlock</span><span className="font-bold">Memory</span></span>
           </Link>
 
