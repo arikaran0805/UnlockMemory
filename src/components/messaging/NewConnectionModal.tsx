@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, UserPlus, Headphones, GraduationCap, Loader2 } from "lucide-react";
+import { Users, UserPlus, Headphones, GraduationCap, Loader2, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,12 +29,14 @@ interface TeamMember {
   full_name: string;
   avatar_url: string | null;
   role_label: string;
+  courses: { name: string; icon: string | null }[];
 }
 
 export function NewConnectionContent({ onConnect, courseId, userId, onDirectConnect }: NewConnectionContentProps) {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!courseId) return;
@@ -45,7 +47,6 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
     if (!courseId) return;
     setIsLoadingMembers(true);
     try {
-      // Get the career(s) this course belongs to
       const { data: careerCourses } = await supabase
         .from("career_courses")
         .select("career_id")
@@ -53,10 +54,8 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         .is("deleted_at", null);
 
       const careerIds = (careerCourses || []).map((cc) => cc.career_id);
-
       const userIds = new Set<string>();
 
-      // Get users assigned to the career (super moderators)
       if (careerIds.length > 0) {
         const { data: careerAssigns } = await supabase
           .from("career_assignments")
@@ -65,14 +64,12 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         (careerAssigns || []).forEach((a) => userIds.add(a.user_id));
       }
 
-      // Get users directly assigned to this course
       const { data: courseAssigns } = await supabase
         .from("course_assignments")
         .select("user_id")
         .eq("course_id", courseId);
       (courseAssigns || []).forEach((a) => userIds.add(a.user_id));
 
-      // Get course author and assigned_to
       const { data: course } = await supabase
         .from("courses")
         .select("author_id, assigned_to, default_senior_moderator")
@@ -83,7 +80,6 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
       if (course?.assigned_to) userIds.add(course.assigned_to);
       if (course?.default_senior_moderator) userIds.add(course.default_senior_moderator);
 
-      // Remove current user
       if (userId) userIds.delete(userId);
 
       if (userIds.size === 0) {
@@ -94,11 +90,50 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
 
       const ids = Array.from(userIds);
 
-      // Fetch profiles and roles in parallel
-      const [profilesRes, rolesRes] = await Promise.all([
+      // Fetch profiles, roles, and course assignments in parallel
+      const [profilesRes, rolesRes, allCourseAssigns] = await Promise.all([
         supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids),
         supabase.from("user_roles").select("user_id, role").in("user_id", ids),
+        supabase.from("course_assignments").select("user_id, course_id").in("user_id", ids),
       ]);
+
+      // Fetch course details for badges
+      const assignedCourseIds = [...new Set((allCourseAssigns.data || []).map((a) => a.course_id))];
+      let courseMap = new Map<string, { name: string; icon: string | null }>();
+      if (assignedCourseIds.length > 0) {
+        const { data: coursesData } = await supabase
+          .from("courses")
+          .select("id, name, icon")
+          .in("id", assignedCourseIds);
+        (coursesData || []).forEach((c) => courseMap.set(c.id, { name: c.name, icon: c.icon }));
+      }
+
+      // Also check courses authored by these users
+      const { data: authoredCourses } = await supabase
+        .from("courses")
+        .select("id, name, icon, author_id")
+        .in("author_id", ids)
+        .is("deleted_at", null);
+
+      (authoredCourses || []).forEach((c) => {
+        if (!courseMap.has(c.id)) courseMap.set(c.id, { name: c.name, icon: c.icon });
+      });
+
+      // Build user -> courses map
+      const userCoursesMap = new Map<string, Map<string, { name: string; icon: string | null }>>();
+      (allCourseAssigns.data || []).forEach((a) => {
+        const info = courseMap.get(a.course_id);
+        if (info) {
+          if (!userCoursesMap.has(a.user_id)) userCoursesMap.set(a.user_id, new Map());
+          userCoursesMap.get(a.user_id)!.set(a.course_id, info);
+        }
+      });
+      (authoredCourses || []).forEach((c) => {
+        if (c.author_id) {
+          if (!userCoursesMap.has(c.author_id)) userCoursesMap.set(c.author_id, new Map());
+          userCoursesMap.get(c.author_id)!.set(c.id, { name: c.name, icon: c.icon });
+        }
+      });
 
       const profiles = profilesRes.data || [];
       const roles = rolesRes.data || [];
@@ -121,11 +156,13 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
               : userRoles.includes("moderator")
                 ? "Moderator"
                 : "Instructor";
+          const userCourses = userCoursesMap.get(p.id);
           return {
             id: p.id,
             full_name: p.full_name || "Team Member",
             avatar_url: p.avatar_url,
             role_label: roleLabel,
+            courses: userCourses ? Array.from(userCourses.values()) : [],
           };
         });
 
@@ -136,6 +173,16 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
       setIsLoadingMembers(false);
     }
   };
+
+  const filteredMembers = teamMembers.filter((m) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      m.full_name.toLowerCase().includes(q) ||
+      m.role_label.toLowerCase().includes(q) ||
+      m.courses.some((c) => c.name.toLowerCase().includes(q))
+    );
+  });
 
   const handleMemberClick = async (member: TeamMember) => {
     if (!userId || !onDirectConnect) return;
@@ -178,22 +225,38 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
   if (courseId && (isLoadingMembers || teamMembers.length > 0)) {
     return (
       <div className="px-4 pb-4 pt-2">
-        <p className="text-xs text-muted-foreground mb-3">Team members assigned to this course</p>
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search mentors or courses..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 rounded-xl border-border/40 bg-muted/30 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary/30"
+          />
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-2">Team members assigned to this course</p>
+
         {isLoadingMembers ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : filteredMembers.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">
+            {searchQuery ? "No mentors found" : "No team members available"}
+          </p>
         ) : (
-          <ScrollArea className="max-h-[280px]">
+          <ScrollArea className="max-h-[260px]">
             <div className="space-y-1">
-              {teamMembers.map((member) => (
+              {filteredMembers.map((member) => (
                 <button
                   key={member.id}
                   onClick={() => handleMemberClick(member)}
                   disabled={connectingId === member.id}
                   className="w-full flex items-center gap-3 p-3 rounded-2xl text-left hover:bg-muted/40 transition-all duration-200 group disabled:opacity-60"
                 >
-                  <Avatar className="h-10 w-10">
+                  <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage src={member.avatar_url || undefined} />
                     <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                       {member.full_name.charAt(0).toUpperCase()}
@@ -202,9 +265,27 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{member.full_name}</p>
                     <p className="text-xs text-muted-foreground">{member.role_label}</p>
+                    {member.courses.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {member.courses.slice(0, 3).map((c, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/8 text-[10px] font-medium text-primary"
+                          >
+                            {c.icon && <span className="text-xs">{c.icon}</span>}
+                            <span className="truncate max-w-[80px]">{c.name}</span>
+                          </span>
+                        ))}
+                        {member.courses.length > 3 && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/50 text-[10px] text-muted-foreground">
+                            +{member.courses.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {connectingId === member.id && (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                   )}
                 </button>
               ))}
