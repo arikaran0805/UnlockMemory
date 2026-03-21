@@ -32,7 +32,8 @@ const Footer = () => {
       .maybeSingle();
 
     if (data) {
-      setSiteName(data.site_name || "EmojiLearn");
+      setSiteName(data.site_name || "UnlockMemory");
+      setLogoUrl(data.logo_url || null);
       setSiteDescription(data.site_description || "Learn through visuals that stick.");
       setSocialLinks({
         twitter: data.twitter_url || "",
