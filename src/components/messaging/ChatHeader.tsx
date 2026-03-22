@@ -14,7 +14,7 @@ interface ChatHeaderProps {
   onProfileClick?: () => void;
 }
 
-export function ChatHeader({ connection, onBack, onCollapse, onClose, isOtherTyping }: ChatHeaderProps) {
+export function ChatHeader({ connection, onBack, onCollapse, onClose, isOtherTyping, onProfileClick }: ChatHeaderProps) {
   const connectedUserId = (connection as any).connected_user_id;
   const presence = useConnectionPresence(connectedUserId);
 
