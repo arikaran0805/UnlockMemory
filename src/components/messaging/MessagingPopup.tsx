@@ -351,7 +351,20 @@ export function MessagingPopup({
               />
             )}
 
-            {view === "chat" && (
+            {view === "chat" && showMentorProfile && activeConnection && (
+              <ChatMentorProfile
+                connection={activeConnection}
+                onBack={() => setShowMentorProfile(false)}
+                onCollapse={onCollapse}
+                onClose={onClose}
+                onSwitchMentor={() => {
+                  setShowMentorProfile(false);
+                  setShowNewConnection(true);
+                }}
+              />
+            )}
+
+            {view === "chat" && !showMentorProfile && (
               <>
                 <ChatMessageList
                   messages={messages}
