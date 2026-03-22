@@ -4,6 +4,7 @@ export { ConnectionEmptyState } from "./ConnectionEmptyState";
 export { ConnectionList } from "./ConnectionList";
 export { ConnectionListItem } from "./ConnectionListItem";
 export { ChatHeader } from "./ChatHeader";
+export { ChatMentorProfile } from "./ChatMentorProfile";
 export { ChatMessageList } from "./ChatMessageList";
 export { ChatMessageBubble } from "./ChatMessageBubble";
 export { ChatComposer } from "./ChatComposer";
