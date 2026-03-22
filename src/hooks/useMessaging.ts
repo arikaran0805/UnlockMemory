@@ -249,8 +249,9 @@ export function useMessaging(userId: string | undefined) {
     if (!userId || !activeConversation) return;
     setIsSending(true);
 
+    const optimisticId = crypto.randomUUID();
     const newMsg: Partial<ChatMessage> = {
-      id: crypto.randomUUID(),
+      id: optimisticId,
       conversation_id: activeConversation.id,
       sender_type: "learner",
       sender_id: userId,
@@ -267,7 +268,7 @@ export function useMessaging(userId: string | undefined) {
     setMessages((prev) => [...prev, newMsg as ChatMessage]);
 
     try {
-      await supabase.from("conversation_messages").insert({
+      const { data: inserted } = await supabase.from("conversation_messages").insert({
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -275,7 +276,15 @@ export function useMessaging(userId: string | undefined) {
         message_type: attachmentUrl ? "attachment" : "text",
         attachment_url: attachmentUrl || null,
         attachment_name: attachmentName || null,
-      });
+        delivery_status: "sent",
+      }).select().single();
+
+      // Replace optimistic message with real DB record
+      if (inserted) {
+        setMessages((prev) =>
+          prev.map((m) => m.id === optimisticId ? { ...m, id: inserted.id } : m)
+        );
+      }
 
       // Update conversation preview
       await supabase
@@ -347,7 +356,7 @@ export function useMessaging(userId: string | undefined) {
     setView("list");
   }, []);
 
-  // Realtime subscription for new messages and status updates
+  // Realtime subscription for new messages, status updates, and deletes
   useEffect(() => {
     if (!activeConversation) return;
 
@@ -368,12 +377,18 @@ export function useMessaging(userId: string | undefined) {
               if (prev.find((m) => m.id === newMsg.id)) return prev;
               return [...prev, newMsg];
             });
-            // Mark as seen immediately since chat is open
+            // Mark as delivered then seen since chat is open
             supabase
               .from("conversation_messages")
               .update({ delivery_status: "seen", delivered_at: new Date().toISOString(), seen_at: new Date().toISOString(), is_read: true })
               .eq("id", newMsg.id)
               .then(() => {});
+          } else {
+            // Own message from DB — reconcile with optimistic (skip if already present by ID)
+            setMessages((prev) => {
+              if (prev.find((m) => m.id === newMsg.id)) return prev;
+              return prev; // Already replaced via optimistic update
+            });
           }
         }
       )
@@ -387,9 +402,26 @@ export function useMessaging(userId: string | undefined) {
         },
         (payload) => {
           const updated = payload.new as ChatMessage;
+          console.log("[Realtime] Message UPDATE:", updated.id, "status:", updated.delivery_status);
           setMessages((prev) =>
             prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m)
           );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "conversation_messages",
+          filter: `conversation_id=eq.${activeConversation.id}`,
+        },
+        (payload) => {
+          const deleted = payload.old as { id: string };
+          console.log("[Realtime] Message DELETE:", deleted.id);
+          if (deleted.id) {
+            setMessages((prev) => prev.filter((m) => m.id !== deleted.id));
+          }
         }
       )
       .subscribe();
@@ -542,8 +574,9 @@ export function useMessaging(userId: string | undefined) {
       const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(uploadData.path);
       const voiceUrl = urlData.publicUrl;
 
+      const optimisticId = crypto.randomUUID();
       const optimisticMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: optimisticId,
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -559,7 +592,7 @@ export function useMessaging(userId: string | undefined) {
 
       setMessages((prev) => [...prev, optimisticMsg]);
 
-      await supabase.from("conversation_messages").insert({
+      const { data: insertedVoice } = await supabase.from("conversation_messages").insert({
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -568,7 +601,13 @@ export function useMessaging(userId: string | undefined) {
         attachment_url: voiceUrl,
         attachment_name: "Voice message",
         delivery_status: "sent",
-      });
+      }).select().single();
+
+      if (insertedVoice) {
+        setMessages((prev) =>
+          prev.map((m) => m.id === optimisticId ? { ...m, id: insertedVoice.id } : m)
+        );
+      }
 
       const now = new Date().toISOString();
       await supabase.from("conversations").update({
@@ -621,8 +660,9 @@ export function useMessaging(userId: string | undefined) {
       const fileUrl = urlData.publicUrl;
       const msgType = isImage ? "image" : "file";
 
+      const optimisticFileId = crypto.randomUUID();
       const optimisticMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: optimisticFileId,
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -638,7 +678,7 @@ export function useMessaging(userId: string | undefined) {
 
       setMessages((prev) => [...prev, optimisticMsg]);
 
-      await supabase.from("conversation_messages").insert({
+      const { data: insertedFile } = await supabase.from("conversation_messages").insert({
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -648,7 +688,13 @@ export function useMessaging(userId: string | undefined) {
         attachment_name: file.name,
         attachment_size: file.size,
         delivery_status: "sent",
-      });
+      }).select().single();
+
+      if (insertedFile) {
+        setMessages((prev) =>
+          prev.map((m) => m.id === optimisticFileId ? { ...m, id: insertedFile.id } : m)
+        );
+      }
 
       const now = new Date().toISOString();
       const preview = isImage ? "📷 Photo" : `📎 ${file.name}`;
