@@ -292,13 +292,14 @@ export function MessagingPopup({
         </div>
       )}
 
-      {view === "chat" && activeConnection && !showNewConnection && (
+      {view === "chat" && activeConnection && !showNewConnection && !showMentorProfile && (
         <ChatHeader
           connection={activeConnection}
           onBack={onBackToList}
           onCollapse={onCollapse}
           onClose={onClose}
           isOtherTyping={isOtherTyping}
+          onProfileClick={() => setShowMentorProfile(true)}
         />
       )}
 
