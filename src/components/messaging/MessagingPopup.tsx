@@ -79,6 +79,7 @@ export function MessagingPopup({
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
+  const [showMentorProfile, setShowMentorProfile] = useState(false);
 
   // Typing indicator
   const { isOtherTyping, emitTyping, stopTyping } = useTypingIndicator(
