@@ -249,8 +249,9 @@ export function useMessaging(userId: string | undefined) {
     if (!userId || !activeConversation) return;
     setIsSending(true);
 
+    const optimisticId = crypto.randomUUID();
     const newMsg: Partial<ChatMessage> = {
-      id: crypto.randomUUID(),
+      id: optimisticId,
       conversation_id: activeConversation.id,
       sender_type: "learner",
       sender_id: userId,
@@ -267,7 +268,7 @@ export function useMessaging(userId: string | undefined) {
     setMessages((prev) => [...prev, newMsg as ChatMessage]);
 
     try {
-      await supabase.from("conversation_messages").insert({
+      const { data: inserted } = await supabase.from("conversation_messages").insert({
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -275,7 +276,15 @@ export function useMessaging(userId: string | undefined) {
         message_type: attachmentUrl ? "attachment" : "text",
         attachment_url: attachmentUrl || null,
         attachment_name: attachmentName || null,
-      });
+        delivery_status: "sent",
+      }).select().single();
+
+      // Replace optimistic message with real DB record
+      if (inserted) {
+        setMessages((prev) =>
+          prev.map((m) => m.id === optimisticId ? { ...m, id: inserted.id } : m)
+        );
+      }
 
       // Update conversation preview
       await supabase
