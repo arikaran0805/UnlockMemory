@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   onCollapse: () => void;
   onClose: () => void;
   isOtherTyping?: boolean;
+  onProfileClick?: () => void;
 }
 
 export function ChatHeader({ connection, onBack, onCollapse, onClose, isOtherTyping }: ChatHeaderProps) {
