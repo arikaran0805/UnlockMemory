@@ -660,8 +660,9 @@ export function useMessaging(userId: string | undefined) {
       const fileUrl = urlData.publicUrl;
       const msgType = isImage ? "image" : "file";
 
+      const optimisticFileId = crypto.randomUUID();
       const optimisticMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: optimisticFileId,
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -677,7 +678,7 @@ export function useMessaging(userId: string | undefined) {
 
       setMessages((prev) => [...prev, optimisticMsg]);
 
-      await supabase.from("conversation_messages").insert({
+      const { data: insertedFile } = await supabase.from("conversation_messages").insert({
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -687,7 +688,13 @@ export function useMessaging(userId: string | undefined) {
         attachment_name: file.name,
         attachment_size: file.size,
         delivery_status: "sent",
-      });
+      }).select().single();
+
+      if (insertedFile) {
+        setMessages((prev) =>
+          prev.map((m) => m.id === optimisticFileId ? { ...m, id: insertedFile.id } : m)
+        );
+      }
 
       const now = new Date().toISOString();
       const preview = isImage ? "📷 Photo" : `📎 ${file.name}`;
