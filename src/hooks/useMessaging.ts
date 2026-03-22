@@ -356,7 +356,7 @@ export function useMessaging(userId: string | undefined) {
     setView("list");
   }, []);
 
-  // Realtime subscription for new messages and status updates
+  // Realtime subscription for new messages, status updates, and deletes
   useEffect(() => {
     if (!activeConversation) return;
 
@@ -377,12 +377,18 @@ export function useMessaging(userId: string | undefined) {
               if (prev.find((m) => m.id === newMsg.id)) return prev;
               return [...prev, newMsg];
             });
-            // Mark as seen immediately since chat is open
+            // Mark as delivered then seen since chat is open
             supabase
               .from("conversation_messages")
               .update({ delivery_status: "seen", delivered_at: new Date().toISOString(), seen_at: new Date().toISOString(), is_read: true })
               .eq("id", newMsg.id)
               .then(() => {});
+          } else {
+            // Own message from DB — reconcile with optimistic (skip if already present by ID)
+            setMessages((prev) => {
+              if (prev.find((m) => m.id === newMsg.id)) return prev;
+              return prev; // Already replaced via optimistic update
+            });
           }
         }
       )
@@ -396,9 +402,26 @@ export function useMessaging(userId: string | undefined) {
         },
         (payload) => {
           const updated = payload.new as ChatMessage;
+          console.log("[Realtime] Message UPDATE:", updated.id, "status:", updated.delivery_status);
           setMessages((prev) =>
             prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m)
           );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "conversation_messages",
+          filter: `conversation_id=eq.${activeConversation.id}`,
+        },
+        (payload) => {
+          const deleted = payload.old as { id: string };
+          console.log("[Realtime] Message DELETE:", deleted.id);
+          if (deleted.id) {
+            setMessages((prev) => prev.filter((m) => m.id !== deleted.id));
+          }
         }
       )
       .subscribe();
