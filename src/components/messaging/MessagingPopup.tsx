@@ -10,6 +10,7 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatComposer } from "./ChatComposer";
 import { MessagingCollapsedBar } from "./MessagingCollapsedBar";
 import { NewConnectionContent } from "./NewConnectionModal";
+import { ChatMentorProfile } from "./ChatMentorProfile";
 import { MentorPreviewContent } from "./MentorPreviewContent";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import type { MessagingView, ConnectionWithConversation, ChatMessage } from "@/hooks/useMessaging";
