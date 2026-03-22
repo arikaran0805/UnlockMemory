@@ -112,7 +112,7 @@ export function ChatMessageList({ messages, currentUserId, isLoading, onEditMess
       {showScrollDown && (
         <button
           onClick={() => scrollToBottom("smooth")}
-          className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-card border border-border/50 shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 z-10"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-card border border-border/50 shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 z-10"
           aria-label="Scroll to bottom"
         >
           <ChevronDown className="h-4 w-4" />
