@@ -10,6 +10,7 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatComposer } from "./ChatComposer";
 import { MessagingCollapsedBar } from "./MessagingCollapsedBar";
 import { NewConnectionContent } from "./NewConnectionModal";
+import { ChatMentorProfile } from "./ChatMentorProfile";
 import { MentorPreviewContent } from "./MentorPreviewContent";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import type { MessagingView, ConnectionWithConversation, ChatMessage } from "@/hooks/useMessaging";
@@ -78,6 +79,7 @@ export function MessagingPopup({
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
+  const [showMentorProfile, setShowMentorProfile] = useState(false);
 
   // Typing indicator
   const { isOtherTyping, emitTyping, stopTyping } = useTypingIndicator(
@@ -290,13 +292,14 @@ export function MessagingPopup({
         </div>
       )}
 
-      {view === "chat" && activeConnection && !showNewConnection && (
+      {view === "chat" && activeConnection && !showNewConnection && !showMentorProfile && (
         <ChatHeader
           connection={activeConnection}
           onBack={onBackToList}
           onCollapse={onCollapse}
           onClose={onClose}
           isOtherTyping={isOtherTyping}
+          onProfileClick={() => setShowMentorProfile(true)}
         />
       )}
 
@@ -348,7 +351,20 @@ export function MessagingPopup({
               />
             )}
 
-            {view === "chat" && (
+            {view === "chat" && showMentorProfile && activeConnection && (
+              <ChatMentorProfile
+                connection={activeConnection}
+                onBack={() => setShowMentorProfile(false)}
+                onCollapse={onCollapse}
+                onClose={onClose}
+                onSwitchMentor={() => {
+                  setShowMentorProfile(false);
+                  setShowNewConnection(true);
+                }}
+              />
+            )}
+
+            {view === "chat" && !showMentorProfile && (
               <>
                 <ChatMessageList
                   messages={messages}
