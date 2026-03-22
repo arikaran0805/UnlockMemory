@@ -574,8 +574,9 @@ export function useMessaging(userId: string | undefined) {
       const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(uploadData.path);
       const voiceUrl = urlData.publicUrl;
 
+      const optimisticId = crypto.randomUUID();
       const optimisticMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: optimisticId,
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -591,7 +592,7 @@ export function useMessaging(userId: string | undefined) {
 
       setMessages((prev) => [...prev, optimisticMsg]);
 
-      await supabase.from("conversation_messages").insert({
+      const { data: insertedVoice } = await supabase.from("conversation_messages").insert({
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -600,7 +601,13 @@ export function useMessaging(userId: string | undefined) {
         attachment_url: voiceUrl,
         attachment_name: "Voice message",
         delivery_status: "sent",
-      });
+      }).select().single();
+
+      if (insertedVoice) {
+        setMessages((prev) =>
+          prev.map((m) => m.id === optimisticId ? { ...m, id: insertedVoice.id } : m)
+        );
+      }
 
       const now = new Date().toISOString();
       await supabase.from("conversations").update({
