@@ -31,7 +31,7 @@ const CareerBoardIndex = () => {
 
   // Career not found after loading resolved - redirect to arcade (never skeleton as "not found")
   if (isReady && !career) {
-    return <Navigate to="/arcade" replace />;
+    return <Navigate to="/careers" replace />;
   }
 
   // Still waiting for context to be ready (safety check)
@@ -52,8 +52,8 @@ const CareerBoardIndex = () => {
     return <Navigate to={`/career-board/${careerId}/course/${firstCourse.slug}`} replace />;
   }
 
-  // Career has 0 courses (confirmed) - redirect to Arcade
-  return <Navigate to="/arcade" replace />;
+  // Career has 0 courses (confirmed) - redirect to Careers
+  return <Navigate to="/careers" replace />;
 };
 
 export default CareerBoardIndex;

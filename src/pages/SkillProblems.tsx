@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import { Toggle } from "@/components/ui/toggle";
 import { ProblemFilters } from "@/components/practice/ProblemFilters";
 import { LessonProblemSection } from "@/components/practice/LessonProblemSection";
@@ -175,10 +175,9 @@ export default function SkillProblems() {
         {/* Header */}
         <div className="mb-6">
           {isLoading ? (
-            <>
-              <Skeleton className="h-8 w-48 mb-2" />
-              <Skeleton className="h-4 w-64" />
-            </>
+            <div className="flex items-center justify-center py-4">
+              <UMLoader size={44} label="Unlocking memory…" />
+            </div>
           ) : (
             <>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
@@ -216,10 +215,8 @@ export default function SkillProblems() {
         {/* Problem Sections - Grouped by Lesson > Sub-Topic */}
         <div className="mt-6 space-y-6">
           {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-32 w-full" />
-              ))}
+            <div className="flex items-center justify-center py-12">
+              <UMLoader size={44} label="Unlocking memory…" />
             </div>
           ) : Object.keys(groupedByLesson).length > 0 ? (
             Object.entries(groupedByLesson).map(([lessonKey, lessonData]) => (

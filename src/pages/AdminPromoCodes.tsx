@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import {
   Plus, Search, MoreHorizontal, Copy, Pencil, Trash2, Eye, CopyPlus, Tag, Ticket, Clock, BarChart3, AlertTriangle, X, Check,
 } from "lucide-react";
@@ -230,8 +230,8 @@ const AdminPromoCodes = () => {
 
       {/* STATS */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        <div className="flex items-center justify-center py-8">
+          <UMLoader size={44} label="Unlocking memory…" />
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -279,7 +279,9 @@ const AdminPromoCodes = () => {
 
       {/* TABLE */}
       {isLoading ? (
-        <Skeleton className="h-64 rounded-lg" />
+        <div className="flex items-center justify-center py-12">
+          <UMLoader size={44} label="Unlocking memory…" />
+        </div>
       ) : filtered.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">No promo codes found.</CardContent></Card>
       ) : (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
+import UMLoader from "@/components/UMLoader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -500,7 +501,7 @@ const CourseDetail = () => {
   };
 
   useEffect(() => {
-    document.title = course ? `${course.name} - BlogHub` : "BlogHub - Course";
+    document.title = course ? `${course.name} - UnlockMemory` : "UnlockMemory - Course";
   }, [course]);
 
   useEffect(() => {
@@ -1400,8 +1401,7 @@ const CourseDetail = () => {
         <Header announcementVisible={showAnnouncement} />
         <div className={`container mx-auto px-4 text-center ${showAnnouncement ? 'pt-32' : 'pt-24'}`}>
           <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-muted-foreground">Loading course...</p>
+            <UMLoader size={56} dark label="Loading…" />
           </div>
         </div>
       </div>
@@ -1535,7 +1535,7 @@ const CourseDetail = () => {
               <CardContent className="p-6 lg:p-8">
                 {loadingPost ? (
                   <div className="flex items-center justify-center py-20">
-                    <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <UMLoader size={44} label="Unlocking memory…" />
                   </div>
                 ) : selectedPost ? (
                   /* Post Content View */
@@ -2310,7 +2310,7 @@ const CourseDetail = () => {
                   <div className="space-y-4 p-1 pb-6">
                     {/* Non-career course nudge for Pro users */}
                     <NonCareerCourseNudge
-                      onSwitchToCareer={() => navigate(`/arcade`)}
+                      onSwitchToCareer={() => navigate(`/careers`)}
                     />
                     
                     {/* Ad slots with clarity text */}
@@ -2404,7 +2404,7 @@ const CourseDetail = () => {
                     {/* Non-career course nudge for Pro users on overview */}
                     {isPro && (
                       <NonCareerCourseNudge
-                        onSwitchToCareer={() => navigate(`/arcade`)}
+                        onSwitchToCareer={() => navigate('/careers')}
                       />
                     )}
                     

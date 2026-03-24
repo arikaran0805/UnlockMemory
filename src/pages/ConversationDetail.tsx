@@ -1,23 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useLayoutEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useThreadDetail } from "@/hooks/useConversationThreads";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { ThreadStatusBadge, RoutingBadge } from "@/components/messaging/ThreadStatusBadge";
+import { ChatComposer } from "@/components/messaging/ChatComposer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import UMLoader from "@/components/UMLoader";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow, format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 import {
   ArrowLeft,
-  Send,
+  ChevronDown,
   CheckCircle2,
   ArrowUpRight,
-  UserPlus,
   StickyNote,
   User,
   Clock,
@@ -28,14 +26,15 @@ import {
   Trash2,
   X,
   Check,
+  CheckCheck,
 } from "lucide-react";
-import type { SenderRole, MessageType, ThreadMessage } from "@/hooks/useConversationThreads";
+import type { SenderRole, ThreadMessage } from "@/hooks/useConversationThreads";
 
 const ConversationDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { userId, activeRole } = useAuth();
+  const { userId } = useAuth();
 
   const isSeniorMod = location.pathname.startsWith("/senior-moderator");
   const senderRole: SenderRole = isSeniorMod ? "senior_moderator" : "moderator";
@@ -44,35 +43,165 @@ const ConversationDetail = () => {
   const {
     thread,
     messages,
-    assignments,
-    teamMembers,
     isLoading,
     isSending,
+    learnerSeenAt,
     sendMessage,
-    assignToModerator,
     escalateToSenior,
     markResolved,
-    refetch,
+    markUnresolved,
   } = useThreadDetail(id, userId);
 
-  const [replyText, setReplyText] = useState("");
   const [internalNote, setInternalNote] = useState("");
   const [showInternalNote, setShowInternalNote] = useState(false);
-  const [selectedModerator, setSelectedModerator] = useState("");
-  const [assignNote, setAssignNote] = useState("");
-  const [showAssignPanel, setShowAssignPanel] = useState(false);
+  const [doubtContext, setDoubtContext] = useState<{ lessonTitle?: string; courseName?: string; careerName?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const hasInitialScrolled = useRef(false);
+  const prevMsgCount = useRef(0);
+  const isAtBottomRef = useRef(true);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
+  // Deterministic channel key: sorted [learnerId, moderatorId] — matches learner's MessagingPopup
+  const typingChannelId = useMemo(() => {
+    if (!thread?.learner_user_id || !userId) return null;
+    return [thread.learner_user_id, userId].sort().join("-");
+  }, [thread?.learner_user_id, userId]);
+
+  const { isOtherTyping, emitTyping, stopTyping } = useTypingIndicator(typingChannelId, userId);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+    setPendingCount(0);
+  }, []);
+
+  // Track scroll position — depends on isLoading so the listener attaches after the container renders
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length]);
+    if (isLoading) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const atBottom = scrollHeight - scrollTop - clientHeight < 80;
+      isAtBottomRef.current = atBottom;
+      setShowScrollDown(!atBottom);
+      if (atBottom) setPendingCount(0);
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [isLoading]);
 
-  const handleSendReply = async () => {
-    if (!replyText.trim()) return;
-    const text = replyText.trim();
-    setReplyText("");
-    await sendMessage(text, senderRole, "normal", true);
-  };
+  // Smart scroll: initial instant jump, then smart on new messages
+  useLayoutEffect(() => {
+    if (isLoading) {
+      hasInitialScrolled.current = false;
+      prevMsgCount.current = 0;
+      return;
+    }
+    if (messages.length === 0) return;
+
+    if (!hasInitialScrolled.current) {
+      scrollToBottom("instant" as ScrollBehavior);
+      hasInitialScrolled.current = true;
+      prevMsgCount.current = messages.length;
+      return;
+    }
+
+    if (messages.length <= prevMsgCount.current) return;
+    const newCount = messages.length - prevMsgCount.current;
+    prevMsgCount.current = messages.length;
+
+    const lastMsg = messages[messages.length - 1];
+    const isOwn = lastMsg?.sender_user_id === userId;
+
+    if (isAtBottomRef.current || isOwn) {
+      scrollToBottom("smooth");
+    } else {
+      setPendingCount((prev) => prev + newCount);
+    }
+  }, [isLoading, messages.length, userId, scrollToBottom]);
+
+  // Keep typing indicator in view if already at bottom
+  useEffect(() => {
+    if (isOtherTyping && isAtBottomRef.current) {
+      scrollToBottom("smooth");
+    }
+  }, [isOtherTyping, scrollToBottom]);
+
+  // Fetch course/lesson/career context from the thread's post
+  useEffect(() => {
+    if (!thread?.post_id) return;
+    const fetchContext = async () => {
+      const { data: post } = await supabase
+        .from("posts")
+        .select("lesson_id")
+        .eq("id", thread.post_id!)
+        .single();
+      if (!post?.lesson_id) return;
+
+      const { data: lesson } = await supabase
+        .from("course_lessons")
+        .select("title, course_id")
+        .eq("id", post.lesson_id)
+        .single();
+      if (!lesson) return;
+
+      const ctx: { lessonTitle?: string; courseName?: string; careerName?: string } = {
+        lessonTitle: lesson.title,
+      };
+
+      if (lesson.course_id) {
+        const { data: course } = await supabase
+          .from("courses")
+          .select("name")
+          .eq("id", lesson.course_id)
+          .single();
+        if (course) ctx.courseName = course.name;
+
+        const { data: careerLink } = await supabase
+          .from("career_courses")
+          .select("career_id")
+          .eq("course_id", lesson.course_id)
+          .maybeSingle();
+        if (careerLink?.career_id) {
+          const { data: career } = await supabase
+            .from("careers")
+            .select("name")
+            .eq("id", careerLink.career_id)
+            .single();
+          if (career) ctx.careerName = career.name;
+        }
+      }
+      setDoubtContext(ctx);
+    };
+    fetchContext();
+  }, [thread?.post_id]);
+
+  const handleSendReply = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    stopTyping();
+    await sendMessage(text.trim(), senderRole, "normal", true);
+  }, [stopTyping, sendMessage, senderRole]);
+
+  const handleSendAttachment = useCallback(async (file: File) => {
+    if (!userId) return;
+    const isImage = file.type.startsWith("image/");
+    const fileName = `${userId}/${Date.now()}_${file.name}`;
+    const { data: uploadData, error } = await supabase.storage
+      .from("chat-attachments")
+      .upload(fileName, file, { contentType: file.type, upsert: false });
+    if (error) { console.error("Upload failed:", error); return; }
+    const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(uploadData.path);
+    stopTyping();
+    await sendMessage(
+      "",
+      senderRole,
+      "normal",
+      true,
+      { url: urlData.publicUrl, name: file.name, size: file.size, msgType: isImage ? "image" : "file" }
+    );
+  }, [userId, senderRole, sendMessage, stopTyping]);
 
   const handleSendInternalNote = async () => {
     if (!internalNote.trim()) return;
@@ -81,41 +210,10 @@ const ConversationDetail = () => {
     setShowInternalNote(false);
   };
 
-  const handleAssign = async () => {
-    if (!selectedModerator) return;
-    await assignToModerator(selectedModerator, assignNote || undefined);
-    setSelectedModerator("");
-    setAssignNote("");
-    setShowAssignPanel(false);
-  };
-
-  const handleEditMessage = useCallback(async (messageId: string, newText: string) => {
-    if (!userId || !newText.trim()) return;
-    const { error } = await supabase
-      .from("thread_messages")
-      .update({ message_content: newText.trim() })
-      .eq("id", messageId)
-      .eq("sender_user_id", userId);
-    if (!error) {
-      await refetch();
-    }
-  }, [userId, refetch]);
-
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    if (!userId) return;
-    await supabase
-      .from("thread_messages")
-      .delete()
-      .eq("id", messageId)
-      .eq("sender_user_id", userId);
-    await refetch();
-  }, [userId, refetch]);
-
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-[400px] w-full" />
+      <div className="max-w-4xl mx-auto flex items-center justify-center min-h-[400px]">
+        <UMLoader size={56} dark label="Loading…" />
       </div>
     );
   }
@@ -135,91 +233,156 @@ const ConversationDetail = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(backPath)} className="flex-shrink-0">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-foreground truncate">
-            {thread.learner_name}
-          </h1>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <ThreadStatusBadge status={thread.current_status} />
-            <RoutingBadge type={thread.routing_type} />
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-5">
         {/* Main Thread */}
         <div className="space-y-4">
-          {/* Post Info */}
-          {thread.post_title && (
-            <Card className="border-border/30 bg-muted/20">
-              <CardContent className="flex items-center gap-3 py-3 px-4">
-                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Related post</p>
-                  <p className="text-sm font-medium text-foreground truncate">{thread.post_title}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Messages */}
           <Card className="border-border/30">
             <CardContent className="p-0">
-              <div className="max-h-[500px] overflow-y-auto p-4 space-y-3">
-                {messages.map((msg) => (
-                  <MessageBubble
-                    key={msg.id}
-                    message={msg}
-                    currentUserId={userId!}
-                  />
-                ))}
-                {messages.length === 0 && (
-                  <div className="text-center py-8">
-                    <MessageCircle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No messages yet</p>
+              {/* Chat header — WhatsApp style */}
+              <div className="flex items-center gap-3 px-3 py-2.5 border-b border-border/30">
+                <button
+                  onClick={() => navigate(backPath)}
+                  className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground flex-shrink-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-primary">
+                  {thread.learner_name?.charAt(0)?.toUpperCase() || "?"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate leading-tight">{thread.learner_name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <ThreadStatusBadge status={thread.current_status} />
+                    <RoutingBadge type={thread.routing_type} />
                   </div>
+                </div>
+              </div>
+
+              {/* Doubt context banner — shows mentor what this doubt is about */}
+              {(doubtContext || thread.post_title) && (
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/30 bg-muted/20 flex-wrap">
+                  {thread.post_title && (
+                    <>
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-[11px] text-muted-foreground font-medium">{thread.post_title}</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {doubtContext && (
+                <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-muted/20 flex-wrap">
+                  {doubtContext.careerName && (
+                    <span className="text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">{doubtContext.careerName}</span>
+                  )}
+                  {doubtContext.careerName && doubtContext.courseName && (
+                    <span className="text-[11px] text-muted-foreground/40">›</span>
+                  )}
+                  {doubtContext.courseName && (
+                    <span className="text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">{doubtContext.courseName}</span>
+                  )}
+                  {doubtContext.courseName && doubtContext.lessonTitle && (
+                    <span className="text-[11px] text-muted-foreground/40">›</span>
+                  )}
+                  {doubtContext.lessonTitle && (
+                    <span className="text-[11px] text-foreground/70 font-medium bg-primary/8 px-2 py-0.5 rounded-full">{doubtContext.lessonTitle}</span>
+                  )}
+                </div>
+              )}
+              <div className="relative">
+                <div ref={messagesContainerRef} className="max-h-[500px] overflow-y-auto p-4 space-y-3">
+                  {messages.length === 0 && !isResolved && (
+                    <div className="text-center py-8">
+                      <MessageCircle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No messages yet</p>
+                    </div>
+                  )}
+                  {messages.map((msg, idx) => {
+                    const messagesAfter = messages.slice(idx + 1);
+                    const isSystemResolved = msg.message_type === "system_event" &&
+                      msg.message_content === "Conversation marked as resolved";
+
+                    let showReopen = false;
+                    let hideMessage = false;
+
+                    if (isSystemResolved) {
+                      // Show reopen button ONLY if no messages come after it (it's the very latest message)
+                      showReopen = messagesAfter.length === 0;
+                      
+                      // Hide the resolved break line entirely if there's a subsequent "reopened" message
+                      const hasReopenedAfter = messagesAfter.some(m =>
+                        m.message_type === "system_event" &&
+                        m.message_content.includes("Restarted")
+                      );
+                      if (hasReopenedAfter) {
+                        hideMessage = true;
+                      }
+                    }
+
+                    if (hideMessage) return null;
+
+                    return (
+                      <MessageBubble
+                        key={msg.id}
+                        message={msg}
+                        currentUserId={userId!}
+                        learnerSeenAt={learnerSeenAt}
+                        onReopen={showReopen ? () => markUnresolved(senderRole) : undefined}
+                      />
+                    );
+                  })}
+                  {isOtherTyping && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex gap-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+                      </div>
+                      <span>Learner is typing…</span>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Smart scroll FAB */}
+                {(showScrollDown || pendingCount > 0) && (
+                  <button
+                    onClick={() => scrollToBottom("smooth")}
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-card border border-border/50 shadow-md flex items-center gap-1.5 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 z-10"
+                    aria-label="Scroll to bottom"
+                  >
+                    {isOtherTyping ? (
+                      <div className="flex gap-0.5 items-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+                      </div>
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                    {pendingCount > 0 && (
+                      <span className="text-[10px] font-bold text-primary leading-none">
+                        {pendingCount > 99 ? "99+" : pendingCount}
+                      </span>
+                    )}
+                  </button>
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Reply Composer */}
-              {!isResolved && (
-                <div className="border-t border-border/30 p-4">
-                  <div className="flex gap-2">
-                    <Textarea
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Type your reply..."
-                      className="min-h-[60px] resize-none bg-muted/30 border-border/30"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendReply();
-                        }
-                      }}
-                    />
-                    <Button
-                      onClick={handleSendReply}
-                      disabled={!replyText.trim() || isSending}
-                      size="icon"
-                      className="flex-shrink-0 self-end"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-1.5">Enter to send · Shift+Enter for new line</p>
-                </div>
-              )}
+              <ChatComposer
+                onSend={handleSendReply}
+                onSendAttachment={handleSendAttachment}
+                isSending={isSending}
+                placeholder="Type your reply..."
+                onTyping={emitTyping}
+                onStopTyping={stopTyping}
+              />
             </CardContent>
           </Card>
 
           {/* Internal Note */}
-          {showInternalNote && !isResolved && (
+          {showInternalNote && (
             <Card className="border-amber-200/50 bg-amber-50/30 dark:border-amber-800/30 dark:bg-amber-950/10">
               <CardHeader className="pb-2 pt-3 px-4">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -228,11 +391,11 @@ const ConversationDetail = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4 pt-0">
-                <Textarea
+                <textarea
                   value={internalNote}
-                  onChange={(e) => setInternalNote(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInternalNote(e.target.value)}
                   placeholder="Add an internal note (not visible to learner)..."
-                  className="min-h-[60px] resize-none mb-2 bg-background/50 border-border/30"
+                  className="w-full min-h-[60px] resize-none mb-2 bg-background/50 border border-border/30 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleSendInternalNote} disabled={!internalNote.trim()}>
@@ -269,7 +432,7 @@ const ConversationDetail = () => {
               )}
               {thread.assigned_moderator_name && (
                 <div className="flex items-center gap-2">
-                  <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">Assigned:</span>
                   <span className="font-medium text-foreground">{thread.assigned_moderator_name}</span>
                 </div>
@@ -283,135 +446,55 @@ const ConversationDetail = () => {
           </Card>
 
           {/* Actions */}
-          {!isResolved && (
-            <Card className="border-border/30">
-              <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-sm font-medium">Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-0 space-y-2">
+          <Card className="border-border/30">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-sm"
+                onClick={() => markResolved(senderRole)}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-600" />
+                Mark as Resolved
+              </Button>
+
+              {!showInternalNote && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-full justify-start text-sm"
-                  onClick={() => markResolved(senderRole)}
+                  onClick={() => setShowInternalNote(true)}
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-600" />
-                  Mark as Resolved
+                  <StickyNote className="h-3.5 w-3.5 mr-2 text-amber-600" />
+                  Add Internal Note
                 </Button>
+              )}
 
-                {!showInternalNote && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={() => setShowInternalNote(true)}
-                  >
-                    <StickyNote className="h-3.5 w-3.5 mr-2 text-amber-600" />
-                    Add Internal Note
-                  </Button>
-                )}
+              {/* Moderator: escalate */}
+              {!isSeniorMod && thread.routing_type === "team_senior_moderator" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-sm"
+                  onClick={escalateToSenior}
+                >
+                  <ArrowUpRight className="h-3.5 w-3.5 mr-2 text-amber-600" />
+                  Forward to Senior Moderator
+                </Button>
+              )}
 
-                {/* Moderator: escalate */}
-                {!isSeniorMod && thread.routing_type === "team_senior_moderator" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={escalateToSenior}
-                  >
-                    <ArrowUpRight className="h-3.5 w-3.5 mr-2 text-amber-600" />
-                    Forward to Senior Moderator
-                  </Button>
-                )}
-
-                {/* Senior Mod: assign */}
-                {isSeniorMod && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={() => setShowAssignPanel(!showAssignPanel)}
-                  >
-                    <UserPlus className="h-3.5 w-3.5 mr-2 text-purple-600" />
-                    Assign to Moderator
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Assignment Panel */}
-          {showAssignPanel && isSeniorMod && !isResolved && (
-            <Card className="border-purple-200/50 bg-purple-50/20 dark:border-purple-800/30 dark:bg-purple-950/10">
-              <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <UserPlus className="h-4 w-4 text-purple-600" />
-                  Assign to Moderator
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-0 space-y-3">
-                <Select value={selectedModerator} onValueChange={setSelectedModerator}>
-                  <SelectTrigger className="bg-background/50">
-                    <SelectValue placeholder="Select moderator..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teamMembers.map((member) => (
-                      <SelectItem key={member.user_id} value={member.user_id}>
-                        {member.user_name}
-                      </SelectItem>
-                    ))}
-                    {teamMembers.length === 0 && (
-                      <SelectItem value="none" disabled>
-                        No team members found
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Textarea
-                  value={assignNote}
-                  onChange={(e) => setAssignNote(e.target.value)}
-                  placeholder="Assignment note (optional)..."
-                  className="min-h-[50px] resize-none bg-background/50"
-                />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleAssign} disabled={!selectedModerator}>
-                    Assign
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setShowAssignPanel(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Assignment History */}
-          {assignments.length > 0 && (
-            <Card className="border-border/30">
-              <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-sm font-medium">Assignment History</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-0 space-y-2">
-                {assignments.map((a) => (
-                  <div key={a.id} className="text-xs text-muted-foreground border-l-2 border-border/50 pl-3 py-1">
-                    <p>
-                      <span className="font-medium text-foreground">{a.assigned_by_name}</span> assigned to{" "}
-                      <span className="font-medium text-foreground">{a.assigned_to_name}</span>
-                    </p>
-                    {a.assignment_note && <p className="italic mt-0.5">{a.assignment_note}</p>}
-                    <p className="text-[10px] mt-0.5">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   );
 };
 
-function MessageBubble({ message, currentUserId, onEdit, onDelete }: { message: ThreadMessage; currentUserId: string; onEdit?: (id: string, text: string) => void; onDelete?: (id: string) => void }) {
+function MessageBubble({ message, currentUserId, learnerSeenAt, onEdit, onDelete, onReopen }: { message: ThreadMessage; currentUserId: string; learnerSeenAt?: string | null; onEdit?: (id: string, text: string) => void; onDelete?: (id: string) => void; onReopen?: () => void }) {
   const isOwn = message.sender_user_id === currentUserId;
   const isSystem = message.message_type === "system_event";
   const isInternal = message.message_type === "internal_note";
@@ -420,6 +503,49 @@ function MessageBubble({ message, currentUserId, onEdit, onDelete }: { message: 
   const [showActions, setShowActions] = useState(false);
 
   if (isSystem) {
+    const isResolvedEvent = message.message_content === "Conversation marked as resolved";
+    const isRestartedEvent = message.message_content.includes("Restarted");
+    if (isResolvedEvent) {
+      return (
+        <div className="flex flex-col items-center py-4">
+          <div className="flex items-center gap-3 w-full">
+            <div className="flex-1 h-px bg-emerald-200 dark:bg-emerald-800/40" />
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/30 flex-shrink-0">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium whitespace-nowrap">
+                Resolved by {message.sender_name} · {format(new Date(message.created_at), "MMM d, HH:mm")}
+              </span>
+            </div>
+            <div className="flex-1 h-px bg-emerald-200 dark:bg-emerald-800/40" />
+          </div>
+          {onReopen && (
+            <div className="mt-3">
+              <button
+                onClick={onReopen}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-medium border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+              >
+                <ArrowUpRight className="h-3 w-3" />
+                Add past doubt tips; else start new.
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (isRestartedEvent) {
+      return (
+        <div className="flex items-center gap-3 py-4">
+          <div className="flex-1 h-px bg-amber-200 dark:bg-amber-800/40" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/30 flex-shrink-0">
+            <ArrowUpRight className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+            <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium whitespace-nowrap">
+              {message.message_content}
+            </span>
+          </div>
+          <div className="flex-1 h-px bg-amber-200 dark:bg-amber-800/40" />
+        </div>
+      );
+    }
     return (
       <div className="flex justify-center py-1">
         <span className="text-[11px] text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
@@ -451,7 +577,7 @@ function MessageBubble({ message, currentUserId, onEdit, onDelete }: { message: 
 
   return (
     <div
-      className={cn("flex group", isOwn ? "justify-end" : "justify-start")}
+      className={cn("flex mb-2 group relative", isOwn ? "justify-end" : "justify-start")}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { if (!isEditing) setShowActions(false); }}
     >
@@ -476,60 +602,66 @@ function MessageBubble({ message, currentUserId, onEdit, onDelete }: { message: 
           )}
         </div>
       )}
-      <div className={cn(
-        "max-w-[80%] rounded-2xl px-4 py-2.5",
-        isOwn
-          ? "bg-primary text-primary-foreground rounded-br-md"
-          : message.sender_role === "learner"
-            ? "bg-muted/60 text-foreground rounded-bl-md"
-            : "bg-blue-50 dark:bg-blue-950/20 text-foreground border border-blue-100/50 dark:border-blue-800/20 rounded-bl-md"
-      )}>
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className={cn(
-            "text-[10px] font-semibold",
-            isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-          )}>
-            {isOwn ? "You" : message.sender_name} · {roleLabel}
-          </span>
-        </div>
-        {isEditing ? (
-          <div className="space-y-1.5">
-            <textarea
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              className="w-full bg-background/80 text-foreground text-sm rounded-lg px-2 py-1.5 border border-border/40 resize-none focus:outline-none focus:ring-1 focus:ring-primary/30"
-              rows={2}
-              autoFocus
-            />
-            <div className="flex gap-1 justify-end">
-              <button
-                onClick={() => setIsEditing(false)}
-                className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => {
-                  if (editText.trim() && onEdit) {
-                    onEdit(message.id, editText.trim());
-                    setIsEditing(false);
-                  }
-                }}
-                className="p-1 rounded-md hover:bg-primary/20 text-primary"
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message_content}</p>
-        )}
-        <p className={cn(
-          "text-[10px] mt-1",
-          isOwn ? "text-primary-foreground/50" : "text-muted-foreground/60"
+
+      <div className="flex flex-col gap-0.5 max-w-[80%]">
+        <div className={cn(
+          "px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed transition-shadow duration-200",
+          isOwn
+            ? "bg-[#DCF8C6] dark:bg-[#005C4B] text-gray-900 dark:text-gray-100 rounded-br-lg"
+            : "bg-muted/50 text-foreground rounded-bl-lg border border-border/20"
         )}>
-          {format(new Date(message.created_at), "HH:mm")}
-        </p>
+          {!isOwn && (
+            <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">
+              {message.sender_name} · {roleLabel}
+            </p>
+          )}
+          {isEditing ? (
+            <div className="space-y-1.5">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                className="w-full bg-background/80 text-foreground text-sm rounded-lg px-2 py-1.5 border border-border/40 resize-none focus:outline-none focus:ring-1 focus:ring-primary/30"
+                rows={2}
+                autoFocus
+              />
+              <div className="flex gap-1 justify-end">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (editText.trim() && onEdit) {
+                      onEdit(message.id, editText.trim());
+                      setIsEditing(false);
+                    }
+                  }}
+                  className="p-1 rounded-md hover:bg-primary/20 text-primary"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="whitespace-pre-wrap break-words">{message.message_content}</p>
+          )}
+          <div className={cn(
+            "flex items-center justify-end gap-1 mt-1",
+            isOwn ? "text-gray-500 dark:text-gray-400" : "text-muted-foreground"
+          )}>
+            <span className="text-[10px]">{format(new Date(message.created_at), "HH:mm")}</span>
+            {isOwn && (() => {
+              const seenByLearner = learnerSeenAt
+                ? new Date(message.created_at) <= new Date(learnerSeenAt)
+                : false;
+              return seenByLearner
+                ? <CheckCheck className="h-3 w-3 text-[#34B7F1]" />
+                : <CheckCheck className="h-3 w-3 text-gray-400" />;
+            })()}
+          </div>
+        </div>
       </div>
     </div>
   );

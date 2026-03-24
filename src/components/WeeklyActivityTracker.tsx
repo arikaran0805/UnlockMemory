@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import UMLoader from "@/components/UMLoader";
 import { cn } from "@/lib/utils";
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -235,8 +236,8 @@ export const WeeklyActivityTracker = ({ className }: WeeklyActivityTrackerProps)
           <p className="text-xs text-muted-foreground">Time spent per day (hrs)</p>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-            Loading activity...
+          <div className="flex items-center justify-center h-40">
+            <UMLoader size={44} label="Unlocking memory…" />
           </div>
         </CardContent>
       </Card>

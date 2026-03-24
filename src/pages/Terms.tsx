@@ -5,14 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const Terms = () => {
   useEffect(() => {
-    document.title = "Terms of Service - BlogHub";
+    document.title = "Terms of Service - UnlockMemory";
   }, []);
 
   return (
     <Layout>
       <SEOHead 
         title="Terms of Service - Legal Agreement"
-        description="Read BlogHub's Terms of Service. Understand the legal agreement between you and BlogHub regarding the use of our platform and services."
+        description="Read UnlockMemory's Terms of Service. Understand the legal agreement between you and UnlockMemory regarding the use of our platform and services."
         keywords="terms of service, legal agreement, terms and conditions, user agreement"
       />
       

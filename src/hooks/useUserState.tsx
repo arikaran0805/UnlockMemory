@@ -62,7 +62,7 @@ interface UseUserStateReturn {
 // Session storage keys
 const ENTRY_SOURCE_KEY = "lovable_entry_source";
 const ENTRY_FLOW_KEY = "lovable_entry_flow";
-const INTERNAL_ROUTES = ["/profile", "/library", "/dashboard", "/moderator", "/admin", "/senior-moderator", "/super-moderator"];
+const INTERNAL_ROUTES = ["/profile", "/dashboard", "/moderator", "/admin", "/senior-moderator", "/super-moderator"];
 
 /**
  * Detect if the user arrived from an internal route

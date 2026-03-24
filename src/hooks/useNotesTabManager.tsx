@@ -88,7 +88,7 @@ function pingExistingTab(channel: BroadcastChannel, courseId: string): Promise<b
  * - First open: creates new tab
  * - Subsequent opens: reuses existing tab, switches content via BroadcastChannel
  */
-export function useNotesTabOpener(courseId: string | undefined) {
+export function useNotesTabOpener(courseId: string | undefined, careerId?: string) {
   const notesWindowRef = useRef<Window | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const isOpeningRef = useRef(false); // Prevent race conditions
@@ -164,24 +164,34 @@ export function useNotesTabOpener(courseId: string | undefined) {
     
     try {
       const tabId = `${NOTES_TAB_PREFIX}${courseId}`;
-      const notesUrl = `/courses/${courseId}/notes`;
+      const notesUrl = careerId
+        ? `/courses/${courseId}/notes?careerId=${encodeURIComponent(careerId)}`
+        : `/courses/${courseId}/notes`;
 
-      // Strategy 1: Try existing window reference
+      // Strategy 1: Try existing window reference (skip if careerId changed — URL may differ)
       if (notesWindowRef.current && !notesWindowRef.current.closed) {
         try {
-          notesWindowRef.current.focus();
-          sendContextSwitch(options);
-          return true;
+          const currentUrl = notesWindowRef.current.location?.search ?? "";
+          const urlHasCorrectCareer = careerId
+            ? currentUrl.includes(`careerId=${encodeURIComponent(careerId)}`)
+            : !currentUrl.includes("careerId=");
+          if (urlHasCorrectCareer) {
+            notesWindowRef.current.focus();
+            sendContextSwitch(options);
+            return true;
+          }
+          // Wrong URL — close and reopen below
+          notesWindowRef.current = null;
         } catch {
           notesWindowRef.current = null;
         }
       }
 
       // Strategy 2: Ping existing tab via BroadcastChannel
-      // This handles the case where tab exists but we lost the window reference
-      if (channelRef.current) {
+      // Skip when careerId is set — we need a fresh tab with the correct URL
+      if (!careerId && channelRef.current) {
         const tabExists = await pingExistingTab(channelRef.current, courseId);
-        
+
         if (tabExists) {
           // Tab exists and will focus itself (via PING handler)
           // Send context switch message
@@ -222,7 +232,7 @@ export function useNotesTabOpener(courseId: string | undefined) {
         isOpeningRef.current = false;
       }, 300);
     }
-  }, [courseId, sendContextSwitch]);
+  }, [courseId, careerId, sendContextSwitch]);
 
   return { openNotesTab, notesWindowRef };
 }

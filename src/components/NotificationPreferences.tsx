@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Bell, BellOff, Mail, CheckCircle, XCircle, MessageSquare, FileText, Users, Trash2, Flag, Loader2, Power } from "lucide-react";
+import { Bell, BellOff, Mail, CheckCircle, XCircle, MessageSquare, FileText, Users, Trash2, Flag, Power } from "lucide-react";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -103,15 +103,9 @@ export const NotificationPreferences = ({ userId, isAdmin, isModerator }: Notifi
             <Bell className="h-5 w-5" />
             <CardTitle>Notification Preferences</CardTitle>
           </div>
-          <CardDescription>Loading your preferences...</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center justify-between">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-6 w-10" />
-            </div>
-          ))}
+        <CardContent className="flex items-center justify-center py-8">
+          <UMLoader size={44} label="Unlocking memory…" />
         </CardContent>
       </Card>
     );
@@ -149,7 +143,7 @@ export const NotificationPreferences = ({ userId, isAdmin, isModerator }: Notifi
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+        {saving && <UMLoader size={16} />}
         <Switch
           id={label}
           checked={checked}
@@ -236,7 +230,7 @@ export const NotificationPreferences = ({ userId, isAdmin, isModerator }: Notifi
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {savingAll && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                {savingAll && <UMLoader size={16} />}
                 <Switch
                   id="all-moderator-notifications"
                   checked={allModeratorEnabled}

@@ -1,25 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { useConnectionPresence } from "@/hooks/useConnectionPresence";
 import type { ConnectionWithConversation } from "@/hooks/useMessaging";
 
 interface ConnectionListItemProps {
   connection: ConnectionWithConversation;
+  currentUserId: string;
   onClick: () => void;
   onDelete?: (connectionId: string) => void;
 }
 
-export function ConnectionListItem({ connection, onClick, onDelete }: ConnectionListItemProps) {
+export function ConnectionListItem({ connection, currentUserId, onClick, onDelete }: ConnectionListItemProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const autoExpireRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const unread = connection.conversation?.unread_count_learner || 0;
   const preview = connection.conversation?.last_message_preview;
   const lastAt = connection.conversation?.last_message_at || connection.last_message_at;
   const connectedUserId = (connection as any).connected_user_id;
   const presence = useConnectionPresence(connectedUserId);
+
+  // Subscribe to typing events for this connection (WhatsApp-style "typing..." in list)
+  useEffect(() => {
+    if (!connectedUserId || !currentUserId) return;
+    const channelKey = [currentUserId, connectedUserId].sort().join("-");
+
+    const channel = supabase
+      .channel(`typing-${channelKey}`)
+      .on("broadcast", { event: "typing_start" }, (payload) => {
+        if (payload.payload?.user_id !== currentUserId) {
+          setIsTyping(true);
+          if (autoExpireRef.current) clearTimeout(autoExpireRef.current);
+          autoExpireRef.current = setTimeout(() => setIsTyping(false), 4000);
+        }
+      })
+      .on("broadcast", { event: "typing_stop" }, (payload) => {
+        if (payload.payload?.user_id !== currentUserId) {
+          setIsTyping(false);
+          if (autoExpireRef.current) clearTimeout(autoExpireRef.current);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      if (autoExpireRef.current) clearTimeout(autoExpireRef.current);
+      channel.unsubscribe();
+    };
+  }, [connectedUserId, currentUserId]);
 
   const formatTime = (iso: string | null) => {
     if (!iso) return "";
@@ -114,14 +147,23 @@ export function ConnectionListItem({ connection, onClick, onDelete }: Connection
             >
               {connection.role_label}
             </Badge>
-            {preview && (
+            {isTyping ? (
+              <span className="text-xs text-primary flex items-center gap-1">
+                <span>typing</span>
+                <span className="flex gap-0.5 items-center">
+                  <span className="w-1 h-1 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1 h-1 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1 h-1 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
+                </span>
+              </span>
+            ) : preview ? (
               <span className={cn(
                 "text-xs truncate",
                 unread > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground"
               )}>
                 {preview}
               </span>
-            )}
+            ) : null}
           </div>
           {unread > 0 && (
             <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center flex-shrink-0">

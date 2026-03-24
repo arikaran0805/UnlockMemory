@@ -9,14 +9,14 @@ import { Mail, MapPin, Phone } from "lucide-react";
 
 const Contact = () => {
   useEffect(() => {
-    document.title = "BlogHub - Contact Us";
+    document.title = "UnlockMemory - Contact Us";
   }, []);
 
   return (
     <Layout>
       <SEOHead 
         title="Contact Us - Get In Touch"
-        description="Have a question or want to work together? Contact BlogHub team through email, phone, or our contact form. We'd love to hear from you."
+        description="Have a question or want to work together? Contact UnlockMemory team through email, phone, or our contact form. We'd love to hear from you."
         keywords="contact, get in touch, email, support, help"
       />
 

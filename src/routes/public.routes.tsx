@@ -9,8 +9,6 @@ import Careers from "@/pages/Careers";
 import CourseDetail from "@/pages/CourseDetail";
 import CourseNotes from "@/pages/CourseNotes";
 import VerifyCertificate from "@/pages/VerifyCertificate";
-import Library from "@/pages/Library";
-import Arcade from "@/pages/Arcade";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import Auth from "@/pages/Auth";
@@ -50,8 +48,6 @@ export const publicRoutes = [
   <Route key="course-detail" path="/course/:slug" element={<CourseDetail />} />,
   <Route key="course-notes" path="/courses/:courseId/notes" element={<CourseNotes />} />,
   <Route key="verify-certificate" path="/verify/certificate/:certificateId" element={<VerifyCertificate />} />,
-  <Route key="library" path="/library" element={<Library />} />,
-  <Route key="arcade" path="/arcade" element={<Arcade />} />,
   <Route key="practice-lab" path="/practice-lab" element={<Navigate to="/profile?tab=practice" replace />} />,
   <Route key="skill-problems" path="/practice/:skillId" element={<SkillProblems />} />,
   <Route key="lesson-problems" path="/practice/:skillId/lesson/:lessonId" element={<LessonProblems />} />,

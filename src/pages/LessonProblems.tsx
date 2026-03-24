@@ -2,7 +2,7 @@
  import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bookmark, CheckCircle, Circle } from "lucide-react";
  import { Button } from "@/components/ui/button";
- import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
  import { Toggle } from "@/components/ui/toggle";
  import { ProblemFilters } from "@/components/practice/ProblemFilters";
  import { useProblemBookmarks } from "@/hooks/useProblemBookmarks";
@@ -321,10 +321,9 @@ import { cn } from "@/lib/utils";
          {/* Header - Shows Lesson Name */}
          <div className="mb-6">
            {isLoading ? (
-             <>
-               <Skeleton className="h-8 w-48 mb-2" />
-               <Skeleton className="h-4 w-64" />
-             </>
+             <div className="flex items-center justify-center py-4">
+               <UMLoader size={44} label="Unlocking memory…" />
+             </div>
            ) : (
              <>
                <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
@@ -364,7 +363,9 @@ import { cn } from "@/lib/utils";
          {/* Problem List */}
          <div className="mt-6">
            {isLoading ? (
-            <Skeleton className="h-48 w-full rounded-xl" />
+            <div className="flex items-center justify-center py-12">
+              <UMLoader size={44} label="Unlocking memory…" />
+            </div>
            ) : filteredProblems.length > 0 ? (
             <div className="rounded-xl border border-border/50 overflow-hidden bg-card shadow-sm">
               {/* Card Header - Lesson Title */}

@@ -1,78 +1,89 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useConversationThreads } from "@/hooks/useConversationThreads";
 import { ThreadListCard } from "@/components/messaging/ThreadListCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import { MessageCircle, Inbox } from "lucide-react";
-
-type FilterTab = "all" | "new" | "open" | "replied" | "resolved";
 
 const ModeratorMessageRequests = () => {
   const { userId } = useAuth();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<FilterTab>("all");
-  const { threads, isLoading } = useConversationThreads(userId, "moderator", filter);
+  const { threads, isLoading, markThreadRead } = useConversationThreads(userId, "moderator", "all");
 
   const handleOpenThread = (threadId: string) => {
+    markThreadRead(threadId);
     navigate(`/moderator/message-requests/${threadId}`);
   };
 
+  const active = threads.filter(t => t.current_status !== "resolved");
+  const resolved = threads.filter(t => t.current_status === "resolved");
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6 py-2">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Message Requests</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Learner questions assigned to you
-          </p>
+          <h1 className="text-xl font-bold text-foreground">Message Requests</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Learner questions assigned to you</p>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <MessageCircle className="h-5 w-5 text-primary" />
+        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <MessageCircle className="h-4.5 w-4.5 text-primary" />
         </div>
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterTab)}>
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="new">New</TabsTrigger>
-          <TabsTrigger value="open">Open</TabsTrigger>
-          <TabsTrigger value="replied">Replied</TabsTrigger>
-          <TabsTrigger value="resolved">Resolved</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="space-y-3">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="border-border/40">
-              <CardContent className="p-4">
-                <Skeleton className="h-16 w-full" />
-              </CardContent>
-            </Card>
-          ))
-        ) : threads.length === 0 ? (
-          <Card className="border-border/30 bg-card/50">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-                <Inbox className="h-7 w-7 text-muted-foreground" />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <UMLoader size={44} label="Unlocking memory…" />
+        </div>
+      ) : threads.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+            <Inbox className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium text-foreground mb-1">No active conversations</p>
+          <p className="text-xs text-muted-foreground">Learner messages will appear here</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Active */}
+          {active.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-1">
+                Active · {active.length}
+              </p>
+              <div className="space-y-2">
+                {active.map(thread => (
+                  <ThreadListCard
+                    key={thread.id}
+                    thread={thread}
+                    currentUserId={userId || ""}
+                    onOpen={handleOpenThread}
+                  />
+                ))}
               </div>
-              <p className="text-sm font-medium text-foreground mb-1">No active conversations</p>
-              <p className="text-xs text-muted-foreground">Learner messages will appear here</p>
-            </CardContent>
-          </Card>
-        ) : (
-          threads.map((thread) => (
-            <ThreadListCard
-              key={thread.id}
-              thread={thread}
-              onOpen={handleOpenThread}
-            />
-          ))
-        )}
-      </div>
+            </div>
+          )}
+
+          {/* Resolved */}
+          {resolved.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-1">
+                Resolved · {resolved.length}
+              </p>
+              <div className="space-y-2 opacity-70">
+                {resolved.map(thread => (
+                  <ThreadListCard
+                    key={thread.id}
+                    thread={thread}
+                    currentUserId={userId || ""}
+                    onOpen={handleOpenThread}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

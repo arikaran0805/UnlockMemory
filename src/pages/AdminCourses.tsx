@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Edit, Trash2, Star, Eye, Info } from "lucide-react";
 import { format } from "date-fns";
+import UMLoader from "@/components/UMLoader";
 
 interface Category {
   id: string;
@@ -137,7 +138,11 @@ const AdminCourses = () => {
   };
 
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <UMLoader size={56} dark label="Loading…" />
+    </div>
+  );
 
   return (
     <>

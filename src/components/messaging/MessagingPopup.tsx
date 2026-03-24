@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, MessageCircle, Minus, X, HelpCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, MessageCircle, Minus, X, ChevronDown, CheckCircle2 } from "lucide-react";
 import { SuggestedMentorBanner } from "./SuggestedMentorBanner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,8 @@ interface MessagingPopupProps {
   connections: ConnectionWithConversation[];
   activeConnection: ConnectionWithConversation | null;
   activeConversationId?: string | null;
+  activeThreadId?: string | null;
+  typingChannelId?: string | null;
   messages: ChatMessage[];
   isLoading: boolean;
   isSending: boolean;
@@ -45,6 +47,12 @@ interface MessagingPopupProps {
   suggestedMentor?: { mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null;
   onStartMentorChat?: () => void;
   onAskSuggestedMentor?: () => void;
+  pastMessages?: import("@/hooks/useMessaging").ChatMessage[];
+  viewingPastConvoId?: string | null;
+  onLoadPastConversation?: (conversationId: string) => void;
+  onClearPastConversation?: () => void;
+  onReopenConversation?: () => void;
+  onStartNew?: () => void;
 }
 
 export function MessagingPopup({
@@ -52,6 +60,7 @@ export function MessagingPopup({
   connections,
   activeConnection,
   activeConversationId,
+  typingChannelId,
   messages,
   isLoading,
   isSending,
@@ -76,14 +85,20 @@ export function MessagingPopup({
   suggestedMentor,
   onStartMentorChat,
   onAskSuggestedMentor,
+  pastMessages,
+  viewingPastConvoId,
+  onLoadPastConversation,
+  onClearPastConversation,
+  onReopenConversation,
+  onStartNew,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
   const [showMentorProfile, setShowMentorProfile] = useState(false);
 
-  // Typing indicator
+  // Typing indicator — use deterministic channel key (sorted learnerId-moderatorId)
   const { isOtherTyping, emitTyping, stopTyping } = useTypingIndicator(
-    activeConversationId || null,
+    typingChannelId || null,
     userId
   );
 
@@ -330,6 +345,7 @@ export function MessagingPopup({
               <ConnectionList
                 connections={connections}
                 isLoading={isLoading}
+                currentUserId={userId}
                 onSelectConnection={(id) => onOpenChat(id, lessonId)}
                 onNewConnection={() => setShowNewConnection(true)}
                 onDeleteConnection={onDeleteConnection}
@@ -366,37 +382,118 @@ export function MessagingPopup({
 
             {view === "chat" && !showMentorProfile && (
               <>
+                {/* Past Doubts section — collapsible list of resolved conversations */}
+                <PastDoubtsSection
+                  resolvedConversations={activeConnection?.resolvedConversations || []}
+                  viewingPastConvoId={viewingPastConvoId || null}
+                  onLoad={onLoadPastConversation || (() => {})}
+                  onClear={onClearPastConversation || (() => {})}
+                />
+
+                {/* Messages — show past or current */}
                 <ChatMessageList
-                  messages={messages}
+                  messages={viewingPastConvoId ? (pastMessages || []) : messages}
                   currentUserId={userId}
+                  senderName={activeConnection ? `${activeConnection.display_name}${activeConnection.role_label ? ` · ${activeConnection.role_label}` : ""}` : undefined}
                   isLoading={isLoading}
-                  onEditMessage={onEditMessage}
-                  onDeleteMessage={onDeleteMessage}
-                  isOtherTyping={isOtherTyping}
+                  onEditMessage={viewingPastConvoId ? undefined : onEditMessage}
+                  onDeleteMessage={viewingPastConvoId ? undefined : onDeleteMessage}
+                  isOtherTyping={viewingPastConvoId ? false : isOtherTyping}
+                  onReopenConversation={viewingPastConvoId ? undefined : onReopenConversation}
+                  onStartNew={viewingPastConvoId ? undefined : onStartNew}
                 />
-                {suggestedMentor && onAskSuggestedMentor && activeConnection && 
-                  (activeConnection as any).connected_user_id !== suggestedMentor.mentor.user_id && (
-                  <SuggestedMentorBanner
-                    mentor={suggestedMentor.mentor}
-                    context={suggestedMentor.context}
-                    variant="chat"
-                    onAsk={onAskSuggestedMentor}
-                  />
+
+                {/* Only show composer when not viewing a past conversation */}
+                {!viewingPastConvoId && (
+                  <>
+                    {suggestedMentor && onAskSuggestedMentor && activeConnection &&
+                      (activeConnection as any).connected_user_id !== suggestedMentor.mentor.user_id && (
+                      <SuggestedMentorBanner
+                        mentor={suggestedMentor.mentor}
+                        context={suggestedMentor.context}
+                        variant="chat"
+                        onAsk={onAskSuggestedMentor}
+                      />
+                    )}
+                    <ChatComposer
+                      onSend={onSendMessage}
+                      onSendVoice={onSendVoice}
+                      onSendAttachment={onSendAttachment}
+                      isSending={isSending}
+                      placeholder="Ask about this lesson..."
+                      onTyping={emitTyping}
+                      onStopTyping={stopTyping}
+                    />
+                  </>
                 )}
-                <ChatComposer
-                  onSend={onSendMessage}
-                  onSendVoice={onSendVoice}
-                  onSendAttachment={onSendAttachment}
-                  isSending={isSending}
-                  placeholder="Ask about this lesson..."
-                  onTyping={emitTyping}
-                  onStopTyping={stopTyping}
-                />
               </>
             )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function PastDoubtsSection({
+  resolvedConversations,
+  viewingPastConvoId,
+  onLoad,
+  onClear,
+}: {
+  resolvedConversations: import("@/hooks/useMessaging").Conversation[];
+  viewingPastConvoId: string | null;
+  onLoad: (id: string) => void;
+  onClear: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (resolvedConversations.length === 0) return null;
+
+  return (
+    <div className="border-b border-border/20">
+      {viewingPastConvoId ? (
+        <button
+          onClick={onClear}
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-primary hover:bg-muted/30 transition-colors"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          Back to current chat
+        </button>
+      ) : (
+        <>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:bg-muted/20 transition-colors"
+          >
+            <span className="font-medium">Past Doubts ({resolvedConversations.length})</span>
+            <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+          </button>
+          {expanded && (
+            <div className="max-h-[100px] overflow-y-auto">
+              {resolvedConversations.map((convo) => (
+                <button
+                  key={convo.id}
+                  onClick={() => { onLoad(convo.id); }}
+                  className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors border-t border-border/10"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-foreground/70 truncate">
+                      {convo.last_message_preview || "Resolved conversation"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {convo.last_message_at
+                        ? new Date(convo.last_message_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                        : ""}
+                    </p>
+                  </div>
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500 flex-shrink-0 mt-0.5" />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

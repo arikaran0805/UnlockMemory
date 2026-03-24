@@ -13,13 +13,19 @@ export function useTypingIndicator(
 ) {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const isSubscribedRef = useRef(false);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isTypingRef = useRef(false);
+  const lastEmitRef = useRef<number>(0);
   const autoExpireRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks whether the user is mid-typing while channel is still connecting
+  const pendingTypingRef = useRef(false);
 
   // Subscribe to typing events on this conversation
   useEffect(() => {
     if (!conversationId || !userId) return;
+
+    isSubscribedRef.current = false;
+    pendingTypingRef.current = false;
 
     const channel = supabase.channel(`typing-${conversationId}`);
 
@@ -38,23 +44,51 @@ export function useTypingIndicator(
           if (autoExpireRef.current) clearTimeout(autoExpireRef.current);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        isSubscribedRef.current = status === "SUBSCRIBED";
+        // If keystrokes arrived before the handshake completed, flush now
+        if (status === "SUBSCRIBED" && pendingTypingRef.current) {
+          pendingTypingRef.current = false;
+          lastEmitRef.current = Date.now();
+          channelRef.current?.send({
+            type: "broadcast",
+            event: "typing_start",
+            payload: { user_id: userId },
+          });
+        }
+      });
 
     channelRef.current = channel;
 
     return () => {
+      isSubscribedRef.current = false;
+      pendingTypingRef.current = false;
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+      if (autoExpireRef.current) clearTimeout(autoExpireRef.current);
       channel.unsubscribe();
       channelRef.current = null;
-      if (autoExpireRef.current) clearTimeout(autoExpireRef.current);
     };
   }, [conversationId, userId]);
 
-  // Emit typing start (debounced)
+  // Emit typing start — throttled to once per 300ms so missed events self-heal on the next keystroke
   const emitTyping = useCallback(() => {
     if (!channelRef.current || !userId) return;
 
-    if (!isTypingRef.current) {
-      isTypingRef.current = true;
+    // Channel not ready yet — mark pending so we flush on SUBSCRIBED
+    if (!isSubscribedRef.current) {
+      pendingTypingRef.current = true;
+      // Still set up the stop timer so it fires correctly
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+      stopTimerRef.current = setTimeout(() => {
+        pendingTypingRef.current = false;
+        lastEmitRef.current = 0;
+      }, TYPING_DEBOUNCE);
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastEmitRef.current > 300) {
+      lastEmitRef.current = now;
       channelRef.current.send({
         type: "broadcast",
         event: "typing_start",
@@ -62,10 +96,10 @@ export function useTypingIndicator(
       });
     }
 
-    // Reset stop timer
+    // Reset stop timer — fires 1500ms after last keystroke
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
     stopTimerRef.current = setTimeout(() => {
-      isTypingRef.current = false;
+      lastEmitRef.current = 0;
       channelRef.current?.send({
         type: "broadcast",
         event: "typing_stop",
@@ -76,9 +110,10 @@ export function useTypingIndicator(
 
   // Force stop (call on message send)
   const stopTyping = useCallback(() => {
-    if (!channelRef.current || !userId) return;
+    pendingTypingRef.current = false;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    isTypingRef.current = false;
+    lastEmitRef.current = 0;
+    if (!channelRef.current || !userId || !isSubscribedRef.current) return;
     channelRef.current.send({
       type: "broadcast",
       event: "typing_stop",

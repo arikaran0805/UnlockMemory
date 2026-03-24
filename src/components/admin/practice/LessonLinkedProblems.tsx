@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import { Code2, Eye, Bug, ListX } from "lucide-react";
 
 interface LinkedProblem {
@@ -130,10 +130,8 @@ export function LessonLinkedProblems({ lessonId, lessonTitle }: LessonLinkedProb
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <div className="flex items-center justify-center py-6">
+        <UMLoader size={44} label="Unlocking memory…" />
       </div>
     );
   }

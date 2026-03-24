@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import UMLoader from "@/components/UMLoader";
 import { useCourseNavigation } from "@/hooks/useCourseNavigation";
 import { useTodaysFocus } from "@/hooks/useTodaysFocus";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,10 @@ import {
   Library,
   Gamepad2,
   FlaskConical,
-  LayoutGrid
+  LayoutGrid,
+  BookCopy,
+  Lock,
+  ChevronLeft
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -1180,8 +1184,8 @@ const Profile = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center">Loading...</p>
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[400px]">
+          <UMLoader size={56} dark label="Loading…" />
         </div>
       </Layout>
     );
@@ -1576,7 +1580,7 @@ const Profile = () => {
                               navigate(`/career-board/${career.slug}`);
                               return;
                             }
-                            navigate('/arcade');
+                            navigate('/careers');
                           }}
                         >
                           <LayoutDashboard className="h-4 w-4" />
@@ -1810,35 +1814,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Arcade Section */}
-      {/* Arcade Section - tertiary tier */}
-      <Card className="card-premium card-tertiary animate-stagger-5">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.25)' }}
-            >
-              <Gamepad2 className="h-8 w-8 text-white" strokeWidth={1.5} />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <h3 className="text-xl font-bold mb-1 tracking-[-0.02em]" style={{ color: '#1D1D1F' }}>Arcade</h3>
-              <p className="font-normal" style={{ color: '#6E6E73' }}>
-                Test your skills with interactive challenges, quizzes, and games to reinforce your learning.
-              </p>
-            </div>
-            <Button 
-              onClick={() => navigate('/arcade')} 
-              className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-              style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
-            >
-              <Gamepad2 className="h-4 w-4" />
-              Enter Arcade
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+
 
       <CareerSelectionDialog
         open={careerDialogOpen}
@@ -1895,10 +1871,10 @@ const Profile = () => {
                 if (courseSlugs.length > 0) {
                   navigate(`/career-board/${selectedCareer}/course/${courseSlugs[0]}`);
                 } else {
-                  navigate('/arcade');
+                  navigate('/careers');
                 }
               } else {
-                navigate('/arcade');
+                navigate('/careers');
               }
             }}
             className="gap-1 rounded-full px-5 font-medium text-muted-foreground"
@@ -2045,9 +2021,8 @@ const Profile = () => {
         </div>
         
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="w-10 h-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">Loading bookmarks...</p>
+          <div className="flex items-center justify-center py-12">
+            <UMLoader size={44} label="Unlocking memory…" />
           </div>
         ) : totalBookmarks > 0 ? (
           <div className="space-y-10">
@@ -2603,52 +2578,199 @@ const Profile = () => {
       ? Math.round((completedInCareer / careerRelatedSlugs.length) * 100) 
       : 0;
 
-    return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold">Achievements</h2>
-        
-        {/* Skill Milestones - Full View */}
-        <SkillMilestones 
-          completedCourses={completedInCareer}
-          readinessPercentage={readinessPercentage}
-          compact={false}
-        />
+    const totalCompletedLessons = Object.values(courseProgressMap).reduce((sum, p) => sum + (p.completed || 0), 0);
+    const hasCompletedFirstLesson = totalCompletedLessons > 0;
 
-        {/* Additional Achievements */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" />
-              Learning Badges
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { name: 'First Lesson', desc: 'Complete your first lesson', locked: true },
-                { name: 'Enrolled', desc: 'Enroll in your first course', locked: enrolledCourses.length === 0 },
-                { name: 'Bookworm', desc: 'Complete 5 courses', locked: completedCourseSlugs.length < 5 },
-                { name: 'Discussion Star', desc: 'Leave 10 comments', locked: true },
-              ].map((achievement, index) => (
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Back Button since Sidebar is hidden */}
+        <div className="flex mb-[-1rem]">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleTabChange('dashboard')}
+            className="text-muted-foreground hover:text-foreground gap-1.5 -ml-2 rounded-full"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+
+        {/* Elite Hero Section */}
+        <div className="relative overflow-hidden rounded-[28px] border border-border/40 bg-background/50 backdrop-blur-xl shadow-lg shadow-black/5">
+          {/* Subtle gradient mesh background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-background to-purple-500/5 z-0" />
+          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/10 blur-[80px] pointer-events-none" />
+          
+          <div className="relative z-10 p-8 sm:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12 pl-8 md:pl-16">
+            {/* Trophy Icon Container */}
+            <div className="relative group shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full blur-2xl opacity-40 group-hover:opacity-70 transition-opacity duration-700" />
+              <div 
+                className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-[3px] shadow-2xl shadow-orange-500/20 transform transition-all duration-700 hover:scale-105 hover:-rotate-12 cursor-default"
+                style={{ background: 'linear-gradient(135deg, #FBBF24, #F97316)' }}
+              >
+                <div className="w-full h-full rounded-full bg-background/90 backdrop-blur-md flex items-center justify-center">
+                  <Trophy className="h-14 w-14 sm:h-16 sm:w-16 text-transparent bg-clip-text bg-gradient-to-br from-amber-400 to-orange-600 drop-shadow-sm" style={{ fill: 'url(#trophy-gradient)', filter: 'drop-shadow(0 4px 6px rgba(249, 115, 22, 0.4))' }} />
+                  {/* Define SVG gradient for the trophy fill */}
+                  <svg width="0" height="0" className="absolute">
+                    <linearGradient id="trophy-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop stopColor="#FBBF24" offset="0%" />
+                      <stop stopColor="#F97316" offset="100%" />
+                    </linearGradient>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            {/* Copy & Status */}
+            <div className="text-center md:text-left flex-1">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground mb-4">
+                Your Trophy Room
+              </h2>
+              <p className="text-muted-foreground text-base sm:text-lg max-w-2xl leading-relaxed mb-6">
+                Every step forward is a victory. Track your learning milestones and earn exclusive badges as you master new skills.
+              </p>
+              
+              {/* Optional secondary stat chips */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-primary">
+                  <Flame className="h-4 w-4" />
+                  {completedInCareer} Courses Finished
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                  <Zap className="h-4 w-4" />
+                  {readinessPercentage}% Readiness
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Skill Milestones - Full View */}
+        <div className="relative z-20">
+          <SkillMilestones 
+            completedCourses={completedInCareer}
+            readinessPercentage={readinessPercentage}
+            compact={false}
+          />
+        </div>
+
+        {/* Additional Achievements (Learning Badges) */}
+        <div className="space-y-6 pt-4">
+          <div className="flex items-center gap-3 px-2">
+            <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 shadow-inner">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold tracking-tight text-foreground">Special Badges</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">Extra accolades earned along your journey</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { 
+                name: 'First Lesson', 
+                desc: 'Complete your first lesson', 
+                locked: !hasCompletedFirstLesson, 
+                icon: BookOpen,
+                color: 'from-blue-400 to-indigo-500',
+                shadow: 'shadow-blue-500/30'
+              },
+              { 
+                name: 'Enrolled', 
+                desc: 'Enroll in your first course', 
+                locked: enrolledCourses.length === 0, 
+                icon: Target,
+                color: 'from-emerald-400 to-teal-500',
+                shadow: 'shadow-emerald-500/30'
+              },
+              { 
+                name: 'Bookworm', 
+                desc: 'Complete 5 courses', 
+                locked: completedCourseSlugs.length < 5, 
+                icon: BookCopy, // Using BookOpen fallback below as BookCopy isn't imported
+                color: 'from-purple-400 to-fuchsia-500',
+                shadow: 'shadow-purple-500/30'
+              },
+              { 
+                name: 'Discussion Star', 
+                desc: 'Leave 10 comments', 
+                locked: true, 
+                icon: MessageSquare,
+                color: 'from-pink-400 to-rose-500',
+                shadow: 'shadow-pink-500/30'
+              },
+            ].map((achievement, index) => {
+              const Icon = achievement.icon || Award;
+              
+              // Base stlye logic based on lock state
+              const isLocked = achievement.locked;
+              
+              return (
                 <div 
                   key={index} 
-                  className={`p-4 rounded-lg border text-center transition-all ${
-                    achievement.locked 
-                      ? 'opacity-50 bg-muted/30 border-dashed' 
-                      : 'bg-primary/5 border-primary/20'
+                  className={`relative group overflow-hidden rounded-2xl border transition-all duration-500 flex flex-col items-center text-center p-6 ${
+                    isLocked 
+                      ? 'bg-muted/20 border-border/40 hover:bg-muted/30 hover:border-border/60' 
+                      : 'bg-background hover:bg-muted/10 border-border shadow-sm hover:shadow-md hover:-translate-y-1'
                   }`}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-2 ${
-                    achievement.locked ? 'bg-muted' : 'bg-primary/10'
-                  }`}>
-                    <Award className={`h-6 w-6 ${achievement.locked ? 'text-muted-foreground' : 'text-primary'}`} />
+                  {/* Subtle hover background effect for unlocked */}
+                  {!isLocked && (
+                    <div className={`absolute inset-0 bg-gradient-to-br ${achievement.color} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
+                  )}
+                  
+                  {/* Lock Indicator overlay */}
+                  {isLocked && (
+                    <div className="absolute top-4 right-4">
+                      <Lock className="h-4 w-4 text-muted-foreground/50" strokeWidth={2} />
+                    </div>
+                  )}
+
+                  {/* Icon Container */}
+                  <div className="relative mb-4">
+                    {!isLocked && (
+                      <div className={`absolute inset-0 bg-gradient-to-br ${achievement.color} rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-500`} />
+                    )}
+                    <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${
+                      isLocked 
+                        ? 'bg-muted/50 border-transparent filter grayscale opacity-60' 
+                        : `bg-gradient-to-br ${achievement.color} border-transparent shadow-lg ${achievement.shadow} group-hover:scale-110`
+                    }`}>
+                      <Icon className={`h-7 w-7 ${isLocked ? 'text-muted-foreground' : 'text-white drop-shadow-md'}`} strokeWidth={isLocked ? 1.5 : 2} />
+                    </div>
                   </div>
-                  <h4 className="font-medium text-sm">{achievement.name}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">{achievement.desc}</p>
-                  {!achievement.locked && <Badge className="mt-2" variant="secondary">Unlocked</Badge>}
+                  
+                  <h4 className={`font-semibold text-base mb-1.5 transition-colors ${
+                    isLocked ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary'
+                  }`}>
+                    {achievement.name}
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed balance-text">
+                    {achievement.desc}
+                  </p>
+                  
+                  {/* Status Badge */}
+                  <div className="mt-auto pt-5">
+                    {isLocked ? (
+                      <div className="h-1.5 w-16 rounded-full border border-border bg-muted/30 overflow-hidden">
+                        <div className="h-full bg-muted-foreground/20 w-1/4" />
+                      </div>
+                    ) : (
+                      <Badge variant="secondary" className={`bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors`}>
+                        Unlocked
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   };
@@ -2821,7 +2943,18 @@ const Profile = () => {
   );
 
   const renderPracticeLab = () => (
-    <div className="px-8 md:px-16 lg:px-32 xl:px-40">
+    <div className="px-8 md:px-16 lg:px-32 xl:px-40 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => handleTabChange('dashboard')}
+          className="text-muted-foreground hover:text-foreground gap-1.5 -ml-2 rounded-full"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
       <PracticeLab enrolledCourses={enrolledCourses} userId={userId || undefined} />
     </div>
   );
@@ -2843,8 +2976,8 @@ const Profile = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' || activeTab === 'learnings' || activeTab === 'bookmarks' ? 'dashboard-bg' : 'bg-background'}`}>
-          {/* Sidebar - hidden for Practice Lab */}
-          {activeTab !== 'practice' && (
+          {/* Sidebar - hidden for Practice Lab and Achievements */}
+          {activeTab !== 'practice' && activeTab !== 'achievements' && (
           <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
             <Card className="sidebar-premium">
               <CardContent className="p-5">
@@ -2906,24 +3039,7 @@ const Profile = () => {
                         <span>{item.label}</span>
                       </button>
                     ))}
-                    <button
-                      onClick={() => navigate('/library')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] text-[#5F7266] font-medium hover:text-foreground"
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      <Library className="h-[18px] w-[18px] text-[#5F7266]" strokeWidth={1.5} />
-                      <span>Library</span>
-                    </button>
-                    <button
-                      onClick={() => navigate('/arcade')}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] text-[#5F7266] font-medium hover:text-foreground"
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      <Gamepad2 className="h-[18px] w-[18px] text-[#5F7266]" strokeWidth={1.5} />
-                      <span>Arcade</span>
-                    </button>
+
                   </nav>
                 </div>
 

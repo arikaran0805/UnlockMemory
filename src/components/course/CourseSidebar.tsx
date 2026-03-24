@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ChevronDown,
@@ -66,6 +67,8 @@ interface CourseSidebarProps {
   isHeaderVisible: boolean;
   showAnnouncement: boolean;
   isAuthenticated: boolean;
+  /** Whether lessons/progress data is still loading (fast-path navigation) */
+  isLoading?: boolean;
   /** Whether this sidebar is in the Career Board shell (different header heights) */
   isCareerBoard?: boolean;
   /** Practice skill slug for linking to problems */
@@ -82,7 +85,7 @@ interface CourseSidebarProps {
   handleHomeClick: () => void;
 }
 
-export const CourseSidebar = ({
+export const CourseSidebar = memo(({
   lessons,
   posts,
   selectedPost,
@@ -93,6 +96,7 @@ export const CourseSidebar = ({
   isHeaderVisible,
   showAnnouncement,
   isAuthenticated,
+  isLoading = false,
   isCareerBoard = false,
   practiceSkillSlug,
   lessonProblemCounts,
@@ -148,8 +152,8 @@ export const CourseSidebar = ({
     return filteredLessons.findIndex(l => l.id === expandedLessonId);
   }, [filteredLessons, expandedLessonId, searchQuery]);
 
-  // Get filtered posts for a lesson (when searching)
-  const getFilteredPostsForLesson = (lessonId: string) => {
+  // Get filtered posts for a lesson (when searching) — stable reference avoids recomputing the whole list
+  const getFilteredPostsForLesson = useCallback((lessonId: string) => {
     const allPosts = getPostsForLesson(lessonId);
     const query = searchQuery.toLowerCase().trim();
 
@@ -169,7 +173,7 @@ export const CourseSidebar = ({
       post.title.toLowerCase().includes(query) ||
       (post.excerpt?.toLowerCase().includes(query) ?? false)
     );
-  };
+  }, [getPostsForLesson, lessons, searchQuery]);
 
   // Calculate sticky top position based on header visibility and context
   // Career Board: Primary (64px) + CareerScopedHeader (48px) + Announcement (36px)
@@ -295,6 +299,16 @@ export const CourseSidebar = ({
         {isAuthenticated ? (
           <>
             <div className="px-4 pt-1 pb-4">
+              {isLoading ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-8" />
+                  </div>
+                  <Skeleton className="h-2 w-full" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+              ) : (
               <div className="space-y-2.5">
                 {/* Completion Stats Row */}
                 <div className="flex items-center justify-between">
@@ -313,8 +327,8 @@ export const CourseSidebar = ({
                 </div>
 
                 {/* Progress Bar */}
-                <Progress 
-                  value={courseProgress.percentage} 
+                <Progress
+                  value={courseProgress.percentage}
                   className="h-2 bg-sidebar-accent [&>div]:bg-gradient-to-r [&>div]:from-sidebar-primary [&>div]:to-sidebar-primary/70 [&>div]:transition-all [&>div]:duration-500"
                   aria-label={`Course progress: ${courseProgress.percentage}%`}
                 />
@@ -347,6 +361,7 @@ export const CourseSidebar = ({
                   )}
                 </div>
               </div>
+              )}
             </div>
             <Separator className="bg-sidebar-border" />
           </>
@@ -616,6 +631,16 @@ export const CourseSidebar = ({
                                 );
                               })}
                               </div>
+            ) : isLoading ? (
+              /* Loading skeleton for lessons */
+              <div className="space-y-1 p-2">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="flex items-center gap-2 px-2 py-2">
+                    <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                    <Skeleton className="h-3 flex-1" />
+                  </div>
+                ))}
+              </div>
             ) : (
               /* Empty State: No Lessons */
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -628,6 +653,6 @@ export const CourseSidebar = ({
       </div>
     </aside>
   );
-};
+});
 
 export default CourseSidebar;

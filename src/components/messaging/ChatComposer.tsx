@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Send, Paperclip, Smile, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VoiceRecordingBar } from "./VoiceRecordingBar";
@@ -173,10 +173,10 @@ export function ChatComposer({
     );
   }
 
-  // --- Voice error ---
-  if (voice.error) {
-    toast.error(voice.error);
-  }
+  // --- Voice error — fire toast once when error appears, not on every render ---
+  useEffect(() => {
+    if (voice.error) toast.error(voice.error);
+  }, [voice.error]);
 
   return (
     <>

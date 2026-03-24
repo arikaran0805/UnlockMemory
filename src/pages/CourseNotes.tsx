@@ -9,12 +9,11 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotesFocusMode } from "@/components/notes";
 import { useNotesTabRegistration } from "@/hooks/useNotesTabManager";
-import { useCourseNavigator } from "@/hooks/useCourseTabManager";
 
 interface CourseInfo {
   id: string;
@@ -26,6 +25,8 @@ const CourseNotes = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const careerId = searchParams.get("careerId");
   const [course, setCourse] = useState<CourseInfo | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -43,10 +44,7 @@ const CourseNotes = () => {
 
   // Register this tab for single-tab-per-course management
   // Pass the switch handler to receive context-switch messages
-  const { closeAndFocusOpener } = useNotesTabRegistration(courseId, handleSwitchNote);
-
-  // Course navigator - uses BroadcastChannel to find and navigate existing Course Detail tab
-  const { navigateToLesson } = useCourseNavigator();
+  useNotesTabRegistration(courseId, handleSwitchNote);
 
   // Fetch course info
   useEffect(() => {
@@ -89,89 +87,43 @@ const CourseNotes = () => {
     }
   }, [authLoading, user, courseId, navigate]);
 
-  // Handle back to course - focus existing Course Detail tab via BroadcastChannel
-  const handleBackToCourse = async () => {
-    if (!course?.slug || !course?.id) return;
-    
-    console.log("[CourseNotes] Back to course - focusing Course Detail tab");
-    
-    // Use the Course Navigator to find and focus the existing Course Detail tab
-    const focused = await navigateToLesson({
-      courseId: course.id,
-      courseSlug: course.slug,
-      // No lessonId/lessonSlug = just focus the course tab without navigating to a specific lesson
-    });
-    
-    if (focused) {
-      // Successfully focused the Course Detail tab
-      // Optionally close this Notes tab
-      window.close();
+  // Handle back to course - navigate in current tab
+  const handleBackToCourse = () => {
+    if (!course?.slug) return;
+    if (careerId) {
+      navigate(`/career-board/${careerId}/course/${course.slug}`);
     } else {
-      // Fallback: Try legacy window.opener method
-      if (closeAndFocusOpener()) {
-        return;
-      }
-      // Ultimate fallback: navigate in current tab
       navigate(`/course/${course.slug}`);
     }
   };
 
-  // Handle navigate to lesson - reuses existing Course Detail tab via BroadcastChannel
+  // Handle navigate to lesson - navigates current tab to the lesson
   const handleNavigateToLesson = async (lessonId: string) => {
-    if (!course?.slug || !course?.id) return;
-    
+    if (!course?.slug) return;
+
     try {
-      // Fetch the lesson slug for proper navigation
-      const { data: lesson, error } = await supabase
+      const { data: lesson } = await supabase
         .from("posts")
         .select("slug")
         .eq("id", lessonId)
         .maybeSingle();
-      
-      if (error) {
-        console.error("[CourseNotes] Error fetching lesson:", error);
-        // Navigate to lessons tab as fallback
-        navigate(`/course/${course.slug}?tab=lessons`);
-        return;
+
+      if (careerId) {
+        // Career board route
+        const base = `/career-board/${careerId}/course/${course.slug}`;
+        navigate(lesson?.slug ? `${base}?lesson=${lesson.slug}&tab=lessons` : base);
+      } else {
+        // Regular course route
+        navigate(lesson?.slug
+          ? `/course/${course.slug}?lesson=${lesson.slug}&tab=lessons`
+          : `/course/${course.slug}?tab=lessons`
+        );
       }
-      
-      const lessonSlug = lesson?.slug;
-      
-      console.log("[CourseNotes] Navigating to lesson via BroadcastChannel:", { 
-        lessonId, 
-        lessonSlug, 
-        courseSlug: course.slug,
-        courseId: course.id 
-      });
-      
-      // Use the Course Navigator to find/focus existing Course Detail tab
-      // This uses BroadcastChannel for reliable cross-tab communication
-      const navigated = await navigateToLesson({
-        courseId: course.id,
-        courseSlug: course.slug,
-        lessonId,
-        lessonSlug: lessonSlug || undefined,
-      });
-      
-      if (!navigated) {
-        console.warn("[CourseNotes] BroadcastChannel navigation failed, using fallback");
-        // Fallback: Try legacy window.opener method
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage(
-            { type: "NAVIGATE_TO_LESSON", lessonId, lessonSlug, courseSlug: course.slug },
-            window.location.origin
-          );
-          window.opener.focus();
-        } else if (lessonSlug) {
-          // Ultimate fallback: navigate in current tab
-          navigate(`/course/${course.slug}?lesson=${lessonSlug}&tab=lessons`);
-        } else {
-          navigate(`/course/${course.slug}?tab=lessons`);
-        }
-      }
-    } catch (err) {
-      console.error("[CourseNotes] Failed to navigate to lesson:", err);
-      navigate(`/course/${course.slug}?tab=lessons`);
+    } catch {
+      navigate(careerId
+        ? `/career-board/${careerId}/course/${course.slug}`
+        : `/course/${course.slug}?tab=lessons`
+      );
     }
   };
 

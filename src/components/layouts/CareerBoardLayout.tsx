@@ -16,7 +16,7 @@
  * - Persisted per user per career in database
  */
 import { useState, useCallback, useEffect } from "react";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useSearchParams } from "react-router-dom";
 import { useCareerBoard } from "@/contexts/CareerBoardContext";
 import { useUserState } from "@/hooks/useUserState";
 import { useCareerWelcome } from "@/hooks/useCareerWelcome";
@@ -56,6 +56,8 @@ export const CareerBoardLayout = () => {
   const { career, careerCourses, isLoading: careerContextLoading, isReady, currentCourseSlug, setCurrentCourseSlug } = useCareerBoard();
   const { isPro } = useUserState();
   const { getCareerSkills, loading: careersLoading } = useCareers();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showOverview = searchParams.get('overview') === 'true';
   
   // Welcome screen state - check if user has seen welcome for this career
   const { hasSeenWelcome, loading: welcomeLoading, markWelcomeSeen } = useCareerWelcome(career?.id);
@@ -88,8 +90,17 @@ export const CareerBoardLayout = () => {
     // Mark that we're transitioning from welcome - skip skeleton
     setWelcomeJustDismissed(true);
     setHasShellLoaded(true); // Prevent skeleton after welcome dismissal
-    await markWelcomeSeen();
-  }, [markWelcomeSeen]);
+    
+    if (showOverview) {
+      // User is manually viewing overview - just remove the param to resume
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('overview');
+      setSearchParams(nextParams, { replace: true });
+    } else {
+      // First-time welcome completion
+      await markWelcomeSeen();
+    }
+  }, [markWelcomeSeen, showOverview, searchParams, setSearchParams]);
 
   // Get skills for welcome page (needed before early returns)
   const careerSkills = career ? getCareerSkills(career.id) : [];
@@ -136,8 +147,8 @@ export const CareerBoardLayout = () => {
     );
   }
 
-  // Second: If user hasn't seen welcome (and didn't just dismiss it), show welcome page
-  if (hasSeenWelcome === false && career && !welcomeJustDismissed) {
+  // Second: If user hasn't seen welcome (and didn't just dismiss it), OR they explicitly requested overview
+  if (((hasSeenWelcome === false && !welcomeJustDismissed) || showOverview) && career) {
     return (
       <CareerWelcomePage 
         career={career as any}
@@ -163,7 +174,7 @@ export const CareerBoardLayout = () => {
   // Career not found - only check when fully ready (never show skeleton as "not found")
   // Pro-check redirect is handled by CareerBoardContext effect
   if (isReady && !career) {
-    return <Navigate to="/arcade" replace />;
+    return <Navigate to="/careers" replace />;
   }
 
   // Build current course object for header highlighting

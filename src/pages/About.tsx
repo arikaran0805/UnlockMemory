@@ -4,14 +4,14 @@ import SEOHead from "@/components/SEOHead";
 
 const About = () => {
   useEffect(() => {
-    document.title = "BlogHub - About Us";
+    document.title = "UnlockMemory - About Us";
   }, []);
 
   return (
     <Layout>
       <SEOHead 
         title="About Us - Our Story and Mission"
-        description="Learn about BlogHub's mission to democratize knowledge and inspire curious minds. Discover our values, team, and commitment to quality content."
+        description="Learn about UnlockMemory's mission to democratize knowledge and inspire curious minds. Discover our values, team, and commitment to quality content."
         keywords="about us, our mission, our story, company values, team"
       />
 
@@ -30,11 +30,11 @@ const About = () => {
 
             {/* Right: Text Content */}
             <div>
-              <h1 className="text-4xl font-bold mb-6">About BlogHub</h1>
+              <h1 className="text-4xl font-bold mb-6">About UnlockMemory</h1>
               
               <div className="space-y-4 text-muted-foreground">
                 <p className="text-lg">
-                  Welcome to <span className="text-primary font-semibold">BlogHub</span>, your destination for inspiring stories, insightful articles, and thought-provoking content across technology, lifestyle, business, education, and health.
+                  Welcome to <span className="text-primary font-semibold">UnlockMemory</span>, your destination for inspiring stories, insightful articles, and thought-provoking content across technology, lifestyle, business, education, and health.
                 </p>
 
                 <p>
@@ -42,7 +42,7 @@ const About = () => {
                 </p>
 
                 <p>
-                  Our platform is built on the belief that everyone has a story worth telling and knowledge worth sharing. Whether you're looking to learn something new, stay updated on industry trends, or simply find inspiration, BlogHub is your go-to resource.
+                  Our platform is built on the belief that everyone has a story worth telling and knowledge worth sharing. Whether you're looking to learn something new, stay updated on industry trends, or simply find inspiration, UnlockMemory is your go-to resource.
                 </p>
 
                 <div className="pt-6">

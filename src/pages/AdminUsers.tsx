@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Search, Shield, User, Trash2, UserPlus } from "lucide-react";
+import UMLoader from "@/components/UMLoader";
 import InviteUserDialog from "@/components/admin/InviteUserDialog";
 
 interface UserWithRole {
@@ -150,7 +151,11 @@ const AdminUsers = () => {
       (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <UMLoader size={56} dark label="Loading…" />
+    </div>
+  );
 
   return (
     <>

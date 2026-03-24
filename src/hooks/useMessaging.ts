@@ -45,6 +45,7 @@ export interface ChatMessage {
 
 export interface ConnectionWithConversation extends TeamConnection {
   conversation?: Conversation;
+  resolvedConversations?: Conversation[];
 }
 
 export function useMessaging(userId: string | undefined) {
@@ -57,15 +58,23 @@ export function useMessaging(userId: string | undefined) {
     () => sessionStorage.getItem("messaging_active_connection")
   );
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [typingChannelId, setTypingChannelId] = useState<string | null>(null);
+
+  // Keep ref in sync so realtime handlers can access current value without re-subscribing
+  useEffect(() => { activeThreadIdRef.current = activeThreadId; }, [activeThreadId]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
   const [mentorPreview, setMentorPreview] = useState<{ mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null>(null);
   const [suggestedMentor, setSuggestedMentor] = useState<{ mentor: ResolvedOwner; context: { source_type: string; source_title: string } } | null>(null);
+  const [pastMessages, setPastMessages] = useState<ChatMessage[]>([]);
+  const [viewingPastConvoId, setViewingPastConvoId] = useState<string | null>(null);
   const previousView = useRef<MessagingView>("closed");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const hasRestoredSession = useRef(false);
+  const activeThreadIdRef = useRef<string | null>(null);
 
   // Fetch connections with latest conversation data
   const fetchConnections = useCallback(async () => {
@@ -91,12 +100,28 @@ export function useMessaging(userId: string | undefined) {
         .eq("learner_id", userId);
 
       const merged: ConnectionWithConversation[] = (conns || []).map((c) => {
-        const convo = convos?.find((cv) => cv.connection_id === c.id);
-        return { ...c, conversation: convo || undefined };
+        const allConvos = (convos || []).filter((cv) => cv.connection_id === c.id);
+        const activeConvo = allConvos.find((cv) => cv.conversation_type !== "resolved");
+        const resolvedConvos = allConvos.filter((cv) => cv.conversation_type === "resolved")
+          .sort((a, b) => new Date(b.created_at || b.last_message_at || "").getTime() - new Date(a.created_at || a.last_message_at || "").getTime());
+        return { ...c, conversation: activeConvo || undefined, resolvedConversations: resolvedConvos };
+      });
+
+      // Auto-stamp any conversation not yet visited so stale DB counts don't ghost the badge
+      const now = new Date().toISOString();
+      (convos || []).forEach((cv: any) => {
+        const key = `convo_viewed_${userId}_${cv.id}`;
+        if (!localStorage.getItem(key)) localStorage.setItem(key, now);
       });
 
       setConnections(merged);
-      const unread = (convos || []).reduce((sum, cv) => sum + (cv.unread_count_learner || 0), 0);
+      const unread = (convos || []).reduce((sum, cv: any) => {
+        const cursor = localStorage.getItem(`convo_viewed_${userId}_${cv.id}`);
+        const effective = cursor && cv.last_message_at && new Date(cv.last_message_at) <= new Date(cursor)
+          ? 0
+          : (cv.unread_count_learner || 0);
+        return sum + effective;
+      }, 0);
       setTotalUnread(unread);
     } finally {
       setIsLoading(false);
@@ -136,12 +161,28 @@ export function useMessaging(userId: string | undefined) {
         .eq("learner_id", userId);
 
       const merged: ConnectionWithConversation[] = conns.map((c) => {
-        const convo = convos?.find((cv) => cv.connection_id === c.id);
-        return { ...c, conversation: convo || undefined };
+        const allConvos = (convos || []).filter((cv) => cv.connection_id === c.id);
+        const activeConvo = allConvos.find((cv) => cv.conversation_type !== "resolved");
+        const resolvedConvos = allConvos.filter((cv) => cv.conversation_type === "resolved")
+          .sort((a, b) => new Date(b.created_at || b.last_message_at || "").getTime() - new Date(a.created_at || a.last_message_at || "").getTime());
+        return { ...c, conversation: activeConvo || undefined, resolvedConversations: resolvedConvos };
+      });
+
+      // Auto-stamp any conversation not yet visited so stale DB counts don't ghost the badge
+      const now = new Date().toISOString();
+      (convos || []).forEach((cv: any) => {
+        const key = `convo_viewed_${userId}_${cv.id}`;
+        if (!localStorage.getItem(key)) localStorage.setItem(key, now);
       });
 
       setConnections(merged);
-      const unread = (convos || []).reduce((sum, cv) => sum + (cv.unread_count_learner || 0), 0);
+      const unread = (convos || []).reduce((sum, cv: any) => {
+        const cursor = localStorage.getItem(`convo_viewed_${userId}_${cv.id}`);
+        const effective = cursor && cv.last_message_at && new Date(cv.last_message_at) <= new Date(cursor)
+          ? 0
+          : (cv.unread_count_learner || 0);
+        return sum + effective;
+      }, 0);
       setTotalUnread(unread);
       setView("list");
     } else {
@@ -191,18 +232,33 @@ export function useMessaging(userId: string | undefined) {
     return newThread?.id || null;
   }, []);
 
+  // Emit broadcast so moderator's messages show ✓✓ in their ConversationDetail view
+  const emitLearnerSeenAck = useCallback((threadId: string) => {
+    const now = new Date().toISOString();
+    const ackCh = supabase.channel(`seen-learner-ack-${threadId}`);
+    ackCh.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        ackCh.send({ type: "broadcast", event: "messages_read", payload: { seen_at: now } })
+          .then(() => ackCh.unsubscribe());
+      }
+    });
+  }, []);
+
   // Open a specific chat
   const openChat = useCallback(async (connectionId: string, lessonId?: string) => {
     if (!userId) return;
     setActiveConnectionId(connectionId);
     setIsLoading(true);
 
-    // Find or create conversation
+    // Find or create conversation (exclude resolved ones)
     let { data: convo } = await supabase
       .from("conversations")
       .select("*")
       .eq("learner_id", userId)
       .eq("connection_id", connectionId)
+      .neq("conversation_type", "resolved")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (!convo) {
@@ -221,7 +277,57 @@ export function useMessaging(userId: string | undefined) {
 
     if (convo) {
       setActiveConversation(convo);
+      // Stamp localStorage so badge stays gone even if DB update is blocked by RLS
+      localStorage.setItem(`convo_viewed_${userId}_${convo.id}`, new Date().toISOString());
+      // Clear local unread count immediately so badge disappears without waiting for DB round-trip
+      setConnections((prev) =>
+        prev.map((c) =>
+          c.id === connectionId && c.conversation
+            ? { ...c, conversation: { ...c.conversation, unread_count_learner: 0 } }
+            : c
+        )
+      );
       await fetchMessages(convo.id);
+
+      // Upgrade any own messages stuck as "sent" in DB → "delivered"
+      // (covers old messages sent before the delivered-update fix, and any race conditions)
+      const stuckDeliveredAt = new Date().toISOString();
+      const { data: stuckMsgs } = await supabase
+        .from("conversation_messages")
+        .select("id")
+        .eq("conversation_id", convo.id)
+        .eq("sender_id", userId)
+        .eq("delivery_status", "sent");
+      if (stuckMsgs && stuckMsgs.length > 0) {
+        const stuckIds = stuckMsgs.map((m: any) => m.id);
+        await supabase
+          .from("conversation_messages")
+          .update({ delivery_status: "delivered", delivered_at: stuckDeliveredAt })
+          .in("id", stuckIds);
+        setMessages((prev) =>
+          prev.map((m) =>
+            stuckIds.includes(m.id) ? { ...m, delivery_status: "delivered", delivered_at: stuckDeliveredAt } : m
+          )
+        );
+      }
+
+      // Pre-initialize thread so typing channel is ready immediately
+      const threadId = await ensureThread(connectionId, userId);
+      setActiveThreadId(threadId || null);
+
+      // Compute deterministic typing channel key: sorted [learnerId, moderatorId]
+      const { data: connData } = await supabase
+        .from("team_connections")
+        .select("connected_user_id")
+        .eq("id", connectionId)
+        .single();
+      if (connData?.connected_user_id) {
+        const key = [userId, connData.connected_user_id].sort().join("-");
+        setTypingChannelId(key);
+      }
+
+      // Notify moderator that learner has seen their messages
+      if (threadId) emitLearnerSeenAck(threadId);
 
       // Mark as read + mark all incoming messages as seen
       if (convo.unread_count_learner > 0) {
@@ -242,7 +348,7 @@ export function useMessaging(userId: string | undefined) {
 
     setIsLoading(false);
     setView("chat");
-  }, [userId, fetchMessages]);
+  }, [userId, fetchMessages, ensureThread, emitLearnerSeenAck]);
 
   // Send message
   const sendMessage = useCallback(async (text: string, attachmentUrl?: string, attachmentName?: string) => {
@@ -268,7 +374,7 @@ export function useMessaging(userId: string | undefined) {
     setMessages((prev) => [...prev, newMsg as ChatMessage]);
 
     try {
-      const { data: inserted } = await supabase.from("conversation_messages").insert({
+      const { data: inserted, error: insertError } = await supabase.from("conversation_messages").insert({
         conversation_id: activeConversation.id,
         sender_type: "learner",
         sender_id: userId,
@@ -278,6 +384,12 @@ export function useMessaging(userId: string | undefined) {
         attachment_name: attachmentName || null,
         delivery_status: "sent",
       }).select().single();
+
+      if (insertError) {
+        // Rollback optimistic message on failure
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+        return;
+      }
 
       // Replace optimistic message with real DB record
       if (inserted) {
@@ -319,6 +431,23 @@ export function useMessaging(userId: string | undefined) {
             .from("conversation_threads")
             .update({ updated_at: new Date().toISOString(), current_status: "open" })
             .eq("id", threadId);
+
+          // Thread sync succeeded = message is now in moderator's inbox → delivered
+          if (inserted) {
+            const deliveredAt = new Date().toISOString();
+            await supabase
+              .from("conversation_messages")
+              .update({ delivery_status: "delivered", delivered_at: deliveredAt })
+              .eq("id", inserted.id);
+            // Update local state after DB confirms
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === inserted.id && m.delivery_status === "sent"
+                  ? { ...m, delivery_status: "delivered", delivered_at: deliveredAt }
+                  : m
+              )
+            );
+          }
         }
       } catch (threadErr) {
         console.error("Failed to sync to thread:", threadErr);
@@ -340,19 +469,43 @@ export function useMessaging(userId: string | undefined) {
     setView(target);
   }, []);
 
+  const loadPastConversation = useCallback(async (conversationId: string) => {
+    const { data } = await supabase
+      .from("conversation_messages")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setPastMessages((data || []).reverse());
+    setViewingPastConvoId(conversationId);
+  }, []);
+
+  const clearPastConversation = useCallback(() => {
+    setPastMessages([]);
+    setViewingPastConvoId(null);
+  }, []);
+
   // Close
   const close = useCallback(() => {
     setView("closed");
     setActiveConnectionId(null);
     setActiveConversation(null);
+    setActiveThreadId(null);
+    setTypingChannelId(null);
     setMessages([]);
+    setPastMessages([]);
+    setViewingPastConvoId(null);
   }, []);
 
   // Back to list from chat
   const backToList = useCallback(() => {
     setActiveConnectionId(null);
     setActiveConversation(null);
+    setActiveThreadId(null);
+    setTypingChannelId(null);
     setMessages([]);
+    setPastMessages([]);
+    setViewingPastConvoId(null);
     setView("list");
   }, []);
 
@@ -382,7 +535,11 @@ export function useMessaging(userId: string | undefined) {
               .from("conversation_messages")
               .update({ delivery_status: "seen", delivered_at: new Date().toISOString(), seen_at: new Date().toISOString(), is_read: true })
               .eq("id", newMsg.id)
-              .then(() => {});
+              .then(() => {
+                // Notify moderator that learner has seen this new message
+                const tid = activeThreadIdRef.current;
+                if (tid) emitLearnerSeenAck(tid);
+              });
           } else {
             // Own message from DB — reconcile with optimistic (skip if already present by ID)
             setMessages((prev) => {
@@ -404,7 +561,12 @@ export function useMessaging(userId: string | undefined) {
           const updated = payload.new as ChatMessage;
           console.log("[Realtime] Message UPDATE:", updated.id, "status:", updated.delivery_status);
           setMessages((prev) =>
-            prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m)
+            prev.map((m) => {
+              if (m.id !== updated.id) return m;
+              // Never downgrade from seen — seen is permanent
+              if (m.delivery_status === "seen" || m.is_read) return m;
+              return { ...m, ...updated };
+            })
           );
         }
       )
@@ -429,7 +591,89 @@ export function useMessaging(userId: string | undefined) {
     return () => {
       channelRef.current?.unsubscribe();
     };
-  }, [activeConversation, userId]);
+  }, [activeConversation, userId, emitLearnerSeenAck]);
+
+  // Listen for seen-ack broadcast from moderator — updates tick status without needing postgres_changes
+  useEffect(() => {
+    if (!userId) return;
+
+    const seenChannel = supabase
+      .channel(`seen-${userId}`)
+      .on("broadcast", { event: "messages_seen" }, (payload) => {
+        const { seen_at, conversation_ids } = payload.payload as { seen_at: string; conversation_ids: string[] };
+
+        // Persist to DB from learner's side — mentor-side write may fail due to RLS,
+        // so learner writes their own messages to ensure blue ticks survive refresh
+        if (conversation_ids?.length > 0) {
+          supabase
+            .from("conversation_messages")
+            .update({ delivery_status: "seen", seen_at, is_read: true })
+            .eq("sender_id", userId)
+            .in("conversation_id", conversation_ids)
+            .neq("delivery_status", "seen")
+            .then(() => {});
+        }
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.sender_id === userId && m.delivery_status !== "seen"
+              ? { ...m, delivery_status: "seen", seen_at }
+              : m
+          )
+        );
+      })
+      .subscribe();
+
+    return () => { seenChannel.unsubscribe(); };
+  }, [userId]);
+
+  // Live unread count via broadcast — fires when any mentor sends a message to this learner
+  useEffect(() => {
+    if (!userId) return;
+    const notifChannel = supabase
+      .channel(`notif-${userId}`)
+      .on("broadcast", { event: "new_unread" }, (payload) => {
+        const { conversation_id, unread_count } = payload.payload as { conversation_id: string; unread_count: number };
+        setConnections((prev) => {
+          const next = prev.map((c) =>
+            c.conversation?.id === conversation_id
+              ? { ...c, conversation: { ...c.conversation!, unread_count_learner: unread_count } }
+              : c
+          );
+          const total = next.reduce((sum, c) => sum + (c.conversation?.unread_count_learner || 0), 0);
+          setTotalUnread(total);
+          return next;
+        });
+      })
+      .subscribe();
+    return () => { notifChannel.unsubscribe(); };
+  }, [userId]);
+
+  // Live unread count: subscribe to conversations table so badge updates when mentor sends a message
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`conversations-unread-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversations", filter: `learner_id=eq.${userId}` },
+        (payload) => {
+          const updated = payload.new as Conversation;
+          setConnections((prev) => {
+            const next = prev.map((c) =>
+              c.conversation?.id === updated.id
+                ? { ...c, conversation: { ...c.conversation!, ...updated } }
+                : c
+            );
+            const total = next.reduce((sum, c) => sum + (c.conversation?.unread_count_learner || 0), 0);
+            setTotalUnread(total);
+            return next;
+          });
+        }
+      )
+      .subscribe();
+    return () => { channel.unsubscribe(); };
+  }, [userId]);
 
   // Session persistence
   useEffect(() => {
@@ -630,6 +874,18 @@ export function useMessaging(userId: string | undefined) {
             is_visible_to_learner: true,
           });
           await supabase.from("conversation_threads").update({ updated_at: now, current_status: "open" }).eq("id", threadId);
+
+          if (insertedVoice) {
+            const deliveredAt = new Date().toISOString();
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === insertedVoice.id && m.delivery_status === "sent"
+                  ? { ...m, delivery_status: "delivered", delivered_at: deliveredAt }
+                  : m
+              )
+            );
+            await supabase.from("conversation_messages").update({ delivery_status: "delivered", delivered_at: deliveredAt }).eq("id", insertedVoice.id);
+          }
         }
       } catch (e) {
         console.error("Thread sync error:", e);
@@ -718,6 +974,18 @@ export function useMessaging(userId: string | undefined) {
             is_visible_to_learner: true,
           });
           await supabase.from("conversation_threads").update({ updated_at: now, current_status: "open" }).eq("id", threadId);
+
+          if (insertedFile) {
+            const deliveredAt = new Date().toISOString();
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === insertedFile.id && m.delivery_status === "sent"
+                  ? { ...m, delivery_status: "delivered", delivered_at: deliveredAt }
+                  : m
+              )
+            );
+            await supabase.from("conversation_messages").update({ delivery_status: "delivered", delivered_at: deliveredAt }).eq("id", insertedFile.id);
+          }
         }
       } catch (e) {
         console.error("Thread sync error:", e);
@@ -736,12 +1004,86 @@ export function useMessaging(userId: string | undefined) {
     sessionStorage.setItem("messaging_view", "mentor_preview");
   }, []);
 
+  // Reopen a resolved conversation (learner side)
+  const reopenConversation = useCallback(async () => {
+    if (!userId || !activeConversation) return;
+
+    const reopenContent = "Restarted by Learner";
+
+    // Optimistic UI: add system message immediately
+    const optimisticId = crypto.randomUUID();
+    const optimisticMsg: ChatMessage = {
+      id: optimisticId,
+      conversation_id: activeConversation.id,
+      sender_type: "learner",
+      sender_id: userId,
+      message_text: reopenContent,
+      message_type: "system",
+      attachment_url: null,
+      attachment_name: null,
+      attachment_size: null,
+      is_read: false,
+      created_at: new Date().toISOString(),
+      delivery_status: "sent",
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    // Insert into conversation_messages (learner side)
+    const { data: insertedMsg } = await supabase.from("conversation_messages").insert({
+      conversation_id: activeConversation.id,
+      sender_type: "learner",
+      sender_id: userId,
+      message_text: reopenContent,
+      message_type: "system",
+      delivery_status: "sent",
+    }).select().single();
+
+    if (insertedMsg) {
+      setMessages((prev) => prev.map((m) => m.id === optimisticId ? { ...m, id: insertedMsg.id } : m));
+    }
+
+    // Look up thread ID via reverse cache or DB query
+    const cachedThreadId = localStorage.getItem(`conv_thread_${activeConversation.id}`);
+    let threadId: string | null = cachedThreadId;
+
+    if (!threadId) {
+      const { data: thread } = await supabase
+        .from("conversation_threads")
+        .select("id")
+        .eq("learner_user_id", userId)
+        .eq("current_status", "resolved")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .single();
+      threadId = thread?.id ?? null;
+    }
+
+    if (threadId) {
+      // Reopen the thread
+      await supabase.from("conversation_threads")
+        .update({ current_status: "open", updated_at: new Date().toISOString() })
+        .eq("id", threadId);
+
+      // Insert system_event in thread_messages visible to both
+      await supabase.from("thread_messages").insert({
+        thread_id: threadId,
+        sender_user_id: userId,
+        sender_role: "learner",
+        message_content: reopenContent,
+        message_type: "system_event",
+        is_visible_to_learner: true,
+      });
+    }
+  }, [userId, activeConversation]);
+
   return {
     view,
     connections,
     activeConnection,
     activeConversation,
     activeConversationId: activeConversation?.id || null,
+    activeThreadId,
+    typingChannelId,
     messages,
     isLoading,
     isSending,
@@ -764,5 +1106,10 @@ export function useMessaging(userId: string | undefined) {
     deleteConnection,
     showMentorPreview,
     setSuggestedMentor,
+    pastMessages,
+    viewingPastConvoId,
+    loadPastConversation,
+    clearPastConversation,
+    reopenConversation,
   };
 }

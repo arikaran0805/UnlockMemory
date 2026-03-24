@@ -1,6 +1,6 @@
+import { useState, useRef, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Minus, X, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Minus, X, MoreHorizontal, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConnectionPresence, formatLastSeen } from "@/hooks/useConnectionPresence";
 import type { ConnectionWithConversation } from "@/hooks/useMessaging";
@@ -15,11 +15,22 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ connection, onBack, onCollapse, onClose, isOtherTyping, onProfileClick }: ChatHeaderProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMenu]);
   const connectedUserId = (connection as any).connected_user_id;
   const presence = useConnectionPresence(connectedUserId);
 
   const statusText = isOtherTyping
-    ? "typing..."
+    ? "Mentor is typing..."
     : presence.is_online
       ? "Online"
       : formatLastSeen(presence.last_seen_at);
@@ -71,9 +82,27 @@ export function ChatHeader({ connection, onBack, onCollapse, onClose, isOtherTyp
       </button>
 
       <div className="flex items-center gap-0.5">
-        <button className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground">
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setShowMenu((v) => !v)}
+            className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1 w-44 bg-card border border-border/40 rounded-xl shadow-lg z-50 overflow-hidden py-1">
+              {onProfileClick && (
+                <button
+                  onClick={() => { setShowMenu(false); onProfileClick(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  View Profile
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <button
           onClick={onCollapse}
           className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"

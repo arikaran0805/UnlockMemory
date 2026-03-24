@@ -1,8 +1,6 @@
 import { useMemo, useCallback, useEffect } from "react";
 import { useDoubtSystem, resolveOwner } from "@/hooks/useDoubtSystem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
@@ -15,9 +13,7 @@ import {
   MessageSquareCode,
   ArrowRightCircle,
   Play,
-  FileText,
   HelpCircle,
-  Sparkles,
 } from "lucide-react";
 
 interface LearningCockpitProps {
@@ -50,22 +46,10 @@ const LESSON_FLOW_SECTIONS = [
 // Practice items for Pro users
 const PRACTICE_ITEMS = [
   {
-    id: "quick-questions",
-    title: "Try 2 quick questions",
-    description: "Test your understanding",
-    icon: Sparkles,
-  },
-  {
     id: "run-code",
     title: "Run this code yourself",
     description: "Practice in the playground",
     icon: Play,
-  },
-  {
-    id: "cheat-sheet",
-    title: "Cheat sheet",
-    description: "Quick reference guide",
-    icon: FileText,
   },
 ];
 
@@ -316,6 +300,8 @@ export const LearningCockpit = ({
         connections={messaging.connections}
         activeConnection={messaging.activeConnection}
         activeConversationId={messaging.activeConversationId}
+        activeThreadId={messaging.activeThreadId}
+        typingChannelId={messaging.typingChannelId}
         messages={messaging.messages}
         isLoading={messaging.isLoading}
         isSending={messaging.isSending}
@@ -340,6 +326,11 @@ export const LearningCockpit = ({
         suggestedMentor={messaging.suggestedMentor}
         onStartMentorChat={handleStartMentorChat}
         onAskSuggestedMentor={handleAskSuggestedMentor}
+        pastMessages={messaging.pastMessages}
+        viewingPastConvoId={messaging.viewingPastConvoId}
+        onLoadPastConversation={messaging.loadPastConversation}
+        onClearPastConversation={messaging.clearPastConversation}
+        onReopenConversation={messaging.reopenConversation}
       />
     </>
   );

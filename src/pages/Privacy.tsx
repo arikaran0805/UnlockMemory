@@ -5,14 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const Privacy = () => {
   useEffect(() => {
-    document.title = "Privacy Policy - BlogHub";
+    document.title = "Privacy Policy - UnlockMemory";
   }, []);
 
   return (
     <Layout>
       <SEOHead 
         title="Privacy Policy - How We Protect Your Data"
-        description="Learn how BlogHub collects, uses, and protects your personal information. Read our comprehensive Privacy Policy to understand your data rights."
+        description="Learn how UnlockMemory collects, uses, and protects your personal information. Read our comprehensive Privacy Policy to understand your data rights."
         keywords="privacy policy, data protection, personal information, privacy rights, GDPR"
       />
       

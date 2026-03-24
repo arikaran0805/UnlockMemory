@@ -897,3 +897,21 @@ All colors MUST be HSL.
 .co-scrollbar::-webkit-scrollbar { width: 4px; }
 .co-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .co-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
+
+/* ── UMLoader animations ───────────────────────────────────────────────── */
+@keyframes um-d1pulse {
+  0%,100% { transform:scale(1); opacity:0.75; }
+  50% { transform:scale(1.3); opacity:1; }
+}
+@keyframes um-d2pulse {
+  0%,100% { transform:scale(1); opacity:0.55; }
+  50% { transform:scale(1.22); opacity:0.9; }
+}
+@keyframes um-iconpulse {
+  0%,100% { opacity:0.85; }
+  50% { opacity:1; }
+}
+.um-arc { animation: um-iconpulse 1.1s ease-in-out 0s infinite; }
+.um-bar { animation: um-iconpulse 1.1s ease-in-out 0.1s infinite; }
+.um-d1 { transform-box:fill-box; transform-origin:center; animation: um-d1pulse 1.1s ease-in-out 0s infinite; }
+.um-d2 { transform-box:fill-box; transform-origin:center; animation: um-d2pulse 1.1s ease-in-out 0.22s infinite; }

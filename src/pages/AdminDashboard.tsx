@@ -14,6 +14,7 @@ import {
   Activity, Clock, Eye, CheckCircle, XCircle, AlertCircle
 } from "lucide-react";
 import { format, subDays } from "date-fns";
+import UMLoader from "@/components/UMLoader";
 
 interface ActivityLog {
   id: string;
@@ -374,7 +375,7 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">Loading dashboard...</div>
+        <UMLoader size={56} dark label="Loading…" />
       </div>
     );
   }

@@ -46,7 +46,7 @@ const CourseStructuredData = ({
       url: courseUrl,
       provider: {
         "@type": "Organization",
-        name: "BlogHub",
+        name: "UnlockMemory",
         url: siteUrl,
       },
       ...(course.featured_image && {

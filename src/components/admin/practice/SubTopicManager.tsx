@@ -30,7 +30,7 @@ import {
   useDeleteSubTopic,
   type SubTopic,
 } from "@/hooks/useSubTopics";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 
 interface SubTopicManagerProps {
   lessonId: string;
@@ -100,12 +100,8 @@ export function SubTopicManager({
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-40" />
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
+        <CardContent className="flex items-center justify-center py-8">
+          <UMLoader size={44} label="Unlocking memory…" />
         </CardContent>
       </Card>
     );

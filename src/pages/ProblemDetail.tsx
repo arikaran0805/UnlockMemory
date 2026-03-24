@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, List, PartyPopper } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, List, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -410,14 +410,8 @@ export default function ProblemDetail() {
 
   if (isLoading) {
     return (
-      <div className="h-screen flex flex-col bg-background">
-        <div className="h-12 flex items-center px-4 border-b border-border/50 bg-card">
-          <Skeleton className="h-8 w-8" />
-          <Skeleton className="h-6 w-32 ml-4" />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+      <div className="h-screen flex items-center justify-center bg-background">
+        <UMLoader size={56} dark label="Loading…" />
       </div>
     );
   }

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRecentlyViewedTags } from "@/hooks/useRecentlyViewedTags";
@@ -472,10 +472,8 @@ const Tags = () => {
 
             {/* Loading State */}
             {loading && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {[...Array(12)].map((_, i) => (
-                  <Skeleton key={i} className="h-20 rounded-xl" />
-                ))}
+              <div className="flex items-center justify-center py-16">
+                <UMLoader size={44} label="Unlocking memory…" />
               </div>
             )}
 

@@ -45,7 +45,7 @@ const CareerBoardRoutes = () => {
           <Route path="course/:courseSlug/completed" element={<CareerCourseCompleted />} />
           
           {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/arcade" replace />} />
+          <Route path="*" element={<Navigate to="/careers" replace />} />
         </Route>
       </Routes>
     </CareerBoardProvider>

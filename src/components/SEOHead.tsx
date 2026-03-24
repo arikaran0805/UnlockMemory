@@ -46,7 +46,7 @@ const SEOHead = ({
   };
 
   useEffect(() => {
-    const finalTitle = title || seoSettings.meta_title || "BlogHub";
+    const finalTitle = title || seoSettings.meta_title || "UnlockMemory";
     const finalDescription = description || seoSettings.meta_description || "Inspiring stories and ideas for curious minds";
     const finalKeywords = keywords || seoSettings.meta_keywords || "";
     const finalOgImage = ogImage || seoSettings.og_image || "";

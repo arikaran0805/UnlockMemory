@@ -157,7 +157,7 @@ export const CareerBoardProvider = ({ children }: CareerBoardProviderProps) => {
     
     // Only redirect if confirmed not Pro - send to Arcade (career roadmap) not /courses
     if (!isPro) {
-      navigate("/arcade", { replace: true });
+      navigate("/careers", { replace: true });
     }
   }, [authChecked, isPro, userStateLoading, navigate]);
 

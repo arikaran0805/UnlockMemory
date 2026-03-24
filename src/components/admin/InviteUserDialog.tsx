@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Copy, Check, Loader2, UserPlus, Link as LinkIcon } from "lucide-react";
+import { Copy, Check, UserPlus, Link as LinkIcon } from "lucide-react";
+import UMLoader from "@/components/UMLoader";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -157,8 +158,8 @@ const InviteUserDialog = ({ open, onOpenChange, onInviteSent }: InviteUserDialog
               <Button onClick={handleCreate} disabled={isCreating}>
                 {isCreating ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    <UMLoader size={16} />
+                    <span className="ml-2">Creating...</span>
                   </>
                 ) : (
                   "Create Invitation"

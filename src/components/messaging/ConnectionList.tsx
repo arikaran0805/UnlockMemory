@@ -4,13 +4,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConnectionListItem } from "./ConnectionListItem";
 import { SuggestedMentorBanner } from "./SuggestedMentorBanner";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import type { ConnectionWithConversation } from "@/hooks/useMessaging";
 import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
 
 interface ConnectionListProps {
   connections: ConnectionWithConversation[];
   isLoading: boolean;
+  currentUserId: string;
   onSelectConnection: (connectionId: string) => void;
   onNewConnection: () => void;
   onDeleteConnection?: (connectionId: string) => void;
@@ -18,7 +19,7 @@ interface ConnectionListProps {
   onAskSuggestedMentor?: () => void;
 }
 
-export function ConnectionList({ connections, isLoading, onSelectConnection, onNewConnection, onDeleteConnection, suggestedMentor, onAskSuggestedMentor }: ConnectionListProps) {
+export function ConnectionList({ connections, isLoading, currentUserId, onSelectConnection, onNewConnection, onDeleteConnection, suggestedMentor, onAskSuggestedMentor }: ConnectionListProps) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -71,15 +72,9 @@ export function ConnectionList({ connections, isLoading, onSelectConnection, onN
       <ScrollArea className="flex-1 px-1">
         <div className="space-y-0.5 px-1 pb-2">
           {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3">
-                <Skeleton className="h-11 w-11 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
-              </div>
-            ))
+            <div className="flex items-center justify-center py-10">
+              <UMLoader size={44} label="Unlocking memory…" />
+            </div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-8">
               {search ? "No connections found" : "No connections yet"}
@@ -89,6 +84,7 @@ export function ConnectionList({ connections, isLoading, onSelectConnection, onN
               <ConnectionListItem
                 key={conn.id}
                 connection={conn}
+                currentUserId={currentUserId}
                 onClick={() => onSelectConnection(conn.id)}
                 onDelete={onDeleteConnection}
               />

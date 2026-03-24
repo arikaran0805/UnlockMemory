@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Plus, ArrowLeft, BookOpen, AlertCircle, Eye, Code2, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import UMLoader from "@/components/UMLoader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -368,10 +368,8 @@ export default function AdminPracticeProblems() {
 
       {/* Main Content */}
       {isLoading ? (
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full" />
-          ))}
+        <div className="flex items-center justify-center py-12">
+          <UMLoader size={44} label="Unlocking memory…" />
         </div>
       ) : !hasLinkedCourse ? (
         <div className="space-y-4">

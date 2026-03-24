@@ -16,7 +16,8 @@
  * - Restart course, enroll, progress tracking
  */
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, Link, useNavigate, useSearchParams, useOutletContext } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams, useOutletContext, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,6 @@ import { trackSocialMediaClick } from "@/lib/socialAnalytics";
 import { trackPostShare } from "@/lib/shareAnalytics";
 import { formatReadingTime, formatTotalReadingTime } from "@/lib/readingTime";
 import { z } from "zod";
-import type { User } from "@supabase/supabase-js";
 
 interface Course {
   id: string;
@@ -188,29 +188,42 @@ const CareerCourseDetail = () => {
   const tabParam = searchParams.get("tab");
   const isPreviewMode = searchParams.get("preview") === "true";
   const navigate = useNavigate();
-  
+  const location = useLocation();
+  // All data passed via navigation state for instant render (zero DB queries)
+  const navState = (location.state as any) ?? {};
+  const prefetchedCourse = navState.prefetchedCourse ?? null;
+  const prefetchedPosts: Post[] | null = navState.prefetchedPosts ?? null;
+  const prefetchedLessons: CourseLesson[] | null = navState.prefetchedLessons ?? null;
+  const prefetchedStats = navState.prefetchedStats ?? null;
+  const prefetchedLessonMap: Record<string, boolean> | null = navState.prefetchedLessonMap ?? null;
+
   // Get the outlet context to update current course in parent layout
   const { setCurrentCourseSlug, isHeaderVisible, showAnnouncement } = useOutletContext<OutletContext>();
-  
+
   // Career Board context
   const { career, careerCourses, isLoading: careerLoading } = useCareerBoard();
 
   // Always prefer the route param for building Career Board URLs.
   // (career can be transiently null during initialization; the param is always present.)
   const careerSlugForPath = careerIdParam || career?.slug;
-  
-  const [course, setCourse] = useState<Course | null>(null);
-  const [lessons, setLessons] = useState<CourseLesson[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+
+  const [course, setCourse] = useState<Course | null>(prefetchedCourse ?? null);
+  // Initialize lessons/posts from navigate state if available (instant — no fetch needed)
+  const [lessons, setLessons] = useState<CourseLesson[]>(prefetchedLessons ?? []);
+  const [posts, setPosts] = useState<Post[]>(prefetchedPosts ?? []);
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(
+    prefetchedLessons && prefetchedLessons.length > 0 ? new Set([prefetchedLessons[0].id]) : new Set()
+  );
+  const [loading, setLoading] = useState(!prefetchedCourse);
+  // lessonsLoading only if we have prefetchedCourse but no prefetchedPosts
+  const [lessonsLoading, setLessonsLoading] = useState(!!prefetchedCourse && !prefetchedPosts);
   const [canPreview, setCanPreview] = useState(false);
   const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
   const { isPro, isLoading: userStateLoading } = useUserState();
   const isMobile = useIsMobile();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [loadingPost, setLoadingPost] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoading: authLoading } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentContent, setCommentContent] = useState("");
@@ -255,10 +268,10 @@ const CareerCourseDetail = () => {
     unenroll,
     submitReview,
     deleteReview,
-  } = useCourseStats(course?.id, user);
+  } = useCourseStats(course?.id, user, prefetchedStats ?? undefined);
 
-  // Course progress hook
-  const { progress, markLessonViewed, markLessonCompleted, isLessonCompleted, refetch: refetchProgress } = useCourseProgress(course?.id);
+  // Course progress hook — pass user + initial lesson map for instant render
+  const { progress, loading: progressLoading, lessonStatuses, markLessonViewed, markLessonCompleted, isLessonCompleted, refetch: refetchProgress } = useCourseProgress(course?.id, user, prefetchedLessonMap ?? undefined);
   const [markingComplete, setMarkingComplete] = useState(false);
 
   // Practice problems linking hooks
@@ -270,7 +283,7 @@ const CareerCourseDetail = () => {
   useLessonTimeTracking({ lessonId: selectedPost?.id, courseId: course?.id });
 
   // Notes tab manager
-  const { openNotesTab } = useNotesTabOpener(course?.id);
+  const { openNotesTab } = useNotesTabOpener(course?.id, careerSlugForPath);
 
   // Register current course slug with parent layout
   useEffect(() => {
@@ -298,8 +311,10 @@ const CareerCourseDetail = () => {
    */
   useEffect(() => {
     if (defaultTabResolved) return;
-    if (loading || roleLoading || userStateLoading || courseStatsLoading) return;
-    
+    // Bug 1 fix: courseStatsLoading removed from main guard (moved to certificate branch only)
+    // Bug 2 fix: progressLoading added so we never read 0% from an in-flight fetch
+    if (loading || progressLoading || roleLoading || userStateLoading) return;
+
     const postsLoaded = posts.length > 0;
 
     // Priority 1: If a lesson is already selected via URL, go to lessons tab
@@ -313,7 +328,8 @@ const CareerCourseDetail = () => {
     if (tabParam && ["details", "lessons", "notes", "certificate"].includes(tabParam)) {
       if (tabParam === "certificate") {
         if (!postsLoaded) return;
-        const certificateTabAvailable = isPro && courseStats.isEnrolled && courseProgress.isCompleted;
+        // Career Board users don't go through explicit enrollment — use completion as proxy
+        const certificateTabAvailable = isPro && courseProgress.isCompleted;
         if (!certificateTabAvailable) {
           setActiveTab("lessons");
           setDefaultTabResolved(true);
@@ -332,20 +348,17 @@ const CareerCourseDetail = () => {
       return;
     }
 
-    // For learner progress-based selection, wait for posts to be loaded
-    if (!postsLoaded) {
-      if (!activeTab) {
-        setActiveTab("details");
-      }
-      return;
-    }
+    // Bug 3 fix: removed premature setActiveTab("details") — just wait silently
+    // Bug 5 fix: all progress checks are after this guard so totalCount is always accurate
+    if (!postsLoaded) return;
 
     // Priority 4: LEARNER progress-based tab selection
     const progressPercentage = courseProgress.percentage;
 
     // 100% completion → Certificate tab
+    // Career Board users skip explicit enrollment — completion is proof of access
     if (progressPercentage === 100 && courseProgress.isCompleted) {
-      if (isPro && courseStats.isEnrolled) {
+      if (isPro) {
         setActiveTab("certificate");
         setDefaultTabResolved(true);
         return;
@@ -368,20 +381,21 @@ const CareerCourseDetail = () => {
   }, [
     defaultTabResolved,
     loading,
+    progressLoading,
     roleLoading,
     userStateLoading,
-    courseStatsLoading,
     isAdmin,
     isModerator,
     lessonSlug,
     tabParam,
-    courseStats.isEnrolled,
     courseProgress.hasStarted,
     courseProgress.isCompleted,
     courseProgress.percentage,
     isPro,
     posts.length,
-    activeTab,
+    // courseStatsLoading + courseStats.isEnrolled removed: career board uses completion
+    // as proxy for enrollment so stats are not needed for tab resolution
+    // activeTab removed: effect must not re-run when it sets its own state
   ]);
 
   // Persist active tab to URL when it changes
@@ -392,16 +406,49 @@ const CareerCourseDetail = () => {
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  // Pre-sort posts into a per-lesson map once when posts change (O(n) vs O(n) per call)
+  const lessonPostsMap = useMemo(() => {
+    const map = new Map<string, Post[]>();
+    for (const post of posts) {
+      if (!post.lesson_id) continue;
+      if (!map.has(post.lesson_id)) map.set(post.lesson_id, []);
+      map.get(post.lesson_id)!.push(post);
+    }
+    map.forEach(bucket =>
+      bucket.sort((a, b) => {
+        const rankA = (a as any).post_rank || 'zzz';
+        const rankB = (b as any).post_rank || 'zzz';
+        return rankA.localeCompare(rankB);
+      })
+    );
+    return map;
+  }, [posts]);
+
+  // Get posts for a specific lesson — O(1) map lookup
+  const getPostsForLesson = useCallback(
+    (lessonId: string) => lessonPostsMap.get(lessonId) ?? [],
+    [lessonPostsMap],
+  );
+
+  // Ordered flat list for prev/next navigation — recomputed only when lessons/posts change
+  const orderedPosts = useMemo(() => {
+    const result: Post[] = [];
+    lessons.forEach(lesson => result.push(...getPostsForLesson(lesson.id)));
+    return result;
+  }, [lessons, getPostsForLesson]);
+
+  // Keep getAllOrderedPosts as a stable callback for callers that need a function reference
+  const getAllOrderedPosts = useCallback(() => orderedPosts, [orderedPosts]);
+
   // Get first uncompleted post for "Continue Learning"
   const getNextPost = useCallback(() => {
-    const orderedPosts = getAllOrderedPosts();
     for (const post of orderedPosts) {
       if (!isLessonCompleted(post.id)) {
         return post;
       }
     }
     return orderedPosts[0];
-  }, [posts, lessons, isLessonCompleted]);
+  }, [orderedPosts, isLessonCompleted]);
 
   const handleEnroll = async () => {
     if (!user) {
@@ -430,24 +477,21 @@ const CareerCourseDetail = () => {
   }, [course]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    if (!courseSlug) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
+    if (prefetchedCourse) {
+      // Instant path: lessons already in navigate state — no fetch needed
+      if (prefetchedPosts) return;
+      // Fast path: course known but no prefetched posts — fetch lessons only
+      fetchLessonsAndPosts(prefetchedCourse.id);
+      return;
+    }
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (roleLoading || !courseSlug) return;
-
+    if (roleLoading) return;
     const hasPreviewAccess = isAdmin || isModerator;
     setCanPreview(hasPreviewAccess);
     fetchCourseAndLessons();
-  }, [courseSlug, roleLoading, isAdmin, isModerator]);
+  }, [courseSlug, roleLoading, isAdmin, isModerator, prefetchedCourse]);
 
   useEffect(() => {
     if (lessonSlug && posts.length > 0) {
@@ -496,19 +540,10 @@ const CareerCourseDetail = () => {
     }
   }, [selectedPost]);
 
-  // Fetch careers and team when course changes
+  // Fetch sidebar data in parallel when course or user changes
   useEffect(() => {
-    if (course?.id) {
-      fetchCareers();
-      fetchCourseTeam();
-    }
-  }, [course?.id]);
-
-  // Fetch prerequisites separately so it can re-run when user changes
-  useEffect(() => {
-    if (course?.id) {
-      fetchLinkedPrerequisites();
-    }
+    if (!course?.id) return;
+    Promise.all([fetchCareers(), fetchCourseTeam(), fetchLinkedPrerequisites()]);
   }, [course?.id, user?.id]);
 
   const fetchCareers = async () => {
@@ -606,19 +641,15 @@ const CareerCourseDetail = () => {
         // Fetch completion data for logged-in user
         if (user) {
           const completionPromises = courseIds.map(async (prereqCourseId) => {
-            const { count: totalLessons } = await supabase
-              .from("posts")
-              .select("*", { count: "exact", head: true })
-              .eq("category_id", prereqCourseId)
-              .eq("status", "published")
-              .is("deleted_at", null);
-
-            const { count: completedLessons } = await supabase
-              .from("lesson_progress")
-              .select("*", { count: "exact", head: true })
-              .eq("user_id", user.id)
-              .eq("course_id", prereqCourseId)
-              .eq("completed", true);
+            const [{ count: totalLessons }, { count: completedLessons }] =
+              await Promise.all([
+                supabase.from("posts").select("*", { count: "exact", head: true })
+                  .eq("category_id", prereqCourseId).eq("status", "published")
+                  .is("deleted_at", null),
+                supabase.from("lesson_progress").select("*", { count: "exact", head: true })
+                  .eq("user_id", user.id).eq("course_id", prereqCourseId)
+                  .eq("completed", true),
+              ]);
 
             const total = totalLessons || 0;
             const completed = completedLessons || 0;
@@ -653,6 +684,44 @@ const CareerCourseDetail = () => {
     }
   };
 
+  // Fast path: already have course from nav state — only fetch lessons + posts in parallel
+  const fetchLessonsAndPosts = useCallback(async (courseId: string) => {
+    try {
+      const [lessonsResult, postsResult] = await Promise.all([
+        supabase
+          .from("course_lessons")
+          .select("id, title, description, lesson_rank, is_published, course_id")
+          .eq("course_id", courseId)
+          .is("deleted_at", null)
+          .order("lesson_rank", { ascending: true }),
+        supabase
+          .from("posts")
+          .select("id, title, content, excerpt, slug, featured_image, published_at, updated_at, lesson_id, post_rank, post_type, status, profiles:author_id (full_name)")
+          .eq("category_id", courseId)
+          .eq("status", "published")
+          .order("post_rank", { ascending: true }),
+      ]);
+
+      const typedLessons = ((lessonsResult.data || []) as unknown as CourseLesson[]);
+      setLessons(typedLessons);
+      if (typedLessons.length > 0) setExpandedLessons(new Set([typedLessons[0].id]));
+
+      const publishedLessonIds = new Set(typedLessons.filter(l => l.is_published).map(l => l.id));
+      const typedPosts = ((postsResult.data || []) as any[]).map(p => ({
+        ...p,
+        lesson_id: p.lesson_id as string | null,
+        post_rank: p.post_rank as string | null,
+        post_type: p.post_type as string | null,
+        profiles: p.profiles as { full_name: string | null },
+      })).filter((p: any) => p.lesson_id === null || publishedLessonIds.has(p.lesson_id)) as Post[];
+      setPosts(typedPosts);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLessonsLoading(false);
+    }
+  }, [toast]);
+
   const fetchCourseAndLessons = async () => {
     try {
       const showAllStatuses = isPreviewMode && (isAdmin || isModerator);
@@ -670,7 +739,7 @@ const CareerCourseDetail = () => {
 
       if (courseError) {
         if (courseError.code === 'PGRST116') {
-          navigate("/arcade", { replace: true });
+          navigate("/careers", { replace: true });
           return;
         }
         throw courseError;
@@ -698,6 +767,7 @@ const CareerCourseDetail = () => {
         .select(`
           id,
           title,
+          content,
           excerpt,
           slug,
           featured_image,
@@ -820,47 +890,55 @@ const CareerCourseDetail = () => {
   };
 
   const fetchPostContent = async (post: Post) => {
-    setLoadingPost(true);
+    // 1. Optimistic UI: Instantly show whatever we have in memory 
+    //    (which now includes the full content thanks to our earlier query update)
+    setSelectedPost(post);
+    
+    // 2. Fire and forget secondary data immediately
+    fetchLikeData(post.id);
+    if (user) {
+      markLessonViewed(post.id);
+    }
+
     try {
-      const { data, error } = await supabase
-        .from("posts")
-        .select(`*, profiles:author_id (full_name, avatar_url)`)
-        .eq("id", post.id)
-        .single();
-
-      if (error) throw error;
-
       const shouldUseLatestVersion = canPreview;
-      let hydratedPost: any = data;
+      const needsNetworkFetch = shouldUseLatestVersion || !post.content;
+      
+      // 3. Background fetch if we need a preview version or if content was somehow missing
+      if (needsNetworkFetch) {
+        let hydratedPost: any = { ...post };
 
-      if (shouldUseLatestVersion) {
-        const { data: latestVersion, error: versionError } = await supabase
-          .from("post_versions")
-          .select("content, version_number, status")
-          .eq("post_id", post.id)
-          .order("version_number", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        if (!post.content) {
+          const { data, error } = await supabase
+            .from("posts")
+            .select(`*, profiles:author_id (full_name)`)
+            .eq("id", post.id)
+            .single();
 
-        if (!versionError && latestVersion?.content) {
-          hydratedPost = { ...hydratedPost, content: latestVersion.content };
+          if (!error && data) {
+            hydratedPost = { ...hydratedPost, ...data };
+          }
         }
-      }
 
-      setSelectedPost(hydratedPost);
-      await fetchLikeData(post.id);
+        if (shouldUseLatestVersion) {
+          const { data: latestVersion, error: versionError } = await supabase
+            .from("post_versions")
+            .select("content, version_number, status")
+            .eq("post_id", post.id)
+            .order("version_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-      if (user) {
-        markLessonViewed(post.id);
+          if (!versionError && latestVersion?.content) {
+            hydratedPost = { ...hydratedPost, content: latestVersion.content };
+          }
+        }
+        
+        // Silently upgrade the UI when the background fetch completes
+        setSelectedPost(hydratedPost);
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to load lesson content",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPost(false);
+      console.error("Failed to load background lesson content", error);
     }
   };
 
@@ -871,8 +949,6 @@ const CareerCourseDetail = () => {
 
     setActiveTab("lessons");
     setDefaultTabResolved(true);
-
-    fetchPostContent(post);
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("tab", "lessons");
@@ -1014,28 +1090,6 @@ const CareerCourseDetail = () => {
     }
   };
 
-  // Get posts for a specific lesson, ordered by post_rank
-  const getPostsForLesson = (lessonId: string) => {
-    return posts
-      .filter(p => p.lesson_id === lessonId)
-      .sort((a, b) => {
-        const rankA = a.post_rank || 'zzz';
-        const rankB = b.post_rank || 'zzz';
-        return rankA.localeCompare(rankB);
-      });
-  };
-
-  // Get all posts in order for navigation (flattened from lessons)
-  const getAllOrderedPosts = () => {
-    const result: Post[] = [];
-    lessons.forEach(lesson => {
-      const lessonPosts = getPostsForLesson(lesson.id);
-      result.push(...lessonPosts);
-    });
-    return result;
-  };
-
-  const orderedPosts = getAllOrderedPosts();
   const currentOrderedIndex = selectedPost 
     ? orderedPosts.findIndex(p => p.id === selectedPost.id)
     : -1;
@@ -1174,15 +1228,15 @@ const CareerCourseDetail = () => {
     }
   };
 
-  // Get lesson completion info
-  const getLessonProgress = (lessonId: string) => {
+  // Get lesson completion info — stable reference so CourseSidebar doesn't re-render needlessly
+  const getLessonProgress = useCallback((lessonId: string) => {
     const lessonPosts = getPostsForLesson(lessonId);
     const completedPosts = lessonPosts.filter(p => isLessonCompleted(p.id)).length;
     const totalPosts = lessonPosts.length;
     const percentage = totalPosts > 0 ? Math.round((completedPosts / totalPosts) * 100) : 0;
     const isComplete = completedPosts === totalPosts && totalPosts > 0;
     return { completedPosts, totalPosts, percentage, isComplete };
-  };
+  }, [getPostsForLesson, isLessonCompleted]);
 
   // Get Action Reinforcement Card content based on current state
   const getActionCardContent = () => {
@@ -1230,13 +1284,69 @@ const CareerCourseDetail = () => {
     };
   };
 
-  if (loading || roleLoading || careerLoading) {
+  const isPageLoading = loading || authLoading || (!prefetchedCourse && (roleLoading || careerLoading));
+  const isFastPathLoading = !isPageLoading && (lessonsLoading && posts.length === 0);
+
+  if (isPageLoading || isFastPathLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading course...</p>
-        </div>
+      <div className="w-full flex flex-col lg:flex-row gap-0 lg:justify-center">
+        {/* Left Sidebar Skeleton */}
+        <aside className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+          <div className="px-4 py-3 border-b border-sidebar-border">
+            <Skeleton className="h-4 w-28 mb-1" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <div className="px-4 pt-3 pb-4 border-b border-sidebar-border space-y-2.5">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-4 w-8" />
+            </div>
+            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+          <div className="space-y-1 p-2 pt-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex items-center gap-2 px-2 py-2">
+                <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                <Skeleton className="h-3 flex-1" />
+              </div>
+            ))}
+          </div>
+        </aside>
+        {/* Main Content Skeleton */}
+        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pl-[10px] px-4 lg:px-0">
+          <div className="p-6 lg:p-8">
+            <div className="text-center mb-8">
+              <Skeleton className="h-10 w-3/4 mx-auto mb-4" />
+              <div className="flex justify-center gap-4 mb-6">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <Skeleton className="h-12 w-40 mx-auto rounded-md" />
+            </div>
+            <div className="flex gap-4 mb-6">
+              <Skeleton className="h-10 w-32 rounded-md" />
+              <Skeleton className="h-10 w-28 rounded-md" />
+              <Skeleton className="h-10 w-20 rounded-md" />
+            </div>
+            <Skeleton className="h-6 w-40 mb-4" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        </main>
+        {/* Right Sidebar Skeleton */}
+        <aside className="hidden lg:block w-[300px] shrink-0 border-l border-border px-6 py-6">
+          <Skeleton className="h-5 w-24 mb-4" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="flex justify-between">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        </aside>
       </div>
     );
   }
@@ -1248,7 +1358,7 @@ const CareerCourseDetail = () => {
         {isPreviewMode && !canPreview && (
           <p className="text-muted-foreground mb-4">You don't have permission to preview this content.</p>
         )}
-        <Link to="/arcade">
+        <Link to="/careers">
           <Button className="bg-primary hover:bg-primary/90">Back to Arcade</Button>
         </Link>
       </div>
@@ -1316,7 +1426,7 @@ const CareerCourseDetail = () => {
             setSelectedPost(null);
 
             if (!courseSlug) {
-              navigate("/arcade");
+              navigate("/careers");
               return;
             }
 
@@ -1335,7 +1445,7 @@ const CareerCourseDetail = () => {
         />
 
         {/* MAIN CONTENT - centered between sidebars (280px left + 300px right = 580px total, offset by 10px) */}
-        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pl-[10px] px-4 lg:px-0">
+        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pl-[10px] px-4 lg:px-0" data-lesson-content>
           <Card className="rounded-none border-0 shadow-none">
             <CardContent className="p-6 lg:p-8">
               {loadingPost ? (
@@ -1480,6 +1590,29 @@ const CareerCourseDetail = () => {
                     nextLesson={hasNext ? orderedPosts[currentOrderedIndex + 1] : null}
                     onPrevious={handlePrevious}
                     onNext={handleNext}
+                    onFinishCourse={course && careerSlugForPath ? () => {
+                      // Build lesson completion map for instant "Back to Course" render
+                      const lessonMap: Record<string, boolean> = {};
+                      lessonStatuses.forEach((status, id) => { lessonMap[id] = status.completed; });
+                      navigate(`/career-board/${careerSlugForPath}/course/${course.slug}/completed`, {
+                        state: {
+                          course: { id: course.id, name: course.name, slug: course.slug, description: course.description, learning_hours: course.learning_hours },
+                          lessonsCompleted: courseProgress.completedCount,
+                          completionDate: new Date().toISOString(),
+                          // Cache all data so "Back to Course" renders instantly
+                          prefetchedPosts: posts,
+                          prefetchedLessons: lessons,
+                          prefetchedStats: {
+                            isEnrolled: courseStats.isEnrolled,
+                            enrollmentCount: courseStats.enrollmentCount,
+                            averageRating: courseStats.averageRating,
+                            reviewCount: courseStats.reviewCount,
+                            userReview: courseStats.userReview,
+                          },
+                          prefetchedLessonMap: lessonMap,
+                        },
+                      });
+                    } : undefined}
                   />
 
                   {/* Dialogs */}
@@ -1550,7 +1683,7 @@ const CareerCourseDetail = () => {
                         {ctaProps.label}
                       </Button>
                     </div>
-                    
+
                     {/* Cheer Label */}
                     {courseStats.isEnrolled && (
                       <p className="text-sm text-primary/70 font-medium text-center mt-3">
@@ -1949,11 +2082,42 @@ const CareerCourseDetail = () => {
                               <div>
                                 <h3 className="text-xl font-semibold mb-1">🎉 Your Certificate is Ready!</h3>
                                 <p className="text-sm text-muted-foreground">
-                                  Congratulations on completing this course! Download your certificate or share your achievement.
+                                  Download your certificate or share your achievement.
                                 </p>
                               </div>
 
                               <div className="flex flex-col gap-3">
+                                {/* Download Certificate Action */}
+                                <Button 
+                                  onClick={() => {
+                                    const lessonMap: Record<string, boolean> = {};
+                                    lessonStatuses.forEach((status, id) => { lessonMap[id] = status.completed; });
+                                    navigate(`/career-board/${careerSlugForPath}/course/${course.slug}/completed`, {
+                                      state: {
+                                        course: { id: course.id, name: course.name, slug: course.slug, description: course.description, learning_hours: course.learning_hours },
+                                        lessonsCompleted: courseProgress.completedCount,
+                                        completionDate: new Date().toISOString(),
+                                        prefetchedPosts: posts,
+                                        prefetchedLessons: lessons,
+                                        prefetchedStats: {
+                                          isEnrolled: courseStats.isEnrolled,
+                                          enrollmentCount: courseStats.enrollmentCount,
+                                          averageRating: courseStats.averageRating,
+                                          reviewCount: courseStats.reviewCount,
+                                          userReview: courseStats.userReview,
+                                        },
+                                        prefetchedLessonMap: lessonMap,
+                                      },
+                                    });
+                                  }}
+                                  className="w-full sm:w-auto"
+                                  size="lg"
+                                  disabled={!courseProgress.isCompleted}
+                                >
+                                  <Award className="h-4 w-4 mr-2" />
+                                  View and Download Certificate
+                                </Button>
+
                                 {/* Share actions */}
                                 <Button 
                                   variant="outline" 

@@ -53,7 +53,7 @@ const Header = ({
   const [isModerator, setIsModerator] = useState(false);
   const [isSeniorModerator, setIsSeniorModerator] = useState(false);
   const [isSuperModerator, setIsSuperModerator] = useState(false);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ site_name: "BlogHub" });
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ site_name: "UnlockMemory" });
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const navigate = useNavigate();
@@ -134,7 +134,7 @@ const Header = ({
       
       if (data) {
         setSiteSettings({
-          site_name: data.site_name || "BlogHub",
+          site_name: data.site_name || "UnlockMemory",
           logo_url: data.logo_url || undefined
         });
       }
@@ -214,11 +214,11 @@ const Header = ({
                   className="h-9 sm:h-9 md:h-10 w-auto transition-all duration-200" 
                 />
               ) : (
-                <div className="relative flex h-9 w-9 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-xl bg-primary shadow-sm transition-all duration-200">
-                  <span className="text-lg sm:text-lg md:text-xl font-black text-primary-foreground">
-                    {siteSettings.site_name.charAt(0)}
-                  </span>
-                </div>
+                <img
+                  src="/unlockMemory_icon.svg"
+                  alt={siteSettings.site_name}
+                  className="h-9 sm:h-9 md:h-10 w-auto transition-all duration-200"
+                />
               )}
               <span className="hidden sm:inline text-base md:text-lg tracking-[-0.02em] text-foreground/90 transition-colors duration-200 group-hover:text-foreground">
                 <span className="font-medium">Unlock</span><span className="font-semibold">Memory</span>
@@ -362,21 +362,9 @@ const Header = ({
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link to="/arcade" className="cursor-pointer">
-                          <Gamepad2 className="mr-2 h-4 w-4" />
-                          Arcade
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
                         <Link to="/profile?tab=practice" className="cursor-pointer">
                           <FlaskConical className="mr-2 h-4 w-4" />
                           Practice Lab
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/library" className="cursor-pointer">
-                          <Library className="mr-2 h-4 w-4" />
-                          Library
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />

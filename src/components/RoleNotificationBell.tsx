@@ -8,6 +8,7 @@
  */
 import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import UMLoader from "@/components/UMLoader";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
@@ -174,7 +175,7 @@ const RoleNotificationBell = ({ className }: RoleNotificationBellProps) => {
         <ScrollArea className="h-[300px]">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <UMLoader size={44} label="Unlocking memory…" />
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center px-4">

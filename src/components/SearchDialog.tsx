@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, X, ArrowRight, BookOpen } from "lucide-react";
+import UMLoader from "@/components/UMLoader";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useCourseNavigation } from "@/hooks/useCourseNavigation";
@@ -119,8 +120,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
         {/* Results */}
         <div className="max-h-[60vh] overflow-y-auto">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">
-              <div className="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="p-8 flex items-center justify-center">
+              <UMLoader size={44} label="Unlocking memory…" />
             </div>
           ) : displayResults.length > 0 ? (
             <div className="p-4">

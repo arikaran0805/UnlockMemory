@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, CheckCircle2, Clock, MessageCircle, Star, Users, User, Minus, X } from "lucide-react";
+import { ArrowLeft, BookOpen, MessageCircle, Users, User, Minus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useConnectionPresence, formatLastSeen } from "@/hooks/useConnectionPresence";
@@ -33,15 +33,15 @@ export function ChatMentorProfile({ connection, onBack, onCollapse, onClose, onS
   useEffect(() => {
     if (!connectedUserId) return;
     const fetch = async () => {
-      const [lessonsRes, doubtsRes, coursesRes] = await Promise.all([
-        supabase.from("course_lessons").select("id", { count: "exact", head: true }).eq("created_by", connectedUserId),
-        supabase.from("doubt_threads").select("id", { count: "exact", head: true }).eq("assigned_user_id", connectedUserId).in("status", ["resolved", "closed"]),
-        supabase.from("courses").select("name").or(`assigned_to.eq.${connectedUserId},author_id.eq.${connectedUserId},default_senior_moderator.eq.${connectedUserId}`).limit(5),
-      ]);
+      const { data: assignmentsRes } = await supabase
+        .from("course_assignments")
+        .select("courses(name)")
+        .eq("user_id", connectedUserId)
+        .limit(5);
       setStats({
-        lessonsCount: lessonsRes.count || 0,
-        doubtsResolved: doubtsRes.count || 0,
-        courseNames: (coursesRes.data || []).map(c => c.name),
+        lessonsCount: 0,
+        doubtsResolved: 0,
+        courseNames: (assignmentsRes || []).map((a: any) => a.courses?.name).filter(Boolean),
       });
     };
     fetch();
@@ -91,20 +91,6 @@ export function ChatMentorProfile({ connection, onBack, onCollapse, onClose, onS
             <Badge variant="secondary" className="text-[10px]">
               {roleLabels[connection.role_label || ""] || connection.role_label || "Mentor"}
             </Badge>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-xl border border-border/30 bg-muted/15 p-3 text-center space-y-1">
-            <BookOpen className="h-4 w-4 text-primary mx-auto" />
-            <p className="text-lg font-bold text-foreground">{stats.lessonsCount}</p>
-            <p className="text-[10px] text-muted-foreground">Lessons</p>
-          </div>
-          <div className="rounded-xl border border-border/30 bg-muted/15 p-3 text-center space-y-1">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
-            <p className="text-lg font-bold text-foreground">{stats.doubtsResolved}</p>
-            <p className="text-[10px] text-muted-foreground">Doubts Solved</p>
           </div>
         </div>
 

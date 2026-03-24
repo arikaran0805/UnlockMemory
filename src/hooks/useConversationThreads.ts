@@ -71,60 +71,141 @@ async function syncThreadReplyToLearnerConversation(params: {
   senderRole: SenderRole;
   content: string;
   messageType: MessageType;
+  attachment?: { url: string; name: string; size?: number; msgType: "image" | "file" | "voice" };
+  markAsResolved?: boolean;
 }) {
-  const { thread, senderUserId, senderRole, content, messageType } = params;
+  const { thread, senderUserId, senderRole, content, messageType, attachment } = params;
 
-  if (senderRole === "learner" || !content.trim()) return;
+  if (senderRole === "learner") return;
+  if (!attachment && !content.trim()) return;
 
+  const candidateUserIds = [
+    senderUserId,
+    thread.assigned_moderator_user_id,
+    thread.assigned_senior_moderator_user_id,
+  ].filter(Boolean) as string[];
+
+  // Try to read team_connections — RLS may block this for moderators.
+  // We cache the connection id in localStorage so future syncs succeed even when RLS blocks the read.
   const { data: connection } = await supabase
     .from("team_connections")
     .select("id")
     .eq("learner_id", thread.learner_user_id)
-    .eq("connected_user_id", senderUserId)
+    .in("connected_user_id", candidateUserIds)
     .eq("status", "active")
     .maybeSingle();
 
-  if (!connection) return;
+  if (connection) {
+    // Cache so future calls survive RLS blocking this read
+    localStorage.setItem(`tc_conn_${thread.learner_user_id}`, connection.id);
+  }
 
-  let { data: conversation } = await supabase
-    .from("conversations")
-    .select("id, unread_count_learner")
-    .eq("learner_id", thread.learner_user_id)
-    .eq("connection_id", connection.id)
-    .maybeSingle();
+  // Resolve connection id: live result or cached fallback
+  const connectionId = connection?.id ?? localStorage.getItem(`tc_conn_${thread.learner_user_id}`);
+  if (!connectionId) return;
+
+  // Fast path: use cached conversation_id so we always land on the same conversation
+  // the learner is subscribed to, even when multiple non-resolved conversations exist.
+  const cachedConvId = localStorage.getItem(`thread_conversation_${thread.id}`);
+
+  let conversation: { id: string; unread_count_learner: number | null; conversation_type?: string } | null = null;
+
+  if (cachedConvId) {
+    // Verify the cached conversation still exists and is accessible
+    const { data: cachedConv } = await supabase
+      .from("conversations")
+      .select("id, unread_count_learner, conversation_type")
+      .eq("id", cachedConvId)
+      .maybeSingle();
+    if (cachedConv) {
+      conversation = cachedConv;
+      // If it was marked resolved, reset to direct so the learner can receive messages
+      if (cachedConv.conversation_type === "resolved") {
+        await supabase.from("conversations").update({ conversation_type: "direct" }).eq("id", cachedConvId);
+      }
+    }
+  }
 
   if (!conversation) {
-    const { data: createdConversation } = await supabase
+    // No cache hit — find the most recently updated non-resolved conversation.
+    // Use order+limit to avoid maybeSingle() returning null on multiple rows.
+    const { data: activeConv } = await supabase
       .from("conversations")
-      .insert({
-        learner_id: thread.learner_user_id,
-        connection_id: connection.id,
-        conversation_type: "direct",
-      })
       .select("id, unread_count_learner")
-      .single();
+      .eq("learner_id", thread.learner_user_id)
+      .eq("connection_id", connectionId)
+      .neq("conversation_type", "resolved")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    conversation = createdConversation;
+    if (activeConv) {
+      conversation = activeConv;
+    } else {
+      // No active conversation — find the most recently resolved one and reset it to "direct".
+      // This uses UPDATE instead of INSERT, which RLS allows for moderators.
+      const { data: resolvedConvo } = await supabase
+        .from("conversations")
+        .select("id, unread_count_learner")
+        .eq("learner_id", thread.learner_user_id)
+        .eq("connection_id", connectionId)
+        .eq("conversation_type", "resolved")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (resolvedConvo) {
+        await supabase
+          .from("conversations")
+          .update({ conversation_type: "direct" })
+          .eq("id", resolvedConvo.id);
+        conversation = { id: resolvedConvo.id, unread_count_learner: 0 };
+      } else {
+        // Last resort: try INSERT (may fail if RLS only allows learners to create)
+        const { data: createdConversation } = await supabase
+          .from("conversations")
+          .insert({
+            learner_id: thread.learner_user_id,
+            connection_id: connectionId,
+            conversation_type: "direct",
+          })
+          .select("id, unread_count_learner")
+          .single();
+        conversation = createdConversation;
+      }
+    }
   }
 
   if (!conversation) return;
 
+  // Cache conversation_id so fetchThread can query conversation_messages directly on refresh
+  // (avoids a team_connections → conversations join that RLS may block for moderators)
+  localStorage.setItem(`thread_conversation_${thread.id}`, conversation.id);
+  // Reverse cache: lets learner side look up thread id from conversation id (for reopen)
+  localStorage.setItem(`conv_thread_${conversation.id}`, thread.id);
+
   const now = new Date().toISOString();
-  const normalizedType = messageType === "system_event" ? "system" : "text";
+  const normalizedType = attachment?.msgType || (messageType === "system_event" ? "system" : "text");
+  const preview = attachment
+    ? (attachment.msgType === "image" ? "📷 Photo" : `📎 ${attachment.name}`)
+    : content.slice(0, 100);
 
   await supabase.from("conversation_messages").insert({
     conversation_id: conversation.id,
     sender_type: senderRole,
     sender_id: senderUserId,
-    message_text: content,
+    message_text: attachment ? null : content,
     message_type: normalizedType,
+    attachment_url: attachment?.url || null,
+    attachment_name: attachment?.name || null,
+    attachment_size: attachment?.size || null,
     delivery_status: "sent",
   });
 
   await supabase
     .from("conversations")
     .update({
-      last_message_preview: content.slice(0, 100),
+      last_message_preview: preview,
       last_message_at: now,
       unread_count_learner: (conversation.unread_count_learner || 0) + 1,
     })
@@ -133,7 +214,30 @@ async function syncThreadReplyToLearnerConversation(params: {
   await supabase
     .from("team_connections")
     .update({ last_message_at: now })
-    .eq("id", connection.id);
+    .eq("id", connectionId);
+
+  if (params.markAsResolved) {
+    await supabase
+      .from("conversations")
+      .update({ conversation_type: "resolved" })
+      .eq("id", conversation.id);
+  }
+
+  // Broadcast new-message notification directly to learner via ephemeral channel
+  // so their unread badge updates live even without postgres_changes on conversations
+  const notifCh = supabase.channel(`notif-${thread.learner_user_id}`);
+  notifCh.subscribe((status) => {
+    if (status === "SUBSCRIBED") {
+      notifCh.send({
+        type: "broadcast",
+        event: "new_unread",
+        payload: {
+          conversation_id: conversation.id,
+          unread_count: (conversation.unread_count_learner || 0) + 1,
+        },
+      }).then(() => notifCh.unsubscribe());
+    }
+  });
 }
 
 export function useConversationThreads(
@@ -201,9 +305,20 @@ export function useConversationThreads(
       const threadIds = rawThreads.map((t: any) => t.id);
       const { data: latestMessages } = await supabase
         .from("thread_messages")
-        .select("thread_id, message_content, is_read, sender_user_id")
+        .select("thread_id, message_content, is_read, sender_user_id, created_at")
         .in("thread_id", threadIds)
         .order("created_at", { ascending: false });
+
+      // Auto-stamp localStorage for any thread not previously viewed in this browser.
+      // This ensures all currently-existing messages are treated as "read from now",
+      // so stale is_read=false rows in DB don't ghost the badge after a page refresh.
+      const now = new Date().toISOString();
+      threadIds.forEach((tid: string) => {
+        const key = `thread_viewed_${userId}_${tid}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, now);
+        }
+      });
 
       // Compute unread counts
       const unreadMap: Record<string, number> = {};
@@ -212,8 +327,16 @@ export function useConversationThreads(
         if (!latestMap[msg.thread_id]) {
           latestMap[msg.thread_id] = msg.message_content;
         }
-        if (!msg.is_read && msg.sender_user_id !== userId) {
-          unreadMap[msg.thread_id] = (unreadMap[msg.thread_id] || 0) + 1;
+        if (msg.sender_user_id !== userId) {
+          // Use localStorage cursor so badge clears instantly when thread is opened,
+          // without needing to update thread_messages.is_read (which RLS may block)
+          const lastViewed = localStorage.getItem(`thread_viewed_${userId}_${msg.thread_id}`);
+          const isUnread = lastViewed
+            ? new Date(msg.created_at) > new Date(lastViewed)
+            : !msg.is_read;
+          if (isUnread) {
+            unreadMap[msg.thread_id] = (unreadMap[msg.thread_id] || 0) + 1;
+          }
         }
       });
 
@@ -244,7 +367,49 @@ export function useConversationThreads(
     fetchThreads();
   }, [fetchThreads]);
 
-  return { threads, isLoading, refetch: fetchThreads };
+  // Realtime: increment unread count when a new learner message arrives in any assigned thread
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`thread-list-inserts-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "thread_messages" },
+        (payload) => {
+          const msg = payload.new as any;
+          if (msg.sender_user_id === userId) return; // own message
+          setThreads((prev) =>
+            prev.map((t) => {
+              if (t.id !== msg.thread_id) return t;
+              const lastViewed = localStorage.getItem(`thread_viewed_${userId}_${t.id}`);
+              const isUnread = !lastViewed || new Date(msg.created_at) > new Date(lastViewed);
+              if (!isUnread) return t;
+              return { ...t, unread_count: (t.unread_count || 0) + 1, latest_message: msg.message_content };
+            })
+          );
+        }
+      )
+      .subscribe();
+    return () => { channel.unsubscribe(); };
+  }, [userId]);
+
+  const markThreadRead = useCallback((threadId: string) => {
+    if (!userId) return;
+    // Stamp cursor so unread calc respects it immediately on next fetchThreads
+    localStorage.setItem(`thread_viewed_${userId}_${threadId}`, new Date().toISOString());
+    // Zero the badge in-memory instantly — no refetch needed
+    setThreads(prev => prev.map(t => t.id === threadId ? { ...t, unread_count: 0 } : t));
+    // Persist to DB so badge stays gone after a page refresh (fire-and-forget)
+    supabase
+      .from("thread_messages")
+      .update({ is_read: true })
+      .eq("thread_id", threadId)
+      .neq("sender_user_id", userId)
+      .eq("is_read", false)
+      .then(() => {});
+  }, [userId]);
+
+  return { threads, isLoading, refetch: fetchThreads, markThreadRead };
 }
 
 export function useThreadDetail(threadId: string | undefined, userId: string | undefined) {
@@ -254,10 +419,13 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [learnerSeenAt, setLearnerSeenAt] = useState<string | null>(null);
 
   const fetchThread = useCallback(async () => {
     if (!threadId || !userId) return;
     setIsLoading(true);
+    // Stamp "viewed now" so thread list clears unread badge without needing DB is_read update
+    localStorage.setItem(`thread_viewed_${userId}_${threadId}`, new Date().toISOString());
 
     try {
       // Fetch thread
@@ -308,6 +476,44 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
         teamName = team?.name;
       }
 
+      // 1. Fast path: read from localStorage (written when live broadcast fires)
+      let initialLearnerSeenAt: string | null =
+        localStorage.getItem(`thread_learner_seen_${threadId}`) || null;
+
+      if (!initialLearnerSeenAt) {
+        // 2. Cached conversation_id (stored when mentor first syncs a reply to this thread)
+        const cachedConvoId = localStorage.getItem(`thread_conversation_${threadId}`);
+        const convoIdsToCheck: string[] = cachedConvoId ? [cachedConvoId] : [];
+
+        // 3. If no cached convo id, look up all conversations for this learner.
+        //    Moderators can read conversations by learner_id (same query used in markLearnerMessagesSeen).
+        if (convoIdsToCheck.length === 0) {
+          const { data: learnerConvos } = await supabase
+            .from("conversations")
+            .select("id")
+            .eq("learner_id", threadData.learner_user_id);
+          (learnerConvos || []).forEach((c: any) => convoIdsToCheck.push(c.id));
+        }
+
+        if (convoIdsToCheck.length > 0) {
+          const { data: latestSeen } = await supabase
+            .from("conversation_messages")
+            .select("seen_at")
+            .in("conversation_id", convoIdsToCheck)
+            .eq("sender_id", userId)
+            .not("seen_at", "is", null)
+            .order("seen_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (latestSeen?.seen_at) {
+            initialLearnerSeenAt = latestSeen.seen_at;
+            // Back-fill localStorage so future refreshes skip the DB query
+            localStorage.setItem(`thread_learner_seen_${threadId}`, latestSeen.seen_at);
+          }
+        }
+      }
+
+      // Set thread and learnerSeenAt in the same synchronous block → React batches into one render
       setThread({
         ...threadData,
         learner_name: profileMap[threadData.learner_user_id]?.full_name || profileMap[threadData.learner_user_id]?.email,
@@ -317,6 +523,7 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
           ? profileMap[threadData.assigned_moderator_user_id]?.full_name
           : undefined,
       } as ConversationThread);
+      if (initialLearnerSeenAt) setLearnerSeenAt(initialLearnerSeenAt);
 
       // Fetch messages
       const { data: msgs } = await supabase
@@ -384,50 +591,62 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
     fetchThread();
   }, [fetchThread]);
 
-  // Mark learner's conversation_messages as "seen" when moderator opens the thread
+  // Mark learner's conversation_messages as "seen" and broadcast directly to learner
+  const markLearnerMessagesSeen = useCallback(async (learnerUserId: string) => {
+    const { data: conversations } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("learner_id", learnerUserId);
+
+    if (!conversations || conversations.length === 0) return;
+
+    const conversationIds = conversations.map((c) => c.id);
+    const now = new Date().toISOString();
+
+    await supabase
+      .from("conversation_messages")
+      .update({ delivery_status: "seen", seen_at: now, delivered_at: now, is_read: true })
+      .in("conversation_id", conversationIds)
+      .eq("sender_type", "learner")
+      .neq("delivery_status", "seen");
+
+    await supabase
+      .from("conversations")
+      .update({ unread_count_team: 0 })
+      .in("id", conversationIds);
+
+    // Broadcast seen-ack directly to learner — bypasses need for postgres_changes on conversation_messages
+    const ackChannel = supabase.channel(`seen-${learnerUserId}`);
+    ackChannel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        ackChannel.send({
+          type: "broadcast",
+          event: "messages_seen",
+          payload: { seen_at: now, conversation_ids: conversationIds },
+        }).then(() => ackChannel.unsubscribe());
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (!thread || !userId) return;
+    markLearnerMessagesSeen(thread.learner_user_id);
+  }, [thread?.id, userId, markLearnerMessagesSeen]);
 
-    const markLearnerMessagesSeen = async () => {
-      // Find the connection between this moderator and the learner
-      const { data: connection } = await supabase
-        .from("team_connections")
-        .select("id")
-        .eq("learner_id", thread.learner_user_id)
-        .eq("connected_user_id", userId)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (!connection) return;
-
-      // Find the conversation
-      const { data: conversation } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("learner_id", thread.learner_user_id)
-        .eq("connection_id", connection.id)
-        .maybeSingle();
-
-      if (!conversation) return;
-
-      // Mark all learner messages as seen
-      const now = new Date().toISOString();
-      await supabase
-        .from("conversation_messages")
-        .update({ delivery_status: "seen", seen_at: now, delivered_at: now, is_read: true })
-        .eq("conversation_id", conversation.id)
-        .eq("sender_type", "learner")
-        .neq("delivery_status", "seen");
-
-      // Reset unread count for team
-      await supabase
-        .from("conversations")
-        .update({ unread_count_team: 0 })
-        .eq("id", conversation.id);
-    };
-
-    markLearnerMessagesSeen();
-  }, [thread, userId]);
+  // Subscribe to learner-seen ack broadcast — learner emits this when they read moderator messages
+  useEffect(() => {
+    if (!threadId) return;
+    const ackChannel = supabase
+      .channel(`seen-learner-ack-${threadId}`)
+      .on("broadcast", { event: "messages_read" }, (payload) => {
+        const { seen_at } = payload.payload as { seen_at: string };
+        // Persist so it survives a refresh — fetchThread reads this back on mount
+        localStorage.setItem(`thread_learner_seen_${threadId}`, seen_at);
+        setLearnerSeenAt(seen_at);
+      })
+      .subscribe();
+    return () => { ackChannel.unsubscribe(); };
+  }, [threadId]);
 
   // Realtime subscription for new messages
   useEffect(() => {
@@ -458,30 +677,52 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
                 sender_name: profile?.full_name || profile?.email || "Unknown",
               }];
             });
+            // Mark new learner messages as seen immediately since moderator is viewing
+            if (newMsg.sender_role === "learner") {
+              markLearnerMessagesSeen(newMsg.sender_user_id);
+            }
           }
         }
       )
       .subscribe();
 
     return () => { channel.unsubscribe(); };
-  }, [threadId, userId]);
+  }, [threadId, userId, markLearnerMessagesSeen]);
+
+  // Mark all unread thread messages from others as read when viewing thread
+  useEffect(() => {
+    if (!thread?.id || !userId) return;
+    supabase
+      .from("thread_messages")
+      .update({ is_read: true })
+      .eq("thread_id", thread.id)
+      .neq("sender_user_id", userId)
+      .eq("is_read", false)
+      .then(() => {});
+  }, [thread?.id, userId]);
 
   // Send message
   const sendMessage = useCallback(async (
     content: string,
     senderRole: SenderRole,
     messageType: MessageType = "normal",
-    isVisibleToLearner: boolean = true
+    isVisibleToLearner: boolean = true,
+    attachment?: { url: string; name: string; size?: number; msgType: "image" | "file" | "voice" }
   ) => {
-    if (!threadId || !userId || !content.trim()) return;
+    if (!threadId || !userId) return;
+    if (!content.trim() && !attachment) return;
     setIsSending(true);
+
+    const displayContent = attachment
+      ? (attachment.msgType === "image" ? "📷 Photo" : `📎 ${attachment.name}`)
+      : content.trim();
 
     try {
       const newMsg = {
         thread_id: threadId,
         sender_user_id: userId,
         sender_role: senderRole,
-        message_content: content.trim(),
+        message_content: displayContent,
         message_type: messageType,
         is_visible_to_learner: isVisibleToLearner,
       };
@@ -512,6 +753,7 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
           senderRole,
           content: content.trim(),
           messageType,
+          attachment,
         });
       }
 
@@ -646,6 +888,99 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
       changed_by_role: resolverRole,
     });
 
+    // Sync the divider message to learner's conversation so they see it too.
+    // No markAsResolved — conversation stays active so both sides can keep chatting.
+    await syncThreadReplyToLearnerConversation({
+      thread,
+      senderUserId: userId,
+      senderRole: resolverRole,
+      content: "✓ Doubt Cleared",
+      messageType: "system_event",
+    });
+
+    await fetchThread();
+  }, [threadId, userId, thread, fetchThread]);
+
+  // Create a fresh new thread for the same learner (used when mentor sends after resolve)
+  const startNewThread = useCallback(async (senderRole: SenderRole, firstMessage: string): Promise<string | null> => {
+    if (!userId || !thread) return null;
+
+    const { data: newThread, error: threadError } = await supabase
+      .from("conversation_threads")
+      .insert({
+        learner_user_id: thread.learner_user_id,
+        assigned_moderator_user_id: senderRole === "moderator" ? userId : null,
+        assigned_senior_moderator_user_id: senderRole === "senior_moderator" ? userId : null,
+        current_owner_role: senderRole === "senior_moderator" ? "senior_moderator" : "moderator",
+        current_status: "replied",
+        routing_type: thread.routing_type,
+        team_id: thread.team_id,
+      })
+      .select("id, learner_user_id, assigned_moderator_user_id, assigned_senior_moderator_user_id, routing_type, team_id, current_status, current_owner_role, post_id, created_at, updated_at")
+      .single();
+
+    if (threadError) { console.error("startNewThread insert error:", threadError); return null; }
+    if (!newThread) return null;
+
+    await supabase.from("thread_messages").insert({
+      thread_id: (newThread as any).id,
+      sender_user_id: userId,
+      sender_role: senderRole,
+      message_content: firstMessage,
+      message_type: "normal",
+      is_visible_to_learner: true,
+    });
+
+    // Sync to learner's conversation_messages
+    await syncThreadReplyToLearnerConversation({
+      thread: { ...thread, id: (newThread as any).id },
+      senderUserId: userId,
+      senderRole,
+      content: firstMessage,
+      messageType: "normal",
+    });
+
+    return (newThread as any).id;
+  }, [userId, thread]);
+
+  // Reopen a resolved thread
+  const markUnresolved = useCallback(async (reopenerRole: SenderRole) => {
+    if (!threadId || !userId || !thread) return;
+
+    const roleLabel = reopenerRole === "learner" ? "Learner" : "Mentor";
+    const reopenContent = `Restarted by ${roleLabel}`;
+
+    await supabase
+      .from("conversation_threads")
+      .update({ current_status: "open", updated_at: new Date().toISOString() })
+      .eq("id", threadId);
+
+    await supabase.from("thread_messages").insert({
+      thread_id: threadId,
+      sender_user_id: userId,
+      sender_role: reopenerRole,
+      message_content: reopenContent,
+      message_type: "system_event",
+      is_visible_to_learner: true,
+    });
+
+    await supabase.from("conversation_status_logs").insert({
+      thread_id: threadId,
+      old_status: "resolved",
+      new_status: "open",
+      changed_by_user_id: userId,
+      changed_by_role: reopenerRole,
+    });
+
+    // Sync the reopen intimation to learner's conversation_messages
+    await syncThreadReplyToLearnerConversation({
+      thread,
+      senderUserId: userId,
+      senderRole: reopenerRole,
+      content: reopenContent,
+      messageType: "system_event",
+    });
+
     await fetchThread();
   }, [threadId, userId, thread, fetchThread]);
 
@@ -656,10 +991,13 @@ export function useThreadDetail(threadId: string | undefined, userId: string | u
     teamMembers,
     isLoading,
     isSending,
+    learnerSeenAt,
     sendMessage,
     assignToModerator,
     escalateToSenior,
     markResolved,
+    markUnresolved,
+    startNewThread,
     refetch: fetchThread,
   };
 }

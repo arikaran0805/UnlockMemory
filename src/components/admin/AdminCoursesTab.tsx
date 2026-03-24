@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import UMLoader from "@/components/UMLoader";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -263,7 +264,7 @@ const AdminCoursesTab = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <UMLoader size={44} label="Unlocking memory…" />
       </div>
     );
   }

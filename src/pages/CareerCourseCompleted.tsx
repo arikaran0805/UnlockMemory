@@ -7,8 +7,8 @@
  * Renders within the career shell layout.
  */
 
-import { useEffect, useState, useCallback } from "react";
-import { useParams, Link, useNavigate, useOutletContext } from "react-router-dom";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useNavigate, useOutletContext, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCareerBoard } from "@/contexts/CareerBoardContext";
@@ -59,12 +59,25 @@ const CareerCourseCompleted = () => {
   const careerIdParam = decodeURIComponent((params.careerId ?? "").split("?")[0]).trim();
   const courseSlug = decodeURIComponent((params.courseSlug ?? "").split("?")[0]).trim();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  
+
+  // Data passed via navigation state from "Finish Course" click — skip DB fetch if present
+  const navState = location.state as {
+    course?: CourseData;
+    lessonsCompleted?: number;
+    completionDate?: string;
+    // Cached CareerCourseDetail data for instant "Back to Course" render
+    prefetchedPosts?: any[];
+    prefetchedLessons?: any[];
+    prefetchedStats?: any;
+    prefetchedLessonMap?: Record<string, boolean>;
+  } | null;
+
   // Career Board context
   const { career, careerCourses, isLoading: careerLoading } = useCareerBoard();
-  
+
   // Outlet context for layout communication
   const outletContext = useOutletContext<OutletContext>();
   const setCurrentCourseSlug = outletContext?.setCurrentCourseSlug;
@@ -72,11 +85,22 @@ const CareerCourseCompleted = () => {
   // Use route param for stable URLs
   const careerSlugForPath = careerIdParam || career?.slug;
 
-  const [course, setCourse] = useState<CourseData | null>(null);
-  const [completionData, setCompletionData] = useState<CompletionData | null>(null);
+  const [course, setCourse] = useState<CourseData | null>(navState?.course ?? null);
+  const [completionData, setCompletionData] = useState<CompletionData | null>(
+    navState?.course ? {
+      lessonsCompleted: navState.lessonsCompleted ?? 0,
+      totalHours: navState.course.learning_hours || 1,
+      completionDate: navState.completionDate ? new Date(navState.completionDate) : new Date(),
+      skills: [],
+    } : null
+  );
   const [dataLoading, setDataLoading] = useState(true);
   const [learnerName, setLearnerName] = useState("");
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  // Ref to avoid re-triggering fetchData when careerCourses loads after initial mount
+  const careerCoursesRef = useRef(careerCourses);
+  useEffect(() => { careerCoursesRef.current = careerCourses; }, [careerCourses]);
   
   // Course stats for reviews
   const {
@@ -88,17 +112,20 @@ const CareerCourseCompleted = () => {
   
   // Next course in career path
   const [nextCourse, setNextCourse] = useState<CourseData | null>(null);
+  // Prefetched lessons for next course — loaded in background for instant "Start Course"
+  const [nextCoursePosts, setNextCoursePosts] = useState<any[] | null>(null);
+  const [nextCourseLessons, setNextCourseLessons] = useState<any[] | null>(null);
 
-  // Safety timeout to prevent infinite skeleton
+  // Safety timeout to prevent infinite skeleton — only needed for direct URL access (no navState)
   useEffect(() => {
-    if (hasLoadedOnce) return;
+    if (navState?.course || hasLoadedOnce) return;
     const timeout = setTimeout(() => {
       if (!hasLoadedOnce) {
         console.warn("CareerCourseCompleted: Safety timeout reached");
         setDataLoading(false);
         setHasLoadedOnce(true);
       }
-    }, 8000);
+    }, 5000);
     return () => clearTimeout(timeout);
   }, [hasLoadedOnce]);
 
@@ -110,14 +137,14 @@ const CareerCourseCompleted = () => {
     }
   }, [courseSlug, setCurrentCourseSlug]);
 
-  // Fetch all data
+  // Fetch all data — if navState has course data, skip heavy fetch and only get skills + next course
   useEffect(() => {
     if (authLoading) return;
-    
+
     if (!isAuthenticated) {
-      navigate("/auth", { 
+      navigate("/auth", {
         state: { from: `/career-board/${careerIdParam}/course/${courseSlug}/completed` },
-        replace: true 
+        replace: true,
       });
       return;
     }
@@ -126,129 +153,117 @@ const CareerCourseCompleted = () => {
 
     const fetchData = async () => {
       try {
-        // Fetch course by slug
-        const { data: courseData, error: courseError } = await supabase
-          .from("courses")
-          .select("id, name, slug, description, learning_hours")
-          .eq("slug", courseSlug)
-          .maybeSingle();
+        // Fast path: course data already passed via navigation state
+        let courseData: CourseData | null = navState?.course ?? null;
 
-        if (courseError || !courseData) {
-          navigate(`/career-board/${careerSlugForPath}/course/${courseSlug}`, { replace: true });
-          return;
+        if (!courseData) {
+          const { data, error } = await supabase
+            .from("courses")
+            .select("id, name, slug, description, learning_hours")
+            .eq("slug", courseSlug)
+            .maybeSingle();
+          if (error || !data) {
+            navigate(`/career-board/${careerSlugForPath}/course/${courseSlug}`, { replace: true });
+            return;
+          }
+          courseData = data;
+          setCourse(courseData);
         }
 
-        setCourse(courseData);
+        if (navState?.course) {
+          // Fast path: unblock render immediately, then fetch skills + next course in background
+          setDataLoading(false);
+          setHasLoadedOnce(true);
 
-        // Fetch learner profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .maybeSingle();
+          const { data: careerCoursesData } = await supabase
+            .from("career_courses").select("skill_contributions")
+            .eq("course_id", courseData.id).is("deleted_at", null);
 
-        setLearnerName(profile?.full_name || user.email?.split('@')[0] || "Learner");
-
-        // Check completion
-        const { count: totalLessons } = await supabase
-          .from("course_lessons")
-          .select("*", { count: "exact", head: true })
-          .eq("course_id", courseData.id)
-          .eq("is_published", true)
-          .is("deleted_at", null);
-
-        const { count: completedLessons } = await supabase
-          .from("lesson_progress")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("course_id", courseData.id)
-          .eq("completed", true);
-
-        const total = totalLessons || 0;
-        const completed = completedLessons || 0;
-
-        // Redirect if not completed
-        if (total > 0 && completed < total) {
-          toast({
-            title: "Course not completed",
-            description: "Complete all lessons to view this page.",
-            variant: "destructive",
-          });
-          navigate(`/career-board/${careerSlugForPath}/course/${courseSlug}`, { replace: true });
-          return;
-        }
-
-        // Get time spent
-        const { data: timeData } = await supabase
-          .from("lesson_time_tracking")
-          .select("duration_seconds")
-          .eq("user_id", user.id)
-          .eq("course_id", courseData.id);
-
-        const totalSeconds = timeData?.reduce((sum, t) => sum + t.duration_seconds, 0) || 0;
-        const totalHours = totalSeconds / 3600;
-
-        // Get completion date
-        const { data: progressData } = await supabase
-          .from("lesson_progress")
-          .select("viewed_at")
-          .eq("user_id", user.id)
-          .eq("course_id", courseData.id)
-          .eq("completed", true)
-          .order("viewed_at", { ascending: false })
-          .limit(1);
-
-        const completionDate = progressData?.[0]?.viewed_at 
-          ? new Date(progressData[0].viewed_at) 
-          : new Date();
-
-        // Fetch skills from career_courses
-        const { data: careerCoursesData } = await supabase
-          .from("career_courses")
-          .select("skill_contributions")
-          .eq("course_id", courseData.id)
-          .is("deleted_at", null);
-
-        let skills: string[] = [];
-        if (careerCoursesData?.length) {
-          careerCoursesData.forEach(cc => {
+          let skills: string[] = [];
+          careerCoursesData?.forEach(cc => {
             if (cc.skill_contributions && Array.isArray(cc.skill_contributions)) {
-              const contributions = cc.skill_contributions as Array<{ skill_name: string; contribution: number }>;
-              contributions.forEach(sc => {
-                if (sc.skill_name && sc.contribution > 0) {
-                  skills.push(sc.skill_name);
-                }
+              (cc.skill_contributions as Array<{ skill_name: string; contribution: number }>).forEach(sc => {
+                if (sc.skill_name && sc.contribution > 0) skills.push(sc.skill_name);
               });
             }
           });
           skills = [...new Set(skills)];
+          if (skills.length === 0) skills = ["Problem Solving", "Critical Thinking", "Subject Mastery"];
+
+          // Update completionData with skills (rest already set from navState)
+          setCompletionData(prev => prev ? { ...prev, skills: skills.slice(0, 6) } : prev);
+        } else {
+          // Full fetch path: no nav state available (direct URL access)
+          const [
+            profileResult,
+            completedLessonsResult,
+            timeResult,
+            progressResult,
+            careerCoursesResult,
+          ] = await Promise.all([
+            supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+            supabase.from("lesson_progress").select("*", { count: "exact", head: true })
+              .eq("user_id", user.id).eq("course_id", courseData.id).eq("completed", true),
+            supabase.from("lesson_time_tracking").select("duration_seconds")
+              .eq("user_id", user.id).eq("course_id", courseData.id),
+            supabase.from("lesson_progress").select("viewed_at")
+              .eq("user_id", user.id).eq("course_id", courseData.id).eq("completed", true)
+              .order("viewed_at", { ascending: false }).limit(1),
+            supabase.from("career_courses").select("skill_contributions")
+              .eq("course_id", courseData.id).is("deleted_at", null),
+          ]);
+
+          setLearnerName(profileResult.data?.full_name || user.email?.split('@')[0] || "Learner");
+
+          const completed = completedLessonsResult.count || 0;
+          const totalSeconds = timeResult.data?.reduce((sum, t) => sum + t.duration_seconds, 0) || 0;
+          const totalHours = totalSeconds / 3600;
+          const completionDate = progressResult.data?.[0]?.viewed_at
+            ? new Date(progressResult.data[0].viewed_at) : new Date();
+
+          let skills: string[] = [];
+          careerCoursesResult.data?.forEach(cc => {
+            if (cc.skill_contributions && Array.isArray(cc.skill_contributions)) {
+              (cc.skill_contributions as Array<{ skill_name: string; contribution: number }>).forEach(sc => {
+                if (sc.skill_name && sc.contribution > 0) skills.push(sc.skill_name);
+              });
+            }
+          });
+          skills = [...new Set(skills)];
+          if (skills.length === 0) skills = ["Problem Solving", "Critical Thinking", "Subject Mastery"];
+
+          setCompletionData({
+            lessonsCompleted: completed,
+            totalHours: totalHours > 0 ? totalHours : (courseData.learning_hours || 1),
+            completionDate,
+            skills: skills.slice(0, 6),
+          });
         }
 
-        if (skills.length === 0) {
-          skills = ["Problem Solving", "Critical Thinking", "Subject Mastery"];
-        }
-
-        setCompletionData({
-          lessonsCompleted: completed,
-          totalHours: totalHours > 0 ? totalHours : (courseData.learning_hours || 1),
-          completionDate,
-          skills: skills.slice(0, 6),
-        });
-
-        // Find next course in career path
-        if (careerCourses.length > 0) {
-          const currentIndex = careerCourses.findIndex(c => c.slug === courseSlug);
-          const nextInCareer = careerCourses.find((_, index) => index > currentIndex);
-          
+        // Find next course in career path + prefetch its lessons in background
+        if (careerCoursesRef.current.length > 0) {
+          const currentIndex = careerCoursesRef.current.findIndex(c => c.slug === courseSlug);
+          const nextInCareer = careerCoursesRef.current.find((_, index) => index > currentIndex);
           if (nextInCareer) {
             const { data: nextCourseData } = await supabase
-              .from("courses")
-              .select("id, name, slug, description, learning_hours")
-              .eq("id", nextInCareer.id)
-              .maybeSingle();
-            
+              .from("courses").select("id, name, slug, description, learning_hours")
+              .eq("id", nextInCareer.id).maybeSingle();
             if (nextCourseData) {
               setNextCourse(nextCourseData);
+              // Prefetch next course lessons in background for instant "Start Course"
+              Promise.all([
+                supabase.from("course_lessons")
+                  .select("id, title, description, lesson_rank, is_published, course_id")
+                  .eq("course_id", nextCourseData.id).is("deleted_at", null)
+                  .order("lesson_rank", { ascending: true }),
+                supabase.from("posts")
+                  .select("id, title, content, excerpt, slug, featured_image, published_at, updated_at, lesson_id, post_rank, post_type, status, profiles:author_id (full_name)")
+                  .eq("category_id", nextCourseData.id).eq("status", "published")
+                  .order("post_rank", { ascending: true }),
+              ]).then(([lessonsRes, postsRes]) => {
+                if (lessonsRes.data) setNextCourseLessons(lessonsRes.data);
+                if (postsRes.data) setNextCoursePosts(postsRes.data);
+              });
             }
           }
         }
@@ -262,7 +277,7 @@ const CareerCourseCompleted = () => {
     };
 
     fetchData();
-  }, [authLoading, isAuthenticated, user, courseSlug, careerSlugForPath, careerCourses, navigate, toast, careerIdParam]);
+  }, [authLoading, isAuthenticated, user, courseSlug, careerSlugForPath, navigate, toast, careerIdParam]);
 
   const formatHours = (hours: number) => {
     if (hours < 1) {
@@ -291,8 +306,7 @@ const CareerCourseCompleted = () => {
   };
 
   // Loading state - once loaded, don't show skeleton again (tab refocus stability)
-  const isCurrentlyLoading = authLoading || dataLoading;
-  const showLoading = hasLoadedOnce ? false : isCurrentlyLoading;
+  const showLoading = hasLoadedOnce ? false : (authLoading || dataLoading);
 
   if (showLoading) {
     return (
@@ -315,14 +329,22 @@ const CareerCourseCompleted = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
-      {/* Back link */}
-      <Link
-        to={`/career-board/${careerSlugForPath}/course/${course.slug}`}
+      {/* Back link — relay all cached data so CareerCourseDetail renders instantly */}
+      <button
+        onClick={() => navigate(`/career-board/${careerSlugForPath}/course/${course.slug}`, {
+          state: {
+            prefetchedCourse: course,
+            prefetchedPosts: navState?.prefetchedPosts ?? null,
+            prefetchedLessons: navState?.prefetchedLessons ?? null,
+            prefetchedStats: navState?.prefetchedStats ?? null,
+            prefetchedLessonMap: navState?.prefetchedLessonMap ?? null,
+          },
+        })}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Course
-      </Link>
+      </button>
 
       {/* Header Celebration */}
       <div className="text-center mb-10">
@@ -464,11 +486,16 @@ const CareerCourseCompleted = () => {
                 </p>
               )}
             </div>
-            <Button asChild>
-              <Link to={`/career-board/${careerSlugForPath}/course/${nextCourse.slug}`}>
-                Start Course
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Link>
+            <Button onClick={() => navigate(`/career-board/${careerSlugForPath}/course/${nextCourse.slug}`, {
+              state: {
+                prefetchedCourse: nextCourse,
+                // Pass prefetched lessons if background fetch already completed
+                prefetchedPosts: nextCoursePosts ?? null,
+                prefetchedLessons: nextCourseLessons ?? null,
+              },
+            })}>
+              Start Course
+              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         </Card>

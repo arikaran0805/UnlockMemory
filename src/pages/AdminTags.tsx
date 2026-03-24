@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 import { Plus, Pencil, Trash2, Tag, Search } from "lucide-react";
+import UMLoader from "@/components/UMLoader";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 
@@ -231,7 +232,9 @@ const AdminTags = () => {
 
   if (loading) {
     return (
-      <div className="text-center py-12">Loading tags...</div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <UMLoader size={56} dark label="Loading…" />
+      </div>
     );
   }
 

@@ -61,6 +61,7 @@ interface LessonFooterProps {
   nextLesson?: { title: string } | null;
   onPrevious: () => void;
   onNext: () => void;
+  onFinishCourse?: () => void;
 }
 
 const LessonFooter = ({
@@ -91,6 +92,7 @@ const LessonFooter = ({
   nextLesson,
   onPrevious,
   onNext,
+  onFinishCourse,
 }: LessonFooterProps) => {
   const navigate = useNavigate();
   const [justCompleted, setJustCompleted] = useState(false);
@@ -310,8 +312,9 @@ const LessonFooter = ({
               "bg-primary hover:bg-primary/90 text-primary-foreground"
             )}
             onClick={() => {
-              // Navigate to career-specific page if in career shell
-              if (careerSlug && courseSlug) {
+              if (onFinishCourse) {
+                onFinishCourse();
+              } else if (careerSlug && courseSlug) {
                 navigate(`/career-board/${careerSlug}/course/${courseSlug}/completed`);
               }
             }}

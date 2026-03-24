@@ -15,61 +15,93 @@ interface UseLessonFlowNavigationOptions {
 
 /**
  * Hook for Lesson Flow navigation - Single IntersectionObserver based scroll-spy
- * 
+ *
  * Features:
  * - Uses ONE IntersectionObserver for all [data-flow] sections
  * - Tracks section with highest intersectionRatio
- * - Reading zone: 25% from top to 35% from bottom (center focus)
+ * - Reading zone: top half of viewport (no top exclusion, 40% bottom inset)
  * - Hysteresis prevents flicker during fast scrolling
  * - No scroll listeners - pure IntersectionObserver
+ * - Stable observer (not recreated on every active-section change)
  */
 export function useLessonFlowNavigation(
   sectionConfig: Array<{ id: string; label: string }>,
   options: UseLessonFlowNavigationOptions = {}
 ) {
   const { scrollOffset = 140, hysteresisMs = 80 } = options;
-  
+
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
   const [sectionStates, setSectionStates] = useState<Record<string, boolean>>({});
-  
+
   // Track intersection ratios for all sections - single source of truth
   const ratioMap = useRef<Map<string, number>>(new Map());
   const hysteresisTimer = useRef<number | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const observedElements = useRef<Set<Element>>(new Set());
 
+  // Ref to track current activeFlow WITHOUT causing effect re-runs
+  const activeFlowRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeFlowRef.current = activeFlow;
+  }, [activeFlow]);
+
+  // Fix 2: ref to compare sectionStates without causing re-renders
+  const sectionStatesRef = useRef<Record<string, boolean>>({});
+
+  // Fix 4: ref to detect when sectionConfig actually changes by value
+  const prevConfigRef = useRef<Array<{ id: string; label: string }>>([]);
+
+  // Fix 5: guaranteed hysteresis cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (hysteresisTimer.current) {
+        clearTimeout(hysteresisTimer.current);
+      }
+    };
+  }, []);
+
   // Resolve dominant section by highest ratio
   const resolveDominant = useCallback((): string | null => {
     let maxRatio = 0;
     let dominantId: string | null = null;
-    
+
     ratioMap.current.forEach((ratio, id) => {
       if (ratio > maxRatio) {
         maxRatio = ratio;
         dominantId = id;
       }
     });
-    
-    // Require minimum 15% visibility to avoid switching on edges
-    return maxRatio >= 0.15 ? dominantId : null;
+
+    // Require minimum 10% visibility to avoid switching on edges
+    return maxRatio >= 0.1 ? dominantId : null;
   }, []);
 
-  // Update active flow with hysteresis to prevent flicker
+  // Update active flow with hysteresis — uses ref, NOT captured activeFlow state
   const scheduleUpdate = useCallback(() => {
     if (hysteresisTimer.current) {
       clearTimeout(hysteresisTimer.current);
     }
-    
+
     hysteresisTimer.current = window.setTimeout(() => {
       const newActive = resolveDominant();
-      if (newActive !== null && newActive !== activeFlow) {
+      if (newActive !== null && newActive !== activeFlowRef.current) {
         setActiveFlow(newActive);
       }
     }, hysteresisMs);
-  }, [resolveDominant, hysteresisMs, activeFlow]);
+  }, [resolveDominant, hysteresisMs]); // No activeFlow dep — uses ref instead
 
-  // Single IntersectionObserver setup
+  // Single IntersectionObserver setup — only recreated when sectionConfig changes by value
   useEffect(() => {
+    // Fix 4: bail out if config values are identical (prevents rebuild on reference churn)
+    const isSame =
+      prevConfigRef.current.length === sectionConfig.length &&
+      prevConfigRef.current.every(
+        (s, i) =>
+          s.id === sectionConfig[i].id && s.label === sectionConfig[i].label
+      );
+    if (isSame) return;
+    prevConfigRef.current = sectionConfig;
+
     // Cleanup existing observer
     if (observerRef.current) {
       observerRef.current.disconnect();
@@ -77,28 +109,26 @@ export function useLessonFlowNavigation(
     ratioMap.current.clear();
     observedElements.current.clear();
 
-    // Create single observer with center focus zone
-    // rootMargin: "-25% 0px -35% 0px" = reading zone from 25% to 65% of viewport
+    // Create single observer
+    // rootMargin: "0px 0px -40% 0px" — top of viewport triggers, bottom 40% excluded
+    // This ensures the last section at the bottom of a page is still detected
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        // Update ratios for all observed entries
         entries.forEach((entry) => {
           const flowId = entry.target.getAttribute("data-flow");
           if (flowId) {
             ratioMap.current.set(
-              flowId, 
+              flowId,
               entry.isIntersecting ? entry.intersectionRatio : 0
             );
           }
         });
-        
-        // Schedule dominant section resolution
         scheduleUpdate();
       },
       {
         root: null, // viewport
-        rootMargin: "-25% 0px -35% 0px", // Center focus zone
-        threshold: [0, 0.15, 0.25, 0.5, 0.75, 1], // Multiple thresholds for smooth tracking
+        rootMargin: "0px 0px -40% 0px", // Top half+ of viewport triggers
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
       }
     );
 
@@ -106,12 +136,11 @@ export function useLessonFlowNavigation(
     const observeFlowElements = () => {
       const elements = document.querySelectorAll("[data-flow]");
       const foundStates: Record<string, boolean> = {};
-      
-      // Initialize all sections as not found
+
       sectionConfig.forEach((s) => {
         foundStates[s.id] = false;
       });
-      
+
       elements.forEach((el) => {
         const flowId = el.getAttribute("data-flow");
         if (flowId && !observedElements.current.has(el)) {
@@ -122,11 +151,18 @@ export function useLessonFlowNavigation(
           foundStates[flowId] = true;
         }
       });
-      
-      setSectionStates(foundStates);
-      
+
+      // Fix 2: skip setSectionStates when nothing changed
+      const hasChanged = sectionConfig.some(
+        (s) => foundStates[s.id] !== sectionStatesRef.current[s.id]
+      );
+      if (hasChanged) {
+        sectionStatesRef.current = foundStates;
+        setSectionStates(foundStates);
+      }
+
       // Set initial active if none set and sections exist
-      if (!activeFlow && elements.length > 0) {
+      if (!activeFlowRef.current && elements.length > 0) {
         const firstFlow = elements[0].getAttribute("data-flow");
         if (firstFlow) {
           setActiveFlow(firstFlow);
@@ -136,17 +172,21 @@ export function useLessonFlowNavigation(
 
     // Initial observation
     observeFlowElements();
-    
-    // Re-observe after delays for dynamically rendered content
-    const t1 = setTimeout(observeFlowElements, 150);
-    const t2 = setTimeout(observeFlowElements, 500);
 
-    // Watch for DOM changes (new sections added)
+    // Fix 3: single rAF instead of 150ms + 500ms timeouts — catches sections visible after first paint
+    const rafId = requestAnimationFrame(() => {
+      observeFlowElements();
+    });
+
+    // Fix 1: scope MutationObserver to lesson content container, not document.body
+    const contentRoot =
+      document.querySelector("[data-lesson-content]") ?? document.body;
+
     const mutationObserver = new MutationObserver(() => {
       observeFlowElements();
     });
 
-    mutationObserver.observe(document.body, {
+    mutationObserver.observe(contentRoot, {
       childList: true,
       subtree: true,
       attributes: true,
@@ -154,8 +194,7 @@ export function useLessonFlowNavigation(
     });
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      cancelAnimationFrame(rafId);
       if (hysteresisTimer.current) {
         clearTimeout(hysteresisTimer.current);
       }
@@ -164,7 +203,7 @@ export function useLessonFlowNavigation(
       ratioMap.current.clear();
       observedElements.current.clear();
     };
-  }, [sectionConfig, scheduleUpdate, activeFlow]);
+  }, [sectionConfig, scheduleUpdate]); // scheduleUpdate is stable now
 
   // Build enriched sections with existence state
   const sections: LessonFlowSection[] = sectionConfig.map((section) => ({
@@ -181,10 +220,10 @@ export function useLessonFlowNavigation(
 
       const rect = element.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      
+
       // Check if already visible in the reading zone
       const isVisible = rect.top >= scrollOffset && rect.bottom <= viewportHeight;
-      
+
       if (!isVisible) {
         const absoluteTop = window.scrollY + rect.top;
         window.scrollTo({

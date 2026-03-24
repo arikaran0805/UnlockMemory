@@ -26,78 +26,58 @@ interface Review {
   } | null;
 }
 
-export const useCourseStats = (courseId: string | undefined, user: User | null) => {
+export const useCourseStats = (
+  courseId: string | undefined,
+  user: User | null,
+  initialStats?: Partial<CourseStats>
+) => {
   const [stats, setStats] = useState<CourseStats>({
     enrollmentCount: 0,
     averageRating: 0,
     reviewCount: 0,
     isEnrolled: false,
     userReview: null,
+    ...initialStats,
   });
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  // If initialStats provided, skip loading gate — render immediately
+  const [loading, setLoading] = useState(!initialStats);
   const [enrolling, setEnrolling] = useState(false);
 
   const fetchStats = useCallback(async () => {
     if (!courseId) return;
 
     try {
-      // Fetch enrollment count
-      const { count: enrollmentCount } = await supabase
-        .from("course_enrollments")
-        .select("*", { count: "exact", head: true })
-        .eq("course_id", courseId);
+      // Run all queries in parallel
+      const [enrollmentCountResult, reviewsResult, userEnrollmentResult, userReviewResult] = await Promise.all([
+        supabase
+          .from("course_enrollments")
+          .select("*", { count: "exact", head: true })
+          .eq("course_id", courseId),
+        supabase
+          .from("course_reviews")
+          .select(`id, rating, review, created_at, user_id, is_anonymous, profiles:user_id (full_name, avatar_url)`)
+          .eq("course_id", courseId)
+          .order("created_at", { ascending: false }),
+        user
+          ? supabase.from("course_enrollments").select("id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        user
+          ? supabase.from("course_reviews").select("rating, review").eq("course_id", courseId).eq("user_id", user.id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
 
-      // Fetch reviews with average rating (include is_anonymous)
-      const { data: reviewsData } = await supabase
-        .from("course_reviews")
-        .select(`
-          id,
-          rating,
-          review,
-          created_at,
-          user_id,
-          is_anonymous,
-          profiles:user_id (full_name, avatar_url)
-        `)
-        .eq("course_id", courseId)
-        .order("created_at", { ascending: false });
-
-      const reviewsList = reviewsData || [];
+      const reviewsList = reviewsResult.data || [];
       const averageRating = reviewsList.length > 0
         ? reviewsList.reduce((sum, r) => sum + r.rating, 0) / reviewsList.length
         : 0;
 
-      // Check if user is enrolled
-      let isEnrolled = false;
-      let userReview = null;
-
-      if (user) {
-        const { data: enrollmentData } = await supabase
-          .from("course_enrollments")
-          .select("id")
-          .eq("course_id", courseId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        isEnrolled = !!enrollmentData;
-
-        const { data: userReviewData } = await supabase
-          .from("course_reviews")
-          .select("rating, review")
-          .eq("course_id", courseId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        userReview = userReviewData;
-      }
-
       setStats({
-        enrollmentCount: enrollmentCount || 0,
+        enrollmentCount: enrollmentCountResult.count || 0,
         averageRating,
         reviewCount: reviewsList.length,
-        isEnrolled,
-        userReview,
+        isEnrolled: !!(userEnrollmentResult as any).data,
+        userReview: (userReviewResult as any).data ?? null,
       });
       setReviews(reviewsList);
     } catch (error) {

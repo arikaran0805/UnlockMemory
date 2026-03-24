@@ -100,14 +100,18 @@ export const CareerScopedHeader = ({
               {currentCourse?.name}
             </h2>
             {career && (
-              <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <Link 
+                to="?overview=true"
+                className="text-xs text-muted-foreground inline-flex items-center gap-1.5 hover:text-primary transition-colors group cursor-pointer"
+                title={`Back to ${career.name} Path`}
+              >
+                <svg className="w-4 h-4 flex-shrink-0 group-hover:text-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10"/>
                   <circle cx="12" cy="12" r="6"/>
                   <circle cx="12" cy="12" r="2"/>
                 </svg>
                 <span>{career.name} Path</span>
-              </span>
+              </Link>
             )}
           </div>
           

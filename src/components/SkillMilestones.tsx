@@ -109,61 +109,89 @@ export const SkillMilestones = ({ completedCourses, readinessPercentage, compact
   }
 
   return (
-    <Card className="bg-gradient-to-br from-card to-muted/30 border-2 mt-4">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-amber-500" />
-            <h3 className="font-semibold text-sm">{compact ? 'Recent Achievements' : 'Milestones'}</h3>
+    <div className="relative overflow-hidden rounded-[24px] border border-border/40 bg-background/50 backdrop-blur-md shadow-md mt-4 group/card">
+      {/* Background glow behind card content */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-amber-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-1000" />
+      
+      <div className="relative z-10 p-6 sm:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500 shadow-inner">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <h3 className="text-xl font-bold tracking-tight text-foreground">{compact ? 'Recent Achievements' : 'Readiness Milestones'}</h3>
           </div>
           {compact ? (
-            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={onViewAll}>
-              View All <ChevronRight className="h-3 w-3" />
+            <Button variant="ghost" size="sm" className="hidden sm:flex text-xs font-semibold gap-1 hover:bg-muted/50 rounded-full" onClick={onViewAll}>
+              View All Journey <ChevronRight className="h-3 w-3" />
             </Button>
           ) : (
-            <Badge variant="secondary" className="text-xs">
-              {unlockedMilestones.length}/{milestones.length}
+            <Badge variant="secondary" className="px-3 py-1 text-sm font-semibold bg-primary/10 text-primary border-primary/20 shadow-sm">
+              {unlockedMilestones.length} / {milestones.length} Unlocked
             </Badge>
           )}
         </div>
 
-        <div className={`grid ${compact ? 'grid-cols-3' : 'grid-cols-3 md:grid-cols-6'} gap-2`}>
-          {displayMilestones.map((milestone) => {
+        <div className={`grid ${compact ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'} gap-4 sm:gap-5`}>
+          {displayMilestones.map((milestone, index) => {
             const unlocked = isMilestoneUnlocked(milestone);
             const isCelebrating = celebratingId === milestone.id;
             
             return (
               <div
                 key={milestone.id}
-                className={`relative flex flex-col items-center p-2 rounded-lg border transition-all ${
+                style={{ animationDelay: `${index * 50}ms` }}
+                className={`relative group flex flex-col items-center p-5 rounded-[20px] transition-all duration-500 animate-in fade-in-50 zoom-in-95 ${
                   unlocked 
-                    ? `${milestone.bgColor} border-transparent` 
-                    : 'bg-muted/30 border-dashed border-border opacity-50'
+                    ? `bg-background border border-border/50 shadow-sm hover:shadow-md hover:-translate-y-1.5`
+                    : 'bg-muted/20 border-border/40 hover:bg-muted/30 hover:border-border/60'
                 } ${isCelebrating ? 'animate-bounce' : ''}`}
                 title={milestone.description}
               >
+                {/* Unlocked background gradient overlay */}
+                {unlocked && (
+                  <div className={`absolute inset-0 ${milestone.bgColor} opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 rounded-[20px]`} />
+                )}
+
                 {/* Celebration sparkles */}
                 {isCelebrating && (
                   <>
-                    <Sparkles className="absolute -top-1 -left-1 h-3 w-3 text-amber-400 animate-ping" />
+                    <Sparkles className="absolute -top-1 -left-1 h-4 w-4 text-amber-400 animate-ping" />
                     <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-amber-400 animate-ping" style={{ animationDelay: '0.2s' }} />
-                    <Sparkles className="absolute -bottom-1 left-1/2 h-3 w-3 text-amber-400 animate-ping" style={{ animationDelay: '0.4s' }} />
+                    <Sparkles className="absolute -bottom-1 left-1/2 h-5 w-5 text-amber-400 animate-ping" style={{ animationDelay: '0.4s' }} />
                   </>
                 )}
                 
-                <div className={`p-2 rounded-full ${unlocked ? milestone.bgColor : 'bg-muted'} ${isCelebrating ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`}>
-                  <span className={unlocked ? milestone.color : 'text-muted-foreground'}>
-                    {milestone.icon}
+                {/* Icon Container with glowing drop shadow */}
+                <div className="relative mb-3">
+                  {unlocked && (
+                    <div className={`absolute inset-0 ${milestone.bgColor} rounded-full blur-md opacity-50 group-hover:opacity-100 transition-opacity duration-500`} />
+                  )}
+                  <div className={`relative p-3.5 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${
+                    unlocked 
+                      ? `${milestone.bgColor} border-transparent shadow-sm group-hover:scale-110` 
+                      : 'bg-muted/50 border-transparent opacity-60 filter grayscale'
+                  } ${isCelebrating ? 'ring-4 ring-amber-400/50 ring-offset-2 scale-125' : ''}`}>
+                    <span className={`transition-colors duration-500 ${unlocked ? milestone.color : 'text-muted-foreground'}`}>
+                      {milestone.icon}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Title & Tooltip info */}
+                <div className="text-center">
+                  <span className={`block font-bold text-[13px] sm:text-sm tracking-tight transition-colors duration-500 ${unlocked ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground'}`}>
+                    {milestone.title}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute bottom-1.5 left-0 right-0 text-center">
+                    {unlocked ? 'Unlocked' : 'Locked'}
                   </span>
                 </div>
-                <span className={`text-xs font-medium mt-1 text-center ${unlocked ? milestone.color : 'text-muted-foreground'}`}>
-                  {milestone.title}
-                </span>
               </div>
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

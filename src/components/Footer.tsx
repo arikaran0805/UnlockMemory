@@ -81,9 +81,7 @@ const Footer = () => {
               {logoUrl ? (
                 <img src={logoUrl} alt={siteName} className="h-9 w-auto" />
               ) : (
-                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
-                  <span className="text-base font-black text-primary-foreground">{siteName.charAt(0)}</span>
-                </div>
+                <img src="/unlockMemory_icon.svg" alt={siteName} className="h-9 w-auto" />
               )}
               <span className="text-lg tracking-[0.01em] text-foreground">
                 <span className="font-medium">Unlock</span>

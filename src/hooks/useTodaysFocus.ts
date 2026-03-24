@@ -112,9 +112,9 @@ export const useTodaysFocus = (userId: string | null, activeCourseSlug?: string,
     if (!data.hasCompletedLessons) return;
     // Navigate to arcade/quiz with course context
     if (activeCourseSlug) {
-      navigate(`/arcade?course=${activeCourseSlug}&mode=quiz`);
+      navigate(`/profile?tab=practice&course=${activeCourseSlug}&mode=quiz`);
     } else {
-      navigate("/arcade");
+      navigate("/profile?tab=practice");
     }
   }, [data, navigate, activeCourseSlug]);
 
