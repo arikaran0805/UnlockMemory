@@ -71,6 +71,7 @@ export function NotesFocusMode({
     isLoading,
     isSaving,
     isSyncing,
+    notesReady,
     selectNote,
     selectNoteById,
     selectNoteByLessonId,
@@ -92,7 +93,7 @@ export function NotesFocusMode({
   // Handle context switch requests from other tabs
   // Uses an async effect to handle note creation if needed
   useEffect(() => {
-    if (!switchToContext || isLoading) return;
+    if (!switchToContext || !notesReady) return;
     
     const performSwitch = async () => {
       let switched = false;

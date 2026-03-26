@@ -36,6 +36,7 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [notesReady, setNotesReady] = useState(false);
   const [editContent, setEditContent] = useState("");
   const debouncedContent = useDebounce(editContent, 1000);
   const isRemoteUpdateRef = useRef(false);
@@ -89,35 +90,35 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
   // Handle remote updates from other tabs (Quick Notes)
   // SAFETY: Includes timestamp validation to prevent older content overwriting newer
   const handleRemoteUpdate = useCallback((remoteContent: string, updatedAt: string) => {
-    // CRITICAL: Ignore remote updates while loading to prevent race conditions
     if (isLoadingRef.current) return;
-    
-    const currentNoteId = selectedNoteIdRef.current;
-    if (!currentNoteId) return;
-    
-    // Timestamp validation is now handled in useNotesSyncBridge
-    // If we reach here, the remote update is confirmed to be newer
-    
+
+    // Capture BOTH refs at the moment the broadcast arrives.
+    // If the user has already switched notes, noteIdRef will have diverged
+    // from selectedNoteIdRef — in that case we must NOT apply the update.
+    const arrivedForNoteId = selectedNoteIdRef.current;
+    if (!arrivedForNoteId) return;
+
     isRemoteUpdateRef.current = true;
     setEditContent(remoteContent);
     lastSavedContentRef.current = remoteContent;
-    contentForNoteIdRef.current = currentNoteId; // FIX: Track content ownership
+    // Credit content to the note that was selected when the broadcast arrived
+    contentForNoteIdRef.current = arrivedForNoteId;
     localTimestampRef.current = updatedAt;
-    
-    setNotes(prev => 
-      prev.map(n => 
-        n.id === currentNoteId 
-          ? { ...n, content: remoteContent, updated_at: updatedAt } 
+
+    setNotes(prev =>
+      prev.map(n =>
+        n.id === arrivedForNoteId
+          ? { ...n, content: remoteContent, updated_at: updatedAt }
           : n
       )
     );
-    
+
     setIsSyncing(false);
-    
+
     setTimeout(() => {
       isRemoteUpdateRef.current = false;
     }, 100);
-  }, []);
+  }, []); // no deps — all values come from stable refs
 
   // Handle note created in other tab
   const handleNoteCreated = useCallback(async (newNoteId: string, lessonId: string) => {
@@ -192,6 +193,7 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
   const loadNotes = useCallback(async () => {
     if (!courseId || !userId) return;
 
+    setNotesReady(false);
     setIsLoading(true);
     try {
       const { data: notesData, error: notesError } = await supabase
@@ -235,7 +237,8 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
         });
 
         setNotes(enrichedNotes);
-        
+        setNotesReady(true);
+
         // Only auto-select first note if nothing is selected yet
         // Use ref to avoid dependency on state
         if (!selectedNoteIdRef.current) {
@@ -246,6 +249,7 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
         }
       } else {
         setNotes([]);
+        setNotesReady(true);
         setSelectedNoteId(null);
         setEditContent("");
         lastSavedContentRef.current = "";
@@ -607,6 +611,7 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
     isLoading,
     isSaving,
     isSyncing,
+    notesReady,
     selectNote,
     selectNoteById,
     selectNoteByLessonId,

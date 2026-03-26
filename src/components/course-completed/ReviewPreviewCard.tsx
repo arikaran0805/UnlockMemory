@@ -27,6 +27,26 @@ interface ReviewPreviewCardProps {
   onViewAllReviews?: () => void;
 }
 
+/** Extract plain text from a ProseMirror/TipTap JSON doc string, or return as-is. */
+function extractPlainText(raw: string): string {
+  try {
+    const doc = JSON.parse(raw);
+    if (doc?.type !== "doc" || !Array.isArray(doc.content)) return raw;
+    const walk = (nodes: any[]): string =>
+      nodes
+        .map((node: any) => {
+          if (node.type === "text") return node.text ?? "";
+          if (node.type === "hardBreak") return " ";
+          if (Array.isArray(node.content)) return walk(node.content);
+          return "";
+        })
+        .join("");
+    return walk(doc.content).trim();
+  } catch {
+    return raw;
+  }
+}
+
 const ReviewPreviewCard = ({
   reviews,
   averageRating,
@@ -44,7 +64,7 @@ const ReviewPreviewCard = ({
     .slice(0, 2)
     .map(r => ({
       id: r.id,
-      text: r.review!,
+      text: extractPlainText(r.review!),
       author: r.profiles?.full_name || "Learner",
       rating: r.rating,
     }));

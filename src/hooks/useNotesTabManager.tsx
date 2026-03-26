@@ -62,7 +62,7 @@ function updateTabRegistry(registry: Record<string, NotesTabInfo>) {
  */
 function pingExistingTab(channel: BroadcastChannel, courseId: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const timeout = setTimeout(() => resolve(false), 200); // 200ms timeout
+    const timeout = setTimeout(() => resolve(false), 500);
     
     const handlePong = (event: MessageEvent<NotesContextMessage>) => {
       if (event.data.type === 'PONG' && event.data.courseId === courseId) {
@@ -204,24 +204,34 @@ export function useNotesTabOpener(courseId: string | undefined, careerId?: strin
       // Use named window to prevent duplicates at browser level
       // IMPORTANT: Don't use 'noopener' so we can keep the reference
       const newWindow = window.open(notesUrl, tabId);
-      
+
       if (newWindow) {
         notesWindowRef.current = newWindow;
-        
-        // Register this tab
+
         const registry = getTabRegistry();
-        registry[tabId] = {
-          courseId,
-          openedAt: Date.now(),
-        };
+        registry[tabId] = { courseId, openedAt: Date.now() };
         updateTabRegistry(registry);
-        
-        // If opening with specific context, send message after delay
-        // to give the new tab time to set up its listener
+
+        // If opening with specific context, retry until the tab ACKs
+        // (single 600ms delay misses tabs on slow machines)
         if (options?.noteId || options?.lessonId) {
-          setTimeout(() => {
+          let attempts = 0;
+          const MAX_ATTEMPTS = 6;
+          const RETRY_INTERVAL = 400; // ms
+
+          const trySend = () => {
+            if (attempts >= MAX_ATTEMPTS) return;
+            attempts++;
             sendContextSwitch(options);
-          }, 600);
+            // Stop retrying once the tab pongs back (it's alive)
+            pingExistingTab(channelRef.current!, courseId).then((alive) => {
+              if (!alive && attempts < MAX_ATTEMPTS) {
+                setTimeout(trySend, RETRY_INTERVAL);
+              }
+            });
+          };
+
+          setTimeout(trySend, 500); // give the tab time to mount its listener
         }
       }
 

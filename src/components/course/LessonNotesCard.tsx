@@ -31,6 +31,8 @@ interface LessonNotesCardProps {
   courseId?: string;
   /** The current lesson ID - needed for Deep Notes context switching */
   lessonId?: string;
+  /** Career slug - needed so Deep Notes "Back to course" goes to the right page */
+  careerId?: string;
 }
 
 // Create lowlight instance for syntax highlighting
@@ -73,6 +75,7 @@ export function LessonNotesCard({
   isLoading,
   courseId,
   lessonId,
+  careerId,
 }: LessonNotesCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -81,7 +84,7 @@ export function LessonNotesCard({
   const applyingExternalValueRef = useRef(false);
 
   // Use tab manager to prevent duplicate notes tabs
-  const { openNotesTab } = useNotesTabOpener(courseId);
+  const { openNotesTab } = useNotesTabOpener(courseId, careerId);
 
   // Parse content for preview
   const textPreview = useMemo(() => {
@@ -122,9 +125,12 @@ export function LessonNotesCard({
       applyingExternalValueRef.current = true;
       // TipTap supports setContent(content, { emitUpdate: false })
       editor.commands.setContent(parsed, { emitUpdate: false });
-      setTimeout(() => {
+      // Use microtask (Promise) instead of macrotask (setTimeout) so the flag
+      // clears AFTER TipTap's synchronous onUpdate callbacks but BEFORE the
+      // next React render cycle that could fire updateContent.
+      Promise.resolve().then(() => {
         applyingExternalValueRef.current = false;
-      }, 0);
+      });
     }
   }, [content, editor]);
 

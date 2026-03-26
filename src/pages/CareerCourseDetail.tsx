@@ -15,7 +15,7 @@
  * - Course metadata, prerequisites, creator/team info
  * - Restart course, enroll, progress tracking
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate, useSearchParams, useOutletContext, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -207,6 +207,9 @@ const CareerCourseDetail = () => {
   // (career can be transiently null during initialization; the param is always present.)
   const careerSlugForPath = careerIdParam || career?.slug;
 
+  // Stable identity key — changes on every course navigation
+  const courseKey = `${careerIdParam}__${courseSlug}`;
+
   const [course, setCourse] = useState<Course | null>(prefetchedCourse ?? null);
   // Initialize lessons/posts from navigate state if available (instant — no fetch needed)
   const [lessons, setLessons] = useState<CourseLesson[]>(prefetchedLessons ?? []);
@@ -254,6 +257,19 @@ const CareerCourseDetail = () => {
   const [defaultTabResolved, setDefaultTabResolved] = useState(false);
   const [shareOpenPostId, setShareOpenPostId] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
+
+  // Tracks what courseKey the current state snapshot belongs to.
+  // Updated synchronously at the TOP of the isNewCourse block so stateIsStale
+  // flips to false on the very same render that applies new-course state.
+  const committedCourseKeyRef = useRef<string | null>(null);
+
+  // Prevents double-fetching when isAdmin updates after roleLoading resolves.
+  // Reset to null on every new course navigation so we always fetch fresh data.
+  const hasFetchedForCourseKeyRef = useRef<string | null>(null);
+
+  // Derive synchronously at render time: does current state belong to the current route?
+  // true on the FIRST render after navigation (before any effects run).
+  const stateIsStale = committedCourseKeyRef.current !== null && committedCourseKeyRef.current !== courseKey;
 
   // Header visibility is now consumed from CareerBoardLayout via outlet context
   // (removed local state - isHeaderVisible and showAnnouncement come from context)
@@ -379,6 +395,7 @@ const CareerCourseDetail = () => {
     setActiveTab("details");
     setDefaultTabResolved(true);
   }, [
+    courseKey,
     defaultTabResolved,
     loading,
     progressLoading,
@@ -393,9 +410,6 @@ const CareerCourseDetail = () => {
     courseProgress.percentage,
     isPro,
     posts.length,
-    // courseStatsLoading + courseStats.isEnrolled removed: career board uses completion
-    // as proxy for enrollment so stats are not needed for tab resolution
-    // activeTab removed: effect must not re-run when it sets its own state
   ]);
 
   // Persist active tab to URL when it changes
@@ -479,24 +493,123 @@ const CareerCourseDetail = () => {
   useEffect(() => {
     if (!courseSlug) return;
 
-    if (prefetchedCourse) {
-      // Instant path: lessons already in navigate state — no fetch needed
-      if (prefetchedPosts) return;
-      // Fast path: course known but no prefetched posts — fetch lessons only
-      fetchLessonsAndPosts(prefetchedCourse.id);
-      return;
+    const isNewCourse = committedCourseKeyRef.current !== courseKey;
+
+    if (isNewCourse) {
+      // Mark committed state as belonging to the new courseKey IMMEDIATELY —
+      // this flips stateIsStale to false so the next render shows correct content.
+      committedCourseKeyRef.current = courseKey;
+      hasFetchedForCourseKeyRef.current = null; // reset so new course always fetches
+
+      if (prefetchedCourse && prefetchedPosts) {
+        // INSTANT PATH: all data available — apply immediately, no skeleton needed
+        setCourse(prefetchedCourse);
+        setLessons(prefetchedLessons ?? []);
+        if (prefetchedLessons && prefetchedLessons.length > 0) {
+          setExpandedLessons(new Set([prefetchedLessons[0].id]));
+        } else {
+          setExpandedLessons(new Set());
+        }
+        setPosts(prefetchedPosts);
+        setLoading(false);
+        setLessonsLoading(false);
+        setSelectedPost(null);
+        setActiveTab(null);
+        setDefaultTabResolved(false);
+        setComments([]);
+        setAllTags([]);
+        setLikeCount(0);
+        setHasLiked(false);
+        setShareOpenPostId(null);
+        setCopiedPostId(null);
+        setCareers([]);
+        setCourseCreator(null);
+        setMaintenanceTeam([]);
+        setLinkedPrerequisites([]);
+        return;
+      }
+
+      if (prefetchedCourse && !prefetchedPosts) {
+        // PARTIAL PREFETCH PATH: course known, posts need fetching
+        setCourse(prefetchedCourse);
+        setLessons(prefetchedLessons ?? []);
+        if (prefetchedLessons && prefetchedLessons.length > 0) {
+          setExpandedLessons(new Set([prefetchedLessons[0].id]));
+        } else {
+          setExpandedLessons(new Set());
+        }
+        setPosts([]);
+        setLoading(false);
+        setLessonsLoading(true);
+        setSelectedPost(null);
+        setActiveTab(null);
+        setDefaultTabResolved(false);
+        setComments([]);
+        setAllTags([]);
+        setLikeCount(0);
+        setHasLiked(false);
+        setCareers([]);
+        setCourseCreator(null);
+        setMaintenanceTeam([]);
+        setLinkedPrerequisites([]);
+        fetchLessonsAndPosts(prefetchedCourse.id);
+        return;
+      }
+
+      // NO PREFETCH PATH: need full fetch — show skeleton
+      setCourse(null);
+      setLessons([]);
+      setPosts([]);
+      setExpandedLessons(new Set());
+      setLoading(true);
+      setLessonsLoading(false);
+      setSelectedPost(null);
+      setActiveTab(null);
+      setDefaultTabResolved(false);
+      setComments([]);
+      setAllTags([]);
+      setLikeCount(0);
+      setHasLiked(false);
+      setCareers([]);
+      setCourseCreator(null);
+      setMaintenanceTeam([]);
+      setLinkedPrerequisites([]);
     }
 
-    if (roleLoading) return;
-    const hasPreviewAccess = isAdmin || isModerator;
-    setCanPreview(hasPreviewAccess);
-    fetchCourseAndLessons();
-  }, [courseSlug, roleLoading, isAdmin, isModerator, prefetchedCourse]);
+    // Always re-check preview access (role may have changed)
+    if (!roleLoading) {
+      const hasPreviewAccess = isAdmin || isModerator;
+      setCanPreview(hasPreviewAccess);
+    }
+
+    // Fetch course data if we don't have it yet.
+    // Guard on authLoading: prevents firing before JWT is ready (avoids RLS race on refresh).
+    // Guard on hasFetchedForCourseKeyRef: prevents double-fetch when isAdmin updates.
+    if (!prefetchedCourse && !roleLoading && !authLoading) {
+      if (hasFetchedForCourseKeyRef.current !== courseKey) {
+        hasFetchedForCourseKeyRef.current = courseKey;
+        fetchCourseAndLessons();
+      }
+    }
+  }, [courseKey, roleLoading, isAdmin, isModerator, authLoading]);
 
   useEffect(() => {
-    if (lessonSlug && posts.length > 0) {
+    if (!lessonSlug) {
+      // No lesson in URL — ensure we show the course overview, not a stale lesson
+      setSelectedPost(null);
+      return;
+    }
+    if (posts.length > 0) {
       const postToSelect = posts.find((p) => p.slug === lessonSlug);
-      if (postToSelect && selectedPost?.slug !== lessonSlug) {
+      if (!postToSelect) {
+        // Lesson slug doesn't belong to this course — clear it from URL
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete("lesson");
+        setSearchParams(nextParams, { replace: true });
+        setSelectedPost(null);
+        return;
+      }
+      if (selectedPost?.slug !== lessonSlug) {
         if (postToSelect.lesson_id) {
           setExpandedLessons((prev) => {
             const newSet = new Set(prev);
@@ -508,7 +621,7 @@ const CareerCourseDetail = () => {
         window.scrollTo({ top: 0, behavior: "auto" });
       }
     }
-  }, [lessonSlug, posts, selectedPost?.slug]);
+  }, [lessonSlug, posts]);
 
   useEffect(() => {
     if (selectedPost) {
@@ -548,6 +661,7 @@ const CareerCourseDetail = () => {
 
   const fetchCareers = async () => {
     if (!course?.id) return;
+    setCareers([]);
     try {
       const { data, error } = await supabase
         .from("career_courses")
@@ -565,6 +679,8 @@ const CareerCourseDetail = () => {
 
   const fetchCourseTeam = async () => {
     if (!course?.id) return;
+    setCourseCreator(null);
+    setMaintenanceTeam([]);
     try {
       // Fetch course creator (author)
       if (course.author_id) {
@@ -610,6 +726,7 @@ const CareerCourseDetail = () => {
 
   const fetchLinkedPrerequisites = async () => {
     if (!course?.id) return;
+    setLinkedPrerequisites([]);
     try {
       const { data, error } = await supabase
         .from("course_prerequisites")
@@ -722,10 +839,11 @@ const CareerCourseDetail = () => {
     }
   }, [toast]);
 
-  const fetchCourseAndLessons = async () => {
+  const fetchCourseAndLessons = useCallback(async () => {
+    let redirected = false;
     try {
       const showAllStatuses = isPreviewMode && (isAdmin || isModerator);
-      
+
       let courseQuery = supabase
         .from("courses")
         .select("*")
@@ -735,15 +853,26 @@ const CareerCourseDetail = () => {
         courseQuery = courseQuery.eq("status", "published");
       }
 
-      const { data: courseData, error: courseError } = await courseQuery.single();
+      // maybeSingle() returns { data: null, error: null } for 0 rows instead of PGRST116,
+      // cleanly separating "not found" from real DB/network errors.
+      const { data: courseData, error: courseError } = await courseQuery.maybeSingle();
 
       if (courseError) {
-        if (courseError.code === 'PGRST116') {
-          navigate("/careers", { replace: true });
-          return;
-        }
+        // Real DB/network error — show toast, stay on page (don't redirect)
         throw courseError;
       }
+
+      if (!courseData) {
+        // Genuinely not found — auth is already confirmed at the call site (Bug 1 guard)
+        redirected = true;
+        toast({
+          title: "Course not found",
+          description: "This course doesn't exist or isn't available.",
+        });
+        navigate("/careers", { replace: true });
+        return;
+      }
+
       setCourse(courseData);
 
       const { data: lessonsData, error: lessonsError } = await supabase
@@ -754,7 +883,7 @@ const CareerCourseDetail = () => {
         .order("lesson_rank", { ascending: true });
 
       if (lessonsError) throw lessonsError;
-      
+
       const typedLessons = (lessonsData || []) as unknown as CourseLesson[];
       setLessons(typedLessons);
 
@@ -789,7 +918,7 @@ const CareerCourseDetail = () => {
       const { data: postsData, error: postsError } = await postsQuery;
 
       if (postsError) throw postsError;
-      
+
       let typedPosts = (postsData || []).map(p => ({
         ...p,
         lesson_id: p.lesson_id as string | null,
@@ -797,29 +926,31 @@ const CareerCourseDetail = () => {
         post_type: p.post_type as string | null,
         profiles: p.profiles as { full_name: string | null }
       })) as Post[];
-      
+
       if (!showAllStatuses) {
         const publishedLessonIds = new Set(
           (lessonsData || [])
             .filter(lesson => lesson.is_published === true)
             .map(lesson => lesson.id)
         );
-        typedPosts = typedPosts.filter(post => 
+        typedPosts = typedPosts.filter(post =>
           post.lesson_id === null || publishedLessonIds.has(post.lesson_id)
         );
       }
-      
+
       setPosts(typedPosts);
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error loading course",
+        description: error.message || "Please try refreshing the page.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (!redirected) {
+        setLoading(false);
+      }
     }
-  };
+  }, [courseSlug, isPreviewMode, isAdmin, isModerator, navigate, toast]);
 
   const fetchTags = async (postId?: string) => {
     if (!postId) {
@@ -1284,8 +1415,18 @@ const CareerCourseDetail = () => {
     };
   };
 
-  const isPageLoading = loading || authLoading || (!prefetchedCourse && (roleLoading || careerLoading));
-  const isFastPathLoading = !isPageLoading && (lessonsLoading && posts.length === 0);
+  const hasPrefetchedData = !!prefetchedCourse && !!prefetchedPosts;
+
+  // Skeleton: just navigated to a new course AND no prefetch data to show immediately
+  const needsFullSkeleton = stateIsStale && !hasPrefetchedData;
+  // Skeleton: auth/role gates not yet resolved on FIRST load (not re-navigation)
+  const needsAuthSkeleton = !stateIsStale && (authLoading || (!prefetchedCourse && (roleLoading || careerLoading)));
+  // Skeleton: course data genuinely loading after state reset (no prefetch)
+  const needsDataSkeleton = !stateIsStale && loading;
+
+  const isPageLoading = needsFullSkeleton || needsAuthSkeleton || needsDataSkeleton;
+  // Fast path: course known but posts still fetching (partial prefetch or slow network)
+  const isFastPathLoading = !stateIsStale && !loading && lessonsLoading && posts.length === 0;
 
   if (isPageLoading || isFastPathLoading) {
     return (
@@ -2209,6 +2350,7 @@ const CareerCourseDetail = () => {
             certificateEligible={courseProgress.isCompleted}
             onOpenNotes={() => openNotesTab()}
             isCareerBoard={true}
+            careerId={careerSlugForPath}
           />
         ) : (
           /* Course overview - show metadata sidebar */

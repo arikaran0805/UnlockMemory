@@ -35,6 +35,8 @@ interface LearningCockpitProps {
   onOpenNotes?: () => void;
   /** If true, uses Career Board header offsets (Primary + CareerScopedHeader) */
   isCareerBoard?: boolean;
+  /** Career slug - threaded to LessonNotesCard so Deep Notes opens with the correct back-link */
+  careerId?: string;
 }
 
 // Lesson Flow sections - uses data-flow attribute
@@ -70,6 +72,7 @@ export const LearningCockpit = ({
   certificateEligible,
   onOpenNotes,
   isCareerBoard = false,
+  careerId,
 }: LearningCockpitProps) => {
   const messaging = useMessaging(userId);
   const { routeDoubt } = useDoubtSystem(userId);
@@ -227,6 +230,7 @@ export const LearningCockpit = ({
               isLoading={isLoading}
               courseId={courseId}
               lessonId={lessonId}
+              careerId={careerId}
             />
 
             {/* Practice & Reinforce */}

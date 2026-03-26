@@ -231,10 +231,9 @@ export const NotionStyleEditor = forwardRef<NotionStyleEditorRef, NotionStyleEdi
       // may interpret the intermediate empty doc as user input and auto-save it.
       applyingExternalValueRef.current = true;
       editor.commands.setContent(newContent, { emitUpdate: false });
-      // Release on next tick
-      setTimeout(() => {
+      Promise.resolve().then(() => {
         applyingExternalValueRef.current = false;
-      }, 0);
+      });
     }
   }, [value, editor]);
 
