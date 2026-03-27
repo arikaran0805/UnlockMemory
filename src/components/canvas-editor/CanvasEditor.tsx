@@ -1,328 +1,410 @@
 /**
- * CanvasEditor - Block-based canvas workspace
- * 
- * Features:
- * - Double-click/double-tap to add blocks
- * - Draggable blocks
- * - Floating "+" button
- * - Saves as structured JSON
+ * CanvasEditor – Block-based canvas workspace
+ *
+ * Layout:   Vertical sortable list (no horizontal scroll)
+ * Drag:     @dnd-kit/sortable  – drag to reorder; other blocks shift automatically
+ * Name:     Each block has an editable variable-style name
+ * Scroll:   Auto-scrolls to newly added / dropped blocks
+ * Drop:     Accepts "block-kind" from the Assets sidebar via HTML5 drag
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+  useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle,
+} from 'react';
+import {
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  PointerSensor, TouchSensor, closestCenter, useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext, arrayMove, verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { Plus, FileText, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  CanvasBlock,
-  CanvasData,
-  BlockKind,
-  ContextMenuPosition,
-  createEmptyBlock,
-  parseCanvasContent,
-  serializeCanvasContent,
-  DEFAULT_BLOCK_WIDTH,
+  CanvasBlock, CanvasData, BlockKind, ContextMenuPosition,
+  createEmptyBlock, parseCanvasContent, serializeCanvasContent,
 } from './types';
 import DraggableBlock from './DraggableBlock';
 import CanvasContextMenu from './CanvasContextMenu';
+
+export interface CanvasEditorRef {
+  addBlock: (kind: BlockKind) => void;
+}
 
 interface CanvasEditorProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  lessonLabel?: string;
 }
 
 const CANVAS_PADDING = 60;
 const GRID_SIZE = 20;
+const snapToGrid = (v: number) => Math.round(v / GRID_SIZE) * GRID_SIZE;
 
-// Snap position to grid
-const snapToGrid = (value: number): number => {
-  return Math.round(value / GRID_SIZE) * GRID_SIZE;
+/** Auto-generate a variable-style name for a new block */
+const autoName = (kind: BlockKind, blocks: CanvasBlock[]): string => {
+  const count = blocks.filter(b => b.kind === kind).length + 1;
+  return `${kind}_block_${count}`;
 };
 
-const CanvasEditor = ({ value, onChange, className }: CanvasEditorProps) => {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasData, setCanvasData] = useState<CanvasData>(() => parseCanvasContent(value));
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
-  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
+  ({ value, onChange, className, lessonLabel }, ref) => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const blockElRefs = useRef<Map<string, HTMLElement>>(new Map());
 
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 8,
-      },
-    })
-  );
+    const [canvasData, setCanvasData] = useState<CanvasData>(() => parseCanvasContent(value));
+    const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+    const [activeDragId, setActiveDragId] = useState<string | null>(null);
+    const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+    const [hoveredGap, setHoveredGap] = useState<number | null>(null);
+    const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
-  // Sync external value changes
-  useEffect(() => {
-    const parsed = parseCanvasContent(value);
-    if (JSON.stringify(parsed) !== JSON.stringify(canvasData)) {
-      setCanvasData(parsed);
-    }
-  }, [value]);
+    // dnd-kit sensors
+    const sensors = useSensors(
+      useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+      useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    );
 
-  // Notify parent of changes
-  const updateAndNotify = useCallback((newData: CanvasData) => {
-    setCanvasData(newData);
-    onChange(serializeCanvasContent(newData));
-  }, [onChange]);
+    // Sync external value changes
+    useEffect(() => {
+      const parsed = parseCanvasContent(value);
+      if (JSON.stringify(parsed) !== JSON.stringify(canvasData)) setCanvasData(parsed);
+    }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle double-click/double-tap
-  const handleCanvasInteraction = useCallback((clientX: number, clientY: number) => {
-    if (!canvasRef.current) return;
+    const updateAndNotify = useCallback((newData: CanvasData) => {
+      setCanvasData(newData);
+      onChange(serializeCanvasContent(newData));
+    }, [onChange]);
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const scrollLeft = canvasRef.current.scrollLeft;
-    const scrollTop = canvasRef.current.scrollTop;
+    // ── Block ref registration (for auto-scroll) ──────────────────────────────
+    const registerBlockRef = useCallback((id: string, el: HTMLElement | null) => {
+      if (el) blockElRefs.current.set(id, el);
+      else blockElRefs.current.delete(id);
+    }, []);
 
-    // Position for the context menu (viewport coords)
-    const menuX = clientX;
-    const menuY = clientY;
+    const scrollToBlock = useCallback((id: string) => {
+      // Wait one frame so the DOM has rendered the new block
+      requestAnimationFrame(() => {
+        const el = blockElRefs.current.get(id);
+        if (el && scrollContainerRef.current) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    }, []);
 
-    // Position for the block (canvas coords)
-    const canvasX = snapToGrid(clientX - rect.left + scrollLeft - DEFAULT_BLOCK_WIDTH / 2);
-    const canvasY = snapToGrid(clientY - rect.top + scrollTop);
+    // ── Block management ──────────────────────────────────────────────────────
+    const createBlock = useCallback((kind: BlockKind, existingBlocks: CanvasBlock[]) => {
+      const name = autoName(kind, existingBlocks);
+      return createEmptyBlock(kind, CANVAS_PADDING, snapToGrid(existingBlocks.length * 60), name);
+    }, []);
 
-    setContextMenu({
-      x: menuX,
-      y: menuY,
-      canvasX: Math.max(CANVAS_PADDING, canvasX),
-      canvasY: Math.max(CANVAS_PADDING, canvasY),
-    });
-  }, []);
+    const addBlockInternal = useCallback((kind: BlockKind, atIndex?: number) => {
+      const newBlock = createBlock(kind, canvasData.blocks);
+      let newBlocks: CanvasBlock[];
+      if (atIndex !== undefined) {
+        newBlocks = [
+          ...canvasData.blocks.slice(0, atIndex + 1),
+          newBlock,
+          ...canvasData.blocks.slice(atIndex + 1),
+        ];
+      } else {
+        newBlocks = [...canvasData.blocks, newBlock];
+      }
+      const newData = { ...canvasData, blocks: newBlocks };
+      updateAndNotify(newData);
+      setSelectedBlockId(newBlock.id);
+      scrollToBlock(newBlock.id);
+      return newBlock;
+    }, [canvasData, createBlock, updateAndNotify, scrollToBlock]);
 
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    // Only trigger on canvas background, not on blocks
-    if ((e.target as HTMLElement).closest('.canvas-block')) return;
-    handleCanvasInteraction(e.clientX, e.clientY);
-  }, [handleCanvasInteraction]);
+    // Exposed via ref – appends to end
+    const addBlock = useCallback((kind: BlockKind) => addBlockInternal(kind),
+      [addBlockInternal]);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if ((e.target as HTMLElement).closest('.canvas-block')) return;
-    
-    const touch = e.changedTouches[0];
-    const now = Date.now();
-    const lastTap = lastTapRef.current;
+    useImperativeHandle(ref, () => ({ addBlock }), [addBlock]);
 
-    if (lastTap && now - lastTap.time < 300) {
-      // Double tap detected
-      const dx = Math.abs(touch.clientX - lastTap.x);
-      const dy = Math.abs(touch.clientY - lastTap.y);
-      if (dx < 30 && dy < 30) {
-        handleCanvasInteraction(touch.clientX, touch.clientY);
+    const handleUpdateBlock = useCallback((id: string, updates: Partial<CanvasBlock>) => {
+      updateAndNotify({
+        ...canvasData,
+        blocks: canvasData.blocks.map(b => b.id === id ? { ...b, ...updates } : b),
+      });
+    }, [canvasData, updateAndNotify]);
+
+    const handleDuplicateBlock = useCallback((id: string) => {
+      const block = canvasData.blocks.find(b => b.id === id);
+      if (!block) return;
+      const idx = canvasData.blocks.indexOf(block);
+      const newBlock: CanvasBlock = {
+        ...block,
+        id: crypto.randomUUID(),
+        name: block.name ? `${block.name}_copy` : '',
+      };
+      const newBlocks = [
+        ...canvasData.blocks.slice(0, idx + 1),
+        newBlock,
+        ...canvasData.blocks.slice(idx + 1),
+      ];
+      updateAndNotify({ ...canvasData, blocks: newBlocks });
+      setSelectedBlockId(newBlock.id);
+      scrollToBlock(newBlock.id);
+    }, [canvasData, updateAndNotify, scrollToBlock]);
+
+    const handleDeleteBlock = useCallback((id: string) => {
+      updateAndNotify({ ...canvasData, blocks: canvasData.blocks.filter(b => b.id !== id) });
+      if (selectedBlockId === id) setSelectedBlockId(null);
+    }, [canvasData, selectedBlockId, updateAndNotify]);
+
+    // ── Sortable drag (reorder blocks) ────────────────────────────────────────
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+      setActiveDragId(event.active.id as string);
+    }, []);
+
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveDragId(null);
+      if (!over || active.id === over.id) return;
+      const oldIdx = canvasData.blocks.findIndex(b => b.id === active.id);
+      const newIdx = canvasData.blocks.findIndex(b => b.id === over.id);
+      if (oldIdx === -1 || newIdx === -1) return;
+      updateAndNotify({ ...canvasData, blocks: arrayMove(canvasData.blocks, oldIdx, newIdx) });
+    }, [canvasData, updateAndNotify]);
+
+    // ── Double-click / double-tap → context menu ──────────────────────────────
+    const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).closest('.canvas-block')) return;
+      setContextMenu({ x: e.clientX, y: e.clientY, canvasX: 0, canvasY: 0 });
+    }, []);
+
+    const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+      if ((e.target as HTMLElement).closest('.canvas-block')) return;
+      const touch = e.changedTouches[0];
+      const now = Date.now();
+      const last = lastTapRef.current;
+      if (last && now - last.time < 300 &&
+          Math.abs(touch.clientX - last.x) < 30 &&
+          Math.abs(touch.clientY - last.y) < 30) {
+        setContextMenu({ x: touch.clientX, y: touch.clientY, canvasX: 0, canvasY: 0 });
         lastTapRef.current = null;
         return;
       }
-    }
+      lastTapRef.current = { time: now, x: touch.clientX, y: touch.clientY };
+    }, []);
 
-    lastTapRef.current = {
-      time: now,
-      x: touch.clientX,
-      y: touch.clientY,
-    };
-  }, [handleCanvasInteraction]);
+    const handleAddFromContextMenu = useCallback((kind: BlockKind) => {
+      addBlockInternal(kind);
+      setContextMenu(null);
+    }, [addBlockInternal]);
 
-  // Add block from context menu
-  const handleAddBlock = useCallback((kind: BlockKind) => {
-    if (!contextMenu) return;
+    // ── HTML5 drop from Assets sidebar ────────────────────────────────────────
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes('block-kind')) return;
+      e.preventDefault();
+      setIsDragOver(true);
 
-    const newBlock = createEmptyBlock(kind, contextMenu.canvasX, contextMenu.canvasY);
-    const newData = {
-      ...canvasData,
-      blocks: [...canvasData.blocks, newBlock],
-    };
-    updateAndNotify(newData);
-    setSelectedBlockId(newBlock.id);
-    setContextMenu(null);
-  }, [contextMenu, canvasData, updateAndNotify]);
+      // Determine which gap index to insert at based on cursor Y position
+      const blocks = canvasData.blocks;
+      if (blocks.length === 0) { setDragOverIndex(null); return; }
 
-  // Add block from floating button
-  const handleAddBlockFromButton = useCallback((kind: BlockKind) => {
-    // Find a good position for the new block
-    const existingBlocks = canvasData.blocks;
-    let y = CANVAS_PADDING;
-    
-    if (existingBlocks.length > 0) {
-      const maxY = Math.max(...existingBlocks.map(b => b.y + b.h));
-      y = maxY + 40;
-    }
+      let insertIdx = blocks.length - 1; // default: after last block
+      for (let i = 0; i < blocks.length; i++) {
+        const el = blockElRefs.current.get(blocks[i].id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          insertIdx = i - 1; // before this block = after (i-1)
+          break;
+        }
+      }
+      setDragOverIndex(insertIdx);
+    }, [canvasData.blocks]);
 
-    const newBlock = createEmptyBlock(kind, CANVAS_PADDING, y);
-    const newData = {
-      ...canvasData,
-      blocks: [...canvasData.blocks, newBlock],
-    };
-    updateAndNotify(newData);
-    setSelectedBlockId(newBlock.id);
-  }, [canvasData, updateAndNotify]);
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+      if (!scrollContainerRef.current?.contains(e.relatedTarget as Node)) {
+        setIsDragOver(false);
+        setDragOverIndex(null);
+      }
+    }, []);
 
-  // Update block
-  const handleUpdateBlock = useCallback((id: string, updates: Partial<CanvasBlock>) => {
-    const newData = {
-      ...canvasData,
-      blocks: canvasData.blocks.map(block =>
-        block.id === id ? { ...block, ...updates } : block
-      ),
-    };
-    updateAndNotify(newData);
-  }, [canvasData, updateAndNotify]);
+    const handleDrop = useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      const kind = e.dataTransfer.getData('block-kind') as BlockKind;
+      if (!kind) return;
+      addBlockInternal(kind, dragOverIndex ?? undefined);
+      setDragOverIndex(null);
+    }, [addBlockInternal, dragOverIndex]);
 
-  // Duplicate block
-  const handleDuplicateBlock = useCallback((id: string) => {
-    const block = canvasData.blocks.find(b => b.id === id);
-    if (!block) return;
+    // ── Active drag block (for overlay) ──────────────────────────────────────
+    const activeDragBlock = activeDragId
+      ? canvasData.blocks.find(b => b.id === activeDragId)
+      : null;
 
-    const newBlock: CanvasBlock = {
-      ...block,
-      id: crypto.randomUUID(),
-      x: block.x + 30,
-      y: block.y + 30,
-    };
-
-    const newData = {
-      ...canvasData,
-      blocks: [...canvasData.blocks, newBlock],
-    };
-    updateAndNotify(newData);
-    setSelectedBlockId(newBlock.id);
-  }, [canvasData, updateAndNotify]);
-
-  // Delete block
-  const handleDeleteBlock = useCallback((id: string) => {
-    const newData = {
-      ...canvasData,
-      blocks: canvasData.blocks.filter(block => block.id !== id),
-    };
-    updateAndNotify(newData);
-    if (selectedBlockId === id) {
-      setSelectedBlockId(null);
-    }
-  }, [canvasData, selectedBlockId, updateAndNotify]);
-
-  // Handle drag end
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, delta } = event;
-    const block = canvasData.blocks.find(b => b.id === active.id);
-    if (!block) return;
-
-    const newX = snapToGrid(Math.max(CANVAS_PADDING, block.x + delta.x));
-    const newY = snapToGrid(Math.max(CANVAS_PADDING, block.y + delta.y));
-
-    handleUpdateBlock(active.id as string, { x: newX, y: newY });
-  }, [canvasData.blocks, handleUpdateBlock]);
-
-  // Calculate canvas size based on blocks
-  const canvasSize = {
-    width: Math.max(
-      1200,
-      ...canvasData.blocks.map(b => b.x + b.w + CANVAS_PADDING * 2)
-    ),
-    height: Math.max(
-      800,
-      ...canvasData.blocks.map(b => b.y + b.h + CANVAS_PADDING * 2)
-    ),
-  };
-
-  return (
-    <div className={cn("relative flex flex-col", className)}>
-      {/* Floating add button */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 shadow-sm"
-          onClick={() => handleAddBlockFromButton('text')}
+    return (
+      <div className={cn('relative flex flex-col', className)}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
-          <Plus className="h-4 w-4" />
-          Text Block
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 shadow-sm"
-          onClick={() => handleAddBlockFromButton('chat')}
-        >
-          <Plus className="h-4 w-4" />
-          Chat Block
-        </Button>
-      </div>
-
-      {/* Canvas area */}
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div
-          ref={canvasRef}
-          className={cn(
-            "relative overflow-auto bg-muted/20 rounded-lg border border-dashed border-border/50",
-            "min-h-[600px] cursor-crosshair"
-          )}
-          style={{ width: '100%', height: '600px' }}
-          onDoubleClick={handleDoubleClick}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Grid pattern */}
+          {/* Scrollable canvas */}
           <div
-            className="absolute inset-0 pointer-events-none opacity-30"
-            style={{
-              backgroundImage: `radial-gradient(circle, hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)`,
-              backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
-            }}
-          />
-
-          {/* Canvas content */}
-          <div
-            className="relative"
-            style={{
-              width: canvasSize.width,
-              height: canvasSize.height,
-              minWidth: '100%',
-              minHeight: '100%',
-            }}
+            ref={scrollContainerRef}
+            className={cn(
+              'relative overflow-y-auto overflow-x-hidden rounded-lg border border-dashed transition-colors',
+              'flex-1 min-h-[300px]',
+              isDragOver ? 'border-primary/60 bg-primary/5' : 'border-border/50 bg-muted/20',
+            )}
+            onDoubleClick={handleDoubleClick}
+            onTouchEnd={handleTouchEnd}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
-            {/* Empty state */}
+            {/* Dot-grid background */}
+            <div
+              className="absolute inset-0 pointer-events-none opacity-30"
+              style={{
+                backgroundImage: `radial-gradient(circle, hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)`,
+                backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
+              }}
+            />
+
+            {/* Sortable block list */}
+            <div className="relative flex flex-col gap-4 p-[60px]">
+              <SortableContext
+                items={canvasData.blocks.map(b => b.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {canvasData.blocks.map((block, index) => (
+                  <div key={block.id}>
+                    {/* Insert zone above each block (gap between index-1 and index) */}
+                    <div
+                      className="relative h-4 -my-0.5 group/gap flex items-center justify-center"
+                      onMouseEnter={() => setHoveredGap(index - 1)}
+                      onMouseLeave={() => setHoveredGap(null)}
+                    >
+                      {dragOverIndex === index - 1 && (
+                        <div className="absolute inset-x-0 flex items-center gap-2 pointer-events-none">
+                          <div className="flex-1 h-0.5 bg-primary rounded-full" />
+                          <span className="text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">Drop here</span>
+                          <div className="flex-1 h-0.5 bg-primary rounded-full" />
+                        </div>
+                      )}
+                      {hoveredGap === index - 1 && dragOverIndex === null && (
+                        <div className="absolute z-10 flex items-center gap-1 animate-fade-in">
+                          <div className="h-px flex-1 w-8 bg-primary/40" />
+                          <button
+                            onClick={() => addBlockInternal('text', index - 1)}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                          >
+                            <FileText className="h-3 w-3" />
+                            Text
+                          </button>
+                          <button
+                            onClick={() => addBlockInternal('chat', index - 1)}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                          >
+                            <MessageSquare className="h-3 w-3" />
+                            Chat
+                          </button>
+                          <div className="h-px flex-1 w-8 bg-primary/40" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="canvas-block">
+                      <DraggableBlock
+                        block={block}
+                        onUpdate={handleUpdateBlock}
+                        onDuplicate={handleDuplicateBlock}
+                        onDelete={handleDeleteBlock}
+                        isSelected={selectedBlockId === block.id}
+                        onSelect={setSelectedBlockId}
+                        onRegisterRef={registerBlockRef}
+                        lessonLabel={lessonLabel}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {/* Insert zone after the last block */}
+                {canvasData.blocks.length > 0 && (
+                  <div
+                    className="relative h-4 -my-0.5 flex items-center justify-center"
+                    onMouseEnter={() => setHoveredGap(canvasData.blocks.length - 1)}
+                    onMouseLeave={() => setHoveredGap(null)}
+                  >
+                    {dragOverIndex === canvasData.blocks.length - 1 && (
+                      <div className="absolute inset-x-0 flex items-center gap-2 pointer-events-none">
+                        <div className="flex-1 h-0.5 bg-primary rounded-full" />
+                        <span className="text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">Drop here</span>
+                        <div className="flex-1 h-0.5 bg-primary rounded-full" />
+                      </div>
+                    )}
+                    {hoveredGap === canvasData.blocks.length - 1 && dragOverIndex === null && (
+                      <div className="absolute z-10 flex items-center gap-1 animate-fade-in">
+                        <div className="h-px w-8 bg-primary/40" />
+                        <button
+                          onClick={() => addBlockInternal('text', canvasData.blocks.length - 1)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                        >
+                          <FileText className="h-3 w-3" />
+                          Text
+                        </button>
+                        <button
+                          onClick={() => addBlockInternal('chat', canvasData.blocks.length - 1)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          Chat
+                        </button>
+                        <div className="h-px w-8 bg-primary/40" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </SortableContext>
+
+            </div>
+
+            {/* Empty state — positioned relative to the scroll container so it truly centers */}
             {canvasData.blocks.length === 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none">
-                <Plus className="h-8 w-8 mb-2 opacity-50" />
-                <p className="text-sm">Double-click anywhere to add a block</p>
-                <p className="text-xs opacity-70">or use the buttons above</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none select-none">
+                <Plus className="h-8 w-8 mb-2 opacity-40" />
+                <p className="text-sm">Double-click to add a block</p>
+                <p className="text-xs opacity-60 mt-1">or drag a block from the Assets panel →</p>
               </div>
             )}
-
-            {/* Blocks */}
-            {canvasData.blocks.map(block => (
-              <div key={block.id} className="canvas-block">
-                <DraggableBlock
-                  block={block}
-                  onUpdate={handleUpdateBlock}
-                  onDuplicate={handleDuplicateBlock}
-                  onDelete={handleDeleteBlock}
-                  isSelected={selectedBlockId === block.id}
-                  onSelect={setSelectedBlockId}
-                />
-              </div>
-            ))}
           </div>
-        </div>
-      </DndContext>
 
-      {/* Context menu */}
-      {contextMenu && (
-        <CanvasContextMenu
-          position={contextMenu}
-          onAddBlock={handleAddBlock}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
-    </div>
-  );
-};
+          {/* Drag overlay – ghost of the block being sorted */}
+          <DragOverlay>
+            {activeDragBlock && (
+              <div className="rounded-lg border border-primary bg-background/90 shadow-2xl px-4 py-2 opacity-80">
+                <span className="text-xs font-mono text-muted-foreground">
+                  {activeDragBlock.name || `${activeDragBlock.kind}_block`}
+                </span>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+
+        {/* Context menu (double-click) */}
+        {contextMenu && (
+          <CanvasContextMenu
+            position={contextMenu}
+            onAddBlock={handleAddFromContextMenu}
+            onClose={() => setContextMenu(null)}
+          />
+        )}
+      </div>
+    );
+  }
+);
+
+CanvasEditor.displayName = 'CanvasEditor';
 
 export default CanvasEditor;

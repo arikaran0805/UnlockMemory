@@ -20,7 +20,7 @@ import {
   Settings,
   BarChart3,
   Share2,
-  GraduationCap,
+  Layers,
   ClipboardCheck,
   Trash2,
   Flag,
@@ -57,7 +57,7 @@ const contentSection: SidebarSection = {
   title: "Content Management",
   items: [
     { icon: BookOpen, label: "Posts", path: "/admin/posts" },
-    { icon: GraduationCap, label: "Courses", path: "/admin/courses" },
+    { icon: Layers, label: "Courses", path: "/admin/courses" },
     { icon: Dumbbell, label: "Practice Lab", path: "/admin/practice/skills" },
     { icon: Briefcase, label: "Careers", path: "/admin/careers" },
     { icon: Tags, label: "Tags", path: "/admin/tags" },

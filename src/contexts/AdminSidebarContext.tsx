@@ -11,7 +11,7 @@ const AdminSidebarContext = createContext<AdminSidebarContextType | undefined>(u
 
 export const AdminSidebarProvider = ({ 
   children, 
-  defaultOpen = true 
+  defaultOpen = false
 }: { 
   children: ReactNode; 
   defaultOpen?: boolean;

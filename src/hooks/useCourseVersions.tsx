@@ -101,7 +101,7 @@ export const useCourseVersions = (courseId: string | undefined) => {
 
   const saveVersion = async (
     content: string,
-    editorType: "rich-text" | "chat",
+    editorType: "rich-text" | "chat" | "canvas",
     changeSummary?: string,
     markAsPublished: boolean = false,
     versioningNoteType?: string
@@ -165,7 +165,7 @@ export const useCourseVersions = (courseId: string | undefined) => {
 
   const saveVersionAsDraft = async (
     content: string,
-    editorType: "rich-text" | "chat",
+    editorType: "rich-text" | "chat" | "canvas",
     changeSummary?: string,
     versioningNoteType?: string
   ) => {
@@ -174,7 +174,7 @@ export const useCourseVersions = (courseId: string | undefined) => {
 
   const saveVersionOnPublish = async (
     content: string,
-    editorType: "rich-text" | "chat"
+    editorType: "rich-text" | "chat" | "canvas"
   ) => {
     const versionNumber = versions.length > 0 
       ? Math.max(...versions.map(v => v.version_number)) + 1 
@@ -190,7 +190,7 @@ export const useCourseVersions = (courseId: string | undefined) => {
 
   const createInitialVersion = async (
     content: string,
-    editorType: "rich-text" | "chat",
+    editorType: "rich-text" | "chat" | "canvas",
     courseId: string
   ) => {
     try {

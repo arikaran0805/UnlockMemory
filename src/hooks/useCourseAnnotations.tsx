@@ -212,7 +212,7 @@ export const useCourseAnnotations = (courseId: string | undefined) => {
     selectionEnd: number,
     selectedText: string,
     comment: string,
-    editorType: "rich-text" | "chat",
+    editorType: "rich-text" | "chat" | "canvas",
     bubbleIndex?: number,
     versionId?: string
   ) => {

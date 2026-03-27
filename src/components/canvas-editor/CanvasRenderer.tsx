@@ -1,17 +1,15 @@
 /**
  * CanvasRenderer - Read-only renderer for canvas content
- * 
- * Displays blocks in reading order (top to bottom, left to right)
- * for student view while maintaining visual layout
+ *
+ * Renders blocks in their stored array order (which reflects the user's
+ * visual ordering from the editor, including any drag-to-reorder changes).
  */
 
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { 
-  CanvasBlock, 
-  parseCanvasContent, 
-  sortBlocksForReading,
-  isCanvasContent 
+import {
+  parseCanvasContent,
+  isCanvasContent,
 } from './types';
 import { RichTextRenderer } from '@/components/tiptap';
 import { ChatConversationView } from '@/components/chat-editor';
@@ -19,14 +17,14 @@ import { ChatConversationView } from '@/components/chat-editor';
 interface CanvasRendererProps {
   content: string;
   className?: string;
+  courseType?: string;
   codeTheme?: string;
 }
 
-const CanvasRenderer = ({ content, className, codeTheme }: CanvasRendererProps) => {
+const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRendererProps) => {
   const blocks = useMemo(() => {
     if (!isCanvasContent(content)) return [];
-    const data = parseCanvasContent(content);
-    return sortBlocksForReading(data.blocks);
+    return parseCanvasContent(content).blocks;
   }, [content]);
 
   if (blocks.length === 0) {
@@ -42,7 +40,9 @@ const CanvasRenderer = ({ content, className, codeTheme }: CanvasRendererProps) 
           ) : (
             <ChatConversationView
               content={block.content}
+              courseType={courseType}
               codeTheme={codeTheme}
+              allowSingleSpeaker
             />
           )}
         </div>

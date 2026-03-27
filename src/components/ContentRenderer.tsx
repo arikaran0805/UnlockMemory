@@ -99,7 +99,7 @@ const ContentRenderer = ({
   if (isCanvas) {
     return (
       <div className="prose prose-lg max-w-none">
-        <CanvasRenderer content={htmlContent} codeTheme={codeTheme} />
+        <CanvasRenderer content={htmlContent} courseType={courseType} codeTheme={codeTheme} />
       </div>
     );
   }

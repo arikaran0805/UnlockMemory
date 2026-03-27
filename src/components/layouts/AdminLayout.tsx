@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useAdminBadgeReads } from "@/hooks/useAdminBadgeReads";
 import AdminSidebar from "@/components/AdminSidebar";
+import AdminBreadcrumbHeader from "@/components/AdminBreadcrumbHeader";
 import { AdminSidebarProvider, useAdminSidebar } from "@/contexts/AdminSidebarContext";
 import { GlobalCommandSearch } from "@/components/GlobalCommandSearch";
 
@@ -160,6 +161,7 @@ const AdminLayoutContent = ({ children }: { children: ReactNode }) => {
           isOpen={sidebarOpen}
           onToggle={toggleSidebar}
           userProfile={userProfile}
+          onProfileUpdated={setUserProfile}
           userId={userId}
           notifications={notifications}
           getBadgeCount={getBadgeCount}
@@ -167,9 +169,10 @@ const AdminLayoutContent = ({ children }: { children: ReactNode }) => {
 
         <main
           className={`flex-1 min-w-0 transition-all duration-300 ${
-            sidebarOpen ? "pl-64" : "pl-[68px]"
+            sidebarOpen ? "pl-60" : "pl-14"
           }`}
         >
+          <AdminBreadcrumbHeader />
           <div className="p-8">{children}</div>
         </main>
       </div>
@@ -177,7 +180,7 @@ const AdminLayoutContent = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const AdminLayout = ({ children, defaultSidebarCollapsed = false }: AdminLayoutProps) => {
+const AdminLayout = ({ children, defaultSidebarCollapsed = true }: AdminLayoutProps) => {
   return (
     <AdminSidebarProvider defaultOpen={!defaultSidebarCollapsed}>
       <AdminLayoutContent>{children}</AdminLayoutContent>

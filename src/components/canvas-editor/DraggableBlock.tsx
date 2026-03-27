@@ -1,16 +1,42 @@
 /**
- * DraggableBlock - Wrapper component for canvas blocks
+ * DraggableBlock – sortable canvas block
+ *
+ * - Uses @dnd-kit/sortable (vertical reorder)
+ * - Flow layout (no absolute positioning)
+ * - Collapsible with content preview in header
+ * - Editable variable-style block name
+ * - Chat blocks rendered without the explanation section
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
-import { CanvasBlock, BlockKind } from './types';
+import { CanvasBlock } from './types';
 import CanvasBlockToolbar from './CanvasBlockToolbar';
 import { RichTextEditor } from '@/components/tiptap';
 import { ChatStyleEditor } from '@/components/chat-editor';
-import { FileText, MessageCircle } from 'lucide-react';
+
+/** Extract a short plain-text preview from block content */
+function getContentPreview(content: string): string {
+  if (!content) return '';
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed?.type === 'doc' && Array.isArray(parsed.content)) {
+      for (const node of parsed.content) {
+        const text = node?.content?.[0]?.text;
+        if (text) return text.slice(0, 80);
+      }
+    }
+  } catch {
+    const first = content
+      .split('\n')
+      .map((l: string) => l.replace(/[#*_`[\]()>]/g, '').trim())
+      .find((l: string) => l.length > 0);
+    if (first) return first.slice(0, 80);
+  }
+  return '';
+}
 
 interface DraggableBlockProps {
   block: CanvasBlock;
@@ -19,6 +45,8 @@ interface DraggableBlockProps {
   onDelete: (id: string) => void;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  onRegisterRef: (id: string, el: HTMLElement | null) => void;
+  lessonLabel?: string;
 }
 
 const DraggableBlock = ({
@@ -28,27 +56,41 @@ const DraggableBlock = ({
   onDelete,
   isSelected,
   onSelect,
+  onRegisterRef,
+  lessonLabel,
 }: DraggableBlockProps) => {
   const [isFocused, setIsFocused] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: block.id,
-    data: { block },
-  });
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
 
   const style = {
-    position: 'absolute' as const,
-    left: block.x,
-    top: block.y,
-    width: block.w,
-    transform: CSS.Translate.toString(transform),
-    zIndex: isDragging ? 100 : isSelected ? 10 : 1,
+    transform: CSS.Transform.toString(transform),
+    transition,
   };
 
-  const handleContentChange = (content: string) => {
+  // Register DOM node for auto-scroll from parent
+  const setRefs = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    onRegisterRef(block.id, node);
+  }, [setNodeRef, onRegisterRef, block.id]);
+
+  const handleContentChange = useCallback((content: string) => {
     onUpdate(block.id, { content });
-  };
+  }, [block.id, onUpdate]);
+
+  const handleNameChange = useCallback((name: string) => {
+    onUpdate(block.id, { name });
+  }, [block.id, onUpdate]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -56,82 +98,73 @@ const DraggableBlock = ({
   };
 
   const handleBlur = (e: React.FocusEvent) => {
-    // Check if focus is moving to another element within this block
-    if (containerRef.current?.contains(e.relatedTarget as Node)) {
-      return;
-    }
+    if (containerRef.current?.contains(e.relatedTarget as Node)) return;
     setIsFocused(false);
   };
 
-  // Resize observer to track actual height
+  // Track height changes for canvas sizing
   useEffect(() => {
     if (!containerRef.current) return;
-    
-    const observer = new ResizeObserver((entries) => {
+    const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
-        const height = entry.contentRect.height;
-        if (Math.abs(height - block.h) > 10) {
-          onUpdate(block.id, { h: height });
-        }
+        const h = entry.contentRect.height;
+        if (Math.abs(h - block.h) > 10) onUpdate(block.id, { h });
       }
     });
-
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, [block.id, block.h, onUpdate]);
 
   return (
     <div
-      ref={(node) => {
-        setNodeRef(node);
-        if (node) (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }}
+      ref={setRefs}
       style={style}
       className={cn(
-        "group relative rounded-lg border bg-background transition-all duration-150",
-        isDragging && "opacity-50 shadow-2xl",
+        'group rounded-lg border bg-background transition-shadow duration-150',
+        isDragging && 'opacity-30 shadow-2xl',
         isFocused || isSelected
-          ? "border-primary shadow-md ring-1 ring-primary/20"
-          : "border-border/50 hover:border-border"
+          ? 'border-primary shadow-md ring-1 ring-primary/20'
+          : 'border-border/50 hover:border-border',
       )}
       onClick={() => onSelect(block.id)}
       onFocus={handleFocus}
       onBlur={handleBlur}
     >
-      {/* Block type indicator */}
-      <div className="absolute -left-8 top-2 flex items-center justify-center w-6 h-6 rounded bg-muted/50 text-muted-foreground">
-        {block.kind === 'text' ? (
-          <FileText className="h-3.5 w-3.5" />
-        ) : (
-          <MessageCircle className="h-3.5 w-3.5" />
-        )}
-      </div>
-
-      {/* Toolbar */}
+      {/* Header toolbar – always visible */}
       <CanvasBlockToolbar
+        kind={block.kind}
+        name={block.name}
+        onNameChange={handleNameChange}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(c => !c)}
         onDuplicate={() => onDuplicate(block.id)}
         onDelete={() => onDelete(block.id)}
         dragHandleProps={{ ...listeners, ...attributes }}
+        contentPreview={getContentPreview(block.content)}
       />
 
-      {/* Content */}
-      <div className="p-4 min-h-[100px]">
-        {block.kind === 'text' ? (
-          <RichTextEditor
-            value={block.content}
-            onChange={handleContentChange}
-            placeholder="Write your content here..."
-            className="min-h-[80px]"
-          />
-        ) : (
-          <ChatStyleEditor
-            value={block.content}
-            onChange={handleContentChange}
-            placeholder="Start a conversation..."
-            courseType="python"
-          />
-        )}
-      </div>
+      {/* Content – hidden when collapsed */}
+      {!isCollapsed && (
+        <div className="p-4">
+          {block.kind === 'text' ? (
+            <RichTextEditor
+              value={block.content}
+              onChange={handleContentChange}
+              placeholder="Write your content here…"
+              className="min-h-[80px]"
+            />
+          ) : (
+            <ChatStyleEditor
+              value={block.content}
+              onChange={handleContentChange}
+              placeholder="Start a conversation…"
+              courseType="python"
+              showExplanation={false}
+              lessonLabel={lessonLabel}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };

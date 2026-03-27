@@ -12,7 +12,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ViewAsRoleProvider } from "@/contexts/ViewAsRoleContext";
 import { PricingDrawerProvider } from "@/contexts/PricingDrawerContext";
 import { CareerPlanProvider } from "@/contexts/CareerPlanContext";
-import ViewAsRoleBanner from "@/components/ViewAsRoleBanner";
+
 
 
 // Import unified TipTap styles
@@ -70,7 +70,6 @@ const AppContent = () => {
   
   return (
     <>
-      <ViewAsRoleBanner />
       <Toaster />
       <Sonner />
       <Routes>

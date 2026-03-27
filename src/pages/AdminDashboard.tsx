@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 import { 
-  Users, FileText, AlertTriangle, TrendingUp, TrendingDown, 
+  Users, Briefcase, AlertTriangle, TrendingUp, TrendingDown, 
   DollarSign, Shield, Settings, Trash2, UserCog,
   Activity, Clock, Eye, CheckCircle, XCircle, AlertCircle
 } from "lucide-react";
@@ -36,22 +36,20 @@ interface TrendData {
 interface KpiTrendStats {
   totalUsers: TrendData;
   activeUsers: TrendData;
-  totalPosts: TrendData;
+  totalCareers: TrendData;
   pendingApprovals: TrendData;
   reportedContent: TrendData;
-  revenue: TrendData;
 }
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   
   const [stats, setStats] = useState<KpiTrendStats>({
-    totalUsers: { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
-    activeUsers: { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
-    totalPosts: { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
-    pendingApprovals: { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
+    totalUsers:      { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
+    activeUsers:     { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
+    totalCareers:    { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
+    pendingApprovals:{ current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
     reportedContent: { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
-    revenue: { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
   });
   const [criticalAlerts, setCriticalAlerts] = useState<{
     pendingPosts: number;
@@ -155,29 +153,23 @@ const AdminDashboard = () => {
         .gte("viewed_at", fourteenDaysAgo.toISOString())
         .lt("viewed_at", sevenDaysAgo.toISOString());
 
-      // Total posts
-      const { count: totalPosts } = await supabase
-        .from("posts")
+      // Total careers
+      const { count: totalCareers } = await supabase
+        .from("careers")
         .select("*", { count: "exact", head: true });
 
-      const { count: postsThisWeek } = await supabase
-        .from("posts")
+      const { count: careersThisWeek } = await supabase
+        .from("careers")
         .select("*", { count: "exact", head: true })
         .gte("created_at", sevenDaysAgo.toISOString());
 
-      const { count: postsPrevWeek } = await supabase
-        .from("posts")
-        .select("*", { count: "exact", head: true })
-        .gte("created_at", fourteenDaysAgo.toISOString())
-        .lt("created_at", sevenDaysAgo.toISOString());
-
-      // Pending approvals - today vs yesterday
+      // Pending approvals
       const { count: pendingApprovalsNow } = await supabase
         .from("posts")
         .select("*", { count: "exact", head: true })
         .eq("status", "pending");
 
-      // Reported content - today vs yesterday
+      // Reported content
       const { count: reportedContentNow } = await supabase
         .from("content_reports")
         .select("*", { count: "exact", head: true })
@@ -194,15 +186,14 @@ const AdminDashboard = () => {
         .neq("status", "pending")
         .gte("updated_at", oneDayAgo.toISOString());
 
-      // Calculate reported content trend based on net change today
       const reportedNetChange = (reportsAddedToday || 0) - (reportsResolvedToday || 0);
 
       setStats({
-        totalUsers: calculateTrend(totalUsers || 0, (totalUsers || 0) - (newUsersThisWeek || 0)),
-        activeUsers: calculateTrend(activeUsersThisWeek || 0, activeUsersPrevWeek || 0),
-        totalPosts: {
-          ...calculateTrend(totalPosts || 0, (totalPosts || 0) - (postsThisWeek || 0)),
-          change: postsThisWeek || 0,
+        totalUsers:   calculateTrend(totalUsers || 0, (totalUsers || 0) - (newUsersThisWeek || 0)),
+        activeUsers:  calculateTrend(activeUsersThisWeek || 0, activeUsersPrevWeek || 0),
+        totalCareers: {
+          ...calculateTrend(totalCareers || 0, (totalCareers || 0) - (careersThisWeek || 0)),
+          change: careersThisWeek || 0,
         },
         pendingApprovals: {
           current: pendingApprovalsNow || 0,
@@ -218,7 +209,6 @@ const AdminDashboard = () => {
           trend: reportedNetChange > 0 ? "up" : reportedNetChange < 0 ? "down" : "neutral",
           percentage: 0,
         },
-        revenue: { current: 0, previous: 0, change: 0, trend: "neutral", percentage: 0 },
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -386,20 +376,14 @@ const AdminDashboard = () => {
     <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-muted-foreground">Platform overview & system control</p>
-            </div>
-            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
-              <Shield className="h-3 w-3 mr-1" />
-              Admin
-            </Badge>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Platform Manager</h1>
+            <p className="text-muted-foreground">Full platform control across users, content, and system operations</p>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <Card className="bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background border-emerald-100 dark:border-emerald-900/30">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
@@ -429,13 +413,13 @@ const AdminDashboard = () => {
           <Card className="bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background border-emerald-100 dark:border-emerald-900/30">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                Total Posts
-                <FileText className="h-4 w-4 text-emerald-600" />
+                Total Careers
+                <Briefcase className="h-4 w-4 text-emerald-600" />
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.totalPosts.current.toLocaleString()}</div>
-              <KpiTrendIndicator data={stats.totalPosts} type="posts" />
+              <div className="text-2xl font-bold text-foreground">{stats.totalCareers.current.toLocaleString()}</div>
+              <KpiTrendIndicator data={stats.totalCareers} type="posts" />
             </CardContent>
           </Card>
 
@@ -462,19 +446,6 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{stats.reportedContent.current}</div>
               <KpiTrendIndicator data={stats.reportedContent} type="reported" invertColors />
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background border-emerald-100 dark:border-emerald-900/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                Revenue
-                <DollarSign className="h-4 w-4 text-emerald-600" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">${stats.revenue.current.toLocaleString()}</div>
-              <KpiTrendIndicator data={stats.revenue} type="revenue" />
             </CardContent>
           </Card>
         </div>

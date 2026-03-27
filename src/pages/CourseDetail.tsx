@@ -1880,11 +1880,11 @@ const CourseDetail = () => {
                         <div className="space-y-8">
                           {/* Description */}
                           {course.description && (
-                            <div className="prose prose-lg max-w-none">
+                            <div>
                               <h3 className="text-xl font-semibold mb-4">About This Course</h3>
-                              <div 
-                                className="text-foreground leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(course.description) }}
+                              <ContentRenderer
+                                htmlContent={course.description}
+                                courseType={course?.slug?.toLowerCase()}
                               />
                             </div>
                           )}

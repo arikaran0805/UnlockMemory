@@ -6,9 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { RichTextEditor } from "@/components/tiptap";
-import { ChatStyleEditor } from "@/components/chat-editor";
-import { CanvasEditor } from "@/components/canvas-editor";
+import { CanvasEditor, type CanvasEditorRef } from "@/components/canvas-editor";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -26,13 +24,13 @@ import AdminEditBanner from "@/components/AdminEditBanner";
 import SideBySideComparison from "@/components/SideBySideComparison";
 import VersionDiffViewer from "@/components/VersionDiffViewer";
 import { VersioningNoteDialog, VersioningNoteType } from "@/components/VersioningNoteDialog";
-import { ArrowLeft, Save, X, FileText, MessageCircle, Send, AlertCircle, Eye, ChevronDown, ChevronLeft, ChevronRight, Loader2, Check, Highlighter, Settings, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Send, AlertCircle, Eye, Loader2, Check, Highlighter, Settings, Layers, MessageSquare } from "lucide-react";
+import { AssetsSidebar } from "@/components/assets/AssetsSidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { isChatTranscript } from "@/lib/chatContent";
 import {
   Dialog,
   DialogContent,
@@ -40,11 +38,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
@@ -89,7 +82,6 @@ const AdminPostEditor = () => {
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [editorType, setEditorType] = useState<"rich" | "chat" | "canvas">("rich");
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -119,10 +111,11 @@ const AdminPostEditor = () => {
   const [showPublishPreviewDialog, setShowPublishPreviewDialog] = useState(false);
   const [showVersioningNoteDialog, setShowVersioningNoteDialog] = useState(false);
   const [dismissedAdminBanner, setDismissedAdminBanner] = useState(false);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [openSidebar, setOpenSidebar] = useState<'settings' | 'assets' | 'review' | null>('assets');
+  const rightSidebarOpen = openSidebar === 'settings' || openSidebar === 'review';
+  const canvasEditorRef = useRef<CanvasEditorRef>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [annotationMode, setAnnotationMode] = useState(false);
-  const saveToAnnotateToastShownRef = useRef(false);
   const previousContentRef = useRef<string>("");
 
   // Version and annotation hooks
@@ -236,10 +229,6 @@ const AdminPostEditor = () => {
     setFormData((prev) => ({ ...prev, content: latest.content }));
     setOriginalContent(latest.content);
     previousContentRef.current = latest.content;
-
-    if (latest.content && isChatTranscript(latest.content)) {
-      setEditorType("chat");
-    }
 
     setDidSyncLatestVersion(true);
   }, [id, versionsLoading, versions, didSyncLatestVersion]);
@@ -365,9 +354,6 @@ const AdminPostEditor = () => {
           previousContentRef.current = data.content || "";
         }
 
-        if (data.content && isChatTranscript(data.content)) {
-          setEditorType("chat");
-        }
       }
     } catch (error: any) {
       toast({
@@ -433,13 +419,13 @@ const AdminPostEditor = () => {
         if (isPublishing) {
           await saveVersionOnPublish(
             formData.content,
-            editorType === "chat" ? "chat" : "rich-text"
+            "canvas"
           );
         } else if (formData.content !== previousContentRef.current) {
           // Save draft version if content changed but not publishing
           await saveVersionAsDraft(
             formData.content,
-            editorType === "chat" ? "chat" : "rich-text"
+            "canvas"
           );
         }
         previousContentRef.current = formData.content;
@@ -466,7 +452,7 @@ const AdminPostEditor = () => {
               post_id: postId,
               version_number: 0,
               content: formData.content,
-              editor_type: editorType === "chat" ? "chat" : "rich-text",
+              editor_type: "canvas",
               edited_by: currentSession.user.id,
               editor_role: isAdmin ? "admin" : "moderator",
               change_summary: "Initial version (v0)",
@@ -746,7 +732,7 @@ const AdminPostEditor = () => {
     post_id: id || "",
     version_number: versions.length > 0 ? Math.max(...versions.map(v => v.version_number)) + 1 : 1,
     content: formData.content,
-    editor_type: editorType === "chat" ? "chat" : "rich-text",
+    editor_type: "canvas",
     edited_by: userId || "",
     editor_role: isAdmin ? "admin" : "moderator",
     created_at: new Date().toISOString(),
@@ -792,7 +778,7 @@ const AdminPostEditor = () => {
       selectionEnd,
       selectedTextStr,
       comment,
-      editorType === "chat" ? "chat" : "rich-text",
+      "rich-text",
       bubbleIndex
     );
   };
@@ -812,10 +798,11 @@ const AdminPostEditor = () => {
   }
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-6rem)] overflow-hidden">
+    <div className="flex gap-4 h-[calc(100vh-4rem)] overflow-hidden">
         {/* Main Content Area */}
-        <div className="flex-1 min-w-0 space-y-6 overflow-y-auto">
-          <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <Tabs defaultValue={id ? "content" : "details"} className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -845,49 +832,16 @@ const AdminPostEditor = () => {
                 </div>
               )}
             </div>
-            
-            {/* Version and Annotation Controls */}
-            {id && (
-              <div className="flex items-center gap-3">
-                {/* Annotation Mode Toggle */}
-                {(isAdmin || isModerator) && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/30">
-                    <Highlighter className={`h-4 w-4 ${annotationMode ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className="text-xs font-medium text-muted-foreground">Annotate</span>
-                    <Switch
-                      checked={annotationMode}
-                      onCheckedChange={setAnnotationMode}
-                      className="scale-75"
-                    />
-                  </div>
-                )}
-                <VersionHistoryPanel
-                  versions={versions}
-                  loading={versionsLoading}
-                  isAdmin={isAdmin}
-                  currentContent={formData.content}
-                  liveContent={postDbContent}
-                  onRestore={handleRestoreVersion}
-                  onPublish={handlePublishVersion}
-                  onPreview={handlePreviewVersion}
-                  onUpdateNote={updateVersionNote}
-                />
-                <AnnotationPanel
-                  annotations={annotations}
-                  loading={annotationsLoading}
-                  isAdmin={isAdmin}
-                  isModerator={isModerator}
-                  userId={userId}
-                  onAddAnnotation={handleAddAnnotation}
-                  onUpdateStatus={updateAnnotationStatus}
-                  onDelete={deleteAnnotation}
-                  onAddReply={createReply}
-                  onDeleteReply={deleteReply}
-                  selectedText={selectedText}
-                  onClearSelection={() => setSelectedText(null)}
-                />
-              </div>
-            )}
+            <TabsList>
+              <TabsTrigger value="details" className="gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Post Details
+              </TabsTrigger>
+              <TabsTrigger value="content" className="gap-1.5">
+                Content
+                {annotationMode && <Highlighter className="h-3 w-3 text-primary" />}
+              </TabsTrigger>
+            </TabsList>
           </div>
 
           {/* Admin edit notification banner for moderators */}
@@ -899,19 +853,10 @@ const AdminPostEditor = () => {
             />
           )}
 
-          {/* Admin edit warning (shown to admins) */}
-          {hasAdminEdits && (
-            <div className="flex items-center gap-2 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-              <span className="text-sm text-amber-800 dark:text-amber-200">
-                You have made changes to this moderator's post. Changes will be highlighted for the author.
-              </span>
-            </div>
-          )}
 
           {/* Open annotations indicator */}
           {annotations.filter(a => a.status === "open").length > 0 && !isAdmin && (
-            <div className="flex items-center gap-2 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg flex-shrink-0">
               <AlertCircle className="h-5 w-5 text-red-600" />
               <span className="text-sm text-red-800 dark:text-red-200">
                 You have {annotations.filter(a => a.status === "open").length} pending feedback comments from admin. Check the Annotations panel.
@@ -919,20 +864,7 @@ const AdminPostEditor = () => {
             </div>
           )}
 
-          <Collapsible defaultOpen={!id} className="space-y-2">
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors group">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium text-sm">Post Details</span>
-                {formData.title && (
-                  <Badge variant="secondary" className="text-xs">
-                    {formData.title.length > 30 ? formData.title.slice(0, 30) + "..." : formData.title}
-                  </Badge>
-                )}
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-4 pt-2">
+          <TabsContent value="details" className="space-y-4 mt-0 flex-1 overflow-y-auto">
               <div>
                 <Label htmlFor="title" className="text-base">Title</Label>
                 <Input
@@ -969,155 +901,160 @@ const AdminPostEditor = () => {
                   rows={2}
                 />
               </div>
-            </CollapsibleContent>
-          </Collapsible>
 
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="content" className="text-base">Content</Label>
-                 {annotationMode && (
-                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/10 text-primary border border-primary/20 animate-fade-in">
-                     <Highlighter className="h-3 w-3" />
-                     Annotation Mode
-                   </span>
-                 )}
+              <div className="space-y-2">
+                <Label htmlFor="category">Course</Label>
+                <Select
+                  value={formData.category_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value === "none" ? "" : value, lesson_id: "" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No course</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Tabs value={editorType} onValueChange={(v) => setEditorType(v as "rich" | "chat" | "canvas")}>
-                <TabsList className="h-9">
-                  <TabsTrigger value="rich" className="text-xs px-3 gap-1.5">
-                    <FileText className="w-3.5 h-3.5" />
-                    Rich Editor
-                  </TabsTrigger>
-                  <TabsTrigger value="chat" className="text-xs px-3 gap-1.5">
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    Chat Style
-                  </TabsTrigger>
-                  <TabsTrigger value="canvas" className="text-xs px-3 gap-1.5">
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                    Canvas
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            
-            <div className={`transition-all duration-300 rounded-lg ${annotationMode && editorType !== 'canvas' ? 'ring-2 ring-primary/30 ring-offset-2 ring-offset-background [&_*]:cursor-crosshair' : ''}`}>
-            {editorType === "rich" ? (
-              <RichTextEditor
-                value={formData.content}
-                onChange={(value) => setFormData({ ...formData, content: value })}
-                placeholder="Write your post content here..."
-                annotationMode={annotationMode}
-                annotations={annotations.map(a => ({
-                  id: a.id,
-                  selection_start: a.selection_start,
-                  selection_end: a.selection_end,
-                  selected_text: a.selected_text,
-                  status: a.status,
-                }))}
-                onAnnotationClick={(annotation) => {
-                  // Find the full annotation and scroll to it in the panel
-                  const fullAnnotation = annotations.find(a => a.id === annotation.id);
-                  if (fullAnnotation) {
-                    setSelectedText({
-                      start: fullAnnotation.selection_start,
-                      end: fullAnnotation.selection_end,
-                      text: fullAnnotation.selected_text,
-                      type: "paragraph",
-                    });
-                  }
-                }}
-                 onTextSelect={(selection) => {
-                   if (!annotationMode) return; // Only show popup when annotation mode is ON
-                   if (!isAdmin && !isModerator) return;
-                   if (!id) {
-                     if (!saveToAnnotateToastShownRef.current) {
-                       saveToAnnotateToastShownRef.current = true;
-                       toast({
-                         title: "Save to annotate",
-                         description: "Create/save the post first, then you can add annotations.",
-                       });
-                     }
-                     return;
-                   }
 
-                   setSelectedText({
-                     start: selection.start,
-                     end: selection.end,
-                     text: selection.text,
-                     type: selection.type,
-                     rect: selection.rect,
-                   });
-                 }}
-              />
-            ) : editorType === "chat" ? (
-              <ChatStyleEditor
-                value={formData.content}
-                onChange={(value) => setFormData({ ...formData, content: value })}
-                courseType={
-                  categories.find(c => c.id === formData.category_id)?.name?.toLowerCase().replace(/\s+/g, '') || "python"
-                }
-                placeholder="Start a conversation..."
-                codeTheme={formData.code_theme}
-                annotationMode={annotationMode}
-                annotations={annotations.map(a => ({ bubble_index: a.bubble_index, status: a.status }))}
-                onTextSelect={(selection) => {
-                  if (!annotationMode) return; // Only show popup when annotation mode is ON
-                  if (!isAdmin && !isModerator) return;
-                  if (!id) {
-                    if (!saveToAnnotateToastShownRef.current) {
-                      saveToAnnotateToastShownRef.current = true;
-                      toast({
-                        title: "Save to annotate",
-                        description: "Create/save the post first, then you can add annotations.",
-                      });
-                    }
-                    return;
-                  }
+              {formData.category_id && courseLessons.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="lesson">Lesson</Label>
+                  <Select
+                    value={formData.lesson_id || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, lesson_id: value === "none" ? "" : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a lesson" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No lesson</SelectItem>
+                      {courseLessons.map((lesson, index) => (
+                        <SelectItem key={lesson.id} value={lesson.id}>
+                          #{index + 1} - {lesson.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </TabsContent>
 
-                  setSelectedText({
-                    start: selection.start,
-                    end: selection.end,
-                    text: selection.text,
-                    type: selection.type,
-                    bubbleIndex: selection.bubbleIndex,
-                    rect: selection.rect,
-                  });
-                }}
-              />
-            ) : (
+            <TabsContent value="content" className="mt-4 flex-1 min-h-0 flex flex-col">
               <CanvasEditor
+                ref={canvasEditorRef}
                 value={formData.content}
                 onChange={(value) => setFormData({ ...formData, content: value })}
-                className="min-h-[600px]"
+                className="flex-1 min-h-0"
+                lessonLabel={categories.find(c => c.id === formData.category_id)?.name}
               />
-            )}
-            </div>
+            </TabsContent>
+          </Tabs>
           </div>
-        </div>
 
         {/* Right Sidebar with Vertical Tab Toggle */}
         <div className="flex-shrink-0 flex">
-          {/* Vertical Tab Toggle - Always visible */}
-          <button
-            onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-            className="flex flex-col items-center justify-start gap-1 py-3 px-1 bg-muted/50 hover:bg-muted border-y border-l rounded-l-md transition-colors cursor-pointer"
-          >
-            <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${rightSidebarOpen ? 'rotate-180' : ''}`} />
-            <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-              Settings
-            </span>
-          </button>
+          {/* Vertical Tab Strip - Settings + Assets + Review */}
+          <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
+            <button
+              onClick={() => setOpenSidebar(openSidebar === 'settings' ? null : 'settings')}
+              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'settings' ? 'bg-muted' : 'hover:bg-muted'}`}
+            >
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                Settings
+              </span>
+            </button>
+            <button
+              onClick={() => setOpenSidebar(openSidebar === 'assets' ? null : 'assets')}
+              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'assets' ? 'bg-muted' : 'hover:bg-muted'}`}
+            >
+              <Layers className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                Assets
+              </span>
+            </button>
+            {id && (
+              <button
+                onClick={() => setOpenSidebar(openSidebar === 'review' ? null : 'review')}
+                className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'review' ? 'bg-muted' : 'hover:bg-muted'}`}
+              >
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                  Review
+                </span>
+              </button>
+            )}
+          </div>
 
           {/* Sidebar Content */}
-          <Card className={`flex flex-col min-h-0 transition-all duration-300 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
+          <Card className={`flex flex-col min-h-0 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
             <div className={`p-4 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
-              <div className="flex items-center gap-2 mb-3">
-                <Settings className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm whitespace-nowrap">Post Settings</h3>
-              </div>
+              {openSidebar === 'review' ? (
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm whitespace-nowrap">Review Panel</h3>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-3">
+                  <Settings className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm whitespace-nowrap">Post Settings</h3>
+                </div>
+              )}
+              {/* Review Panel Controls */}
+              {openSidebar === 'review' && (
+                <div className="space-y-3">
+                  {(isAdmin || isModerator) && (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <Highlighter className={`h-4 w-4 ${annotationMode ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className="text-xs font-medium">Annotate</span>
+                      </div>
+                      <Switch
+                        checked={annotationMode}
+                        onCheckedChange={setAnnotationMode}
+                        className="scale-75"
+                      />
+                    </div>
+                  )}
+                  <div className="[&>*]:w-full">
+                    <VersionHistoryPanel
+                      versions={versions}
+                      loading={versionsLoading}
+                      isAdmin={isAdmin}
+                      currentContent={formData.content}
+                      liveContent={postDbContent}
+                      onRestore={handleRestoreVersion}
+                      onPublish={handlePublishVersion}
+                      onPreview={handlePreviewVersion}
+                      onUpdateNote={updateVersionNote}
+                    />
+                  </div>
+                  <div className="[&>*]:w-full">
+                    <AnnotationPanel
+                      annotations={annotations}
+                      loading={annotationsLoading}
+                      isAdmin={isAdmin}
+                      isModerator={isModerator}
+                      userId={userId}
+                      onAddAnnotation={handleAddAnnotation}
+                      onUpdateStatus={updateAnnotationStatus}
+                      onDelete={deleteAnnotation}
+                      onAddReply={createReply}
+                      onDeleteReply={deleteReply}
+                      selectedText={selectedText}
+                      onClearSelection={() => setSelectedText(null)}
+                    />
+                  </div>
+                </div>
+              )}
               {/* Action Buttons */}
-              <div className="space-y-2">
+              {openSidebar !== 'review' && <div className="space-y-2">
                 {canPublishDirectly ? (
                   <>
                     {id && hasContentChanges && formData.status === "published" ? (
@@ -1182,10 +1119,10 @@ const AdminPostEditor = () => {
                 >
                   Cancel
                 </Button>
-              </div>
+              </div>}
             </div>
-            
-            <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
+
+            <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
               <div className="p-4 space-y-4">
                 {/* Status - Only show to admins */}
                 {canPublishDirectly && (
@@ -1208,53 +1145,6 @@ const AdminPostEditor = () => {
                     </Select>
                   </div>
                 )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Course</Label>
-                  <Select 
-                    value={formData.category_id || "none"} 
-                    onValueChange={(value) => setFormData({ ...formData, category_id: value === "none" ? "" : value, lesson_id: "" })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No course</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formData.category_id && courseLessons.length > 0 && (
-                  <div className="space-y-2">
-                    <Label htmlFor="lesson">Lesson</Label>
-                    <Select 
-                      value={formData.lesson_id || "none"} 
-                      onValueChange={(value) => setFormData({ ...formData, lesson_id: value === "none" ? "" : value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a lesson" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No lesson</SelectItem>
-                        {courseLessons.map((lesson, index) => (
-                          <SelectItem key={lesson.id} value={lesson.id}>
-                            #{index + 1} - {lesson.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Assign this post to a lesson in the course
-                    </p>
-                  </div>
-                )}
-
-
 
                 <div className="space-y-2">
                   <Label htmlFor="featured_image">Featured Image URL</Label>
@@ -1295,6 +1185,20 @@ const AdminPostEditor = () => {
               </div>
             </ScrollArea>
           </Card>
+
+          {/* Assets Sidebar */}
+          <AssetsSidebar
+            isOpen={openSidebar === 'assets'}
+            editorType="canvas"
+            onInsert={(asset) => {
+              if (asset.type === 'block' && asset.blockKind && canvasEditorRef.current) {
+                canvasEditorRef.current.addBlock(asset.blockKind);
+              } else {
+                navigator.clipboard.writeText(asset.url);
+                toast({ title: "URL copied", description: "Paste it into the editor." });
+              }
+            }}
+          />
         </div>
 
       {/* Version Preview Dialog */}
@@ -1396,7 +1300,7 @@ const AdminPostEditor = () => {
           try {
             const saved = await saveVersionAsDraft(
               formData.content,
-              editorType === "chat" ? "chat" : "rich-text",
+              "canvas",
               changeSummary,
               noteType
             );

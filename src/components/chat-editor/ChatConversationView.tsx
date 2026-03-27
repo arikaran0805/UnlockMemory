@@ -47,6 +47,8 @@ interface ChatConversationViewProps {
   courseType?: string;
   className?: string;
   codeTheme?: string;
+  /** Allow rendering single-speaker conversations (used in canvas blocks) */
+  allowSingleSpeaker?: boolean;
   /** Annotations for the explanation section */
   explanationAnnotations?: ExplanationAnnotation[];
   isAdmin?: boolean;
@@ -73,8 +75,8 @@ const hasCodeBlock = (content: string): boolean => {
   return /```[\s\S]*?```/.test(content);
 };
 
-const parseConversation = (content: string): ChatMessage[] => {
-  const segments = extractChatSegments(content);
+const parseConversation = (content: string, allowSingle?: boolean): ChatMessage[] => {
+  const segments = extractChatSegments(content, allowSingle ? { allowSingle: true } : undefined);
   if (segments.length === 0) return [];
 
   return segments.map((s, index) => {
@@ -251,6 +253,7 @@ const ChatConversationView = ({
   courseType = "python",
   className,
   codeTheme,
+  allowSingleSpeaker = false,
   explanationAnnotations = [],
   isAdmin = false,
   isModerator = false,
@@ -260,7 +263,7 @@ const ChatConversationView = ({
 }: ChatConversationViewProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [dynamicColors, setDynamicColors] = useState<DynamicChatColors | null>(null);
-  const messages = useMemo(() => parseConversation(content), [content]);
+  const messages = useMemo(() => parseConversation(content, allowSingleSpeaker), [content, allowSingleSpeaker]);
   const explanation = useMemo(() => extractExplanation(content), [content]);
   const isExplanationTipTapJSON = useMemo(() => isTipTapJSON(explanation), [explanation]);
 

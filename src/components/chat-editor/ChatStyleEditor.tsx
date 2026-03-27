@@ -16,6 +16,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { MonacoCodeBlock } from "@/components/code-block";
 import { supabase } from "@/integrations/supabase/client";
 import { renderCourseIcon } from "./utils";
+import { getChatColors } from "./chatColors";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,8 +89,11 @@ interface ChatStyleEditorProps {
   courseType?: string;
   placeholder?: string;
   codeTheme?: string;
+  lessonLabel?: string;
   annotationMode?: boolean;
   annotations?: BubbleAnnotation[];
+  /** Hide the explanation section below the chat (default true) */
+  showExplanation?: boolean;
   /** Annotations for the explanation section (RichTextEditor) */
   explanationAnnotations?: ExplanationAnnotation[];
   isAdmin?: boolean;
@@ -329,6 +333,17 @@ const SortableMessageItem = ({
     isDragging,
   } = useSortable({ id: message.id });
 
+  const [showActions, setShowActions] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleHoverEnter = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    setShowActions(true);
+  };
+  const handleHoverLeave = () => {
+    hideTimerRef.current = setTimeout(() => setShowActions(false), 150);
+  };
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -340,12 +355,7 @@ const SortableMessageItem = ({
 
   // Action buttons component
   const ActionButtons = () => (
-    <div
-      className={cn(
-        "flex flex-col items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/95 backdrop-blur-sm border rounded-lg px-1 py-1 shadow-sm flex-shrink-0",
-        isTakeaway ? "mt-8" : "mt-6"
-      )}
-    >
+    <div className="flex flex-row-reverse items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-lg px-1 py-1 shadow-sm">
       <Button
         variant="ghost"
         size="icon"
@@ -481,22 +491,47 @@ const SortableMessageItem = ({
     );
   }
 
-  // For regular messages, position action buttons based on bubble side
-  // Mentor bubbles are on the right (flex-row-reverse), so buttons go on left
-  // Course bubbles are on the left, so buttons go on right
+  // For regular messages, avatar lives in a shared hover container with ActionButtons
+  // so the mouse can move between them without triggering hide (no gap, no layout shift)
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
+    <div
+      ref={setNodeRef}
+      style={style}
       className={cn(
-        "group relative flex items-start gap-2 mb-4",
+        "flex items-end gap-2 mb-4",
         isMentor ? "flex-row-reverse" : "flex-row"
       )}
     >
-      {/* Action buttons - position based on bubble side */}
-      {isEditMode && !isEditing && !annotationMode && <ActionButtons />}
-      
-      {/* Main bubble content */}
+      {/* Shared hover container: avatar + absolutely-positioned ActionButtons */}
+      <div
+        className="relative flex-shrink-0"
+        onMouseEnter={handleHoverEnter}
+        onMouseLeave={handleHoverLeave}
+      >
+        {/* Avatar */}
+        <div className={cn(
+          "w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-sm cursor-pointer",
+          getChatColors(isMentor).avatar
+        )}>
+          {renderCourseIcon(character.emoji, 18)}
+        </div>
+
+        {/* ActionButtons — absolute, positioned above avatar, debounce keeps it open as mouse moves to it */}
+        {isEditMode && !isEditing && !annotationMode && showActions && (
+          <div
+            className={cn(
+              "absolute z-20 top-full mt-1",
+              isMentor ? "right-0" : "left-0"
+            )}
+            onMouseEnter={handleHoverEnter}
+            onMouseLeave={handleHoverLeave}
+          >
+            <ActionButtons />
+          </div>
+        )}
+      </div>
+
+      {/* Bubble content */}
       <div className="flex-1 min-w-0">
         <ChatBubble
           message={message}
@@ -654,6 +689,7 @@ const ChatStyleEditor = ({
   codeTheme,
   annotationMode,
   annotations = [],
+  showExplanation = true,
   explanationAnnotations = [],
   isAdmin = false,
   isModerator = false,
@@ -662,6 +698,7 @@ const ChatStyleEditor = ({
   onAnnotationDelete,
   onTextSelect,
   onExplanationTextSelect,
+  lessonLabel,
 }: ChatStyleEditorProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => parseContent(value));
   const [explanation, setExplanation] = useState<string>(() => extractExplanation(value) || "");
@@ -1477,26 +1514,12 @@ const ChatStyleEditor = ({
     <div className="chat-style-editor rounded-xl border border-border bg-background overflow-hidden shadow-lg">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-primary" />
-            <span className="font-medium text-sm">Chat Editor</span>
-          </div>
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map((course) => (
-                <SelectItem key={course.slug} value={course.slug}>
-                  <span className="flex items-center gap-2">
-                    {renderCourseIcon(course.icon, 14)}
-                    <span>{course.name}</span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2">
+          {lessonLabel ? (
+            <span className="text-sm font-medium text-foreground">{lessonLabel}</span>
+          ) : (
+            <span className="text-sm text-muted-foreground italic">No lesson selected</span>
+          )}
         </div>
 
         <Tabs value={mode} onValueChange={(v) => setMode(v as "edit" | "preview")}>
@@ -1987,7 +2010,7 @@ const ChatStyleEditor = ({
       )}
 
       {/* Explanation section */}
-      <div className="border-t border-border bg-muted/20 p-4">
+      {showExplanation && <div className="border-t border-border bg-muted/20 p-4">
         <div className="flex items-center gap-2 mb-3">
           <FileText className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium">Explanation (appears after chat)</span>
@@ -2022,7 +2045,7 @@ const ChatStyleEditor = ({
         <p className="text-xs text-muted-foreground mt-2">
           This text will appear below the chat conversation as an explanation section.
         </p>
-      </div>
+      </div>}
 
       <style>{`
         .chat-style-editor {

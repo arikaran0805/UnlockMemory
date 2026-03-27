@@ -1,132 +1,110 @@
 /**
- * ViewAsRoleSelector - Admin-only UI to preview other role dashboards
- * 
- * Opens a dialog popup with role options when clicked.
+ * ViewAsRoleSelector - Inline expandable role switcher inside the admin profile popup
  */
 import { useState } from "react";
-import { Eye, EyeOff, Shield, Users, UserCog, User } from "lucide-react";
+import { Eye, EyeOff, Shield, Users, UserCog, User, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, getRoleDashboardPath, type AppRole } from "@/hooks/useAuth";
 import { useViewAsRole } from "@/contexts/ViewAsRoleContext";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-// Available roles to view as (excluding admin since that's the actual role)
-const VIEW_AS_ROLES: { role: AppRole; label: string; icon: typeof Shield; color: string }[] = [
-  { role: "super_moderator", label: "Super Moderator", icon: Shield, color: "text-purple-600 dark:text-purple-400" },
-  { role: "senior_moderator", label: "Senior Moderator", icon: UserCog, color: "text-blue-600 dark:text-blue-400" },
-  { role: "moderator", label: "Moderator", icon: Users, color: "text-green-600 dark:text-green-400" },
-  { role: "user", label: "User", icon: User, color: "text-gray-600 dark:text-gray-400" },
+const VIEW_AS_ROLES: { role: AppRole; label: string; icon: typeof Shield }[] = [
+  { role: "super_moderator", label: "Super Moderator", icon: Shield },
+  { role: "senior_moderator", label: "Senior Moderator", icon: UserCog },
+  { role: "moderator",        label: "Moderator",        icon: Users },
+  { role: "user",             label: "User",             icon: User },
 ];
 
+// Colour tokens matching AdminSidebar's dark popup
+const C = {
+  popupBg:   "#EFF3EE",
+  popupMuted:"#6B8F71",
+  popupDiv:  "rgba(0,0,0,0.10)",
+  activeBg:  "#2D5A3D",
+} as const;
+
 interface ViewAsRoleSelectorProps {
-  isOpen?: boolean;
-  onOpenDialog?: () => void;
+  onOpenDialog?: () => void; // kept for API compat, unused
 }
 
-const ViewAsRoleSelector = ({ isOpen = true, onOpenDialog }: ViewAsRoleSelectorProps) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+const ViewAsRoleSelector = ({ onOpenDialog: _onOpenDialog }: ViewAsRoleSelectorProps) => {
+  const [expanded, setExpanded] = useState(false);
   const { activeRole } = useAuth();
   const { viewAsRole, isViewingAs, startViewingAs, stopViewingAs } = useViewAsRole();
   const navigate = useNavigate();
 
-  // Only show for actual admins
-  if (activeRole !== "admin") {
-    return null;
-  }
-
-  const handleViewAs = (role: AppRole) => {
-    startViewingAs(role);
-    setDialogOpen(false);
-    navigate(getRoleDashboardPath(role));
-  };
-
-  const handleExitViewAs = () => {
-    stopViewingAs();
-    setDialogOpen(false);
-    navigate("/admin/dashboard");
-  };
-
-  const handleOpenDialog = () => {
-    setDialogOpen(true);
-    onOpenDialog?.();
-  };
+  if (activeRole !== "admin") return null;
 
   const currentViewingLabel = VIEW_AS_ROLES.find(r => r.role === viewAsRole)?.label;
 
+  const handleViewAs = (role: AppRole) => {
+    startViewingAs(role);
+    setExpanded(false);
+    navigate(getRoleDashboardPath(role));
+  };
+
+  const handleExit = () => {
+    stopViewingAs();
+    setExpanded(false);
+    navigate("/admin/dashboard");
+  };
+
   return (
-    <>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-background">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-muted-foreground" />
-              View as Role
-            </DialogTitle>
-            <DialogDescription>
-              Preview how other roles see their dashboard. Your actual permissions remain unchanged.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-2 py-4">
-            {VIEW_AS_ROLES.map(({ role, label, icon: Icon, color }) => (
-              <Button
-                key={role}
-                variant={viewAsRole === role ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start h-12 text-base",
-                  viewAsRole === role && "bg-accent border border-border"
-                )}
-                onClick={() => handleViewAs(role)}
-              >
-                <Icon className={cn("h-5 w-5 mr-3", color)} />
-                {label}
-                {viewAsRole === role && (
-                  <span className="ml-auto text-xs text-muted-foreground">Currently viewing</span>
-                )}
-              </Button>
-            ))}
-          </div>
-
-          {isViewingAs && (
-            <div className="pt-2 border-t">
-              <Button
-                variant="outline"
-                className="w-full justify-center text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={handleExitViewAs}
-              >
-                <EyeOff className="h-4 w-4 mr-2" />
-                Exit View Mode
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
+    <div>
+      {/* ── Header row ── */}
       <button
-        onClick={handleOpenDialog}
-        className={cn(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
-          isViewingAs 
-            ? "text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20" 
-            : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-        )}
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
+        style={{ color: "#1A3A2A" }}
       >
-        <Eye className={cn("h-[18px] w-[18px] shrink-0", isViewingAs && "animate-pulse")} />
-        {isOpen && (
-          <span className="text-sm font-medium truncate">
-            {isViewingAs ? `Viewing: ${currentViewingLabel}` : "View as Role"}
-          </span>
-        )}
+        <Eye className={cn("h-4 w-4 shrink-0", isViewingAs && "animate-pulse")} style={{ color: C.popupMuted }} />
+        <span className="flex-1 text-left truncate">
+          {isViewingAs ? `Viewing: ${currentViewingLabel}` : "View as Role"}
+        </span>
+        <ChevronRight
+          className="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
+          style={{ color: C.popupMuted, transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+        />
       </button>
-    </>
+
+      {/* ── Expanded role list ── */}
+      {expanded && (
+        <div className="mt-0.5 mx-1 rounded-xl overflow-hidden" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
+          {VIEW_AS_ROLES.map(({ role, label, icon: Icon }) => {
+            const active = viewAsRole === role;
+            return (
+              <button
+                key={role}
+                onClick={() => handleViewAs(role)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-black/10 transition-colors cursor-pointer"
+                style={active ? { backgroundColor: C.activeBg, color: "#fff" } : { color: "#1A3A2A" }}
+              >
+                <Icon className="h-4 w-4 shrink-0" style={{ color: active ? "#fff" : C.popupMuted }} />
+                <span className="flex-1 text-left">{label}</span>
+                {active && (
+                  <span className="text-[10px] opacity-70">active</span>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Exit view mode */}
+          {isViewingAs && (
+            <>
+              <div className="mx-2 h-px" style={{ backgroundColor: C.popupDiv }} />
+              <button
+                onClick={handleExit}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-black/5 transition-colors cursor-pointer"
+                style={{ color: "#FF3B30" }}
+              >
+                <EyeOff className="h-4 w-4 shrink-0" style={{ color: "#FF3B30" }} />
+                <span>Exit View Mode</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

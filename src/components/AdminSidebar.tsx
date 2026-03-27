@@ -1,29 +1,57 @@
 /**
- * AdminSidebar - Admin Role Sidebar
- * INDEPENDENT implementation - does NOT use shared RoleSidebar
- * Imports ONLY admin.sidebar.ts configuration
- * 
- * Power-Level Color: Burgundy #8B1E1E
+ * AdminSidebar — Claude Desktop-style sidebar
+ * Collapsed : w-14 (56px)  — icons only + tooltips
+ * Expanded  : w-60 (240px) — icons + labels + section headers
  */
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, LogOut, ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import {
+  Search,
+  Home,
+  LogOut,
+  Settings,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/useAuth";
+import { useViewAsRole } from "@/contexts/ViewAsRoleContext";
 import { cn } from "@/lib/utils";
-import { adminSidebarConfig, adminFooterItems } from "@/sidebar/admin.sidebar";
-import RoleNotificationBell from "@/components/RoleNotificationBell";
-import ViewAsRoleSelector from "@/components/ViewAsRoleSelector";
+import { adminSidebarConfig } from "@/sidebar/admin.sidebar";
 import { openGlobalCommandSearch } from "@/hooks/useGlobalCommandSearch";
+import ViewAsRoleSelector from "@/components/ViewAsRoleSelector";
+import ProfileEditDialog from "@/components/ProfileEditDialog";
+import SidebarToggleHeader from "@/components/SidebarToggleHeader";
 
+// ─── Base colour tokens ───────────────────────────────────────────────────────
+const C = {
+  bg:          "#EFF3EE",
+  hoverBg:     "#E2EAE1",
+  textPrimary: "#1A3A2A",
+  textMuted:   "#6B8F71",
+  border:      "#D4DDD3",
+  popupBg:     "#EFF3EE",
+  popupMuted:  "#6B8F71",
+  popupDiv:    "#D4DDD3",
+  danger:      "#FF3B30",
+  avatarBg:    "#1A3A2A",   // fixed brand identity — never changes with role
+} as const;
+
+// ─── Role-aware active-state tokens ──────────────────────────────────────────
+// All within the same sage/forest-green family — stronger = higher authority.
+const ROLE_ACTIVE: Record<string, { bg: string; text: string; icon: string }> = {
+  admin:            { bg: "#1A3A2A", text: "#FFFFFF", icon: "#FFFFFF" }, // 100% — deepest forest green
+  super_moderator:  { bg: "#254435", text: "#FFFFFF", icon: "#FFFFFF" }, // 95% of admin
+  senior_moderator: { bg: "#314E3F", text: "#FFFFFF", icon: "#FFFFFF" }, // 90% of admin
+  moderator:        { bg: "#3C584A", text: "#FFFFFF", icon: "#FFFFFF" }, // 85% of admin
+};
+const FALLBACK_ACTIVE = ROLE_ACTIVE.admin;
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 interface AdminSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   userProfile: { full_name: string | null; avatar_url: string | null } | null;
+  onProfileUpdated: (updated: { full_name: string | null; avatar_url: string | null }) => void;
   userId: string | null;
   notifications: {
     totalApprovals: number;
@@ -40,242 +68,400 @@ interface AdminSidebarProps {
   getBadgeCount: (badgeKey: string, currentCount: number) => number | undefined;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
 const AdminSidebar = ({
   isOpen,
   onToggle,
   userProfile,
-  userId,
+  onProfileUpdated,
   notifications,
   getBadgeCount,
 }: AdminSidebarProps) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const location  = useLocation();
+  const navigate  = useNavigate();
+  const { toast }                    = useToast();
+  const { user, activeRole }         = useAuth();
+  const { isViewingAs, viewAsRole }  = useViewAsRole();
 
-  const { roleColor } = adminSidebarConfig;
+  // Derive the active-state tokens from the effective role
+  const effectiveRole = (isViewingAs && viewAsRole ? viewAsRole : activeRole) ?? "admin";
+  const A = ROLE_ACTIVE[effectiveRole] ?? FALLBACK_ACTIVE;
 
-  // Map notification keys to path-based keys
+  const [profileOpen,     setProfileOpen]     = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
+
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close profile popup on outside-click or Escape
+  useEffect(() => {
+    if (!profileOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setProfileOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown",   onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown",   onKey);
+    };
+  }, [profileOpen]);
+
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
   const notificationMap: Record<string, number> = {
-    approvals: notifications.totalApprovals,
+    approvals:         notifications.totalApprovals,
     "delete-requests": notifications.deleteRequests,
-    reports: notifications.reports,
-    posts: notifications.pendingPosts,
-    courses: notifications.pendingCourses,
-    tags: notifications.pendingTags,
-    comments: notifications.pendingComments,
-    media: notifications.mediaLibrary,
-    users: notifications.newUsers,
-    annotations: notifications.openAnnotations,
+    reports:           notifications.reports,
+    posts:             notifications.pendingPosts,
+    courses:           notifications.pendingCourses,
+    tags:              notifications.pendingTags,
+    comments:          notifications.pendingComments,
+    media:             notifications.mediaLibrary,
+    users:             notifications.newUsers,
+    annotations:       notifications.openAnnotations,
+  };
+
+  const isActive = (path: string) => {
+    if (path === "/admin/dashboard")
+      return location.pathname === "/admin/dashboard" || location.pathname === "/admin";
+    return location.pathname.startsWith(path);
+  };
+
+  const getItemBadge = (path: string) => {
+    const key   = path.split("/").pop() || "";
+    const count = notificationMap[key] || 0;
+    return getBadgeCount ? getBadgeCount(key, count) : count > 0 ? count : undefined;
   };
 
   const handleLogout = async () => {
+    setProfileOpen(false);
     try {
       await supabase.auth.signOut();
       toast({ title: "Logged out successfully" });
       navigate("/auth");
-    } catch (error: any) {
-      toast({
-        title: "Error logging out",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (err: any) {
+      toast({ title: "Error logging out", description: err.message, variant: "destructive" });
     }
   };
 
-  const isActive = (path: string) => {
-    const dashboardPath = "/admin/dashboard";
-    if (path === dashboardPath) {
-      return location.pathname === dashboardPath || location.pathname === "/admin";
-    }
-    return location.pathname.startsWith(path);
+  const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Admin";
+  const userEmail   = user?.email || "";
+  const initials    = displayName.charAt(0).toUpperCase();
+
+  // ── Reusable nav-row renderer ──────────────────────────────────────────────
+  const NavRow = ({
+    icon: Icon,
+    label,
+    path,
+    onClick,
+    active   = false,
+    badge,
+    danger   = false,
+    tooltip,
+  }: {
+    icon: React.ElementType;
+    label: string;
+    path?: string;
+    onClick?: () => void;
+    active?: boolean;
+    badge?: number;
+    danger?: boolean;
+    tooltip?: string;
+  }) => {
+    const inner = (
+      <div
+        onClick={onClick}
+        className={cn(
+          "group relative flex items-center rounded-xl cursor-pointer select-none",
+          "transition-colors duration-150",
+          isOpen
+            ? "gap-3 px-3 py-[11px]"
+            : "justify-center w-10 mx-auto py-[11px]",
+          active ? "" : "hover:bg-[#E2EAE1]",
+        )}
+        style={active ? { backgroundColor: A.bg } : undefined}
+      >
+        {/* Icon */}
+        <Icon
+          className="shrink-0 h-5 w-5"
+          style={{
+            color: active ? A.icon : danger ? C.danger : C.textMuted,
+          }}
+        />
+
+        {/* Label (expanded only) */}
+        {isOpen && (
+          <span
+            className="flex-1 text-sm font-medium truncate"
+            style={{ color: active ? A.text : danger ? C.danger : C.textPrimary }}
+          >
+            {label}
+          </span>
+        )}
+
+        {/* Badge pill (expanded) */}
+        {isOpen && badge && badge > 0 && (
+          <span
+            className="ml-auto text-[10px] font-semibold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none"
+            style={{ backgroundColor: A.bg, color: A.text }}
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+
+        {/* Badge dot (collapsed) */}
+        {!isOpen && badge && badge > 0 && (
+          <span
+            className="absolute top-1 right-1 h-2 w-2 rounded-full"
+            style={{ backgroundColor: A.bg }}
+          />
+        )}
+
+        {/* Tooltip (collapsed only) */}
+        {!isOpen && (
+          <span
+            className={cn(
+              "pointer-events-none absolute left-full ml-3 z-[200]",
+              "flex items-center gap-2",
+              "px-2.5 py-1.5 rounded-lg text-xs font-medium text-white whitespace-nowrap",
+              "shadow-xl opacity-0 group-hover:opacity-100",
+              "transition-opacity duration-150",
+            )}
+            style={{ backgroundColor: C.popupBg }}
+          >
+            {tooltip ?? label}
+            {badge && badge > 0 && (
+              <span
+                className="text-[10px] rounded-full px-1.5 py-0.5 leading-none"
+                style={{ backgroundColor: A.bg, color: A.text }}
+              >
+                {badge}
+              </span>
+            )}
+          </span>
+        )}
+      </div>
+    );
+
+    return path ? (
+      <Link to={path} className="block">{inner}</Link>
+    ) : (
+      inner
+    );
   };
 
-  const getItemBadge = (path: string): number | undefined => {
-    const pathKey = path.split('/').pop() || '';
-    const count = notificationMap[pathKey] || 0;
-    return getBadgeCount ? getBadgeCount(pathKey, count) : (count > 0 ? count : undefined);
-  };
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-50 h-screen border-r border-sidebar-border bg-sidebar transition-all duration-300 flex flex-col",
-        isOpen ? "w-64" : "w-[68px]"
+        "fixed left-0 top-0 z-50 h-screen flex flex-col border-r",
+        "transition-all duration-300 ease-in-out",
+        isOpen ? "w-60" : "w-14",
       )}
+      style={{ backgroundColor: C.bg, borderColor: C.border }}
     >
-      {/* Header */}
-      <div className="p-3 border-b border-sidebar-border">
-        <div
+
+      {/* ── 1. Toggle + Search ──────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 pt-0 pb-1 px-2 space-y-0.5">
+
+        {/* ChatGPT-style toggle header */}
+        <SidebarToggleHeader isOpen={isOpen} onToggle={onToggle} />
+
+        {/* Search */}
+        <button
+          onClick={openGlobalCommandSearch}
           className={cn(
-            "flex items-center bg-muted/50 rounded-lg p-2 cursor-pointer hover:bg-muted/70 transition-colors",
-            isOpen ? "justify-between" : "justify-center"
+            "group relative flex items-center w-full rounded-xl cursor-pointer",
+            "transition-colors duration-150 hover:bg-[#E2EAE1]",
+            isOpen
+              ? "gap-3 px-3 py-[11px]"
+              : "justify-center w-10 mx-auto py-[11px]",
           )}
-          onClick={onToggle}
         >
+          <Search className="h-5 w-5 shrink-0" style={{ color: C.textMuted }} />
           {isOpen && (
-            <div className="flex items-center gap-3">
-              <Avatar className={cn("shrink-0 ring-2 h-9 w-9", roleColor.avatarRing)}>
-                <AvatarImage
-                  src={userProfile?.avatar_url || undefined}
-                  alt={userProfile?.full_name || "Admin"}
-                />
-                <AvatarFallback className={cn("font-semibold text-xs", roleColor.avatarBg, roleColor.avatarText)}>
-                  {userProfile?.full_name?.charAt(0)?.toUpperCase() || "A"}
-                </AvatarFallback>
-              </Avatar>
-              <span className="font-semibold text-sidebar-foreground text-sm">
-                {userProfile?.full_name || "Admin"}
-              </span>
-            </div>
+            <span className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              Search
+            </span>
           )}
-          <div className="flex items-center justify-center h-7 w-7 rounded-md bg-background shadow-sm border border-border">
-            {isOpen ? (
-              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        </div>
-        {isOpen && (
-          <div className="flex items-center justify-between mt-2 px-1">
-            <Badge
-              className={cn("text-[10px] px-2 py-0 font-medium", roleColor.badgeBg, roleColor.badge, roleColor.badgeBorder)}
-              variant="outline"
+          {!isOpen && (
+            <span
+              className="pointer-events-none absolute left-full ml-3 z-[200] px-2.5 py-1.5 rounded-lg text-xs font-medium text-white whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+              style={{ backgroundColor: C.popupBg }}
             >
-              Admin
-            </Badge>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-                onClick={openGlobalCommandSearch}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-              <RoleNotificationBell />
-            </div>
-          </div>
-        )}
+              Search
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 px-2 py-4">
-        <nav className="space-y-1">
-          {adminSidebarConfig.sections.map((section, sectionIndex) => (
-            <div key={section.title} className={cn(sectionIndex > 0 && "mt-6")}>
-              {isOpen && (
-                <div className="px-3 mb-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    {section.title}
-                  </span>
+      {/* ── 2. Scrollable nav ───────────────────────────────────────────────── */}
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-1"
+        style={{ scrollbarWidth: "none" } as React.CSSProperties}
+      >
+        {adminSidebarConfig.sections.map((section, si) => (
+          <div key={section.title} className={cn(si > 0 && "mt-3")}>
+
+            {/* Section header */}
+            {isOpen ? (
+              <div className="px-3 mb-1 mt-1">
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: C.textMuted }}
+                >
+                  {section.title}
+                </span>
+              </div>
+            ) : si > 0 ? (
+              <div className="mx-2 my-2 h-px" style={{ backgroundColor: C.border }} />
+            ) : null}
+
+            {/* Items */}
+            <div className="space-y-0.5">
+              {section.items.map((item) => (
+                <NavRow
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  active={isActive(item.path)}
+                  badge={getItemBadge(item.path)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── 3. Bottom: profile button + popup ──────────────────────────────── */}
+      <div
+        ref={profileRef}
+        className="flex-shrink-0 relative p-2 border-t"
+        style={{ borderColor: C.border }}
+      >
+
+        {/* ── Profile popup (above button) ──────────────────────────────── */}
+        {profileOpen && (
+          <div
+            className="absolute bottom-full left-2 mb-2 z-[200] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150"
+            style={{ backgroundColor: C.popupBg, width: 224 }}
+          >
+            {/* User header — click to open profile editor */}
+            <button
+              onClick={() => { setProfileOpen(false); setProfileEditOpen(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left hover:bg-black/5"
+            >
+              {userProfile?.avatar_url ? (
+                <img
+                  src={userProfile.avatar_url}
+                  alt={displayName}
+                  className="h-9 w-9 rounded-full object-cover shrink-0 ring-2 ring-black/10"
+                />
+              ) : (
+                <div
+                  className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-black/10"
+                  style={{ backgroundColor: C.avatarBg }}
+                >
+                  {initials}
                 </div>
               )}
-              {!isOpen && sectionIndex > 0 && (
-                <Separator className="mx-2 mb-2 bg-sidebar-border/50" />
-              )}
-              <div className="space-y-0.5">
-                {section.items.map((item) => {
-                  const active = isActive(item.path);
-                  const badge = getItemBadge(item.path);
-
-                  return (
-                    <Link key={item.path} to={item.path}>
-                      <div
-                        className={cn(
-                          "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                          active
-                            ? cn(roleColor.activeBackground, "text-white shadow-sm")
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/60"
-                        )}
-                      >
-                        <item.icon
-                          className={cn(
-                            "h-[18px] w-[18px] shrink-0",
-                            active ? roleColor.iconActive : "text-muted-foreground group-hover:text-sidebar-foreground"
-                          )}
-                        />
-                        {isOpen && (
-                          <>
-                            <span
-                              className={cn(
-                                "flex-1 text-sm font-medium truncate",
-                                active ? "text-white" : ""
-                              )}
-                            >
-                              {item.label}
-                            </span>
-                            {badge && badge > 0 && (
-                              <Badge
-                                variant="destructive"
-                                className="h-5 min-w-5 px-1.5 text-[10px] font-semibold"
-                              >
-                                {badge}
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                        {!isOpen && badge && badge > 0 && (
-                          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive" />
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>{displayName}</p>
+                <p className="text-xs truncate leading-tight" style={{ color: C.popupMuted }}>{userEmail}</p>
               </div>
-            </div>
-          ))}
-        </nav>
-      </ScrollArea>
+            </button>
 
-      {/* Footer */}
-      <div className="p-2 border-t border-sidebar-border mt-auto">
-        {/* View as Role - above Settings */}
-        <ViewAsRoleSelector isOpen={isOpen} />
-        
-        {/* Settings */}
-        {isOpen && adminFooterItems.map((item) => (
-          <Link key={item.path} to={item.path}>
-            <div
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 mb-1",
-                isActive(item.path)
-                  ? cn(roleColor.activeBackground, "text-white")
-                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon className="h-[18px] w-[18px]" />
-              <span className="text-sm font-medium">{item.label}</span>
-            </div>
-          </Link>
-        ))}
+            <div className="mx-3 h-px" style={{ backgroundColor: C.popupDiv }} />
 
-        <Link to="/">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-all duration-200">
-            <Home className="h-[18px] w-[18px]" />
-            {isOpen && <span className="text-sm font-medium">Back to Site</span>}
+            {/* Menu items */}
+            <div className="py-1.5 px-1.5 space-y-0.5">
+              <ViewAsRoleSelector onOpenDialog={() => setProfileOpen(false)} />
+              <button
+                onClick={() => { setProfileOpen(false); navigate("/admin/settings"); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
+                style={{ color: C.textPrimary }}
+              >
+                <Settings className="h-4 w-4 shrink-0" style={{ color: C.popupMuted }} />
+                <span>Settings</span>
+              </button>
+              <button
+                onClick={() => { setProfileOpen(false); navigate("/"); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
+                style={{ color: C.textPrimary }}
+              >
+                <Home className="h-4 w-4 shrink-0" style={{ color: C.popupMuted }} />
+                <span>Back to Site</span>
+              </button>
+            </div>
+
+            <div className="mx-3 h-px" style={{ backgroundColor: C.popupDiv }} />
+
+            <div className="py-1.5 px-1.5">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
+                style={{ color: C.danger }}
+              >
+                <LogOut className="h-4 w-4 shrink-0" style={{ color: C.danger }} />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
-        </Link>
-
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-all duration-200"
-        >
-          <LogOut className="h-[18px] w-[18px]" />
-          {isOpen && <span className="text-sm font-medium">Logout</span>}
-        </button>
-
-        {!isOpen && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            className="w-full h-9 mt-2 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         )}
+
+        {/* ── Avatar button ─────────────────────────────────────────────── */}
+        <button
+          onClick={() => setProfileOpen((p) => !p)}
+          className={cn(
+            "w-full flex items-center rounded-xl",
+            "transition-colors duration-150 hover:bg-[#E2EAE1]",
+            isOpen ? "gap-3 px-3 py-2" : "justify-center py-2",
+          )}
+        >
+          {/* Avatar */}
+          {userProfile?.avatar_url ? (
+            <img
+              src={userProfile.avatar_url}
+              alt={displayName}
+              className="h-8 w-8 rounded-full object-cover shrink-0 ring-2 ring-white/40"
+            />
+          ) : (
+            <div
+              className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-white/40"
+              style={{ backgroundColor: C.avatarBg }}
+            >
+              {initials}
+            </div>
+          )}
+
+          {/* Name + badge (expanded only) */}
+          {isOpen && (
+            <div className="flex-1 min-w-0 text-left">
+              <p
+                className="text-sm font-semibold leading-tight truncate"
+                style={{ color: C.textPrimary }}
+              >
+                {displayName}
+              </p>
+              <p className="text-xs leading-tight" style={{ color: C.textMuted }}>
+                Admin
+              </p>
+            </div>
+          )}
+        </button>
       </div>
+
+      {/* ── Profile edit dialog ─────────────────────────────────────────── */}
+      <ProfileEditDialog
+        open={profileEditOpen}
+        onOpenChange={setProfileEditOpen}
+        userProfile={userProfile}
+        onProfileUpdated={onProfileUpdated}
+      />
     </aside>
   );
 };

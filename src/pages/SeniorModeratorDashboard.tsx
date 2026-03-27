@@ -246,18 +246,9 @@ const SeniorModeratorDashboard = () => {
   return (
     <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Senior Moderator Dashboard</h1>
-            <p className="text-muted-foreground">Advanced content management & approvals</p>
-          </div>
-          <Badge 
-            className="bg-transparent text-[#D4AF37] border-[#D4AF37] font-medium"
-            variant="outline"
-          >
-            <Shield className="h-3 w-3 mr-1" />
-            Senior Moderator
-          </Badge>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Course Manager</h1>
+          <p className="text-muted-foreground">Manage courses, approvals, and structured learning content within your scope</p>
         </div>
 
         {/* KPI Cards */}

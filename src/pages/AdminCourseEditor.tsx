@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useCourseVersions, CourseVersion } from "@/hooks/useCourseVersions";
+import { useCourseVersions } from "@/hooks/useCourseVersions";
 import { useCourseAnnotations } from "@/hooks/useCourseAnnotations";
-import { useCoursePrerequisites, Prerequisite } from "@/hooks/useCoursePrerequisites";
+import { useCoursePrerequisites } from "@/hooks/useCoursePrerequisites";
 import { useAdminSidebar } from "@/contexts/AdminSidebarContext";
 
 import { AdminEditorSkeleton } from "@/components/admin/AdminEditorSkeleton";
@@ -16,8 +16,6 @@ import { VersioningNoteDialog, VersioningNoteType } from "@/components/Versionin
 import { CoursePrerequisiteEditor } from "@/components/course/CoursePrerequisiteEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RichTextEditor } from "@/components/tiptap";
-import { ChatStyleEditor } from "@/components/chat-editor";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,9 +23,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, X, Image, icons, Save, Send, User, UserCog, Shield, Users, Settings, ChevronRight, FileText, MessageCircle, Highlighter, Loader2, Check, BookOpen } from "lucide-react";
-import { isChatTranscript } from "@/lib/chatContent";
+import { ArrowLeft, Upload, X, Image, icons, Save, Send, User, UserCog, Shield, Users, Settings, Layers, FileText, MessageCircle, Highlighter, BookOpen, MessageSquare } from "lucide-react";
+import { AssetsSidebar } from "@/components/assets/AssetsSidebar";
 import LessonManager from "@/components/LessonManager";
+import { CanvasEditor, type CanvasEditorRef } from "@/components/canvas-editor";
 
 interface UserProfile {
   id: string;
@@ -65,7 +64,7 @@ const AdminCourseEditor = () => {
   const [assignableUsers, setAssignableUsers] = useState<UserWithRole[]>([]);
   const [authorInfo, setAuthorInfo] = useState<UserWithRole | null>(null);
   const [assigneeInfo, setAssigneeInfo] = useState<UserWithRole | null>(null);
-  const [editorType, setEditorType] = useState<"rich" | "chat">("rich");
+  const canvasEditorRef = useRef<CanvasEditorRef>(null);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -90,7 +89,8 @@ const AdminCourseEditor = () => {
   const [originalAuthorId, setOriginalAuthorId] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>("");
   const [didSyncLatestVersion, setDidSyncLatestVersion] = useState(false);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [openSidebar, setOpenSidebar] = useState<'settings' | 'assets' | 'review' | null>('settings');
+  const rightSidebarOpen = openSidebar === 'settings' || openSidebar === 'review';
   const [annotationMode, setAnnotationMode] = useState(false);
   const [showVersioningNoteDialog, setShowVersioningNoteDialog] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -102,7 +102,6 @@ const AdminCourseEditor = () => {
     bubbleIndex?: number;
     rect?: { top: number; left: number; width: number; height: number; bottom: number };
   } | null>(null);
-  const saveToAnnotateToastShownRef = useRef(false);
   const previousContentRef = useRef<string>("");
   
   // Collapse sidebar when editing a course (has id) or when annotation mode is activated
@@ -119,7 +118,7 @@ const AdminCourseEditor = () => {
   }, [annotationMode, collapseSidebar]);
 
   // Version and annotation hooks
-  const { versions, loading: versionsLoading, metadata, saveVersion, saveVersionAsDraft, saveVersionOnPublish, createInitialVersion, publishVersion, restoreVersion, updateVersionNote } = useCourseVersions(id);
+  const { versions, loading: versionsLoading, saveVersionAsDraft, saveVersionOnPublish, publishVersion, restoreVersion, updateVersionNote } = useCourseVersions(id);
   const { annotations, loading: annotationsLoading, createAnnotation, createReply, deleteReply, updateAnnotationStatus, deleteAnnotation } = useCourseAnnotations(id);
 
   // Get a list of popular icons for courses
@@ -174,9 +173,6 @@ const AdminCourseEditor = () => {
     setOriginalContent(latest.content);
     previousContentRef.current = latest.content;
 
-    if (latest.content && isChatTranscript(latest.content)) {
-      setEditorType("chat");
-    }
 
     setDidSyncLatestVersion(true);
   }, [id, versionsLoading, versions, didSyncLatestVersion]);
@@ -314,9 +310,7 @@ const AdminCourseEditor = () => {
           previousContentRef.current = data.description || "";
         }
 
-        if (data.description && isChatTranscript(data.description)) {
-          setEditorType("chat");
-        }
+
 
         if (data.author_id) {
           const author = await fetchUserInfo(data.author_id);
@@ -392,12 +386,12 @@ const AdminCourseEditor = () => {
         if (isPublishing) {
           await saveVersionOnPublish(
             formData.description,
-            editorType === "chat" ? "chat" : "rich-text"
+            "canvas"
           );
         } else if (formData.description !== previousContentRef.current) {
           await saveVersionAsDraft(
             formData.description,
-            editorType === "chat" ? "chat" : "rich-text"
+            "canvas"
           );
         }
         previousContentRef.current = formData.description;
@@ -424,7 +418,7 @@ const AdminCourseEditor = () => {
               course_id: courseId,
               version_number: 0,
               content: formData.description,
-              editor_type: editorType === "chat" ? "chat" : "rich-text",
+              editor_type: "canvas",
               edited_by: session.user.id,
               editor_role: isAdmin ? "admin" : "moderator",
               change_summary: "Initial version (v0)",
@@ -525,24 +519,6 @@ const AdminCourseEditor = () => {
     return null;
   };
 
-  // Handle text selection for annotations
-  const handleTextSelection = useCallback((type: "paragraph" | "code" | "conversation" = "paragraph", bubbleIndex?: number) => {
-    if (!isAdmin && !isModerator) return;
-    
-    const selection = window.getSelection();
-    if (selection && selection.toString().trim().length > 0) {
-      const text = selection.toString();
-      const range = selection.getRangeAt(0);
-      setSelectedText({
-        start: range.startOffset,
-        end: range.endOffset,
-        text,
-        type,
-        bubbleIndex,
-      });
-    }
-  }, [isAdmin, isModerator]);
-
   // Handle version actions
   const handleRestoreVersion = async (version: any) => {
     const restoredContent = await restoreVersion(version);
@@ -568,7 +544,6 @@ const AdminCourseEditor = () => {
     selectionEnd: number,
     selectedTextStr: string,
     comment: string,
-    annotationType?: "paragraph" | "code" | "conversation"
   ) => {
     const bubbleIndex = selectedText?.bubbleIndex;
     
@@ -577,30 +552,13 @@ const AdminCourseEditor = () => {
       selectionEnd,
       selectedTextStr,
       comment,
-      editorType === "chat" ? "chat" : "rich-text",
+      "canvas",
       bubbleIndex
     );
   };
 
   const canPublishDirectly = isAdmin;
   const showSubmitForApproval = isModerator && !isAdmin;
-
-  // Create a mock version object for the current editor content
-  const currentEditorVersion = {
-    id: "current",
-    course_id: id || "",
-    version_number: versions.length > 0 ? Math.max(...versions.map(v => v.version_number)) + 1 : 1,
-    content: formData.description,
-    editor_type: editorType === "chat" ? "chat" : "rich-text",
-    edited_by: userId || "",
-    editor_role: isAdmin ? "admin" : "moderator",
-    created_at: new Date().toISOString(),
-    status: "draft",
-    change_summary: null,
-    versioning_note_type: null,
-    versioning_note_locked: false,
-    editor_profile: undefined,
-  } as CourseVersion;
 
   const editorInitLoading =
     roleLoading ||
@@ -613,98 +571,52 @@ const AdminCourseEditor = () => {
 
   return (
     <>
-      <div className="flex gap-4 h-[calc(100vh-6rem)] overflow-hidden">
+      <div className="flex gap-4 h-[calc(100vh-4rem)] overflow-hidden">
         {/* Main Content Area */}
-        <div className="flex-1 min-w-0 space-y-6 overflow-y-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate("/admin/courses")} className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Courses
-              </Button>
-              <h1 className="text-3xl font-bold">
-                {id ? "Edit Course" : "Create New Course"}
-              </h1>
-              {formData.status && formData.status !== "draft" && (
-                <ContentStatusBadge status={formData.status as ContentStatus} />
-              )}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {/* Main Tabs */}
+          <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" onClick={() => navigate("/admin/courses")} className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Courses
+                </Button>
+                <h1 className="text-3xl font-bold">
+                  {id ? "Edit Course" : "Create New Course"}
+                </h1>
+                {formData.status && formData.status !== "draft" && (
+                  <ContentStatusBadge status={formData.status as ContentStatus} />
+                )}
+              </div>
+              <TabsList>
+                <TabsTrigger value="details" className="gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Course Details
+                </TabsTrigger>
+                <TabsTrigger value="lessons" className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  Lessons
+                </TabsTrigger>
+                <TabsTrigger value="description" className="gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Description
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            {/* Version and Annotation Controls */}
-            {id && (
-              <div className="flex items-center gap-3">
-                {/* Annotation Mode Toggle */}
-                {(isAdmin || isModerator) && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/30">
-                    <Highlighter className={`h-4 w-4 ${annotationMode ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className="text-xs font-medium text-muted-foreground">Annotate</span>
-                    <Switch
-                      checked={annotationMode}
-                      onCheckedChange={setAnnotationMode}
-                      className="scale-75"
-                    />
-                  </div>
-                )}
-                <VersionHistoryPanel
-                  versions={versions as any}
-                  loading={versionsLoading}
-                  isAdmin={isAdmin}
-                  currentContent={formData.description}
-                  liveContent={originalContent}
-                  onRestore={handleRestoreVersion}
-                  onPublish={handlePublishVersion}
-                  onPreview={(version) => {
-                    toast({ title: "Preview", description: "Version preview coming soon" });
-                  }}
-                  onUpdateNote={updateVersionNote}
-                />
-                <AnnotationPanel
-                  annotations={annotations as any}
-                  loading={annotationsLoading}
-                  isAdmin={isAdmin}
-                  isModerator={isModerator}
-                  userId={userId}
-                  onAddAnnotation={handleAddAnnotation}
-                  onUpdateStatus={updateAnnotationStatus}
-                  onDelete={deleteAnnotation}
-                  onAddReply={createReply}
-                  onDeleteReply={deleteReply}
-                  selectedText={selectedText}
-                  onClearSelection={() => setSelectedText(null)}
-                />
+            {/* Open annotations indicator */}
+            {annotations.filter(a => a.status === "open").length > 0 && !isAdmin && (
+              <div className="flex items-center gap-2 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg flex-shrink-0">
+                <Highlighter className="h-5 w-5 text-red-600" />
+                <span className="text-sm text-red-800 dark:text-red-200">
+                  You have {annotations.filter(a => a.status === "open").length} pending feedback comments from admin. Check the Annotations panel.
+                </span>
               </div>
             )}
-          </div>
-
-          {/* Open annotations indicator */}
-          {annotations.filter(a => a.status === "open").length > 0 && !isAdmin && (
-            <div className="flex items-center gap-2 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
-              <Highlighter className="h-5 w-5 text-red-600" />
-              <span className="text-sm text-red-800 dark:text-red-200">
-                You have {annotations.filter(a => a.status === "open").length} pending feedback comments from admin. Check the Annotations panel.
-              </span>
-            </div>
-          )}
-
-          {/* Main Tabs */}
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="details" className="gap-2">
-                <BookOpen className="h-4 w-4" />
-                Course Details
-              </TabsTrigger>
-              <TabsTrigger value="lessons" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Lessons
-              </TabsTrigger>
-              <TabsTrigger value="description" className="gap-2">
-                <MessageCircle className="h-4 w-4" />
-                Description
-              </TabsTrigger>
-            </TabsList>
 
             {/* Course Details Tab */}
-            <TabsContent value="details" className="space-y-4 mt-0">
+            <TabsContent value="details" className="space-y-4 mt-0 flex-1 overflow-y-auto">
               <Card>
                 <CardHeader>
                   <CardTitle>Course Details</CardTitle>
@@ -783,7 +695,7 @@ const AdminCourseEditor = () => {
             </TabsContent>
 
             {/* Lessons Tab */}
-            <TabsContent value="lessons" className="space-y-4 mt-0">
+            <TabsContent value="lessons" className="space-y-4 mt-0 flex-1 overflow-y-auto">
               {id ? (
                 <LessonManager courseId={id} basePath={basePath} />
               ) : (
@@ -808,135 +720,118 @@ const AdminCourseEditor = () => {
             </TabsContent>
 
             {/* Description Tab */}
-            <TabsContent value="description" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Description</CardTitle>
-                    <Tabs value={editorType} onValueChange={(v) => setEditorType(v as "rich" | "chat")}>
-                      <TabsList className="h-9">
-                        <TabsTrigger value="rich" className="text-xs px-3 gap-1.5">
-                          <FileText className="w-3.5 h-3.5" />
-                          Rich Editor
-                        </TabsTrigger>
-                        <TabsTrigger value="chat" className="text-xs px-3 gap-1.5">
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          Chat Style
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`transition-all duration-300 rounded-lg ${annotationMode ? 'ring-2 ring-primary/30 ring-offset-2 ring-offset-background [&_*]:cursor-crosshair' : ''}`}>
-                    {editorType === "rich" ? (
-                      <RichTextEditor
-                        value={formData.description}
-                        onChange={(value) => setFormData({ ...formData, description: value })}
-                        annotationMode={annotationMode}
-                        annotations={annotations.map(a => ({
-                          id: a.id,
-                          selection_start: a.selection_start,
-                          selection_end: a.selection_end,
-                          selected_text: a.selected_text,
-                          status: a.status,
-                        }))}
-                        onAnnotationClick={(annotation) => {
-                          const fullAnnotation = annotations.find(a => a.id === annotation.id);
-                          if (fullAnnotation) {
-                            setSelectedText({
-                              start: fullAnnotation.selection_start,
-                              end: fullAnnotation.selection_end,
-                              text: fullAnnotation.selected_text,
-                              type: "paragraph",
-                            });
-                          }
-                        }}
-                        onTextSelect={(selection) => {
-                          if (!annotationMode) return;
-                          if (!isAdmin && !isModerator) return;
-                          if (!id) {
-                            if (!saveToAnnotateToastShownRef.current) {
-                              saveToAnnotateToastShownRef.current = true;
-                              toast({
-                                title: "Save to annotate",
-                                description: "Create/save the course first, then you can add annotations.",
-                              });
-                            }
-                            return;
-                          }
-
-                          setSelectedText({
-                            start: selection.start,
-                            end: selection.end,
-                            text: selection.text,
-                            type: selection.type,
-                            rect: selection.rect,
-                          });
-                        }}
-                      />
-                    ) : (
-                      <ChatStyleEditor
-                        value={formData.description}
-                        onChange={(value) => setFormData({ ...formData, description: value })}
-                        courseType="python"
-                        placeholder="Start a conversation..."
-                        annotationMode={annotationMode}
-                        annotations={annotations.map(a => ({ bubble_index: a.bubble_index, status: a.status }))}
-                        onTextSelect={(selection) => {
-                          if (!annotationMode) return;
-                          if (!isAdmin && !isModerator) return;
-                          if (!id) {
-                            if (!saveToAnnotateToastShownRef.current) {
-                              saveToAnnotateToastShownRef.current = true;
-                              toast({
-                                title: "Save to annotate",
-                                description: "Create/save the course first, then you can add annotations.",
-                              });
-                            }
-                            return;
-                          }
-
-                          setSelectedText({
-                            start: selection.start,
-                            end: selection.end,
-                            text: selection.text,
-                            type: selection.type as "paragraph" | "code" | "conversation",
-                            bubbleIndex: selection.bubbleIndex,
-                            rect: selection.rect,
-                          });
-                        }}
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="description" className="mt-4 flex-1 min-h-0 flex flex-col">
+              <CanvasEditor
+                ref={canvasEditorRef}
+                value={formData.description}
+                onChange={(value) => setFormData({ ...formData, description: value })}
+                className="flex-1 min-h-0"
+                lessonLabel={formData.name}
+              />
             </TabsContent>
           </Tabs>
         </div>
 
         {/* Right Sidebar with Vertical Tab Toggle */}
         <div className="flex-shrink-0 flex">
-          {/* Vertical Tab Toggle - Always visible */}
-          <button
-            onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-            className="flex flex-col items-center justify-start gap-1 py-3 px-1 bg-muted/50 hover:bg-muted border-y border-l rounded-l-md transition-colors cursor-pointer"
-          >
-            <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${rightSidebarOpen ? 'rotate-180' : ''}`} />
-            <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-              Settings
-            </span>
-          </button>
+          {/* Vertical Tab Strip - Settings + Assets + Review */}
+          <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
+            <button
+              onClick={() => setOpenSidebar(openSidebar === 'settings' ? null : 'settings')}
+              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'settings' ? 'bg-muted' : 'hover:bg-muted'}`}
+            >
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                Settings
+              </span>
+            </button>
+            <button
+              onClick={() => setOpenSidebar(openSidebar === 'assets' ? null : 'assets')}
+              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'assets' ? 'bg-muted' : 'hover:bg-muted'}`}
+            >
+              <Layers className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                Assets
+              </span>
+            </button>
+            {id && (
+              <button
+                onClick={() => setOpenSidebar(openSidebar === 'review' ? null : 'review')}
+                className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'review' ? 'bg-muted' : 'hover:bg-muted'}`}
+              >
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                  Review
+                </span>
+              </button>
+            )}
+          </div>
 
           {/* Sidebar Content */}
-          <Card className={`flex flex-col min-h-0 transition-all duration-300 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
+          <Card className={`flex flex-col min-h-0 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
             <div className={`p-4 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
-              <div className="flex items-center gap-2 mb-3">
-                <Settings className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm whitespace-nowrap">Course Settings</h3>
-              </div>
+              {openSidebar === 'review' ? (
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm whitespace-nowrap">Review Panel</h3>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-3">
+                  <Settings className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm whitespace-nowrap">Course Settings</h3>
+                </div>
+              )}
+              {/* Review Panel Controls */}
+              {openSidebar === 'review' && (
+                <div className="space-y-3">
+                  {(isAdmin || isModerator) && (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <Highlighter className={`h-4 w-4 ${annotationMode ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className="text-xs font-medium">Annotate</span>
+                      </div>
+                      <Switch
+                        checked={annotationMode}
+                        onCheckedChange={setAnnotationMode}
+                        className="scale-75"
+                      />
+                    </div>
+                  )}
+                  <div className="[&>*]:w-full">
+                    <VersionHistoryPanel
+                      versions={versions as any}
+                      loading={versionsLoading}
+                      isAdmin={isAdmin}
+                      currentContent={formData.description}
+                      liveContent={originalContent}
+                      onRestore={handleRestoreVersion}
+                      onPublish={handlePublishVersion}
+                      onPreview={() => {
+                        toast({ title: "Preview", description: "Version preview coming soon" });
+                      }}
+                      onUpdateNote={updateVersionNote}
+                    />
+                  </div>
+                  <div className="[&>*]:w-full">
+                    <AnnotationPanel
+                      annotations={annotations as any}
+                      loading={annotationsLoading}
+                      isAdmin={isAdmin}
+                      isModerator={isModerator}
+                      userId={userId}
+                      onAddAnnotation={handleAddAnnotation}
+                      onUpdateStatus={updateAnnotationStatus}
+                      onDelete={deleteAnnotation}
+                      onAddReply={createReply}
+                      onDeleteReply={deleteReply}
+                      selectedText={selectedText}
+                      onClearSelection={() => setSelectedText(null)}
+                    />
+                  </div>
+                </div>
+              )}
               {/* Action Buttons */}
-              <div className="space-y-2">
+              {openSidebar !== 'review' && <div className="space-y-2">
                 {canPublishDirectly ? (
                   <>
                     <Button onClick={(e) => handleSubmit(e, false)} className="w-full">
@@ -976,10 +871,10 @@ const AdminCourseEditor = () => {
                 >
                   Cancel
                 </Button>
-              </div>
+              </div>}
             </div>
-            
-            <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
+
+            <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
               <div className="p-4 space-y-4">
                 {/* Ownership & Assignment Card - Admin Only */}
                 {isAdmin && id && (
@@ -1217,6 +1112,16 @@ const AdminCourseEditor = () => {
               </div>
             </ScrollArea>
           </Card>
+
+          {/* Assets Sidebar */}
+          <AssetsSidebar
+            isOpen={openSidebar === 'assets'}
+            editorType="canvas"
+            onInsert={(asset) => {
+              navigator.clipboard.writeText(asset.url);
+              toast({ title: "URL copied", description: "Paste it into the editor." });
+            }}
+          />
         </div>
       </div>
 
@@ -1230,7 +1135,7 @@ const AdminCourseEditor = () => {
           try {
             const saved = await saveVersionAsDraft(
               formData.description,
-              editorType === "chat" ? "chat" : "rich-text",
+              "canvas",
               changeSummary,
               noteType
             );

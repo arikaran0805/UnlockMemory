@@ -21,7 +21,7 @@ import type { Team, Career } from "@/components/team-ownership/types";
 const AdminTeamOwnership = () => {
   const { userId } = useAuth();
   const { toast } = useToast();
-  const { collapseSidebar, setSidebarOpen } = useAdminSidebar();
+  const { collapseSidebar } = useAdminSidebar();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [teams, setTeams] = useState<Team[]>([]);
@@ -128,12 +128,10 @@ const AdminTeamOwnership = () => {
     fetchData();
   }, []);
 
-  // Collapse/expand sidebar based on URL state
+  // Collapse sidebar when editing a team
   useEffect(() => {
     if (editingTeamId) {
       collapseSidebar();
-    } else {
-      setSidebarOpen(true);
     }
   }, [editingTeamId]);
 

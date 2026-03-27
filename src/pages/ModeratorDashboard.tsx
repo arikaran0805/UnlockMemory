@@ -286,15 +286,9 @@ const ModeratorDashboard = () => {
   return (
     <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Moderator Dashboard</h1>
-            <p className="text-muted-foreground">Content moderation & approvals</p>
-          </div>
-          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0">
-            <UserCheck className="h-3 w-3 mr-1" />
-            Moderator
-          </Badge>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Content Moderator</h1>
+          <p className="text-muted-foreground">Create, review, and manage content within assigned courses</p>
         </div>
 
         {/* KPI Cards */}

@@ -201,16 +201,11 @@ const ChatBubble = ({
   };
 
   return (
-    <div className={cn("group flex items-end gap-2 mb-3 transition-all duration-200", isMentor ? "flex-row-reverse" : "flex-row", isDragging && "opacity-50 scale-105")}>
-      {/* Avatar */}
-      <div className={cn("flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-sm transition-transform duration-200 group-hover:scale-110", getChatColors(isMentor).avatar)}>
-        {renderCourseIcon(character.emoji, 18)}
-      </div>
-
+    <div className={cn("mb-3 flex transition-all duration-200", isMentor ? "justify-end" : "justify-start", isDragging && "opacity-50 scale-105")}>
       {/* Bubble - wider when containing code blocks */}
       <div className={cn(
         "relative px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200",
-        isEditing ? "flex-1 max-w-full" : hasCodeBlock(message.content) ? "w-[75%] max-w-[75%] min-w-[360px]" : "max-w-[70%] min-w-[60px]",
+        isEditing ? "w-full" : hasCodeBlock(message.content) ? "w-[75%] max-w-[75%] min-w-[360px]" : "max-w-[70%] min-w-[60px]",
         getChatColors(isMentor).text,
         isMentor ? "rounded-br-md" : "rounded-bl-md",
         isDragging && "ring-2 ring-primary/50",

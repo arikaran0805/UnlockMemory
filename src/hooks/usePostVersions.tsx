@@ -104,7 +104,7 @@ export const usePostVersions = (postId: string | undefined) => {
 
   const saveVersion = async (
     content: string,
-    editorType: "rich-text" | "chat",
+    editorType: "rich-text" | "chat" | "canvas",
     changeSummary?: string,
     markAsPublished: boolean = false,
     versioningNoteType?: string
@@ -174,7 +174,7 @@ export const usePostVersions = (postId: string | undefined) => {
   // Save version as draft (not published)
   const saveVersionAsDraft = async (
     content: string,
-    editorType: "rich-text" | "chat",
+    editorType: "rich-text" | "chat" | "canvas",
     changeSummary?: string,
     versioningNoteType?: string
   ) => {
@@ -184,7 +184,7 @@ export const usePostVersions = (postId: string | undefined) => {
   // Save version on publish (creates a new version and marks it as published)
   const saveVersionOnPublish = async (
     content: string,
-    editorType: "rich-text" | "chat"
+    editorType: "rich-text" | "chat" | "canvas"
   ) => {
     const versionNumber = versions.length > 0 
       ? Math.max(...versions.map(v => v.version_number)) + 1 
@@ -201,7 +201,7 @@ export const usePostVersions = (postId: string | undefined) => {
   // Create initial v0 when post is first saved
   const createInitialVersion = async (
     content: string,
-    editorType: "rich-text" | "chat",
+    editorType: "rich-text" | "chat" | "canvas",
     postId: string
   ) => {
     try {
