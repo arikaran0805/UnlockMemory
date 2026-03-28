@@ -311,7 +311,7 @@ const Header = ({
                             <DropdownMenuItem asChild>
                               <Link to="/admin" className="cursor-pointer">
                                 <Shield className="mr-2 h-4 w-4" />
-                                Admin Dashboard
+                                Platform Manager Dashboard
                               </Link>
                             </DropdownMenuItem>
                           )}
@@ -319,7 +319,7 @@ const Header = ({
                             <DropdownMenuItem asChild>
                               <Link to="/super-moderator" className="cursor-pointer">
                                 <Shield className="mr-2 h-4 w-4" />
-                                Super Moderator Dashboard
+                                Career Manager Dashboard
                               </Link>
                             </DropdownMenuItem>
                           )}
@@ -327,7 +327,7 @@ const Header = ({
                             <DropdownMenuItem asChild>
                               <Link to="/senior-moderator" className="cursor-pointer">
                                 <Shield className="mr-2 h-4 w-4" />
-                                Senior Moderator Dashboard
+                                Course Manager Dashboard
                               </Link>
                             </DropdownMenuItem>
                           )}
@@ -335,7 +335,7 @@ const Header = ({
                             <DropdownMenuItem asChild>
                               <Link to="/moderator" className="cursor-pointer">
                                 <Shield className="mr-2 h-4 w-4" />
-                                Moderator Dashboard
+                                Content Moderator Dashboard
                               </Link>
                             </DropdownMenuItem>
                           )}
@@ -419,7 +419,7 @@ const Header = ({
                       {(isAdmin || isModerator) && (
                         <div className="mb-4 px-2">
                           <Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-                            {isAdmin ? 'Admin User' : 'Moderator'}
+                            {isAdmin ? 'Platform Manager' : 'Content Moderator'}
                           </Badge>
                         </div>
                       )}
@@ -451,7 +451,7 @@ const Header = ({
                               className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground/80 hover:text-foreground hover:bg-primary/10 rounded-xl transition-all duration-300"
                             >
                               <Shield className="h-5 w-5" />
-                              {isAdmin ? 'Admin Dashboard' : 'Moderator Dashboard'}
+                              {isAdmin ? 'Platform Manager Dashboard' : 'Content Moderator Dashboard'}
                             </Link>
                           )}
                           <Link

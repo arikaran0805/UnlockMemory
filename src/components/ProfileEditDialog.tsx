@@ -22,11 +22,11 @@ interface ProfileEditDialogProps {
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  admin:            "Admin",
-  super_moderator:  "Super Moderator",
-  senior_moderator: "Senior Moderator",
-  moderator:        "Moderator",
-  user:             "User",
+  admin:            "Platform Manager",
+  super_moderator:  "Career Manager",
+  senior_moderator: "Course Manager",
+  moderator:        "Content Moderator",
+  user:             "Learner",
 };
 
 const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }: ProfileEditDialogProps) => {
@@ -43,9 +43,9 @@ const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }
     setEmail(user?.email || "");
   }, [open, userProfile, user]);
 
-  const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Admin";
+  const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Platform Manager";
   const initials    = displayName.charAt(0).toUpperCase();
-  const roleLabel   = ROLE_LABELS[activeRole ?? ""] ?? "Admin";
+  const roleLabel   = ROLE_LABELS[activeRole ?? ""] ?? "Platform Manager";
 
   const isDirty =
     name.trim()  !== (userProfile?.full_name  || "") ||

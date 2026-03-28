@@ -1,10 +1,10 @@
 /**
- * FullEditor - Admin/Moderator Content Editor
+ * FullEditor - Platform / Content Manager Content Editor
  * 
  * Full-featured TipTap editor for course, lesson, and post creation.
  * Includes: headings, lists, code blocks, tables, images, split view.
  * 
- * ROLES: Admin, Super Moderator, Senior Moderator, Moderator (assigned only)
+ * ROLES: Platform Manager, Career Manager, Course Manager, Content Moderator (assigned only)
  */
 
 import { forwardRef, useImperativeHandle, useCallback, useEffect, useState, useMemo } from 'react';

@@ -1202,7 +1202,7 @@ const CourseDetail = () => {
 
   // Get primary CTA button props based on user state, enrollment, progress, and role
   const getPrimaryCTAProps = () => {
-    // State 5: Admin / Super Moderator / Senior Moderator
+    // State 5: Platform Manager / Career Manager / Course Manager
     if (isAdmin || isModerator) {
       return {
         label: "Manage Course",
@@ -1332,7 +1332,7 @@ const CourseDetail = () => {
 
   // Get Action Reinforcement Card content based on current state (mirrors Primary CTA)
   const getActionCardContent = () => {
-    // State 6: Admin / Super Moderator / Senior Moderator
+    // State 6: Platform Manager / Career Manager / Course Manager
     if (isAdmin || isModerator) {
       return {
         title: "Manage This Course",

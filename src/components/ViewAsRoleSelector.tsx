@@ -9,10 +9,10 @@ import { useViewAsRole } from "@/contexts/ViewAsRoleContext";
 import { cn } from "@/lib/utils";
 
 const VIEW_AS_ROLES: { role: AppRole; label: string; icon: typeof Shield }[] = [
-  { role: "super_moderator", label: "Super Moderator", icon: Shield },
-  { role: "senior_moderator", label: "Senior Moderator", icon: UserCog },
-  { role: "moderator",        label: "Moderator",        icon: Users },
-  { role: "user",             label: "User",             icon: User },
+  { role: "super_moderator", label: "Career Manager",   icon: Shield },
+  { role: "senior_moderator", label: "Course Manager",   icon: UserCog },
+  { role: "moderator",        label: "Content Moderator", icon: Users },
+  { role: "user",             label: "Learner",           icon: User },
 ];
 
 // Colour tokens matching AdminSidebar's dark popup

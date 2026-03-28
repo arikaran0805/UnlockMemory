@@ -4,8 +4,8 @@
  * Features:
  * - Editable team name
  * - Career display
- * - Super Moderator assignments
- * - Course assignments with Senior/Moderator roles
+ * - Career Manager assignments
+ * - Course assignments with Course/Content Moderator roles
  * - Persistent User Pool sidebar for drag-drop style selections
  * - All assignments save immediately
  */
@@ -357,7 +357,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
 
         const user = allUsers.find((u) => u.id === selectedUserId);
         setSuperModerators((prev) => [...prev, { ...data, user }]);
-        toast({ title: "Super Moderator added" });
+        toast({ title: "Career Manager added" });
       } else if (courseId) {
         const course = courses.find((c) => c.id === courseId);
         const isFirstSenior = targetType === "senior_moderator" && course?.seniorModerators.length === 0;
@@ -388,7 +388,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
         );
 
         setAllCourseAssignments((prev) => [...prev, { user_id: selectedUserId, course_id: courseId, role: targetType }]);
-        toast({ title: `${targetType === "senior_moderator" ? "Senior Moderator" : "Moderator"} added` });
+        toast({ title: `${targetType === "senior_moderator" ? "Course Manager" : "Content Moderator"} added` });
       }
 
       setSelectedTarget(null);
@@ -427,7 +427,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
       if (assignedSuperModeratorIds.has(draggedUser.id)) {
         toast({
           title: "Already assigned",
-          description: "This user is already a super moderator for this team.",
+          description: "This user is already a career manager for this team.",
           variant: "destructive",
         });
         return;
@@ -439,7 +439,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
       if (assignedSeniorModeratorIds.get(courseId)?.has(draggedUser.id)) {
         toast({
           title: "Already assigned",
-          description: "This user is already a senior moderator for this course.",
+          description: "This user is already a course manager for this course.",
           variant: "destructive",
         });
         return;
@@ -451,7 +451,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
       if (assignedModeratorIds.get(courseId)?.has(draggedUser.id)) {
         toast({
           title: "Already assigned",
-          description: "This user is already a moderator for this course.",
+          description: "This user is already a content moderator for this course.",
           variant: "destructive",
         });
         return;
@@ -485,10 +485,10 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
       if (error) throw error;
 
       setSuperModerators((prev) => prev.filter((sm) => sm.id !== assignmentId));
-      toast({ title: "Super Moderator removed" });
+      toast({ title: "Career Manager removed" });
     } catch (error: any) {
       toast({
-        title: "Error removing super moderator",
+        title: "Error removing career manager",
         description: error.message,
         variant: "destructive",
       });
@@ -662,12 +662,12 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
             {/* Connector Line */}
             <div className="w-0.5 h-6 bg-border" />
 
-            {/* Super Moderators Section */}
+            {/* Career Managers Section */}
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-2 mb-4">
                 <Shield className="h-5 w-5 text-purple-500" />
                 <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                  SUPER MODERATORS
+                  CAREER MANAGERS
                 </h3>
                 <Badge variant="secondary" className="text-xs">
                   {superModerators.length}
@@ -705,7 +705,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                   </div>
                 ))}
 
-                {/* Add Super Moderator Button */}
+                {/* Add Career Manager Button */}
                 <button
                   ref={(el) => addButtonRefs.current.set('super_moderator', el)}
                   onClick={() => setSelectedTarget(
@@ -775,7 +775,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                           <div className="flex items-center gap-2">
                             <UserCog className="h-4 w-4 text-amber-500" />
                             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              Senior Moderators
+                              Course Managers
                             </span>
                           </div>
                           <Badge variant="outline" className="text-[10px] h-5">
@@ -865,7 +865,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-blue-500" />
                             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              Moderators
+                              Content Moderators
                             </span>
                           </div>
                           <Badge variant="outline" className="text-[10px] h-5">
@@ -963,7 +963,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                 </ul>
                 {(superModerators.length > 0 || courses.some(c => c.seniorModerators.length > 0 || c.moderators.length > 0)) && (
                   <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">
-                    ⚠️ This team has {superModerators.length} super moderator(s) and{" "}
+                    ⚠️ This team has {superModerators.length} career manager(s) and{" "}
                     {courses.reduce((acc, c) => acc + c.seniorModerators.length + c.moderators.length, 0)} course assignment(s)
                   </p>
                 )}

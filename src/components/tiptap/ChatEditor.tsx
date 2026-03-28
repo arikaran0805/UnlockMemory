@@ -4,7 +4,7 @@
  * Used for chat-style content creation in the conversational learning format.
  * Stores content as markdown strings for compatibility with existing parsing.
  * 
- * ROLES: Admin, Super Moderator, Senior Moderator, Moderator (assigned only)
+ * ROLES: Platform Manager, Career Manager, Course Manager, Content Moderator (assigned only)
  */
 
 import { forwardRef, useImperativeHandle, useCallback, useEffect, useMemo, useState, useRef } from 'react';

@@ -603,7 +603,7 @@ const ReplyCard = ({ reply, isAdmin, userId, onDelete }: ReplyCardProps) => {
           <p className="text-sm">{reply.content}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">
-              {reply.author_profile?.full_name || reply.author_profile?.email || "User"}
+              {reply.author_profile?.full_name || reply.author_profile?.email || "Learner"}
             </span>
             {isOwnReply && (
               <Badge variant="outline" className="text-xs py-0">You</Badge>

@@ -353,7 +353,7 @@ const AdminComments = () => {
       };
     }
     return {
-      name: comment.profiles?.full_name || "User",
+      name: comment.profiles?.full_name || "Learner",
       isAnonymous: false,
       email: comment.profiles?.email
     };
@@ -667,7 +667,7 @@ const AdminComments = () => {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Comments Management</h1>
-          <p className="text-muted-foreground">Review, moderate, and manage user comments grouped by course</p>
+          <p className="text-muted-foreground">Review, moderate, and manage learner comments grouped by course</p>
         </div>
 
         {/* Stats Cards */}

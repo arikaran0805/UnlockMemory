@@ -15,10 +15,10 @@ interface BreadcrumbItem {
 
 // ─── Role display names ───────────────────────────────────────────────────────
 const ROLE_LABELS: Record<string, string> = {
-  super_moderator:  "Super Moderator",
-  senior_moderator: "Senior Moderator",
-  moderator:        "Moderator",
-  user:             "User",
+  super_moderator:  "Career Manager",
+  senior_moderator: "Course Manager",
+  moderator:        "Content Moderator",
+  user:             "Learner",
 };
 
 // ─── Breadcrumb builder ───────────────────────────────────────────────────────
@@ -29,10 +29,10 @@ const buildBreadcrumbs = (
 
   // ── Detect role prefix ────────────────────────────────────────────────────
   const prefixMap: Record<string, { label: string; root: string }> = {
-    "/super-moderator":  { label: "Super Moderator",  root: "/super-moderator/dashboard" },
-    "/senior-moderator": { label: "Senior Moderator", root: "/senior-moderator/dashboard" },
-    "/moderator":        { label: "Moderator",        root: "/moderator/dashboard" },
-    "/admin":            { label: "Admin",            root: "/admin" },
+    "/super-moderator":  { label: "Career Manager",   root: "/super-moderator/dashboard" },
+    "/senior-moderator": { label: "Course Manager",   root: "/senior-moderator/dashboard" },
+    "/moderator":        { label: "Content Moderator", root: "/moderator/dashboard" },
+    "/admin":            { label: "Platform Manager",  root: "/admin" },
   };
   const matchedPrefix = Object.keys(prefixMap).find((p) => pathname.startsWith(p)) ?? "/admin";
   const { label: rootLabel, root: rootPath } = prefixMap[matchedPrefix];

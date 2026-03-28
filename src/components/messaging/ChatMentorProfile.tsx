@@ -17,11 +17,12 @@ interface ChatMentorProfileProps {
 }
 
 const roleLabels: Record<string, string> = {
-  moderator: "Moderator",
-  senior_moderator: "Senior Moderator",
-  super_moderator: "Super Moderator",
-  Moderator: "Moderator",
-  "Senior Moderator": "Senior Moderator",
+  moderator: "Content Moderator",
+  senior_moderator: "Course Manager",
+  super_moderator: "Career Manager",
+  Moderator: "Content Moderator",
+  "Senior Moderator": "Course Manager",
+  "Super Moderator": "Career Manager",
   Instructor: "Instructor",
 };
 

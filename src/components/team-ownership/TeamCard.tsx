@@ -210,16 +210,16 @@ const TeamCard = ({ team, onDoubleClick, onRefresh }: TeamCardProps) => {
           </DropdownMenu>
         </div>
 
-        {/* Super Moderators Avatars */}
+        {/* Career Managers Avatars */}
         <div className="mb-4">
-          <p className="text-xs text-muted-foreground mb-2">Super Moderators</p>
+          <p className="text-xs text-muted-foreground mb-2">Career Managers</p>
           <div className="flex items-center gap-1">
             {team.superModeratorCount > 0 ? (
               <div className="flex -space-x-2">
                 {[...Array(Math.min(team.superModeratorCount, 3))].map((_, i) => (
                   <Avatar key={i} className="h-7 w-7 border-2 border-background">
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                      SM
+                      CM
                     </AvatarFallback>
                   </Avatar>
                 ))}
@@ -245,12 +245,12 @@ const TeamCard = ({ team, onDoubleClick, onRefresh }: TeamCardProps) => {
           <div className="text-center p-2 rounded-lg bg-muted/50">
             <UserCog className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
             <p className="text-sm font-medium">{team.seniorModeratorCount}</p>
-            <p className="text-[10px] text-muted-foreground">Sr. Mods</p>
+            <p className="text-[10px] text-muted-foreground">Course Mgrs</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-muted/50">
             <Users className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
             <p className="text-sm font-medium">{team.moderatorCount}</p>
-            <p className="text-[10px] text-muted-foreground">Mods</p>
+            <p className="text-[10px] text-muted-foreground">Content Mods</p>
           </div>
         </div>
 
@@ -316,7 +316,7 @@ const TeamCard = ({ team, onDoubleClick, onRefresh }: TeamCardProps) => {
               This will permanently delete "{team.name}" and remove all assignments. This action cannot be undone.
               {team.courseCount > 0 && (
                 <span className="block mt-2 text-destructive font-medium">
-                  Warning: This team has {team.courseCount} course(s) and {team.seniorModeratorCount + team.moderatorCount} moderator(s) assigned.
+                  Warning: This team has {team.courseCount} course(s) and {team.seniorModeratorCount + team.moderatorCount} managers/moderators assigned.
                 </span>
               )}
             </AlertDialogDescription>

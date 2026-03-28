@@ -2,7 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { SuperModeratorGuard } from "@/guards";
 import { SuperModeratorLayout } from "@/components/layouts";
 
-// Super Moderator Pages
+// Career Manager Pages
 import SuperModeratorDashboard from "@/pages/SuperModeratorDashboard";
 import AdminApprovals from "@/pages/AdminApprovals";
 import AdminReports from "@/pages/AdminReports";
@@ -23,11 +23,11 @@ import AdminUsers from "@/pages/AdminUsers";
 import NotFound from "@/pages/NotFound";
 
 /**
- * Super Moderator Routes Component
- * Wraps all super moderator routes with SuperModeratorGuard and SuperModeratorLayout
+ * Career Manager Routes Component
+ * Wraps all career manager routes with SuperModeratorGuard and SuperModeratorLayout
  * URL prefix: /super-moderator/*
  * 
- * Super Moderator is a CAREER OWNER - manages assigned careers
+ * Career Manager is a CAREER OWNER - manages assigned careers
  * and all courses/posts within those careers.
  */
 const SuperModeratorRoutes = () => {
@@ -40,7 +40,7 @@ const SuperModeratorRoutes = () => {
           <Route path="dashboard" element={<SuperModeratorDashboard />} />
           <Route path="approvals" element={<AdminApprovals />} />
           <Route path="reports" element={<AdminReports />} />
-          {/* Career Management - Super Moderator's primary scope */}
+          {/* Career Management - Career Manager's primary scope */}
           <Route path="careers" element={<AdminCareers />} />
           <Route path="careers/new" element={<AdminCareerEditor />} />
           <Route path="careers/:id" element={<AdminCareerEditor />} />

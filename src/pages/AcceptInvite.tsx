@@ -29,10 +29,10 @@ interface Invitation {
 }
 
 const ROLE_LABELS: Record<AppRole, string> = {
-  admin: "Administrator",
-  super_moderator: "Super Moderator",
-  senior_moderator: "Senior Moderator",
-  moderator: "Moderator",
+  admin: "Platform Manager",
+  super_moderator: "Career Manager",
+  senior_moderator: "Course Manager",
+  moderator: "Content Moderator",
   user: "Learner",
 };
 

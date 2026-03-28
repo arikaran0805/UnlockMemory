@@ -214,7 +214,7 @@ export function useMessaging(userId: string | undefined) {
     if (existingThread) return existingThread.id;
 
     // Determine routing based on role
-    const isSenior = connection.role_label === "Senior Moderator" || connection.role_label === "Super Moderator";
+    const isSenior = connection.role_label === "Course Manager" || connection.role_label === "Career Manager" || connection.role_label === "Senior Moderator" || connection.role_label === "Super Moderator";
 
     const { data: newThread } = await supabase
       .from("conversation_threads")

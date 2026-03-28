@@ -285,15 +285,15 @@ const AdminAssignments = () => {
   const getRoleBadge = (role: AppRole | null) => {
     switch (role) {
       case "admin":
-        return <Badge className="bg-[#8B1E1E] text-white">Admin</Badge>;
+        return <Badge className="bg-[#8B1E1E] text-white">Platform Manager</Badge>;
       case "super_moderator":
-        return <Badge className="bg-purple-600 text-white">Super Mod</Badge>;
+        return <Badge className="bg-purple-600 text-white">Career Manager</Badge>;
       case "senior_moderator":
-        return <Badge className="border-[#D4AF37] text-[#D4AF37]" variant="outline">Senior Mod</Badge>;
+        return <Badge className="border-[#D4AF37] text-[#D4AF37]" variant="outline">Course Manager</Badge>;
       case "moderator":
-        return <Badge variant="secondary">Moderator</Badge>;
+        return <Badge variant="secondary">Content Moderator</Badge>;
       default:
-        return <Badge variant="outline">User</Badge>;
+        return <Badge variant="outline">Learner</Badge>;
     }
   };
 
@@ -314,7 +314,7 @@ const AdminAssignments = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Assignment Management</h1>
           <p className="text-muted-foreground mt-1">
-            Manage career and course assignments for Super Moderators, Senior Moderators, and Moderators
+            Manage career and course assignments for Career Managers, Course Managers, and Content Moderators
           </p>
         </div>
       </div>
@@ -347,7 +347,7 @@ const AdminAssignments = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Crown className="h-4 w-4" />
-              Super Moderators
+              Career Managers
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -358,7 +358,7 @@ const AdminAssignments = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <UserCog className="h-4 w-4" />
-              Senior/Moderators
+              Course/Content Moderators
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -411,10 +411,10 @@ const AdminAssignments = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-purple-600" />
-                Super Moderator → Career Assignments
+                Career Manager → Career Assignments
               </CardTitle>
               <CardDescription>
-                Assign Super Moderators to careers. They will have full access to all courses within their assigned careers.
+                Assign Career Managers to careers. They will have full access to all courses within their assigned careers.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -486,10 +486,10 @@ const AdminAssignments = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-[#D4AF37]" />
-                Senior Moderator / Moderator → Course Assignments
+                Course Manager / Content Moderator → Course Assignments
               </CardTitle>
               <CardDescription>
-                Assign Senior Moderators and Moderators to specific courses. They will only have access to their assigned courses.
+                Assign Course Managers and Content Moderators to specific courses. They will only have access to their assigned courses.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -562,24 +562,24 @@ const AdminAssignments = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-purple-600" />
-              Assign Career to Super Moderator
+              Assign Career to Career Manager
             </DialogTitle>
             <DialogDescription>
-              Select a Super Moderator and a career to assign. The user will have full access to all courses within this career.
+              Select a Career Manager and a career to assign. The user will have full access to all courses within this career.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Super Moderator</label>
+              <label className="text-sm font-medium">Career Manager</label>
               <Select value={selectedUser} onValueChange={setSelectedUser}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a Super Moderator" />
+                  <SelectValue placeholder="Select a Career Manager" />
                 </SelectTrigger>
                 <SelectContent>
                   {superModerators.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground text-sm">
-                      No Super Moderators found. Assign the role first.
+                      No Career Managers found. Assign the role first.
                     </div>
                   ) : (
                     superModerators.map((user) => (
@@ -635,7 +635,7 @@ const AdminAssignments = () => {
               Assign Course to User
             </DialogTitle>
             <DialogDescription>
-              Select a Senior Moderator or Moderator, a course, and the assignment role.
+              Select a Course Manager or Content Moderator, a course, and the assignment role.
             </DialogDescription>
           </DialogHeader>
 
@@ -649,7 +649,7 @@ const AdminAssignments = () => {
                 <SelectContent>
                   {seniorModeratorsAndModerators.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground text-sm">
-                      No Senior Moderators or Moderators found.
+                      No Course Managers or Content Moderators found.
                     </div>
                   ) : (
                     seniorModeratorsAndModerators.map((user) => (
@@ -695,14 +695,14 @@ const AdminAssignments = () => {
                   <SelectItem value="senior_moderator">
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 text-[#D4AF37]" />
-                      <span>Senior Moderator</span>
+                      <span>Course Manager</span>
                       <span className="text-xs text-muted-foreground">(Can approve content)</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="moderator">
                     <div className="flex items-center gap-2">
                       <UserCog className="h-4 w-4" />
-                      <span>Moderator</span>
+                      <span>Content Moderator</span>
                       <span className="text-xs text-muted-foreground">(Can create content)</span>
                     </div>
                   </SelectItem>

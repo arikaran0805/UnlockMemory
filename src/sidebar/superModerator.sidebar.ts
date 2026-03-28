@@ -1,9 +1,9 @@
 /**
- * Super Moderator Sidebar Configuration
+ * Career Manager Sidebar Configuration
  * Maps 1:1 with superModerator.routes.tsx
  * URL prefix: /super-moderator/*
  * 
- * Super Moderator is a CAREER OWNER - manages assigned careers
+ * Career Manager is a CAREER OWNER - manages assigned careers
  * Power-Level Color: Royal Purple #5B3CC4
  */
 import {
@@ -42,7 +42,7 @@ const approvalSection: SidebarSection = {
   ],
 };
 
-// Section 3: Career Management - Super Moderator's primary scope
+// Section 3: Career Management - Career Manager's primary scope
 const careerSection: SidebarSection = {
   title: "Career Management",
   items: [
@@ -91,7 +91,7 @@ export const superModeratorSidebarConfig: SidebarConfig = {
     teamSection,
     analyticsSection,
   ],
-  roleLabel: "Super Moderator",
+  roleLabel: "Career Manager",
   roleColor: {
     // Royal Purple #5B3CC4
     badge: "text-[#5B3CC4]",

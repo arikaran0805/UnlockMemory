@@ -86,7 +86,7 @@ const ModeratorSidebar = ({
     }
   };
 
-  const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Moderator";
+  const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Content Moderator";
   const userEmail   = user?.email || "";
   const initials    = displayName.charAt(0).toUpperCase();
 
@@ -197,7 +197,7 @@ const ModeratorSidebar = ({
           {isOpen && (
             <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-semibold leading-tight truncate" style={{ color: C.textPrimary }}>{displayName}</p>
-              <p className="text-xs leading-tight" style={{ color: C.textMuted }}>Moderator</p>
+              <p className="text-xs leading-tight" style={{ color: C.textMuted }}>Content Moderator</p>
             </div>
           )}
         </button>

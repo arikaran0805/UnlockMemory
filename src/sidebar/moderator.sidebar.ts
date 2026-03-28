@@ -66,7 +66,7 @@ export const moderatorSidebarConfig: SidebarConfig = {
     messagingSection,
     activitySection,
   ],
-  roleLabel: "Moderator",
+  roleLabel: "Content Moderator",
   roleColor: {
     // Action Blue #2563EB
     badge: "text-[#2563EB]",

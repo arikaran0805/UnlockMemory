@@ -50,9 +50,9 @@ interface UserAssignmentsState {
  * Hook to fetch user's career and course assignments.
  * Used for ownership-based access control across the application.
  * 
- * - Super Moderators: See careers they're assigned to + all courses within those careers
- * - Senior Moderators: See courses they're directly assigned to
- * - Moderators: See courses they're directly assigned to
+ * - Career Managers: See careers they're assigned to + all courses within those careers
+ * - Course Managers: See courses they're directly assigned to
+ * - Content Moderators: See courses they're directly assigned to
  */
 export const useUserAssignments = (userId: string | null, role: AppRole | null) => {
   const [state, setState] = useState<UserAssignmentsState>({
@@ -101,7 +101,7 @@ export const useUserAssignments = (userId: string | null, role: AppRole | null) 
         let courseAssignments: CourseAssignment[] = [];
         let coursesFromCareers: CourseFromCareer[] = [];
 
-        // Super Moderators: fetch career assignments and courses within those careers
+        // Career Managers: fetch career assignments and courses within those careers
         if (role === "super_moderator") {
           const { data: careerData, error: careerError } = await supabase
             .from("career_assignments")

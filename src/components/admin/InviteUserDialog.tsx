@@ -27,10 +27,10 @@ import type { Database } from "@/integrations/supabase/types";
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 const ROLE_OPTIONS: { value: AppRole; label: string }[] = [
-  { value: "admin", label: "Administrator" },
-  { value: "super_moderator", label: "Super Moderator" },
-  { value: "senior_moderator", label: "Senior Moderator" },
-  { value: "moderator", label: "Moderator" },
+  { value: "admin", label: "Platform Manager" },
+  { value: "super_moderator", label: "Career Manager" },
+  { value: "senior_moderator", label: "Course Manager" },
+  { value: "moderator", label: "Content Moderator" },
 ];
 
 interface InviteUserDialogProps {
@@ -189,7 +189,7 @@ const InviteUserDialog = ({ open, onOpenChange, onInviteSent }: InviteUserDialog
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Share this link with <strong>{email}</strong> to grant them <strong className="capitalize">{role.replace("_", " ")}</strong> access.
+                Share this link with <strong>{email}</strong> to grant them <strong>{ROLE_OPTIONS.find(opt => opt.value === role)?.label || role.replace("_", " ")}</strong> access.
               </p>
             </div>
 

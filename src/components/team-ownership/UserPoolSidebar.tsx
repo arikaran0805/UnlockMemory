@@ -3,7 +3,7 @@
  * 
  * Collapsible right sidebar (matching post editor style) showing all users 
  * for drag-and-drop assignments.
- * Filters by role (Super Moderator, Senior Moderator, Moderator)
+ * filters by role (Career Manager, Course Manager, Content Moderator)
  * Supports both click-to-select and drag-and-drop assignment
  */
 import { useState, useMemo } from "react";
@@ -165,13 +165,13 @@ const UserPoolSidebar = ({
   const getRoleBadge = (role?: string | null) => {
     switch (role) {
       case "admin":
-        return <Badge className="bg-[#8B1E1E]/10 text-[#8B1E1E] border-[#8B1E1E]/20 text-[10px] px-1.5">Admin</Badge>;
+        return <Badge className="bg-[#8B1E1E]/10 text-[#8B1E1E] border-[#8B1E1E]/20 text-[10px] px-1.5">Platform Manager</Badge>;
       case "super_moderator":
-        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] px-1.5">Super</Badge>;
+        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] px-1.5">Career Manager</Badge>;
       case "senior_moderator":
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] px-1.5">Senior</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] px-1.5">Course Manager</Badge>;
       case "moderator":
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] px-1.5">Mod</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] px-1.5">Content Moderator</Badge>;
       default:
         return null;
     }
@@ -182,11 +182,11 @@ const UserPoolSidebar = ({
     
     switch (selectedTarget.type) {
       case "super_moderator":
-        return "Adding Super Moderator";
+        return "Adding Career Manager";
       case "senior_moderator":
-        return "Adding Senior Moderator";
+        return "Adding Course Manager";
       case "moderator":
-        return "Adding Moderator";
+        return "Adding Content Moderator";
       default:
         return null;
     }

@@ -3,7 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Globe, Clock, Languages } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Globe, Clock, Languages, Moon } from "lucide-react";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 interface GeneralSettingsProps {
   siteName: string;
@@ -46,6 +48,8 @@ const GeneralSettings = ({
   setSiteUrl,
   readOnly = false,
 }: GeneralSettingsProps) => {
+  const { isDark, toggle } = useDarkMode();
+
   return (
     <div className="space-y-6">
       <div>
@@ -151,6 +155,35 @@ const GeneralSettings = ({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
+          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
+            <Moon className="h-5 w-5 text-[#1E4D3A]" />
+            Appearance
+          </CardTitle>
+          <CardDescription className="text-[#1E1E1E]/50">
+            Customize the admin interface appearance
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="dark-mode-toggle" className="text-[#1E1E1E] font-medium cursor-pointer">
+                Dark Mode
+              </Label>
+              <p className="text-xs text-[#1E1E1E]/40">
+                Switch between light and dark appearance for the admin experience
+              </p>
+            </div>
+            <Switch
+              id="dark-mode-toggle"
+              checked={isDark}
+              onCheckedChange={toggle}
+              aria-label="Toggle dark mode"
+            />
           </div>
         </CardContent>
       </Card>

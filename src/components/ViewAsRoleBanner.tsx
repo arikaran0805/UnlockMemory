@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const ROLE_LABELS: Record<AppRole, string> = {
-  admin: "Admin",
-  super_moderator: "Super Moderator",
-  senior_moderator: "Senior Moderator",
-  moderator: "Moderator",
-  user: "User",
+  admin: "Platform Manager",
+  super_moderator: "Career Manager",
+  senior_moderator: "Course Manager",
+  moderator: "Content Moderator",
+  user: "Learner",
 };
 
 const ROLE_COLORS: Record<AppRole, string> = {
@@ -53,7 +53,7 @@ const ViewAsRoleBanner = () => {
         Viewing as: <strong>{ROLE_LABELS[viewAsRole]}</strong>
       </span>
       <span className="text-xs opacity-70">
-        (Your actual role is Admin — database operations use your real permissions)
+        (Your actual role is Platform Manager — database operations use your real permissions)
       </span>
       <Button
         variant="ghost"

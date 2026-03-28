@@ -128,7 +128,7 @@ const getCommandsForRole = (
     ];
   }
 
-  // Super Moderator commands - career-scoped authority
+  // Career Manager commands - career-scoped authority
   if (role === "super_moderator") {
     return [
       // Navigation
@@ -155,7 +155,7 @@ const getCommandsForRole = (
     ];
   }
 
-  // Senior Moderator commands - course-level authority
+  // Course Manager commands - course-level authority
   if (role === "senior_moderator") {
     return [
       // Navigation
@@ -178,7 +178,7 @@ const getCommandsForRole = (
     ];
   }
 
-  // Moderator commands - task-focused contributor
+  // Content Moderator commands - task-focused contributor
   if (role === "moderator") {
     return [
       // Navigation
@@ -225,7 +225,7 @@ export function GlobalCommandSearch({ open, onOpenChange }: CommandSearchProps) 
 
     const contentItems: CommandItemData[] = [];
 
-    // Super Moderators: show assigned careers and courses within those careers
+    // Career Managers: show assigned careers and courses within those careers
     if (activeRole === "super_moderator") {
       const careers = getAssignedCareers();
       const courses = getAssignedCourses();
@@ -255,7 +255,7 @@ export function GlobalCommandSearch({ open, onOpenChange }: CommandSearchProps) 
       });
     }
 
-    // Senior Moderators and Moderators: show assigned courses only
+    // Course Managers and Content Moderators: show assigned courses only
     if (activeRole === "senior_moderator" || activeRole === "moderator") {
       const courses = getAssignedCourses();
       const basePath = activeRole === "senior_moderator" ? "/senior-moderator" : "/moderator";

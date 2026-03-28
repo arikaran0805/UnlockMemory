@@ -24,20 +24,24 @@ const AccessDenied = () => {
 
   // Format role name for display
   const formatRoleName = (role: AppRole | null): string => {
-    if (!role) return "User";
-    return role
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+    if (!role) return "Learner";
+    const labels: Record<string, string> = {
+      admin: "Platform Manager",
+      super_moderator: "Career Manager",
+      senior_moderator: "Course Manager",
+      moderator: "Content Moderator",
+      user: "Learner",
+    };
+    return labels[role] || "Learner";
   };
 
   // Determine which role route was attempted (for user-friendly messaging)
   const getAttemptedArea = (): string | null => {
     const pathname = location.state?.from?.pathname || "";
-    if (pathname.startsWith("/admin")) return "Admin";
-    if (pathname.startsWith("/super-moderator")) return "Super Moderator";
-    if (pathname.startsWith("/senior-moderator")) return "Senior Moderator";
-    if (pathname.startsWith("/moderator")) return "Moderator";
+    if (pathname.startsWith("/admin")) return "Platform Manager";
+    if (pathname.startsWith("/super-moderator")) return "Career Manager";
+    if (pathname.startsWith("/senior-moderator")) return "Course Manager";
+    if (pathname.startsWith("/moderator")) return "Content Moderator";
     return null;
   };
 

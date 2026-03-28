@@ -18,7 +18,17 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="UnlockMemory - Discover Stories That Inspire">
     <meta name="twitter:description" content="Join thousands of readers exploring inspiring stories, insightful articles, and thought-provoking content across technology, lifestyle, business, education, and health.">
-</head>
+    <!-- Dark mode: apply saved theme before first paint to prevent flash -->
+    <script>
+      (function() {
+        var stored = localStorage.getItem('um-admin-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
 
   <body>
     <div id="root"></div>

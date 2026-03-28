@@ -153,11 +153,11 @@ export function NewConnectionContent({ onConnect, courseId, userId, onDirectConn
         .map((p) => {
           const userRoles = roleMap.get(p.id) || [];
           const roleLabel = userRoles.includes("super_moderator")
-            ? "Super Moderator"
+            ? "Career Manager"
             : userRoles.includes("senior_moderator")
-              ? "Senior Moderator"
+              ? "Course Manager"
               : userRoles.includes("moderator")
-                ? "Moderator"
+                ? "Content Moderator"
                 : "Instructor";
           const userCourses = userCoursesMap.get(p.id);
           return {

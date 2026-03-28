@@ -96,7 +96,7 @@ export const seniorModeratorSidebarConfig: SidebarConfig = {
     messagingSection,
     activitySection,
   ],
-  roleLabel: "Senior Moderator",
+  roleLabel: "Course Manager",
   roleColor: {
     // Amber #D97706
     badge: "text-[#D97706]",

@@ -448,7 +448,7 @@ const AdminSidebar = ({
                 {displayName}
               </p>
               <p className="text-xs leading-tight" style={{ color: C.textMuted }}>
-                Admin
+                Platform Manager
               </p>
             </div>
           )}

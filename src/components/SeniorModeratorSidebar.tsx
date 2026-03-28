@@ -95,7 +95,7 @@ const SeniorModeratorSidebar = ({
     }
   };
 
-  const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Senior Mod";
+  const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Course Manager";
   const userEmail   = user?.email || "";
   const initials    = displayName.charAt(0).toUpperCase();
 
@@ -217,7 +217,7 @@ const SeniorModeratorSidebar = ({
           {isOpen && (
             <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-semibold leading-tight truncate" style={{ color: C.textPrimary }}>{displayName}</p>
-              <p className="text-xs leading-tight" style={{ color: C.textMuted }}>Senior Moderator</p>
+              <p className="text-xs leading-tight" style={{ color: C.textMuted }}>Course Manager</p>
             </div>
           )}
         </button>

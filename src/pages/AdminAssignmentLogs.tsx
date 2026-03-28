@@ -188,15 +188,15 @@ const AdminAssignmentLogs = () => {
   const getRoleBadge = (role: AppRole | null) => {
     switch (role) {
       case "admin":
-        return <Badge className="bg-[#8B1E1E]/10 text-[#8B1E1E] border-[#8B1E1E]/20">Admin</Badge>;
+        return <Badge className="bg-[#8B1E1E]/10 text-[#8B1E1E] border-[#8B1E1E]/20">Platform Manager</Badge>;
       case "super_moderator":
-        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20">Super Mod</Badge>;
+        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20">Career Manager</Badge>;
       case "senior_moderator":
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Senior Mod</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Course Manager</Badge>;
       case "moderator":
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Moderator</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Content Moderator</Badge>;
       default:
-        return <Badge variant="outline">User</Badge>;
+        return <Badge variant="outline">Learner</Badge>;
     }
   };
 
@@ -271,7 +271,7 @@ const AdminAssignmentLogs = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Crown className="h-4 w-4" />
-              Super Moderators
+              Career Managers
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -328,10 +328,10 @@ const AdminAssignmentLogs = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-purple-600" />
-                Super Moderator → Career Assignments
+                Career Manager → Career Assignments
               </CardTitle>
               <CardDescription>
-                Historical log of all super moderator assignments to careers
+                Historical log of all career manager assignments to careers
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -409,7 +409,7 @@ const AdminAssignmentLogs = () => {
                 Course Assignments
               </CardTitle>
               <CardDescription>
-                Historical log of all senior moderator and moderator assignments to courses
+                Historical log of all course manager and content moderator assignments to courses
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -446,9 +446,9 @@ const AdminAssignmentLogs = () => {
                           </TableCell>
                           <TableCell>
                             {assignment.role === "senior_moderator" ? (
-                              <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Senior Mod</Badge>
+                              <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Course Manager</Badge>
                             ) : (
-                              <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Moderator</Badge>
+                              <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Content Moderator</Badge>
                             )}
                           </TableCell>
                           <TableCell>

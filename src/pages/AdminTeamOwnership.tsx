@@ -312,7 +312,7 @@ const AdminTeamOwnership = () => {
               <p className="text-2xl font-bold">
                 {teams.reduce((sum, t) => sum + t.superModeratorCount, 0)}
               </p>
-              <p className="text-sm text-muted-foreground">Super Moderators</p>
+              <p className="text-sm text-muted-foreground">Career Managers</p>
             </div>
           </div>
         </div>

@@ -48,7 +48,7 @@ const CanvasSuperModeratorLayer = ({
     (u) => !superModerators.some((sm) => sm.user_id === u.id)
   );
 
-  const handleAddSuperModerator = async (selectedUserId: string) => {
+  const handleAddCareerManager = async (selectedUserId: string) => {
     try {
       const { error } = await supabase.from("career_assignments").insert({
         user_id: selectedUserId,
@@ -59,26 +59,26 @@ const CanvasSuperModeratorLayer = ({
 
       if (error) throw error;
 
-      toast({ title: "Super Moderator assigned" });
+      toast({ title: "Career Manager assigned" });
       setShowAddDialog(false);
       onRefresh();
     } catch (error: any) {
       toast({
-        title: "Error assigning Super Moderator",
+        title: "Error assigning Career Manager",
         description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const handleRemoveSuperModerator = async () => {
+  const handleRemoveCareerManager = async () => {
     if (!userToRemove) return;
 
-    // Check if this is the last super moderator and team has courses
+    // Check if this is the last career manager and team has courses
     if (superModerators.length <= 1) {
       toast({
         title: "Cannot remove",
-        description: "A team must have at least one Super Moderator",
+        description: "A team must have at least one Career Manager",
         variant: "destructive",
       });
       setUserToRemove(null);
@@ -93,12 +93,12 @@ const CanvasSuperModeratorLayer = ({
 
       if (error) throw error;
 
-      toast({ title: "Super Moderator removed" });
+      toast({ title: "Career Manager removed" });
       setUserToRemove(null);
       onRefresh();
     } catch (error: any) {
       toast({
-        title: "Error removing Super Moderator",
+        title: "Error removing Career Manager",
         description: error.message,
         variant: "destructive",
       });
@@ -111,7 +111,7 @@ const CanvasSuperModeratorLayer = ({
         <div className="flex items-center gap-2 mb-4">
           <Shield className="h-5 w-5 text-primary" />
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Super Moderators
+            Career Managers
           </h3>
         </div>
 
@@ -155,11 +155,11 @@ const CanvasSuperModeratorLayer = ({
         </div>
       </div>
 
-      {/* Add Super Moderator Dialog */}
+      {/* Add Career Manager Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign Super Moderator</DialogTitle>
+            <DialogTitle>Assign Career Manager</DialogTitle>
           </DialogHeader>
           <Command className="rounded-lg border">
             <CommandInput placeholder="Search users..." />
@@ -170,7 +170,7 @@ const CanvasSuperModeratorLayer = ({
                   <CommandItem
                     key={user.id}
                     value={user.email}
-                    onSelect={() => handleAddSuperModerator(user.id)}
+                    onSelect={() => handleAddCareerManager(user.id)}
                     className="cursor-pointer"
                   >
                     <Avatar className="h-8 w-8 mr-2">
@@ -197,7 +197,7 @@ const CanvasSuperModeratorLayer = ({
       <AlertDialog open={!!userToRemove} onOpenChange={() => setUserToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Super Moderator?</AlertDialogTitle>
+            <AlertDialogTitle>Remove Career Manager?</AlertDialogTitle>
             <AlertDialogDescription>
               Remove "{userToRemove?.user?.full_name || userToRemove?.user?.email}" from this team?
             </AlertDialogDescription>
@@ -205,7 +205,7 @@ const CanvasSuperModeratorLayer = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleRemoveSuperModerator}
+              onClick={handleRemoveCareerManager}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remove

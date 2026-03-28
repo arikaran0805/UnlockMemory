@@ -50,7 +50,7 @@ export interface ResolvedOwner {
 
 /**
  * Resolves the owner for a doubt based on source context.
- * Follows hierarchy: direct owner → senior moderator → super moderator → fallback
+ * Follows hierarchy: direct owner → course manager → career manager → fallback
  */
 export async function resolveOwner(context: DoubtSourceContext): Promise<ResolvedOwner | null> {
   const { course_id, post_id, source_type } = context;
@@ -70,7 +70,7 @@ export async function resolveOwner(context: DoubtSourceContext): Promise<Resolve
           .eq("id", course.assigned_to)
           .maybeSingle();
         if (profile) {
-          return { user_id: profile.id, user_name: profile.full_name || "Moderator", avatar_url: profile.avatar_url, role: "moderator", routed_mode: "direct_owner" };
+          return { user_id: profile.id, user_name: profile.full_name || "Content Moderator", avatar_url: profile.avatar_url, role: "moderator", routed_mode: "direct_owner" };
         }
       }
       if (course.default_senior_moderator) {
@@ -80,7 +80,7 @@ export async function resolveOwner(context: DoubtSourceContext): Promise<Resolve
           .eq("id", course.default_senior_moderator)
           .maybeSingle();
         if (profile) {
-          return { user_id: profile.id, user_name: profile.full_name || "Senior Moderator", avatar_url: profile.avatar_url, role: "senior_moderator", routed_mode: "team_queue" };
+          return { user_id: profile.id, user_name: profile.full_name || "Course Manager", avatar_url: profile.avatar_url, role: "senior_moderator", routed_mode: "team_queue" };
         }
       }
       if (course.author_id) {
@@ -133,7 +133,7 @@ export async function resolveOwner(context: DoubtSourceContext): Promise<Resolve
       .eq("id", superMods[0].user_id)
       .maybeSingle();
     if (profile) {
-      return { user_id: profile.id, user_name: profile.full_name || "Super Moderator", avatar_url: profile.avatar_url, role: "super_moderator", routed_mode: "fallback_queue" };
+      return { user_id: profile.id, user_name: profile.full_name || "Career Manager", avatar_url: profile.avatar_url, role: "super_moderator", routed_mode: "fallback_queue" };
     }
   }
 
@@ -150,7 +150,7 @@ export async function resolveOwner(context: DoubtSourceContext): Promise<Resolve
       .eq("id", admins[0].user_id)
       .maybeSingle();
     if (profile) {
-      return { user_id: profile.id, user_name: profile.full_name || "Admin", avatar_url: profile.avatar_url, role: "senior_moderator", routed_mode: "fallback_queue" };
+      return { user_id: profile.id, user_name: profile.full_name || "Platform Manager", avatar_url: profile.avatar_url, role: "senior_moderator", routed_mode: "fallback_queue" };
     }
   }
 
@@ -212,9 +212,9 @@ export function useDoubtSystem(userId: string | undefined) {
 
       if (!connection) {
         // Determine role label
-        const roleLabel = owner.role === "senior_moderator" ? "Senior Moderator"
-          : owner.role === "super_moderator" ? "Super Moderator"
-          : "Moderator";
+        const roleLabel = owner.role === "senior_moderator" ? "Course Manager"
+          : owner.role === "super_moderator" ? "Career Manager"
+          : "Content Moderator";
 
         const { data: newConn } = await supabase
           .from("team_connections")
@@ -463,9 +463,9 @@ export function useDoubtSystem(userId: string | undefined) {
         .maybeSingle();
 
       if (!connection) {
-        const roleLabel = owner.role === "senior_moderator" ? "Senior Moderator"
-          : owner.role === "super_moderator" ? "Super Moderator"
-          : "Moderator";
+        const roleLabel = owner.role === "senior_moderator" ? "Course Manager"
+          : owner.role === "super_moderator" ? "Career Manager"
+          : "Content Moderator";
 
         const { data: profile } = await supabase
           .from("profiles")

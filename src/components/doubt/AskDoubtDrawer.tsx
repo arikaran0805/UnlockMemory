@@ -24,9 +24,9 @@ const sourceIcons: Record<string, typeof BookOpen> = {
 };
 
 const roleLabels: Record<string, string> = {
-  moderator: "Moderator",
-  senior_moderator: "Senior Moderator",
-  super_moderator: "Super Moderator",
+  moderator: "Content Moderator",
+  senior_moderator: "Course Manager",
+  super_moderator: "Career Manager",
 };
 
 export function AskDoubtDrawer({ open, onOpenChange, context, mentor, isConnecting, onStartConversation }: AskDoubtDrawerProps) {

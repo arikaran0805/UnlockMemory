@@ -106,7 +106,7 @@ export const adminSidebarConfig: SidebarConfig = {
     analyticsSection,
     systemSection,
   ],
-  roleLabel: "Admin",
+  roleLabel: "Platform Manager",
   roleColor: {
     // Burgundy #8B1E1E
     badge: "text-[#8B1E1E]",
