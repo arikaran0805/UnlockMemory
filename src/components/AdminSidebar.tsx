@@ -24,25 +24,26 @@ import SidebarToggleHeader from "@/components/SidebarToggleHeader";
 
 // ─── Base colour tokens ───────────────────────────────────────────────────────
 const C = {
-  bg:          "#EFF3EE",
-  hoverBg:     "#E2EAE1",
+  bg: "#EFF3EE",
+  hoverBg: "#E2EAE1",
   textPrimary: "#1A3A2A",
-  textMuted:   "#6B8F71",
-  border:      "#D4DDD3",
-  popupBg:     "#EFF3EE",
-  popupMuted:  "#6B8F71",
-  popupDiv:    "#D4DDD3",
-  danger:      "#FF3B30",
-  avatarBg:    "#1A3A2A",   // fixed brand identity — never changes with role
+  textMuted: "#6B8F71",
+  border: "#D4DDD3",
+  popupBg: "#EFF3EE",
+  popupMuted: "#6B8F71",
+  popupDiv: "#D4DDD3",
+  danger: "#FF3B30",
+  avatarBg: "#1A3A2A",   // fixed brand identity — never changes with role
+  tooltipBg: "#1A3A2A",  // dark background for light text tooltips
 } as const;
 
 // ─── Role-aware active-state tokens ──────────────────────────────────────────
 // All within the same sage/forest-green family — stronger = higher authority.
 const ROLE_ACTIVE: Record<string, { bg: string; text: string; icon: string }> = {
-  admin:            { bg: "#1A3A2A", text: "#FFFFFF", icon: "#FFFFFF" }, // 100% — deepest forest green
-  super_moderator:  { bg: "#254435", text: "#FFFFFF", icon: "#FFFFFF" }, // 95% of admin
+  admin: { bg: "#1A3A2A", text: "#FFFFFF", icon: "#FFFFFF" }, // 100% — deepest forest green
+  super_moderator: { bg: "#254435", text: "#FFFFFF", icon: "#FFFFFF" }, // 95% of admin
   senior_moderator: { bg: "#314E3F", text: "#FFFFFF", icon: "#FFFFFF" }, // 90% of admin
-  moderator:        { bg: "#3C584A", text: "#FFFFFF", icon: "#FFFFFF" }, // 85% of admin
+  moderator: { bg: "#3C584A", text: "#FFFFFF", icon: "#FFFFFF" }, // 85% of admin
 };
 const FALLBACK_ACTIVE = ROLE_ACTIVE.admin;
 
@@ -77,17 +78,17 @@ const AdminSidebar = ({
   notifications,
   getBadgeCount,
 }: AdminSidebarProps) => {
-  const location  = useLocation();
-  const navigate  = useNavigate();
-  const { toast }                    = useToast();
-  const { user, activeRole }         = useAuth();
-  const { isViewingAs, viewAsRole }  = useViewAsRole();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user, activeRole } = useAuth();
+  const { isViewingAs, viewAsRole } = useViewAsRole();
 
   // Derive the active-state tokens from the effective role
   const effectiveRole = (isViewingAs && viewAsRole ? viewAsRole : activeRole) ?? "admin";
   const A = ROLE_ACTIVE[effectiveRole] ?? FALLBACK_ACTIVE;
 
-  const [profileOpen,     setProfileOpen]     = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
@@ -102,26 +103,26 @@ const AdminSidebar = ({
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setProfileOpen(false); };
     document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown",   onKey);
+    document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown",   onKey);
+      document.removeEventListener("keydown", onKey);
     };
   }, [profileOpen]);
 
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const notificationMap: Record<string, number> = {
-    approvals:         notifications.totalApprovals,
+    approvals: notifications.totalApprovals,
     "delete-requests": notifications.deleteRequests,
-    reports:           notifications.reports,
-    posts:             notifications.pendingPosts,
-    courses:           notifications.pendingCourses,
-    tags:              notifications.pendingTags,
-    comments:          notifications.pendingComments,
-    media:             notifications.mediaLibrary,
-    users:             notifications.newUsers,
-    annotations:       notifications.openAnnotations,
+    reports: notifications.reports,
+    posts: notifications.pendingPosts,
+    courses: notifications.pendingCourses,
+    tags: notifications.pendingTags,
+    comments: notifications.pendingComments,
+    media: notifications.mediaLibrary,
+    users: notifications.newUsers,
+    annotations: notifications.openAnnotations,
   };
 
   const isActive = (path: string) => {
@@ -131,7 +132,7 @@ const AdminSidebar = ({
   };
 
   const getItemBadge = (path: string) => {
-    const key   = path.split("/").pop() || "";
+    const key = path.split("/").pop() || "";
     const count = notificationMap[key] || 0;
     return getBadgeCount ? getBadgeCount(key, count) : count > 0 ? count : undefined;
   };
@@ -148,8 +149,8 @@ const AdminSidebar = ({
   };
 
   const displayName = userProfile?.full_name || user?.email?.split("@")[0] || "Admin";
-  const userEmail   = user?.email || "";
-  const initials    = displayName.charAt(0).toUpperCase();
+  const userEmail = user?.email || "";
+  const initials = displayName.charAt(0).toUpperCase();
 
   // ── Reusable nav-row renderer ──────────────────────────────────────────────
   const NavRow = ({
@@ -157,9 +158,9 @@ const AdminSidebar = ({
     label,
     path,
     onClick,
-    active   = false,
+    active = false,
     badge,
-    danger   = false,
+    danger = false,
     tooltip,
   }: {
     icon: React.ElementType;
@@ -230,7 +231,7 @@ const AdminSidebar = ({
               "shadow-xl opacity-0 group-hover:opacity-100",
               "transition-opacity duration-150",
             )}
-            style={{ backgroundColor: C.popupBg }}
+            style={{ backgroundColor: C.tooltipBg }}
           >
             {tooltip ?? label}
             {badge && badge > 0 && (
@@ -290,7 +291,7 @@ const AdminSidebar = ({
           {!isOpen && (
             <span
               className="pointer-events-none absolute left-full ml-3 z-[200] px-2.5 py-1.5 rounded-lg text-xs font-medium text-white whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-              style={{ backgroundColor: C.popupBg }}
+              style={{ backgroundColor: C.tooltipBg }}
             >
               Search
             </span>

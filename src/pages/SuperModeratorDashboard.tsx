@@ -199,7 +199,7 @@ const SuperModeratorDashboard = () => {
                 <Card key={assignment.id} className="border-l-4" style={{ borderLeftColor: assignment.career?.color || "#8B5CF6" }}>
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-3">
-                      <div 
+                      <div
                         className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
                         style={{ backgroundColor: assignment.career?.color || "#8B5CF6" }}
                       >

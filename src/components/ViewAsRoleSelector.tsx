@@ -9,18 +9,18 @@ import { useViewAsRole } from "@/contexts/ViewAsRoleContext";
 import { cn } from "@/lib/utils";
 
 const VIEW_AS_ROLES: { role: AppRole; label: string; icon: typeof Shield }[] = [
-  { role: "super_moderator", label: "Career Manager",   icon: Shield },
-  { role: "senior_moderator", label: "Course Manager",   icon: UserCog },
-  { role: "moderator",        label: "Content Moderator", icon: Users },
-  { role: "user",             label: "Learner",           icon: User },
+  { role: "super_moderator", label: "Career Manager", icon: Shield },
+  { role: "senior_moderator", label: "Course Manager", icon: UserCog },
+  { role: "moderator", label: "Content Moderator", icon: Users },
+  { role: "user", label: "Learner", icon: User },
 ];
 
 // Colour tokens matching AdminSidebar's dark popup
 const C = {
-  popupBg:   "#EFF3EE",
-  popupMuted:"#6B8F71",
-  popupDiv:  "rgba(0,0,0,0.10)",
-  activeBg:  "#2D5A3D",
+  popupBg: "#EFF3EE",
+  popupMuted: "#6B8F71",
+  popupDiv: "rgba(0,0,0,0.10)",
+  activeBg: "#2D5A3D",
 } as const;
 
 interface ViewAsRoleSelectorProps {
@@ -50,8 +50,8 @@ const ViewAsRoleSelector = ({ onOpenDialog: _onOpenDialog }: ViewAsRoleSelectorP
   };
 
   return (
-    <div>
-      {/* ── Header row ── */}
+    <div className="flex flex-col-reverse">
+      {/* ── Fixed trigger button ── */}
       <button
         onClick={() => setExpanded(v => !v)}
         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
@@ -62,14 +62,25 @@ const ViewAsRoleSelector = ({ onOpenDialog: _onOpenDialog }: ViewAsRoleSelectorP
           {isViewingAs ? `Viewing: ${currentViewingLabel}` : "View as Role"}
         </span>
         <ChevronRight
-          className="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
-          style={{ color: C.popupMuted, transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+          className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 ease-out"
+          style={{ 
+            color: C.popupMuted, 
+            transform: expanded ? "rotate(-90deg)" : "rotate(0deg)" 
+          }}
         />
       </button>
 
-      {/* ── Expanded role list ── */}
-      {expanded && (
-        <div className="mt-0.5 mx-1 rounded-xl overflow-hidden" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
+      {/* ── Upward expanding accordion role list ── */}
+      <div 
+        className={cn(
+          "mx-1 rounded-xl overflow-hidden transition-all duration-200 ease-out",
+          expanded 
+            ? "max-h-[400px] opacity-100 translate-y-0 mb-1.5" 
+            : "max-h-0 opacity-0 translate-y-4 pointer-events-none"
+        )} 
+        style={{ backgroundColor: "rgba(0,0,0,0.06)" }}
+      >
+        <div className="py-1">
           {VIEW_AS_ROLES.map(({ role, label, icon: Icon }) => {
             const active = viewAsRole === role;
             return (
@@ -103,7 +114,7 @@ const ViewAsRoleSelector = ({ onOpenDialog: _onOpenDialog }: ViewAsRoleSelectorP
             </>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
