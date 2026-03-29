@@ -175,13 +175,23 @@ const AdminAuthors = () => {
       (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex flex-col gap-0">
+      <div className="admin-section-spacing-top" />
+      <div className="p-6">Loading...</div>
+    </div>
+  );
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-foreground">Authors & Admins</h1>
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Authors & Admins</h1>
+            <p className="text-muted-foreground">
+              Manage author accounts, assign roles, and control permissions for your team.
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
               Total Users: {users.length}
@@ -189,9 +199,10 @@ const AdminAuthors = () => {
           </div>
         </div>
 
-        <p className="text-muted-foreground">
-          Manage author accounts, assign roles, and control permissions for your team.
-        </p>
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+
 
         {/* Search Bar */}
         <div className="relative max-w-md">
@@ -279,6 +290,7 @@ const AdminAuthors = () => {
           </CardContent>
         </Card>
       </div>
+    </div>
 
       {/* Role Management Dialog */}
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>

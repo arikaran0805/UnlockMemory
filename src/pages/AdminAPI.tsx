@@ -360,16 +360,27 @@ const AdminAPI = () => {
   };
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="p-6">Loading...</div>
+      </div>
+    );
   }
 
   return (
     <>
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">API & Integrations</h1>
-          <p className="text-muted-foreground">Manage webhooks and external API integrations</p>
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">API & Integrations</h1>
+            <p className="text-muted-foreground">Manage webhooks and external API integrations</p>
+          </div>
         </div>
+
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
 
         <Tabs defaultValue="webhooks" className="space-y-4">
           <TabsList>
@@ -862,8 +873,9 @@ const AdminAPI = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
+    </div>
+  </>
+);
 };
 
 export default AdminAPI;

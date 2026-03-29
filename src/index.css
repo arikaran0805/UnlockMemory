@@ -183,6 +183,11 @@ All colors MUST be HSL.
 }
 
 @layer components {
+  /* Standardized vertical spacing for all admin/moderator pages */
+  .admin-section-spacing-top {
+    @apply h-12 flex-shrink-0;
+  }
+
   /* Premium card styling — overrides shadcn Card defaults */
   .card-premium {
     @apply relative;

@@ -205,8 +205,11 @@ const AdminReports = () => {
 
   if (roleLoading || loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
@@ -263,14 +266,19 @@ const AdminReports = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports & Suggestions</h1>
-          <p className="text-muted-foreground">
-            Review user-submitted reports and content suggestions
-          </p>
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Reports & Suggestions</h1>
+            <p className="text-muted-foreground">
+              Review user-submitted reports and content suggestions
+            </p>
+          </div>
         </div>
 
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
         <div className="grid grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
@@ -427,6 +435,7 @@ const AdminReports = () => {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
 
       {/* Review Dialog */}
       <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>

@@ -822,32 +822,30 @@ const AdminCareerEditor = () => {
 
   if (loading && id) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse text-muted-foreground">Loading career...</div>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-pulse text-muted-foreground">Loading career...</div>
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex flex-col h-[calc(100vh-6rem)]">
+    <div className="flex flex-col gap-0">
         {/* Header with Tabs inline */}
-        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => navigate("/admin/careers")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${careerColor}`}>
-                {getIcon(careerIcon)}
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">{careerName || "New Career"}</h1>
-                <p className="text-xs text-muted-foreground">
-                  {skillNodes.length} skills · {getMappedCourseIds().size} courses
-                </p>
-              </div>
+            <div className="flex flex-col">
+              <h1 className="text-3xl font-bold text-foreground">{careerName || "New Career"}</h1>
+              <p className="text-muted-foreground leading-tight">
+                Configure career tracks, skills, and course mappings
+              </p>
             </div>
             
             {/* Tabs inline with career name */}
@@ -896,6 +894,10 @@ const AdminCareerEditor = () => {
             </Button>
           </div>
         </div>
+
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
 
         {/* Main Content with Right Sidebar */}
         <div className="flex gap-4 flex-1 min-h-0">
@@ -1427,9 +1429,10 @@ const AdminCareerEditor = () => {
                 </div>
               </ScrollArea>
             </Card>
-          </div>
-        </div>
       </div>
+    </div>
+  </div>
+</div>
 
       {/* Skill Editor Dialog */}
       <Dialog open={skillEditorOpen} onOpenChange={setSkillEditorOpen}>

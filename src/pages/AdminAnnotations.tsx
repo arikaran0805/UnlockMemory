@@ -194,8 +194,11 @@ const AdminAnnotations = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
@@ -205,20 +208,23 @@ const AdminAnnotations = () => {
   const dismissedCount = annotations.filter(a => a.status === "dismissed").length;
 
   return (
-    <div className="space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <MessageSquarePlus className="h-8 w-8" />
+            <h1 className="text-3xl font-bold text-foreground">
               Annotations
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground">
               Manage annotations and feedback across all posts
             </p>
           </div>
         </div>
 
-        {/* Stats Cards */}
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-card border rounded-lg p-4">
             <div className="text-sm text-muted-foreground">Open</div>
@@ -372,7 +378,8 @@ const AdminAnnotations = () => {
           </Table>
         </div>
       </div>
-  );
+  </div>
+);
 };
 
 export default AdminAnnotations;

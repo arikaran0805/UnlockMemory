@@ -152,27 +152,36 @@ const AdminUsers = () => {
   );
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <UMLoader size={56} dark label="Loading…" />
+    <div className="flex flex-col gap-0">
+      <div className="admin-section-spacing-top" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <UMLoader size={56} dark label="Loading…" />
+      </div>
     </div>
   );
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
           <h1 className="text-3xl font-bold text-foreground">Users Management</h1>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => setInviteDialogOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite User
-            </Button>
-            <Badge variant="outline" className="text-sm">
-              Total Users: {users.length}
-            </Badge>
-          </div>
+          <p className="text-muted-foreground">Manage user accounts, roles, and platform access</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setInviteDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Invite User
+          </Button>
+          <Badge variant="outline" className="text-sm">
+            Total Users: {users.length}
+          </Badge>
+        </div>
+      </div>
 
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
         {/* Search Bar */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -287,6 +296,7 @@ const AdminUsers = () => {
         onOpenChange={setInviteDialogOpen}
         onInviteSent={fetchUsers}
       />
+      </div>
     </>
   );
 };

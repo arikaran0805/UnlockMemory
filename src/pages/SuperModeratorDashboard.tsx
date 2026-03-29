@@ -121,16 +121,21 @@ const SuperModeratorDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Career Manager</h1>
-        <p className="text-muted-foreground mt-1">
-          Oversee and manage assigned careers and their complete content structure
-        </p>
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Career Manager</h1>
+          <p className="text-muted-foreground">
+            Oversee and manage assigned careers and their complete content structure
+          </p>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
+        {/* Stats Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -265,6 +270,7 @@ const SuperModeratorDashboard = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

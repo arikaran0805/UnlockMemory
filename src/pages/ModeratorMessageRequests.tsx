@@ -19,15 +19,11 @@ const ModeratorMessageRequests = () => {
   const resolved = threads.filter(t => t.current_status === "resolved");
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 py-2">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Message Requests</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Learner questions assigned to you</p>
-        </div>
-        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-          <MessageCircle className="h-4.5 w-4.5 text-primary" />
+          <h1 className="text-3xl font-bold text-foreground">Message Requests</h1>
+          <p className="text-muted-foreground">Learner questions assigned to you</p>
         </div>
       </div>
 

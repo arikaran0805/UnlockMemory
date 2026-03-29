@@ -284,13 +284,17 @@ const ModeratorDashboard = () => {
   const currentQueue = workQueue[activeTab as keyof typeof workQueue] || [];
 
   return (
-    <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Content Moderator</h1>
-          <p className="text-muted-foreground">Create, review, and manage content within assigned courses</p>
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Content Moderator</h1>
+            <p className="text-muted-foreground">Create, review, and manage content within assigned courses</p>
+          </div>
         </div>
 
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/20 dark:to-background border-amber-100 dark:border-amber-900/30">
@@ -520,6 +524,7 @@ const ModeratorDashboard = () => {
           </CardContent>
         </Card>
       </div>
+    </div>
   );
 };
 

@@ -40,10 +40,18 @@ const AdminCareers = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">Career Paths</h1>
-        <AdminCareersTab />
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Career Paths</h1>
+          <p className="text-muted-foreground">Manage learning tracks and career progression paths</p>
+        </div>
       </div>
+
+      <div className="admin-section-spacing-top" />
+
+      <AdminCareersTab />
+    </div>
     </>
   );
 };

@@ -345,8 +345,11 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <UMLoader size={56} dark label="Loading…" />
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center py-12">
+          <UMLoader size={56} dark label="Loading…" />
+        </div>
       </div>
     );
   }
@@ -354,7 +357,7 @@ const AdminDashboard = () => {
   const totalCriticalAlerts = criticalAlerts.pendingPosts + criticalAlerts.deleteRequests + criticalAlerts.reportedComments;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-0">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -363,8 +366,11 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="admin-section-spacing-top" />
+
+      {/* KPI Cards & rest of the content */}
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="card-premium rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
           style={{ borderLeft: "2px solid rgba(79,175,122,0.35)" }}>
           <div className="flex items-center justify-between mb-3">
@@ -444,8 +450,8 @@ const AdminDashboard = () => {
             )}
           </div>
           <p className="text-sm text-muted-foreground mb-4 ml-8">Critical items requiring review</p>
-          <div className="space-y-6">
-            <Link to="/admin/approvals">
+          <div className="flex flex-col gap-4">
+            <Link to="/admin/approvals" className="block w-full">
               <div className="flex items-center justify-between px-4 py-4 rounded-xl border border-border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary hover:bg-primary/[0.06]">
                 <div className="flex items-center gap-3">
                   <span className="p-1.5 rounded-lg shrink-0" style={{ background: "rgba(212,161,47,0.12)" }}>
@@ -457,7 +463,7 @@ const AdminDashboard = () => {
               </div>
             </Link>
 
-            <Link to="/admin/delete-requests">
+            <Link to="/admin/delete-requests" className="block w-full">
               <div className="flex items-center justify-between px-4 py-4 rounded-xl border border-border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary hover:bg-primary/[0.06]">
                 <div className="flex items-center gap-3">
                   <span className="p-1.5 rounded-lg shrink-0" style={{ background: "rgba(214,90,79,0.12)" }}>
@@ -469,7 +475,7 @@ const AdminDashboard = () => {
               </div>
             </Link>
 
-            <Link to="/admin/reports">
+            <Link to="/admin/reports" className="block w-full">
               <div className="flex items-center justify-between px-4 py-4 rounded-xl border border-border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary hover:bg-primary/[0.06]">
                 <div className="flex items-center gap-3">
                   <span className="p-1.5 rounded-lg shrink-0" style={{ background: "rgba(214,90,79,0.12)" }}>
@@ -529,7 +535,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── Analytics Snapshot + Activity Log (2-column) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
         {/* Left: Analytics Snapshot */}
         <div className="card-premium rounded-2xl p-6">
@@ -632,7 +638,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Right: Activity Log */}
-        <div className="card-premium rounded-2xl p-6 flex flex-col self-stretch">
+        <div className="card-premium rounded-2xl p-6 flex flex-col lg:h-0 lg:min-h-full">
           {/* Sticky header */}
           <div className="mb-4">
             <h2 className="font-semibold text-foreground mb-1">Activity Log</h2>
@@ -675,6 +681,7 @@ const AdminDashboard = () => {
           </ScrollArea>
         </div>
 
+      </div>
       </div>
     </div>
   );

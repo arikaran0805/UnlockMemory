@@ -220,15 +220,21 @@ const AdminRedirects = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-3xl font-bold text-foreground">Redirect Rules</h1>
+      <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Redirect Rules</h1>
+            <p className="text-muted-foreground">Manage URL redirections and track traffic hits</p>
+          </div>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" /> Add Redirect
           </Button>
         </div>
 
-        <div className="relative max-w-md">
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+          <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search redirects..."
@@ -315,8 +321,9 @@ const AdminRedirects = () => {
           </Card>
         )}
       </div>
+    </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedRedirect ? "Edit Redirect" : "Create Redirect"}</DialogTitle>

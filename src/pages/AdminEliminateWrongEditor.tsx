@@ -205,11 +205,14 @@ export default function AdminEliminateWrongEditor() {
 
   if (isEditing && isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-48" />
-        <Card><CardContent className="p-6 space-y-4">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-        </CardContent></Card>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-48" />
+          <Card><CardContent className="p-6 space-y-4">
+            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+          </CardContent></Card>
+        </div>
       </div>
     );
   }
@@ -231,15 +234,15 @@ export default function AdminEliminateWrongEditor() {
   const OPTION_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{isEditing ? "Edit" : "Create"} Eliminate the Wrong Answer</h1>
+            <h1 className="text-3xl font-bold text-foreground">{isEditing ? "Edit" : "Create"} Eliminate the Wrong Answer</h1>
             <p className="text-muted-foreground">{skill?.name} &gt; {isEditing ? "Edit" : "New Problem"}</p>
           </div>
         </div>
@@ -265,6 +268,8 @@ export default function AdminEliminateWrongEditor() {
           )}
         </div>
       </div>
+
+      <div className="admin-section-spacing-top" />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

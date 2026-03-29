@@ -109,27 +109,30 @@ export default function AdminPracticeSkillEditor() {
 
   if (isEditing && isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col gap-0">
         <Skeleton className="h-10 w-48" />
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </CardContent>
-        </Card>
+        <div className="admin-section-spacing-top" />
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-0">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/admin/practice/skills")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-3xl font-bold text-foreground">
             {isEditing ? "Edit Practice Skill" : "Create Practice Skill"}
           </h1>
           <p className="text-muted-foreground">
@@ -138,6 +141,9 @@ export default function AdminPracticeSkillEditor() {
         </div>
       </div>
 
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
@@ -270,5 +276,6 @@ export default function AdminPracticeSkillEditor() {
         </form>
       </Form>
     </div>
-  );
+  </div>
+);
 }

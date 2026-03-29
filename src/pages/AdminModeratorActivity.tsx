@@ -403,23 +403,31 @@ const AdminModeratorActivity = () => {
 
   if (roleLoading || loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Activity</h1>
-          <p className="text-muted-foreground">
-            Track your content submissions and admin feedback
-          </p>
+      <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">My Activity</h1>
+            <p className="text-muted-foreground">
+              Track your content submissions and admin feedback
+            </p>
+          </div>
         </div>
 
-        <Tabs defaultValue="actions" className="space-y-4">
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+          <Tabs defaultValue="actions" className="space-y-4">
           <TabsList>
             <TabsTrigger value="actions" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -701,7 +709,8 @@ const AdminModeratorActivity = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </>
+    </div>
+  </>
   );
 };
 

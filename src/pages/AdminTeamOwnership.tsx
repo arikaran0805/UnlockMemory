@@ -233,15 +233,18 @@ const AdminTeamOwnership = () => {
   // If we have an edit param but team not found (still loading or invalid)
   if (editingTeamId && !selectedTeam && loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-lg" />
-          <Skeleton className="h-8 w-64" />
-        </div>
-        <div className="flex flex-col items-center gap-6 py-12">
-          <Skeleton className="h-20 w-64 rounded-xl" />
-          <Skeleton className="h-32 w-96 rounded-xl" />
-          <Skeleton className="h-48 w-full max-w-4xl rounded-xl" />
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <Skeleton className="h-8 w-64" />
+          </div>
+          <div className="flex flex-col items-center gap-6 py-12">
+            <Skeleton className="h-20 w-64 rounded-xl" />
+            <Skeleton className="h-32 w-96 rounded-xl" />
+            <Skeleton className="h-48 w-full max-w-4xl rounded-xl" />
+          </div>
         </div>
       </div>
     );
@@ -253,12 +256,12 @@ const AdminTeamOwnership = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-0">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Team Ownership</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground">
             Manage team-based ownership of careers, courses, and content
           </p>
         </div>
@@ -278,6 +281,10 @@ const AdminTeamOwnership = () => {
           </Button>
         </div>
       </div>
+
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -429,7 +436,8 @@ const AdminTeamOwnership = () => {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  </div>
+);
 };
 
 export default AdminTeamOwnership;

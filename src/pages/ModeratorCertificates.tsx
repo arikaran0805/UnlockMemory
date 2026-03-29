@@ -132,10 +132,11 @@ const ModeratorCertificates = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Certificate Approvals</h1>
-        <p className="text-muted-foreground">Review and approve course completion certificates</p>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Certificate Approvals</h1>
+          <p className="text-muted-foreground">Review and approve course completion certificates</p>
+        </div>
       </div>
 
       {/* Stats Cards */}

@@ -435,10 +435,18 @@ const AdminMonetization = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">Monetization</h1>
+      <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Monetization</h1>
+            <p className="text-muted-foreground">Manage ads, embed codes, and site-wide announcements</p>
+          </div>
+        </div>
 
-        <Tabs defaultValue="ads" className="w-full">
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+          <Tabs defaultValue="ads" className="w-full">
           <TabsList>
             <TabsTrigger value="ads" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
@@ -976,6 +984,7 @@ const AdminMonetization = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

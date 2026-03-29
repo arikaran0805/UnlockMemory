@@ -232,7 +232,13 @@ const ConversationDetail = () => {
   const isResolved = thread.current_status === "resolved";
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5">
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Conversation Detail</h1>
+          <p className="text-muted-foreground">Manage direct messages and support threads with learners</p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-5">
         {/* Main Thread */}
         <div className="space-y-4">

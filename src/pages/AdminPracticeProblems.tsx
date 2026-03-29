@@ -346,25 +346,30 @@ export default function AdminPracticeProblems() {
   const hasLinkedCourse = !!skill?.course_id;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/practice/skills")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">
-            {skill?.name || "Loading..."} Problems
-          </h1>
-          <p className="text-muted-foreground">
-            Manage problems organized by lessons and sub-topics
-          </p>
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/practice/skills")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              {skill?.name || "Loading..."} Problems
+            </h1>
+            <p className="text-muted-foreground">
+              Manage problems organized by lessons and sub-topics
+            </p>
+          </div>
         </div>
         <Button onClick={() => setShowTypeSelect(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           New Problem
         </Button>
       </div>
+
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
 
       {/* Main Content */}
       {isLoading ? (
@@ -529,6 +534,7 @@ export default function AdminPracticeProblems() {
         onSelectFixError={() => navigate(`/admin/practice/skills/${skillId}/fix-error/new`)}
         onSelectEliminateWrong={() => navigate(`/admin/practice/skills/${skillId}/eliminate-wrong/new`)}
       />
+      </div>
     </div>
   );
 }

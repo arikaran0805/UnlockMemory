@@ -41,21 +41,26 @@ export default function AdminPredictOutputProblems() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Predict Output Problems</h1>
+            <h1 className="text-3xl font-bold text-foreground">Predict Output Problems</h1>
             <p className="text-muted-foreground">{skill?.name}</p>
           </div>
         </div>
         <Button onClick={() => navigate(`/admin/practice/skills/${skillId}/predict-output/new`)} className="gap-2">
-          <Plus className="h-4 w-4" />Add Problem
+          <Plus className="h-4 w-4" />
+          Add Problem
         </Button>
       </div>
+
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
 
       {isLoading ? (
         <div className="space-y-3">
@@ -122,6 +127,7 @@ export default function AdminPredictOutputProblems() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

@@ -652,10 +652,13 @@ const AdminComments = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
-          <p className="text-muted-foreground">Loading comments...</p>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
+            <p className="text-muted-foreground">Loading comments...</p>
+          </div>
         </div>
       </div>
     );
@@ -663,13 +666,17 @@ const AdminComments = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Comments Management</h1>
-          <p className="text-muted-foreground">Review, moderate, and manage learner comments grouped by course</p>
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Comments Management</h1>
+            <p className="text-muted-foreground">Review, moderate, and manage learner comments grouped by course</p>
+          </div>
         </div>
 
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Card className="border-primary/20">
@@ -803,8 +810,9 @@ const AdminComments = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </>
-  );
+    </div>
+  </>
+);
 };
 
 export default AdminComments;

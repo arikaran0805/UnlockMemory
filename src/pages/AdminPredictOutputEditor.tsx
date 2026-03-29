@@ -191,15 +191,18 @@ export default function AdminPredictOutputEditor() {
 
   if (isEditing && isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-48" />
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </CardContent>
-        </Card>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-48" />
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              {[...Array(8)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -258,15 +261,15 @@ export default function AdminPredictOutputEditor() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-3xl font-bold text-foreground">
               {isEditing ? "Edit" : "Create"} Predict Output
             </h1>
             <p className="text-muted-foreground">
@@ -304,8 +307,11 @@ export default function AdminPredictOutputEditor() {
         </div>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Mobile Stepper */}
           {isMobile && <MobileStepper />}
 
@@ -775,5 +781,6 @@ export default function AdminPredictOutputEditor() {
         </form>
       </Form>
     </div>
-  );
+  </div>
+);
 }

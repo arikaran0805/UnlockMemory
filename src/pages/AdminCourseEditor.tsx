@@ -582,9 +582,14 @@ const AdminCourseEditor = () => {
                   <ArrowLeft className="h-4 w-4" />
                   Back to Courses
                 </Button>
-                <h1 className="text-3xl font-bold">
-                  {id ? "Edit Course" : "Create New Course"}
-                </h1>
+                <div className="flex flex-col">
+                  <h1 className="text-3xl font-bold text-foreground">
+                    {id ? "Edit Course" : "Create New Course"}
+                  </h1>
+                  <p className="text-muted-foreground text-xs leading-none">
+                    Manage course details, curriculum, and publishing status
+                  </p>
+                </div>
                 {formData.status && formData.status !== "draft" && (
                   <ContentStatusBadge status={formData.status as ContentStatus} />
                 )}
@@ -605,6 +610,8 @@ const AdminCourseEditor = () => {
               </TabsList>
             </div>
 
+            <div className="admin-section-spacing-top" />
+
             {/* Open annotations indicator */}
             {annotations.filter(a => a.status === "open").length > 0 && !isAdmin && (
               <div className="flex items-center gap-2 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg flex-shrink-0">
@@ -616,7 +623,7 @@ const AdminCourseEditor = () => {
             )}
 
             {/* Course Details Tab */}
-            <TabsContent value="details" className="space-y-4 mt-0 flex-1 overflow-y-auto">
+            <TabsContent value="details" className="space-y-6 mt-0 flex-1 overflow-y-auto">
               <Card>
                 <CardHeader>
                   <CardTitle>Course Details</CardTitle>
@@ -695,7 +702,7 @@ const AdminCourseEditor = () => {
             </TabsContent>
 
             {/* Lessons Tab */}
-            <TabsContent value="lessons" className="space-y-4 mt-0 flex-1 overflow-y-auto">
+            <TabsContent value="lessons" className="space-y-6 mt-0 flex-1 overflow-y-auto">
               {id ? (
                 <LessonManager courseId={id} basePath={basePath} />
               ) : (

@@ -139,22 +139,31 @@ const AdminCourses = () => {
 
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <UMLoader size={56} dark label="Loading…" />
+    <div className="flex flex-col gap-0">
+      <div className="admin-section-spacing-top" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <UMLoader size={56} dark label="Loading…" />
+      </div>
     </div>
   );
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-foreground">Courses</h1>
+      <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Courses</h1>
+            <p className="text-muted-foreground">Manage and organize learning paths and course content</p>
+          </div>
           <Button onClick={() => navigate("/admin/courses/new")}>
             <Plus className="mr-2 h-4 w-4" /> New Course
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
             <Card key={category.id}>
               <CardHeader>
@@ -230,7 +239,9 @@ const AdminCourses = () => {
               </CardContent>
             </Card>
           ))}
+          </div>
         </div>
+      </div>
 
         {/* Preview Dialog */}
         <Dialog open={!!previewCategory} onOpenChange={() => setPreviewCategory(null)}>
@@ -249,7 +260,6 @@ const AdminCourses = () => {
             )}
           </DialogContent>
         </Dialog>
-      </div>
     </>
   );
 };

@@ -354,26 +354,32 @@ const AdminPosts = () => {
 
   if (loading) {
     return (
-      <div className="text-center">Loading...</div>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="text-center p-6">Loading...</div>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Manage Posts</h1>
-          <p className="text-muted-foreground">
-            {moderatorOnly ? "Your posts and assigned posts" : "Create and manage all blog posts"}
-          </p>
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Manage Posts</h1>
+            <p className="text-muted-foreground">
+              {moderatorOnly ? "Your posts and assigned posts" : "Create and manage all blog posts"}
+            </p>
+          </div>
+
+          <Button onClick={() => navigate("/admin/posts/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Post
+          </Button>
         </div>
 
-        <Button onClick={() => navigate("/admin/posts/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Post
-        </Button>
-      </div>
+        <div className="admin-section-spacing-top" />
 
+        <div className="space-y-6">
 
       <Card>
         <CardHeader>
@@ -557,7 +563,8 @@ const AdminPosts = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+      </div>
+    </div>
   );
 };
 

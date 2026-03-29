@@ -442,8 +442,11 @@ const AdminApprovals = () => {
 
   if (roleLoading || loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
@@ -452,20 +455,23 @@ const AdminApprovals = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Approval Queue</h1>
-            <p className="text-muted-foreground mt-1">
-              Review and approve content submitted by moderators
-            </p>
-          </div>
-          <Badge variant="secondary" className="text-lg px-4 py-2">
-            <Clock className="h-4 w-4 mr-2" />
-            {totalPending} Pending
-          </Badge>
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Approval Queue</h1>
+          <p className="text-muted-foreground">
+            Review and approve content submitted by moderators
+          </p>
         </div>
+        <Badge variant="secondary" className="text-lg px-4 py-2">
+          <Clock className="h-4 w-4 mr-2" />
+          {totalPending} Pending
+        </Badge>
+      </div>
 
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="posts" className="flex items-center gap-2">
@@ -520,6 +526,7 @@ const AdminApprovals = () => {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
 
       {/* Action Dialog */}
       <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>

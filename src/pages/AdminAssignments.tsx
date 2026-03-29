@@ -299,25 +299,32 @@ const AdminAssignments = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col gap-0">
         <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-96 w-full" />
+        <div className="admin-section-spacing-top" />
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Assignment Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground">
             Manage career and course assignments for Career Managers, Course Managers, and Content Moderators
           </p>
         </div>
       </div>
+
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -722,7 +729,8 @@ const AdminAssignments = () => {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  </div>
+);
 };
 
 export default AdminAssignments;

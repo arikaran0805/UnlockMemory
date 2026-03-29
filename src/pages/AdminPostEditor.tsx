@@ -24,7 +24,7 @@ import AdminEditBanner from "@/components/AdminEditBanner";
 import SideBySideComparison from "@/components/SideBySideComparison";
 import VersionDiffViewer from "@/components/VersionDiffViewer";
 import { VersioningNoteDialog, VersioningNoteType } from "@/components/VersioningNoteDialog";
-import { ArrowLeft, Save, X, FileText, Send, AlertCircle, Eye, Loader2, Check, Highlighter, Settings, Layers, MessageSquare } from "lucide-react";
+import { Save, X, FileText, Send, AlertCircle, Eye, Loader2, Check, Highlighter, Settings, Layers, MessageSquare } from "lucide-react";
 import { AssetsSidebar } from "@/components/assets/AssetsSidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
@@ -72,10 +72,10 @@ const AdminPostEditor = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin, isModerator, userId, isLoading: roleLoading } = useUserRole();
-  
+
   // Get sidebar context to collapse when editing/annotating
   const { collapseSidebar } = useAdminSidebar();
-  
+
   const [loading, setLoading] = useState(!!id);
   const [categories, setCategories] = useState<Category[]>([]);
   const [courseLessons, setCourseLessons] = useState<{ id: string; title: string; lesson_rank: string | null }[]>([]);
@@ -124,14 +124,14 @@ const AdminPostEditor = () => {
 
   // Auto-save draft hook - saves content to localStorage with debounce
   const draftKey = id ? `post_${id}` : `new_post_${formData.slug || 'untitled'}`;
-  
+
   // Collapse sidebar when editing a post (has id) or when annotation mode is activated
   useEffect(() => {
     if (id) {
       collapseSidebar();
     }
   }, [id, collapseSidebar]);
-  
+
   useEffect(() => {
     if (annotationMode) {
       collapseSidebar();
@@ -195,7 +195,7 @@ const AdminPostEditor = () => {
     if (!id && !roleLoading && (isAdmin || isModerator)) {
       const courseIdFromUrl = searchParams.get('courseId');
       const lessonIdFromUrl = searchParams.get('lessonId');
-      
+
       if (courseIdFromUrl || lessonIdFromUrl) {
         setFormData(prev => ({
           ...prev,
@@ -297,7 +297,7 @@ const AdminPostEditor = () => {
         .eq("post_id", postId);
 
       if (error) throw error;
-      
+
       const tags = data?.map(item => (item.tags as any)) || [];
       setSelectedTags(tags);
     } catch (error: any) {
@@ -315,7 +315,7 @@ const AdminPostEditor = () => {
         .single();
 
       if (error) throw error;
-      
+
       if (data) {
         // Check if moderator is trying to edit someone else's post
         if (isModerator && !isAdmin && data.author_id !== userId) {
@@ -370,7 +370,7 @@ const AdminPostEditor = () => {
   const handleSubmit = async (submitForApproval: boolean = false) => {
     try {
       setLoading(true);
-      
+
       // Determine status - Moderators can only create drafts or submit for approval
       let status = formData.status;
       if (isModerator && !isAdmin) {
@@ -385,7 +385,7 @@ const AdminPostEditor = () => {
       }
 
       const validated = postSchema.parse({ ...formData, status });
-      
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
@@ -433,7 +433,7 @@ const AdminPostEditor = () => {
         // Create new post - ensure unique slug
         const uniqueSlug = await generateUniqueSlug(validated.slug, validated.category_id || null);
         postData.slug = uniqueSlug;
-        
+
         const { data: newPost, error } = await supabase
           .from("posts")
           .insert([postData])
@@ -523,8 +523,8 @@ const AdminPostEditor = () => {
 
       toast({
         title: "Success",
-        description: submitForApproval 
-          ? "Post submitted for approval" 
+        description: submitForApproval
+          ? "Post submitted for approval"
           : (id ? "Post updated successfully" : "Post created successfully"),
       });
 
@@ -590,8 +590,8 @@ const AdminPostEditor = () => {
         const { data: { session } } = await supabase.auth.getSession();
         const { data, error } = await supabase
           .from("tags")
-          .insert([{ 
-            name: tagName, 
+          .insert([{
+            name: tagName,
             slug: tagSlug,
             author_id: session?.user.id,
             status: isAdmin ? "approved" : "pending"
@@ -683,7 +683,7 @@ const AdminPostEditor = () => {
   const handleTextSelection = useCallback((type: "paragraph" | "code" | "conversation" = "paragraph", bubbleIndex?: number) => {
     // Admins and moderators can annotate anything
     if (!isAdmin && !isModerator) return;
-    
+
     const selection = window.getSelection();
     if (selection && selection.toString().trim().length > 0) {
       const text = selection.toString();
@@ -772,7 +772,7 @@ const AdminPostEditor = () => {
   ) => {
     // Get bubble index from selected text if it's a conversation annotation
     const bubbleIndex = selectedText?.bubbleIndex;
-    
+
     await createAnnotation(
       selectionStart,
       selectionEnd,
@@ -799,38 +799,37 @@ const AdminPostEditor = () => {
 
   return (
     <div className="flex gap-4 h-[calc(100vh-4rem)] overflow-hidden">
-        {/* Main Content Area */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          <Tabs defaultValue={id ? "content" : "details"} className="flex-1 flex flex-col min-h-0">
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <Tabs defaultValue={id ? "content" : "details"} className="flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/admin/posts")}
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Posts
-              </Button>
-              <h1 className="text-3xl font-bold">
-                {id ? "Edit Post" : "Create New Post"}
-              </h1>
-              {formData.status && formData.status !== "draft" && (
-                <ContentStatusBadge status={formData.status as ContentStatus} />
-              )}
-              {/* Autosave Status Indicator */}
-              {autoSaveStatus === 'saving' && (
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground animate-pulse">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Saving…</span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-bold text-foreground">
+                    {id ? "Edit Post" : "Create New Post"}
+                  </h1>
+                  {formData.status && formData.status !== "draft" && (
+                    <ContentStatusBadge status={formData.status as ContentStatus} />
+                  )}
+                  {/* Autosave Status Indicator */}
+                  {autoSaveStatus === 'saving' && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground animate-pulse ml-1">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Saving…</span>
+                    </div>
+                  )}
+                  {autoSaveStatus === 'saved' && (
+                    <div className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 ml-1">
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Saved</span>
+                    </div>
+                  )}
                 </div>
-              )}
-              {autoSaveStatus === 'saved' && (
-                <div className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
-                  <Check className="h-3.5 w-3.5" />
-                  <span>Saved</span>
-                </div>
-              )}
+                <p className="text-muted-foreground text-xs leading-none mt-1">
+                  Compose and manage platform articles and learning content
+                </p>
+              </div>
             </div>
             <TabsList>
               <TabsTrigger value="details" className="gap-1.5">
@@ -838,11 +837,12 @@ const AdminPostEditor = () => {
                 Post Details
               </TabsTrigger>
               <TabsTrigger value="content" className="gap-1.5">
-                Content
+                Editor
                 {annotationMode && <Highlighter className="h-3 w-3 text-primary" />}
               </TabsTrigger>
             </TabsList>
           </div>
+          <div className="admin-section-spacing-top" />
 
           {/* Admin edit notification banner for moderators */}
           {shouldShowAdminBanner && metadata.lastAdminEdit && (
@@ -864,342 +864,291 @@ const AdminPostEditor = () => {
             </div>
           )}
 
-          <TabsContent value="details" className="space-y-4 mt-0 flex-1 overflow-y-auto">
-              <div>
-                <Label htmlFor="title" className="text-base">Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => {
-                    setFormData({ ...formData, title: e.target.value });
-                    if (!id) {
-                      setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }));
-                    }
-                  }}
-                  placeholder="Enter post title..."
-                  className="text-lg h-12"
-                />
-              </div>
+          <TabsContent value="details" className="space-y-6 mt-0 flex-1 overflow-y-auto pb-24 pr-4">
+            <div>
+              <Label htmlFor="title" className="text-base">Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => {
+                  setFormData({ ...formData, title: e.target.value });
+                  if (!id) {
+                    setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }));
+                  }
+                }}
+                placeholder="Enter post title..."
+                className="text-lg h-12"
+              />
+            </div>
 
-              <div>
-                <Label htmlFor="slug" className="text-base">Slug</Label>
-                <Input
-                  id="slug"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  placeholder="post-url-slug"
-                />
-              </div>
+            <div>
+              <Label htmlFor="slug" className="text-base">Slug</Label>
+              <Input
+                id="slug"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                placeholder="post-url-slug"
+              />
+            </div>
 
-              <div>
-                <Label htmlFor="excerpt" className="text-base">Excerpt</Label>
-                <Textarea
-                  id="excerpt"
-                  value={formData.excerpt}
-                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                  placeholder="Brief description of the post..."
-                  rows={2}
-                />
-              </div>
+            <div>
+              <Label htmlFor="excerpt" className="text-base">Excerpt</Label>
+              <Textarea
+                id="excerpt"
+                value={formData.excerpt}
+                onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                placeholder="Brief description of the post..."
+                rows={2}
+              />
+            </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="category">Course</Label>
+              <Select
+                value={formData.category_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, category_id: value === "none" ? "" : value, lesson_id: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a course" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No course</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.category_id && courseLessons.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="category">Course</Label>
+                <Label htmlFor="lesson">Lesson</Label>
                 <Select
-                  value={formData.category_id || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, category_id: value === "none" ? "" : value, lesson_id: "" })}
+                  value={formData.lesson_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, lesson_id: value === "none" ? "" : value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a course" />
+                    <SelectValue placeholder="Select a lesson" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No course</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
+                    <SelectItem value="none">No lesson</SelectItem>
+                    {courseLessons.map((lesson, index) => (
+                      <SelectItem key={lesson.id} value={lesson.id}>
+                        #{index + 1} - {lesson.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            )}
 
-              {formData.category_id && courseLessons.length > 0 && (
+          </TabsContent>
+
+          <TabsContent value="content" className="mt-0 flex-1 min-h-0 flex flex-col">
+            <CanvasEditor
+              ref={canvasEditorRef}
+              value={formData.content}
+              onChange={(value) => setFormData({ ...formData, content: value })}
+              className="flex-1 min-h-0"
+              lessonLabel={categories.find(c => c.id === formData.category_id)?.name}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Right Sidebar with Vertical Tab Toggle */}
+      <div className="flex-shrink-0 flex">
+        {/* Vertical Tab Strip - Settings + Assets + Review */}
+        <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
+          <button
+            onClick={() => setOpenSidebar(openSidebar === 'settings' ? null : 'settings')}
+            className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'settings' ? 'bg-muted' : 'hover:bg-muted'}`}
+          >
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+              Settings
+            </span>
+          </button>
+          <button
+            onClick={() => setOpenSidebar(openSidebar === 'assets' ? null : 'assets')}
+            className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'assets' ? 'bg-muted' : 'hover:bg-muted'}`}
+          >
+            <Layers className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+              Assets
+            </span>
+          </button>
+          {id && (
+            <button
+              onClick={() => setOpenSidebar(openSidebar === 'review' ? null : 'review')}
+              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'review' ? 'bg-muted' : 'hover:bg-muted'}`}
+            >
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                Review
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Sidebar Content */}
+        <Card className={`flex flex-col min-h-0 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
+          <div className={`p-4 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
+            {openSidebar === 'review' ? (
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm whitespace-nowrap">Review Panel</h3>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-3">
+                <Settings className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm whitespace-nowrap">Post Settings</h3>
+              </div>
+            )}
+            {/* Review Panel Controls */}
+            {openSidebar === 'review' && (
+              <div className="space-y-3">
+                {(isAdmin || isModerator) && (
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Highlighter className={`h-4 w-4 ${annotationMode ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span className="text-xs font-medium">Annotate</span>
+                    </div>
+                    <Switch
+                      checked={annotationMode}
+                      onCheckedChange={setAnnotationMode}
+                      className="scale-75"
+                    />
+                  </div>
+                )}
+                <div className="[&>*]:w-full">
+                  <VersionHistoryPanel
+                    versions={versions}
+                    loading={versionsLoading}
+                    isAdmin={isAdmin}
+                    currentContent={formData.content}
+                    liveContent={postDbContent}
+                    onRestore={handleRestoreVersion}
+                    onPublish={handlePublishVersion}
+                    onPreview={handlePreviewVersion}
+                    onUpdateNote={updateVersionNote}
+                  />
+                </div>
+                <div className="[&>*]:w-full">
+                  <AnnotationPanel
+                    annotations={annotations}
+                    loading={annotationsLoading}
+                    isAdmin={isAdmin}
+                    isModerator={isModerator}
+                    userId={userId}
+                    onAddAnnotation={handleAddAnnotation}
+                    onUpdateStatus={updateAnnotationStatus}
+                    onDelete={deleteAnnotation}
+                    onAddReply={createReply}
+                    onDeleteReply={deleteReply}
+                    selectedText={selectedText}
+                    onClearSelection={() => setSelectedText(null)}
+                  />
+                </div>
+              </div>
+            )}
+            {/* Action Buttons */}
+            {openSidebar !== 'review' && id && (
+              <div className="space-y-2">
+                <Button
+                  onClick={() => setShowVersioningNoteDialog(true)}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full text-xs h-8"
+                >
+                  <Save className="mr-2 h-3.5 w-3.5" />
+                  Save Version Note
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
+            <div className="p-4 space-y-4">
+              {/* Status - Only show to admins */}
+              {canPublishDirectly && (
                 <div className="space-y-2">
-                  <Label htmlFor="lesson">Lesson</Label>
+                  <Label htmlFor="status">Status</Label>
                   <Select
-                    value={formData.lesson_id || "none"}
-                    onValueChange={(value) => setFormData({ ...formData, lesson_id: value === "none" ? "" : value })}
+                    value={formData.status}
+                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a lesson" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No lesson</SelectItem>
-                      {courseLessons.map((lesson, index) => (
-                        <SelectItem key={lesson.id} value={lesson.id}>
-                          #{index + 1} - {lesson.title}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="pending">Pending Approval</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="changes_requested">Changes Requested</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               )}
-            </TabsContent>
 
-            <TabsContent value="content" className="mt-4 flex-1 min-h-0 flex flex-col">
-              <CanvasEditor
-                ref={canvasEditorRef}
-                value={formData.content}
-                onChange={(value) => setFormData({ ...formData, content: value })}
-                className="flex-1 min-h-0"
-                lessonLabel={categories.find(c => c.id === formData.category_id)?.name}
-              />
-            </TabsContent>
-          </Tabs>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="featured_image" className="text-sm font-medium">Featured Image</Label>
+                <Input
+                  id="featured_image"
+                  value={formData.featured_image || ""}
+                  onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })}
+                  placeholder="Image URL..."
+                  className="h-8 text-xs"
+                />
+              </div>
 
-        {/* Right Sidebar with Vertical Tab Toggle */}
-        <div className="flex-shrink-0 flex">
-          {/* Vertical Tab Strip - Settings + Assets + Review */}
-          <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
-            <button
-              onClick={() => setOpenSidebar(openSidebar === 'settings' ? null : 'settings')}
-              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'settings' ? 'bg-muted' : 'hover:bg-muted'}`}
-            >
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-                Settings
-              </span>
-            </button>
-            <button
-              onClick={() => setOpenSidebar(openSidebar === 'assets' ? null : 'assets')}
-              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'assets' ? 'bg-muted' : 'hover:bg-muted'}`}
-            >
-              <Layers className="h-4 w-4 text-muted-foreground" />
-              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-                Assets
-              </span>
-            </button>
-            {id && (
-              <button
-                onClick={() => setOpenSidebar(openSidebar === 'review' ? null : 'review')}
-                className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'review' ? 'bg-muted' : 'hover:bg-muted'}`}
-              >
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-                  Review
-                </span>
-              </button>
-            )}
-          </div>
-
-          {/* Sidebar Content */}
-          <Card className={`flex flex-col min-h-0 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
-            <div className={`p-4 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
-              {openSidebar === 'review' ? (
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-sm whitespace-nowrap">Review Panel</h3>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 mb-3">
-                  <Settings className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-sm whitespace-nowrap">Post Settings</h3>
-                </div>
-              )}
-              {/* Review Panel Controls */}
-              {openSidebar === 'review' && (
-                <div className="space-y-3">
-                  {(isAdmin || isModerator) && (
-                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <Highlighter className={`h-4 w-4 ${annotationMode ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <span className="text-xs font-medium">Annotate</span>
-                      </div>
-                      <Switch
-                        checked={annotationMode}
-                        onCheckedChange={setAnnotationMode}
-                        className="scale-75"
-                      />
-                    </div>
-                  )}
-                  <div className="[&>*]:w-full">
-                    <VersionHistoryPanel
-                      versions={versions}
-                      loading={versionsLoading}
-                      isAdmin={isAdmin}
-                      currentContent={formData.content}
-                      liveContent={postDbContent}
-                      onRestore={handleRestoreVersion}
-                      onPublish={handlePublishVersion}
-                      onPreview={handlePreviewVersion}
-                      onUpdateNote={updateVersionNote}
-                    />
-                  </div>
-                  <div className="[&>*]:w-full">
-                    <AnnotationPanel
-                      annotations={annotations}
-                      loading={annotationsLoading}
-                      isAdmin={isAdmin}
-                      isModerator={isModerator}
-                      userId={userId}
-                      onAddAnnotation={handleAddAnnotation}
-                      onUpdateStatus={updateAnnotationStatus}
-                      onDelete={deleteAnnotation}
-                      onAddReply={createReply}
-                      onDeleteReply={deleteReply}
-                      selectedText={selectedText}
-                      onClearSelection={() => setSelectedText(null)}
-                    />
-                  </div>
-                </div>
-              )}
-              {/* Action Buttons */}
-              {openSidebar !== 'review' && <div className="space-y-2">
-                {canPublishDirectly ? (
-                  <>
-                    {id && hasContentChanges && formData.status === "published" ? (
-                      <Button
-                        onClick={handlePublishWithPreview}
-                        disabled={loading}
-                        className="w-full"
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Publish Changes
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => handleSubmit(false)}
-                        disabled={loading}
-                        className="w-full"
-                      >
-                        <Save className="mr-2 h-4 w-4" />
-                        {id ? "Update" : "Publish"}
-                      </Button>
-                    )}
-                    {id && (
-                      <Button
-                        onClick={() => setShowVersioningNoteDialog(true)}
-                        disabled={loading}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Save className="mr-2 h-4 w-4" />
-                        Save as Draft
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      onClick={() => handleSubmit(false)}
-                      disabled={loading}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Draft
-                    </Button>
-                    {showSubmitForApproval && (
-                      <Button
-                        onClick={() => handleSubmit(true)}
-                        disabled={loading}
-                        className="w-full"
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        Submit for Approval
-                      </Button>
-                    )}
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/admin/posts")}
-                  disabled={loading}
-                  className="w-full"
-                >
-                  Cancel
-                </Button>
-              </div>}
-            </div>
-
-            <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
-              <div className="p-4 space-y-4">
-                {/* Status - Only show to admins */}
-                {canPublishDirectly && (
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select 
-                      value={formData.status} 
-                      onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="pending">Pending Approval</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
-                        <SelectItem value="changes_requested">Changes Requested</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="featured_image">Featured Image URL</Label>
+              <div className="space-y-2 pt-2">
+                <Label className="text-sm font-medium">Tags</Label>
+                <div className="flex gap-2">
                   <Input
-                    id="featured_image"
-                    value={formData.featured_image}
-                    onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })}
-                    placeholder="https://..."
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                    placeholder="Add..."
+                    className="h-8 text-xs"
                   />
+                  <Button type="button" onClick={handleAddTag} size="sm" className="h-8 px-2 text-xs">
+                    Add
+                  </Button>
                 </div>
-
-
-                <div className="space-y-2">
-                  <Label>Tags</Label>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-                      placeholder="Add a tag..."
-                    />
-                    <Button type="button" onClick={handleAddTag} size="sm">
-                      Add
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedTags.map((tag) => (
-                      <Badge key={tag.id} variant="secondary" className="gap-1">
-                        {tag.name}
-                        <X 
-                          className="h-3 w-3 cursor-pointer" 
-                          onClick={() => handleRemoveTag(tag.id)}
-                        />
-                      </Badge>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedTags.map((tag) => (
+                    <Badge key={tag.id} variant="secondary" className="gap-1 px-2 py-0.5 text-[10px] font-medium">
+                      {tag.name}
+                      <X
+                        className="h-2.5 w-2.5 cursor-pointer opacity-70 hover:opacity-100"
+                        onClick={() => handleRemoveTag(tag.id)}
+                      />
+                    </Badge>
+                  ))}
                 </div>
               </div>
-            </ScrollArea>
-          </Card>
+            </div>
+          </ScrollArea>
+        </Card>
 
-          {/* Assets Sidebar */}
-          <AssetsSidebar
-            isOpen={openSidebar === 'assets'}
-            editorType="canvas"
-            onInsert={(asset) => {
-              if (asset.type === 'block' && asset.blockKind && canvasEditorRef.current) {
-                canvasEditorRef.current.addBlock(asset.blockKind);
-              } else {
-                navigator.clipboard.writeText(asset.url);
-                toast({ title: "URL copied", description: "Paste it into the editor." });
-              }
-            }}
-          />
-        </div>
+        {/* Assets Sidebar */}
+        <AssetsSidebar
+          isOpen={openSidebar === 'assets'}
+          editorType="canvas"
+          onInsert={(asset) => {
+            if (asset.type === 'block' && asset.blockKind && canvasEditorRef.current) {
+              canvasEditorRef.current.addBlock(asset.blockKind);
+            } else {
+              navigator.clipboard.writeText(asset.url);
+              toast({ title: "URL copied", description: "Paste it into the editor." });
+            }
+          }}
+        />
+      </div>
 
       {/* Version Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
@@ -1246,13 +1195,13 @@ const AdminPostEditor = () => {
               Review the differences between the current published version and your changes
             </DialogDescription>
           </DialogHeader>
-          
+
           <Tabs defaultValue="side-by-side" className="flex-1 overflow-hidden flex flex-col">
             <TabsList className="w-fit">
               <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
               <TabsTrigger value="inline">Inline Diff</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="side-by-side" className="flex-1 overflow-hidden mt-4">
               {publishedVersion && (
                 <SideBySideComparison
@@ -1261,7 +1210,7 @@ const AdminPostEditor = () => {
                 />
               )}
             </TabsContent>
-            
+
             <TabsContent value="inline" className="flex-1 overflow-hidden mt-4">
               {publishedVersion && (
                 <VersionDiffViewer
@@ -1271,7 +1220,7 @@ const AdminPostEditor = () => {
               )}
             </TabsContent>
           </Tabs>
-          
+
           <div className="flex justify-end gap-3 pt-4 border-t mt-4">
             <Button
               variant="outline"

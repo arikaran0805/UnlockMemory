@@ -127,19 +127,33 @@ const AdminSocialAnalytics = () => {
     setTotalShares(data.length);
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          Loading...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Social Media Analytics</h1>
-          <p className="text-muted-foreground mt-2">
-            Track engagement across your social media platforms and post shares
-          </p>
+      <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Social Media Analytics</h1>
+            <p className="text-muted-foreground">
+              Track engagement across your social media platforms and post shares
+            </p>
+          </div>
         </div>
 
-        <Tabs defaultValue="shares" className="space-y-6">
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+          <Tabs defaultValue="shares" className="space-y-6">
           <TabsList>
             <TabsTrigger value="shares" className="gap-2">
               <Share2 className="h-4 w-4" />
@@ -369,8 +383,9 @@ const AdminSocialAnalytics = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </>
-  );
+    </div>
+  </>
+);
 };
 
 export default AdminSocialAnalytics;

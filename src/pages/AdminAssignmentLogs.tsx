@@ -202,24 +202,24 @@ const AdminAssignmentLogs = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-96 w-full" />
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <History className="h-6 w-6 text-muted-foreground" />
-            <h1 className="text-3xl font-bold text-foreground">Assignment Logs</h1>
-          </div>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Assignment Logs</h1>
+          <p className="text-muted-foreground">
             Read-only view of all career and course assignments for auditing purposes
           </p>
         </div>
@@ -231,8 +231,11 @@ const AdminAssignmentLogs = () => {
         </Button>
       </div>
 
-      {/* Info Alert */}
-      <Alert>
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
+        {/* Info Alert */}
+        <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
           This is a read-only audit log. To create, edit, or remove assignments, use the{" "}
@@ -490,6 +493,7 @@ const AdminAssignmentLogs = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };

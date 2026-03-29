@@ -174,9 +174,12 @@ const AdminPages = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-foreground">Static Pages</h1>
+    <div className="flex flex-col gap-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Static Pages</h1>
+            <p className="text-muted-foreground">Create and manage content pages for your site</p>
+          </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => { setEditingPage(null); setFormData({ title: "", slug: "", content: "", status: "draft" }); }}>
@@ -224,6 +227,10 @@ const AdminPages = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
 
         <div className="grid gap-4">
           {pages.map((page) => (
@@ -283,8 +290,9 @@ const AdminPages = () => {
           ))}
         </div>
       </div>
-    </>
-  );
+    </div>
+  </>
+);
 };
 
 export default AdminPages;

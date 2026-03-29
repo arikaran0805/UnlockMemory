@@ -183,18 +183,21 @@ const AdminPostVersions = () => {
 
   if (roleLoading || loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="flex flex-col gap-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <Button
               variant="ghost"
               onClick={() => navigate(`/admin/posts/edit/${id}`)}
@@ -204,11 +207,10 @@ const AdminPostVersions = () => {
               Back to Editor
             </Button>
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <History className="h-6 w-6" />
+              <h1 className="text-3xl font-bold text-foreground">
                 Version History
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <p className="text-muted-foreground">
                 {post?.title}
               </p>
             </div>
@@ -221,8 +223,11 @@ const AdminPostVersions = () => {
           </div>
         </div>
 
-        {/* View Mode Tabs */}
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
+        <div className="admin-section-spacing-top" />
+
+        <div className="space-y-6">
+          {/* View Mode Tabs */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
           <TabsList>
             <TabsTrigger value="list" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -583,8 +588,9 @@ const AdminPostVersions = () => {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
 
-      {/* Publish Confirmation Dialog */}
+    {/* Publish Confirmation Dialog */}
       <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
         <DialogContent>
           <DialogHeader>

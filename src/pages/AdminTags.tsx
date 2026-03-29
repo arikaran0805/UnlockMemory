@@ -232,31 +232,36 @@ const AdminTags = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <UMLoader size={56} dark label="Loading…" />
+      <div className="flex flex-col gap-0">
+        <div className="admin-section-spacing-top" />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <UMLoader size={56} dark label="Loading…" />
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Tag className="h-8 w-8" />
-              Tags Management
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your content tags
-            </p>
-          </div>
-          <Button onClick={handleOpenCreateDialog} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Tag
-          </Button>
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            Tags Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your content tags
+          </p>
         </div>
+        <Button onClick={handleOpenCreateDialog} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Create Tag
+        </Button>
+      </div>
 
+      <div className="admin-section-spacing-top" />
+
+      <div className="space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -418,8 +423,9 @@ const AdminTags = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
+    </div>
+  </>
+);
 };
 
 export default AdminTags;
