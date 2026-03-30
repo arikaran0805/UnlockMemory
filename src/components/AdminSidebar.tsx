@@ -33,17 +33,16 @@ const C = {
   popupMuted: "#6B8F71",
   popupDiv: "#D4DDD3",
   danger: "#FF3B30",
-  avatarBg: "#1A3A2A",   // fixed brand identity — never changes with role
   tooltipBg: "#1A3A2A",  // dark background for light text tooltips
 } as const;
 
 // ─── Role-aware active-state tokens ──────────────────────────────────────────
-// All within the same sage/forest-green family — stronger = higher authority.
+// All within the same teal-green family — stronger = higher authority.
 const ROLE_ACTIVE: Record<string, { bg: string; text: string; icon: string }> = {
-  admin: { bg: "#1A3A2A", text: "#FFFFFF", icon: "#FFFFFF" }, // 100% — deepest forest green
-  super_moderator: { bg: "#254435", text: "#FFFFFF", icon: "#FFFFFF" }, // 95% of admin
-  senior_moderator: { bg: "#314E3F", text: "#FFFFFF", icon: "#FFFFFF" }, // 90% of admin
-  moderator: { bg: "#3C584A", text: "#FFFFFF", icon: "#FFFFFF" }, // 85% of admin
+  admin:            { bg: "#0F6E56", text: "#FFFFFF", icon: "#FFFFFF" }, // 100% — vibrant teal
+  super_moderator:  { bg: "#1A7A62", text: "#FFFFFF", icon: "#FFFFFF" }, //  95% of admin
+  senior_moderator: { bg: "#268770", text: "#FFFFFF", icon: "#FFFFFF" }, //  90% of admin
+  moderator:        { bg: "#33947E", text: "#FFFFFF", icon: "#FFFFFF" }, //  85% of admin
 };
 const FALLBACK_ACTIVE = ROLE_ACTIVE.admin;
 
@@ -365,7 +364,7 @@ const AdminSidebar = ({
               ) : (
                 <div
                   className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-black/10"
-                  style={{ backgroundColor: C.avatarBg }}
+                  style={{ backgroundColor: A.bg }}
                 >
                   {initials}
                 </div>
@@ -433,7 +432,7 @@ const AdminSidebar = ({
           ) : (
             <div
               className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-white/40"
-              style={{ backgroundColor: C.avatarBg }}
+              style={{ backgroundColor: A.bg }}
             >
               {initials}
             </div>

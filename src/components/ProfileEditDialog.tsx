@@ -29,6 +29,13 @@ const ROLE_LABELS: Record<string, string> = {
   user:             "Learner",
 };
 
+const ROLE_COLORS: Record<string, string> = {
+  admin:            "#0F6E56",
+  super_moderator:  "#1A7A62",
+  senior_moderator: "#268770",
+  moderator:        "#33947E",
+};
+
 const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }: ProfileEditDialogProps) => {
   const { user, activeRole } = useAuth();
   const { toast } = useToast();
@@ -98,7 +105,7 @@ const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }
           ) : (
             <div
               className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-              style={{ backgroundColor: "#2D5A3D" }}
+              style={{ backgroundColor: ROLE_COLORS[activeRole ?? ""] ?? "#0F6E56" }}
             >
               {initials}
             </div>

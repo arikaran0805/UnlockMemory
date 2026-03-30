@@ -25,11 +25,10 @@ const C = {
   popupMuted:  "#6B8F71",
   popupDiv:    "#D4DDD3",
   danger:      "#FF3B30",
-  avatarBg:    "#314E3F",
 } as const;
 
-// Senior Moderator active tokens — 90% of admin (#1A3A2A)
-const A = { bg: "#314E3F", text: "#FFFFFF", icon: "#FFFFFF" };
+// Senior Moderator active tokens — 90% of admin (#0F6E56)
+const A = { bg: "#268770", text: "#FFFFFF", icon: "#FFFFFF" };
 
 interface SeniorModeratorSidebarProps {
   isOpen: boolean;
@@ -185,7 +184,7 @@ const SeniorModeratorSidebar = ({
               {userProfile?.avatar_url ? (
                 <img src={userProfile.avatar_url} alt={displayName} className="h-9 w-9 rounded-full object-cover shrink-0 ring-2 ring-black/10" />
               ) : (
-                <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-black/10" style={{ backgroundColor: C.avatarBg }}>{initials}</div>
+                <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-black/10" style={{ backgroundColor: A.bg }}>{initials}</div>
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>{displayName}</p>
@@ -212,7 +211,7 @@ const SeniorModeratorSidebar = ({
           {userProfile?.avatar_url ? (
             <img src={userProfile.avatar_url} alt={displayName} className="h-8 w-8 rounded-full object-cover shrink-0 ring-2 ring-white/40" />
           ) : (
-            <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-white/40" style={{ backgroundColor: C.avatarBg }}>{initials}</div>
+            <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold ring-2 ring-white/40" style={{ backgroundColor: A.bg }}>{initials}</div>
           )}
           {isOpen && (
             <div className="flex-1 min-w-0 text-left">

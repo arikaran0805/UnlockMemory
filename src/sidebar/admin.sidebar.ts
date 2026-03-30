@@ -2,8 +2,6 @@
  * Admin Sidebar Configuration
  * Maps 1:1 with admin.routes.tsx
  * URL prefix: /admin/*
- * 
- * Power-Level Color: Burgundy #8B1E1E
  */
 import {
   LayoutDashboard,
@@ -17,7 +15,6 @@ import {
   Link2,
   Key,
   Briefcase,
-  Settings,
   BarChart3,
   Share2,
   Layers,
@@ -74,7 +71,7 @@ const analyticsSection: SidebarSection = {
   items: [
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: Share2, label: "Social Analytics", path: "/admin/social-analytics" },
-    { icon: Activity, label: "Activity Log", path: "/admin/activity" },
+    { icon: Activity, label: "Activity Log", path: "/admin/activity-log" },
   ],
 };
 
@@ -93,12 +90,7 @@ const systemSection: SidebarSection = {
   ],
 };
 
-// Footer items (not in main sections)
-export const adminFooterItems = [
-  { icon: Settings, label: "Settings", path: "/admin/settings" },
-];
-
-export const adminSidebarConfig: SidebarConfig = {
+export const adminSidebarConfig: Omit<SidebarConfig, "roleLabel" | "roleColor"> & Partial<Pick<SidebarConfig, "roleLabel" | "roleColor">> = {
   sections: [
     overviewSection,
     workflowSection,
@@ -106,19 +98,6 @@ export const adminSidebarConfig: SidebarConfig = {
     analyticsSection,
     systemSection,
   ],
-  roleLabel: "Platform Manager",
-  roleColor: {
-    // Burgundy #8B1E1E
-    badge: "text-[#8B1E1E]",
-    badgeBg: "bg-[#8B1E1E]/10",
-    badgeBorder: "border-[#8B1E1E]/20",
-    iconActive: "text-white",
-    iconDefault: "text-muted-foreground",
-    avatarRing: "ring-[#8B1E1E]/30",
-    avatarBg: "bg-[#8B1E1E]",
-    avatarText: "text-white",
-    activeBackground: "bg-[#8B1E1E]",
-  },
 };
 
 export default adminSidebarConfig;

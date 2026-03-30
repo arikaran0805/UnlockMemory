@@ -29,6 +29,7 @@ import AdminReports from "@/pages/AdminReports";
 import AdminPostVersions from "@/pages/AdminPostVersions";
 import AdminAnnotations from "@/pages/AdminAnnotations";
 import AdminAssignmentLogs from "@/pages/AdminAssignmentLogs";
+import AdminPlatformActivityLog from "@/pages/AdminPlatformActivityLog";
 import AdminTeamOwnership from "@/pages/AdminTeamOwnership";
 import AdminPracticeSkills from "@/pages/AdminPracticeSkills";
 import AdminPracticeSkillEditor from "@/pages/AdminPracticeSkillEditor";
@@ -94,6 +95,7 @@ const AdminRoutes = () => {
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="social-analytics" element={<AdminSocialAnalytics />} />
           <Route path="activity" element={<AdminModeratorActivity />} />
+          <Route path="activity-log" element={<AdminPlatformActivityLog />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="seo" element={<Navigate to="/admin/settings" replace />} />
           <Route path="ad-settings" element={<Navigate to="/admin/api" replace />} />
