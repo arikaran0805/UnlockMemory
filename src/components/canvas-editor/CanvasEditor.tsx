@@ -29,6 +29,9 @@ import CanvasContextMenu from './CanvasContextMenu';
 
 export interface CanvasEditorRef {
   addBlock: (kind: BlockKind) => void;
+  scrollToBlock: (id: string) => void;
+  getBlocks: () => { id: string; name: string; kind: BlockKind }[];
+  deleteBlock: (id: string) => void;
 }
 
 interface CanvasEditorProps {
@@ -55,6 +58,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
 
     const [canvasData, setCanvasData] = useState<CanvasData>(() => parseCanvasContent(value));
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+    const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -86,14 +90,37 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     }, []);
 
     const scrollToBlock = useCallback((id: string) => {
-      // Wait one frame so the DOM has rendered the new block
+      // Uncollapse the block first so it's visible and full-height
+      setCollapsedIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      // Double rAF: first frame lets React re-render the expanded block,
+      // second frame lets the browser compute the new layout before scrolling
       requestAnimationFrame(() => {
-        const el = blockElRefs.current.get(id);
-        if (el && scrollContainerRef.current) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+        requestAnimationFrame(() => {
+          const el = blockElRefs.current.get(id);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
       });
     }, []);
+
+    // Publish canvas viewport height as CSS variable so ChatStyleEditor
+    // can size itself to exactly fit within the canvas without scrolling.
+    useEffect(() => {
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      const publish = () =>
+        el.style.setProperty('--canvas-scroll-height', `${el.clientHeight}px`);
+      publish();
+      const obs = new ResizeObserver(publish);
+      obs.observe(el);
+      return () => obs.disconnect();
+    }, []);
+
 
     // ── Block management ──────────────────────────────────────────────────────
     const createBlock = useCallback((kind: BlockKind, existingBlocks: CanvasBlock[]) => {
@@ -116,6 +143,8 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       const newData = { ...canvasData, blocks: newBlocks };
       updateAndNotify(newData);
       setSelectedBlockId(newBlock.id);
+      // Collapse all existing blocks when a new one is added
+      setCollapsedIds(new Set(canvasData.blocks.map(b => b.id)));
       scrollToBlock(newBlock.id);
       return newBlock;
     }, [canvasData, createBlock, updateAndNotify, scrollToBlock]);
@@ -123,8 +152,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     // Exposed via ref – appends to end
     const addBlock = useCallback((kind: BlockKind) => addBlockInternal(kind),
       [addBlockInternal]);
-
-    useImperativeHandle(ref, () => ({ addBlock }), [addBlock]);
 
     const handleUpdateBlock = useCallback((id: string, updates: Partial<CanvasBlock>) => {
       updateAndNotify({
@@ -156,6 +183,13 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       updateAndNotify({ ...canvasData, blocks: canvasData.blocks.filter(b => b.id !== id) });
       if (selectedBlockId === id) setSelectedBlockId(null);
     }, [canvasData, selectedBlockId, updateAndNotify]);
+
+    useImperativeHandle(ref, () => ({
+      addBlock,
+      scrollToBlock,
+      getBlocks: () => canvasData.blocks.map(b => ({ id: b.id, name: b.name, kind: b.kind })),
+      deleteBlock: handleDeleteBlock,
+    }), [addBlock, scrollToBlock, canvasData.blocks, handleDeleteBlock]);
 
     // ── Sortable drag (reorder blocks) ────────────────────────────────────────
     const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -326,6 +360,14 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                         onSelect={setSelectedBlockId}
                         onRegisterRef={registerBlockRef}
                         lessonLabel={lessonLabel}
+                        isCollapsed={collapsedIds.has(block.id)}
+                        onToggleCollapse={(id) =>
+                          setCollapsedIds(prev => {
+                            const next = new Set(prev);
+                            next.has(id) ? next.delete(id) : next.add(id);
+                            return next;
+                          })
+                        }
                       />
                     </div>
                   </div>

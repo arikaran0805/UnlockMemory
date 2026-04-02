@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AdPlacement } from "@/components/AdPlacement";
 
 interface CourseWithStats {
   id: string;
@@ -99,41 +100,50 @@ const Courses = () => {
       />
 
       <div className="container px-12 md:px-16 lg:px-24 py-16">
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            All Courses
-          </h1>
-          <p className="text-lg text-muted-foreground mb-8">
-            Browse through all our course categories and start learning
-          </p>
-          
-          {/* Search Bar */}
-          <div className="relative max-w-xl">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search courses by name or keywords..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-12 h-12 text-base border-border/50 focus:border-primary"
-            />
+        <div className="mb-12 flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-8">
+          {/* Left: title + description + search */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              All Courses
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8">
+              Browse through all our course categories and start learning
+            </p>
+
+            {/* Search Bar */}
+            <div className="relative max-w-xl">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search courses by name or keywords..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 pr-12 h-12 text-base border-border/50 focus:border-primary"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
             {searchQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                onClick={() => setSearchQuery("")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <p className="text-sm text-muted-foreground mt-3">
+                {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} found for "{searchQuery}"
+              </p>
             )}
           </div>
-          
-          {searchQuery && (
-            <p className="text-sm text-muted-foreground mt-3">
-              {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} found for "{searchQuery}"
-            </p>
-          )}
+
+          {/* Right: ad banner */}
+          <AdPlacement
+            placement="courses-banner"
+            className="hidden lg:block lg:w-[480px] lg:flex-shrink-0 self-stretch max-h-[180px] rounded-xl border border-border overflow-hidden"
+          />
         </div>
 
         {loading ? (

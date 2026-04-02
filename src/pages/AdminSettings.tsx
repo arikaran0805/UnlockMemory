@@ -361,15 +361,6 @@ const AdminSettings = () => {
 
   return (
     <div className="flex flex-col gap-0">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Site Settings</h1>
-          <p className="text-muted-foreground">Configure global platform behavior, branding, and integrations</p>
-        </div>
-      </div>
-
-      <div className="admin-section-spacing-top" />
-
       <div className="space-y-6">
       <div className="flex h-[calc(100vh-10rem)] bg-white rounded-2xl border border-[#E8EBE7] overflow-hidden shadow-sm">
       {/* Settings Sidebar */}

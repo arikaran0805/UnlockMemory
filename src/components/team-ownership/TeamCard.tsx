@@ -98,6 +98,29 @@ const TeamCard = ({ team, onDoubleClick, onRefresh }: TeamCardProps) => {
     }
   };
 
+  const handleRestore = async () => {
+    try {
+      setIsUpdating(true);
+      const { error } = await supabase
+        .from("teams")
+        .update({ archived_at: null })
+        .eq("id", team.id);
+
+      if (error) throw error;
+
+      toast({ title: "Team restored", description: `${team.name} has been restored` });
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Error restoring team",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleDuplicate = async () => {
     try {
       const { error } = await supabase.from("teams").insert({
@@ -193,12 +216,22 @@ const TeamCard = ({ team, onDoubleClick, onRefresh }: TeamCardProps) => {
                 <Copy className="h-4 w-4 mr-2" />
                 Duplicate team
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowArchiveDialog(true)}
-              >
-                <Archive className="h-4 w-4 mr-2" />
-                Archive team
-              </DropdownMenuItem>
+              {(team as any).archived_at ? (
+                <DropdownMenuItem
+                  onClick={handleRestore}
+                  className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
+                >
+                  <Archive className="h-4 w-4 mr-2" />
+                  Restore team
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => setShowArchiveDialog(true)}
+                >
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive team
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
                 className="text-destructive focus:text-destructive"

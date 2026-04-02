@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   BookOpen,
   GraduationCap,
-  Briefcase,
+
   Tags,
   FileText,
   MessageSquare,
@@ -22,6 +22,8 @@ import {
   Gavel,
   Activity,
   UserCog,
+  Layers,
+  Network,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
@@ -46,7 +48,7 @@ const approvalSection: SidebarSection = {
 const careerSection: SidebarSection = {
   title: "Career Management",
   items: [
-    { icon: Briefcase, label: "My Careers", path: "/super-moderator/careers" },
+    { icon: Layers, label: "My Assets", path: "/super-moderator/my-assets" },
     { icon: GraduationCap, label: "Courses", path: "/super-moderator/courses" },
     { icon: BookOpen, label: "Posts", path: "/super-moderator/posts" },
     { icon: Tags, label: "Tags", path: "/super-moderator/tags" },
@@ -68,6 +70,7 @@ const moderationSection: SidebarSection = {
 const teamSection: SidebarSection = {
   title: "Team",
   items: [
+    { icon: Network, label: "Team Ownership", path: "/super-moderator/team-ownership" },
     { icon: UserCog, label: "Assignments", path: "/super-moderator/assignments" },
     { icon: Users, label: "Users", path: "/super-moderator/users" },
   ],
@@ -78,7 +81,7 @@ const analyticsSection: SidebarSection = {
   title: "Analytics",
   items: [
     { icon: BarChart3, label: "Content Analytics", path: "/super-moderator/analytics" },
-    { icon: Activity, label: "Activity Log", path: "/super-moderator/activity" },
+    { icon: Activity, label: "Activity Log", path: "/super-moderator/activity-log" },
   ],
 };
 

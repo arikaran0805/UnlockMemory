@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useRoleScope } from "@/hooks/useRoleScope";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,7 @@ interface ContentReport {
 const AdminReports = () => {
   const navigate = useNavigate();
   const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
+  const { courseIds } = useRoleScope();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<ContentReport[]>([]);
@@ -73,10 +75,17 @@ const AdminReports = () => {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("content_reports")
         .select("*")
         .order("created_at", { ascending: false });
+
+      // Scope non-admin reports to their assigned courses
+      if (!isAdmin && courseIds.length > 0) {
+        query = query.in("content_id", courseIds);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 

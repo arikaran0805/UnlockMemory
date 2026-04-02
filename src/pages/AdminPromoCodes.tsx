@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePromoCodes, PromoCode, PromoCodeFormData } from "@/hooks/usePromoCodes";
@@ -21,9 +22,11 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import UMLoader from "@/components/UMLoader";
 import {
-  Plus, Search, MoreHorizontal, Copy, Pencil, Trash2, Eye, CopyPlus, Tag, Ticket, Clock, BarChart3, AlertTriangle, X, Check,
+  Plus, Search, MoreHorizontal, Copy, Pencil, Trash2, Eye, CopyPlus, Tag, Ticket, Clock, BarChart3, AlertTriangle, X,
+  Columns, Download, RefreshCw, ChevronLeft, ChevronRight, Filter,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, isPast, differenceInDays } from "date-fns";
@@ -74,8 +77,22 @@ const emptyForm: PromoCodeFormData = {
   is_active: true,
 };
 
+const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+const COLUMN_LABELS: Record<string, string> = {
+  code: "Code",
+  type: "Type",
+  value: "Value",
+  applies_to: "Applies To",
+  min_purchase: "Min Purchase",
+  usage: "Usage",
+  expiry: "Expiry",
+  status: "Status",
+};
+
 /* ═══════════ PAGE ═══════════ */
 const AdminPromoCodes = () => {
+  const navigate = useNavigate();
   const { promoCodes, isLoading, create, update, remove, toggleActive, isCreating, isUpdating } = usePromoCodes();
 
   // UI state
@@ -83,6 +100,26 @@ const AdminPromoCodes = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    code: true,
+    type: true,
+    value: true,
+    applies_to: true,
+    min_purchase: true,
+    usage: true,
+    expiry: true,
+    status: true,
+  });
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -115,6 +152,42 @@ const AdminPromoCodes = () => {
     return list;
   }, [promoCodes, search, statusFilter, typeFilter, sortBy]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds(new Set());
+  }, [search, statusFilter, typeFilter, sortBy, rowsPerPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+  const paginatedCodes = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  /* ─── multi-select ─── */
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === paginatedCodes.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedCodes.map((p) => p.id)));
+    }
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleteLoading(true);
+    for (const id of selectedIds) {
+      await remove(id);
+    }
+    setBulkDeleteLoading(false);
+    setSelectedIds(new Set());
+    setBulkDeleteDialogOpen(false);
+  };
+
   /* ─── stats ─── */
   const stats = useMemo(() => {
     const active = promoCodes.filter((p) => getStatus(p) === "active").length;
@@ -123,35 +196,34 @@ const AdminPromoCodes = () => {
     return { total: promoCodes.length, active, expired, totalRedemptions };
   }, [promoCodes]);
 
-  /* ─── form helpers ─── */
-  const openCreate = () => {
-    setEditingId(null);
-    setForm({ ...emptyForm, start_date: new Date().toISOString().slice(0, 16) });
-    setErrors({});
-    setFormOpen(true);
+  /* ─── export CSV ─── */
+  const handleExportCSV = () => {
+    const headers = ["Code", "Type", "Value", "Applies To", "Min Purchase", "Usage", "Usage Limit", "Expiry", "Status"];
+    const rows = filtered.map((p) => [
+      p.code,
+      p.discount_type,
+      p.discount_type === "percentage" ? `${p.discount_value}%` : `${p.discount_value}`,
+      appliesToLabel(p.applies_to_type),
+      String(p.min_purchase),
+      String(p.used_count),
+      p.usage_limit ? String(p.usage_limit) : "Unlimited",
+      p.expiry_date ? format(new Date(p.expiry_date), "dd MMM yyyy") : "—",
+      p._status,
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `promo-codes_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exported successfully" });
   };
 
-  const openEdit = (p: PromoCode) => {
-    setEditingId(p.id);
-    setForm({
-      code: p.code,
-      description: p.description ?? "",
-      discount_type: p.discount_type,
-      discount_value: p.discount_value,
-      max_discount: p.max_discount,
-      applies_to_type: p.applies_to_type,
-      applies_to_ids: p.applies_to_ids ?? [],
-      min_purchase: p.min_purchase,
-      usage_limit: p.usage_limit,
-      per_user_limit: p.per_user_limit,
-      start_date: p.start_date ? new Date(p.start_date).toISOString().slice(0, 16) : null,
-      expiry_date: p.expiry_date ? new Date(p.expiry_date).toISOString().slice(0, 16) : null,
-      is_active: p.is_active,
-    });
-    setErrors({});
-    setFormOpen(true);
-  };
-
+  /* ─── form helpers (duplicate only) ─── */
   const openDuplicate = (p: PromoCode) => {
     setEditingId(null);
     setForm({
@@ -216,167 +288,457 @@ const AdminPromoCodes = () => {
     toast({ title: "Copied!", description: `"${code}" copied to clipboard.` });
   };
 
+  const hasActiveFilters = statusFilter !== "all" || typeFilter !== "all" || sortBy !== "newest";
+
   /* ─── render ─── */
   return (
-    <div className="flex flex-col gap-0">
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Promo Codes</h1>
-          <p className="text-muted-foreground">Create and manage discount codes for careers and courses.</p>
+    <>
+      <div className="flex flex-col gap-0">
+        {/* HEADER */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Promo Codes</h1>
+            <p className="text-muted-foreground">Create and manage discount codes for careers and courses.</p>
+          </div>
+          <Button onClick={() => navigate("/admin/promo-codes/new")}><Plus className="mr-2 h-4 w-4" />Create Promo Code</Button>
         </div>
-        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Create Promo Code</Button>
-      </div>
 
-      <div className="admin-section-spacing-top" />
+        <div className="admin-section-spacing-top" />
 
-      <div className="space-y-6">
+        {/* STATS */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <UMLoader size={44} label="Unlocking memory…" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <StatCard icon={<Tag className="h-4 w-4" />} label="Total Promo Codes" value={stats.total} />
+            <StatCard icon={<Ticket className="h-4 w-4" />} label="Active Codes" value={stats.active} accent />
+            <StatCard icon={<Clock className="h-4 w-4" />} label="Expired Codes" value={stats.expired} />
+            <StatCard icon={<BarChart3 className="h-4 w-4" />} label="Total Redemptions" value={stats.totalRedemptions} />
+          </div>
+        )}
 
-      {/* STATS */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <UMLoader size={44} label="Unlocking memory…" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={<Tag className="h-4 w-4" />} label="Total Promo Codes" value={stats.total} />
-          <StatCard icon={<Ticket className="h-4 w-4" />} label="Active Codes" value={stats.active} accent />
-          <StatCard icon={<Clock className="h-4 w-4" />} label="Expired Codes" value={stats.expired} />
-          <StatCard icon={<BarChart3 className="h-4 w-4" />} label="Total Redemptions" value={stats.totalRedemptions} />
-        </div>
-      )}
+        {/* TOOLBAR */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search codes…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
 
-      {/* TOOLBAR */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search codes…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[130px]"><SelectValue placeholder="Type" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="percentage">Percentage</SelectItem>
-              <SelectItem value="flat">Flat</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Sort" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="expiry">Expiry Date</SelectItem>
-              <SelectItem value="usage">Usage Count</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+            {selectedIds.size > 0 && (
+              <Button
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setBulkDeleteDialogOpen(true)}
+                disabled={bulkDeleteLoading}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete {selectedIds.size} row{selectedIds.size > 1 ? "s" : ""}
+              </Button>
+            )}
 
-      {/* TABLE */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <UMLoader size={44} label="Unlocking memory…" />
+            <div className="flex items-center gap-2 ml-auto">
+              {/* Filter */}
+              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filter
+                    {hasActiveFilters && (
+                      <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[10px] ml-0.5">
+                        {[statusFilter !== "all", typeFilter !== "all", sortBy !== "newest"].filter(Boolean).length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[260px] p-4 shadow-lg space-y-3" align="end">
+                  <h4 className="text-sm font-semibold text-foreground">Filters</h4>
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Status</p>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Discount Type</p>
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="percentage">Percentage</SelectItem>
+                        <SelectItem value="flat">Flat</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Sort By</p>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Sort" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="expiry">Expiry Date</SelectItem>
+                        <SelectItem value="usage">Usage Count</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-8 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setStatusFilter("all");
+                        setTypeFilter("all");
+                        setSortBy("newest");
+                        setFilterOpen(false);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Clear filters
+                    </Button>
+                  )}
+                </PopoverContent>
+              </Popover>
+
+              {/* Column toggle */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Columns className="h-4 w-4" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 p-2">
+                  <div className="mb-2 px-1 py-0.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Toggle Columns
+                  </div>
+                  {Object.entries(COLUMN_LABELS).map(([key, label]) => (
+                    <DropdownMenuItem
+                      key={key}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
+                      }}
+                      className="flex items-center gap-3 py-2 cursor-pointer focus:bg-accent focus:text-accent-foreground rounded-md"
+                    >
+                      <Switch
+                        checked={visibleColumns[key]}
+                        className="pointer-events-none"
+                      />
+                      <span className="text-sm font-medium">{label}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Export CSV */}
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleExportCSV}
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+
+              {/* Refresh */}
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={refreshing}
+                onClick={async () => {
+                  setRefreshing(true);
+                  // promoCodes refetch is handled by react-query; simulate brief spin
+                  await new Promise((r) => setTimeout(r, 600));
+                  setRefreshing(false);
+                }}
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          {/* Active filter pills */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2">
+              {statusFilter !== "all" && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted border border-border text-xs">
+                  <span className="font-medium text-foreground">Status</span>
+                  <span className="text-muted-foreground">is</span>
+                  <span className="font-medium text-foreground">"{statusFilter}"</span>
+                  <button onClick={() => setStatusFilter("all")} className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+              {typeFilter !== "all" && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted border border-border text-xs">
+                  <span className="font-medium text-foreground">Type</span>
+                  <span className="text-muted-foreground">is</span>
+                  <span className="font-medium text-foreground">"{typeFilter}"</span>
+                  <button onClick={() => setTypeFilter("all")} className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+              {sortBy !== "newest" && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted border border-border text-xs">
+                  <span className="font-medium text-foreground">Sort</span>
+                  <span className="text-muted-foreground">by</span>
+                  <span className="font-medium text-foreground">"{sortBy}"</span>
+                  <button onClick={() => setSortBy("newest")} className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setSortBy("newest"); }}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
-      ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">No promo codes found.</CardContent></Card>
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead className="hidden md:table-cell">Applies To</TableHead>
-                <TableHead className="hidden lg:table-cell">Min Purchase</TableHead>
-                <TableHead className="hidden lg:table-cell">Usage</TableHead>
-                <TableHead className="hidden md:table-cell">Expiry</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[60px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((p) => {
-                const nearExpiry = p.expiry_date && !isPast(new Date(p.expiry_date)) && differenceInDays(new Date(p.expiry_date), new Date()) <= 7;
-                return (
-                  <TableRow key={p.id} className={nearExpiry ? "bg-orange-500/5" : ""}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold text-sm">{p.code}</span>
-                        <button onClick={() => copyCode(p.code)} className="text-muted-foreground hover:text-foreground transition-colors">
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                        {nearExpiry && <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />}
-                      </div>
-                    </TableCell>
-                    <TableCell className="capitalize text-sm">{p.discount_type}</TableCell>
-                    <TableCell className="text-sm font-medium">
-                      {p.discount_type === "percentage" ? `${p.discount_value}%` : `₹${p.discount_value}`}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm">{appliesToLabel(p.applies_to_type)}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm">
-                      {p.min_purchase > 0 ? `₹${p.min_purchase}` : "—"}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm">
-                      <span>{p.used_count}</span>
-                      {p.usage_limit && (
-                        <span className="text-muted-foreground">/{p.usage_limit} ({Math.round((p.used_count / p.usage_limit) * 100)}%)</span>
+
+        <div className="mt-3" />
+
+        {/* TABLE */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <UMLoader size={44} label="Unlocking memory…" />
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th:not(:last-child)]:border-r">
+                  <TableHead className="w-10 h-9 pl-4">
+                    <input
+                      type="checkbox"
+                      checked={paginatedCodes.length > 0 && selectedIds.size === paginatedCodes.length}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < paginatedCodes.length;
+                      }}
+                      onChange={handleToggleSelectAll}
+                      className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                    />
+                  </TableHead>
+                  {visibleColumns.code && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Code</TableHead>
+                  )}
+                  {visibleColumns.type && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Type</TableHead>
+                  )}
+                  {visibleColumns.value && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Value</TableHead>
+                  )}
+                  {visibleColumns.applies_to && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Applies To</TableHead>
+                  )}
+                  {visibleColumns.min_purchase && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Min Purchase</TableHead>
+                  )}
+                  {visibleColumns.usage && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Usage</TableHead>
+                  )}
+                  {visibleColumns.expiry && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Expiry</TableHead>
+                  )}
+                  {visibleColumns.status && (
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">Status</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedCodes.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={Object.values(visibleColumns).filter(Boolean).length + 1}
+                      className="text-center py-16"
+                    >
+                      <Ticket className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground font-medium">No promo codes found</p>
+                      {(search || hasActiveFilters) ? (
+                        <p className="text-xs text-muted-foreground/60 mt-1">Try adjusting your search or filters</p>
+                      ) : (
+                        <Button className="mt-4" onClick={() => navigate("/admin/promo-codes/new")}>
+                          Create Your First Promo Code
+                        </Button>
                       )}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm">
-                      {p.expiry_date ? format(new Date(p.expiry_date), "dd MMM yyyy") : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {statusBadge(p._status)}
-                        {p._status !== "expired" && (
-                          <Switch
-                            checked={p.is_active}
-                            onCheckedChange={(v) => toggleActive({ id: p.id, is_active: v })}
-                            className="scale-75"
-                          />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setDetailTarget(p); setDetailOpen(true); }}>
-                            <Eye className="mr-2 h-4 w-4" />View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openEdit(p)}>
-                            <Pencil className="mr-2 h-4 w-4" />Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openDuplicate(p)}>
-                            <CopyPlus className="mr-2 h-4 w-4" />Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => { setDeleteTarget(p); setDeleteOpen(true); }}>
-                            <Trash2 className="mr-2 h-4 w-4" />Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
+                ) : (
+                  paginatedCodes.map((p) => {
+                    const nearExpiry = p.expiry_date && !isPast(new Date(p.expiry_date)) && differenceInDays(new Date(p.expiry_date), new Date()) <= 7;
+                    return (
+                      <TableRow
+                        key={p.id}
+                        className={`hover:bg-muted/30 transition-colors [&>td:not(:last-child)]:border-r ${selectedIds.has(p.id) ? "bg-primary/5 hover:bg-primary/10" : nearExpiry ? "bg-orange-500/5" : ""}`}
+                      >
+                        <TableCell className="w-10 pl-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(p.id)}
+                            onChange={() => handleToggleSelectRow(p.id)}
+                            className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                          />
+                        </TableCell>
+                        {visibleColumns.code && (
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-semibold text-sm">{p.code}</span>
+                              <button onClick={() => copyCode(p.code)} className="text-muted-foreground hover:text-foreground transition-colors">
+                                <Copy className="h-3.5 w-3.5" />
+                              </button>
+                              {nearExpiry && <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />}
+                            </div>
+                          </TableCell>
+                        )}
+                        {visibleColumns.type && (
+                          <TableCell className="capitalize text-sm py-3">{p.discount_type}</TableCell>
+                        )}
+                        {visibleColumns.value && (
+                          <TableCell className="text-sm font-medium py-3">
+                            {p.discount_type === "percentage" ? `${p.discount_value}%` : `₹${p.discount_value}`}
+                          </TableCell>
+                        )}
+                        {visibleColumns.applies_to && (
+                          <TableCell className="text-sm py-3">{appliesToLabel(p.applies_to_type)}</TableCell>
+                        )}
+                        {visibleColumns.min_purchase && (
+                          <TableCell className="text-sm py-3">
+                            {p.min_purchase > 0 ? `₹${p.min_purchase}` : "—"}
+                          </TableCell>
+                        )}
+                        {visibleColumns.usage && (
+                          <TableCell className="text-sm py-3">
+                            <span>{p.used_count}</span>
+                            {p.usage_limit && (
+                              <span className="text-muted-foreground">/{p.usage_limit} ({Math.round((p.used_count / p.usage_limit) * 100)}%)</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {visibleColumns.expiry && (
+                          <TableCell className="text-sm py-3">
+                            {p.expiry_date ? format(new Date(p.expiry_date), "dd MMM yyyy") : "—"}
+                          </TableCell>
+                        )}
+                        {visibleColumns.status && (
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-2">
+                              {statusBadge(p._status)}
+                              {p._status !== "expired" && (
+                                <Switch
+                                  checked={p.is_active}
+                                  onCheckedChange={(v) => toggleActive({ id: p.id, is_active: v })}
+                                  className="scale-75"
+                                />
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { setDetailTarget(p); setDetailOpen(true); }}>
+                                    <Eye className="mr-2 h-4 w-4" />View
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => navigate(`/admin/promo-codes/${p.id}`)}>
+                                    <Pencil className="mr-2 h-4 w-4" />Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openDuplicate(p)}>
+                                    <CopyPlus className="mr-2 h-4 w-4" />Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={() => { setDeleteTarget(p); setDeleteOpen(true); }}>
+                                    <Trash2 className="mr-2 h-4 w-4" />Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* FOOTER: rows per page + pagination */}
+        <div className="flex items-center justify-between mt-3 px-1">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Rows per page</span>
+            <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
+              <SelectTrigger className="h-7 w-16 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROWS_PER_PAGE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span>
+              {filtered.length === 0
+                ? "0 records"
+                : `${(currentPage - 1) * rowsPerPage + 1}–${Math.min(currentPage * rowsPerPage, filtered.length)} of ${filtered.length} records`}
+            </span>
+            <span className="text-muted-foreground/50">Page {currentPage} of {totalPages}</span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ─── CREATE / EDIT MODAL ─── */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -536,6 +898,24 @@ const AdminPromoCodes = () => {
         </DialogContent>
       </Dialog>
 
+      {/* ─── BULK DELETE CONFIRM ─── */}
+      <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete {selectedIds.size} Promo Code{selectedIds.size > 1 ? "s" : ""}</DialogTitle>
+            <DialogDescription>
+              This will permanently delete {selectedIds.size} promo code{selectedIds.size > 1 ? "s" : ""}. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteDialogOpen(false)} disabled={bulkDeleteLoading}>Cancel</Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleteLoading}>
+              {bulkDeleteLoading ? "Deleting..." : `Delete ${selectedIds.size}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ─── VIEW DETAIL ─── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-md">
@@ -559,8 +939,7 @@ const AdminPromoCodes = () => {
           )}
         </DialogContent>
       </Dialog>
-      </div>
-    </div>
+    </>
   );
 };
 

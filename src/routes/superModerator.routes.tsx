@@ -6,8 +6,6 @@ import { SuperModeratorLayout } from "@/components/layouts";
 import SuperModeratorDashboard from "@/pages/SuperModeratorDashboard";
 import AdminApprovals from "@/pages/AdminApprovals";
 import AdminReports from "@/pages/AdminReports";
-import AdminCareers from "@/pages/AdminCareers";
-import AdminCareerEditor from "@/pages/AdminCareerEditor";
 import AdminPosts from "@/pages/AdminPosts";
 import AdminPostEditor from "@/pages/AdminPostEditor";
 import AdminCoursesPanel from "@/pages/AdminCoursesPanel";
@@ -20,6 +18,9 @@ import AdminMedia from "@/pages/AdminMedia";
 import AdminAnalytics from "@/pages/AdminAnalytics";
 import AdminModeratorActivity from "@/pages/AdminModeratorActivity";
 import AdminUsers from "@/pages/AdminUsers";
+import SuperModeratorActivityLog from "@/pages/SuperModeratorActivityLog";
+import AdminTeamOwnership from "@/pages/AdminTeamOwnership";
+import SuperModeratorMyAssets from "@/pages/SuperModeratorMyAssets";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -41,9 +42,7 @@ const SuperModeratorRoutes = () => {
           <Route path="approvals" element={<AdminApprovals />} />
           <Route path="reports" element={<AdminReports />} />
           {/* Career Management - Career Manager's primary scope */}
-          <Route path="careers" element={<AdminCareers />} />
-          <Route path="careers/new" element={<AdminCareerEditor />} />
-          <Route path="careers/:id" element={<AdminCareerEditor />} />
+          <Route path="my-assets" element={<SuperModeratorMyAssets />} />
           <Route path="courses" element={<AdminCoursesPanel />} />
           <Route path="courses/new" element={<AdminCourseEditor />} />
           <Route path="courses/:id" element={<AdminCourseEditor />} />
@@ -56,10 +55,12 @@ const SuperModeratorRoutes = () => {
           <Route path="annotations" element={<AdminAnnotations />} />
           <Route path="media" element={<AdminMedia />} />
           {/* Team Management */}
+          <Route path="team-ownership" element={<AdminTeamOwnership />} />
           <Route path="assignments" element={<AdminUsers />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="activity" element={<AdminModeratorActivity />} />
+          <Route path="activity-log" element={<SuperModeratorActivityLog />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SuperModeratorLayout>

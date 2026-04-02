@@ -740,6 +740,12 @@ const ChatStyleEditor = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mentorName = "Karan";
 
+  // Auto-scroll message list to bottom whenever messages change
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
   // Handle composer view mode change
   const handleComposerViewModeChange = (newMode: 'edit' | 'split' | 'preview') => {
     setComposerViewMode(newMode);
@@ -1511,7 +1517,7 @@ const ChatStyleEditor = ({
   }, [onTextSelect]);
 
   return (
-    <div className="chat-style-editor rounded-xl border border-border bg-background overflow-hidden shadow-lg">
+    <div className="chat-style-editor rounded-xl border border-border bg-background overflow-hidden shadow-lg flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b border-border">
         <div className="flex items-center gap-2">
@@ -1539,11 +1545,9 @@ const ChatStyleEditor = ({
       {/* Chat container */}
       <div
         ref={chatContainerRef}
-        className={cn(
-          "p-6 overflow-y-auto bg-gradient-to-b from-background to-muted/20",
-          "min-h-[450px] max-h-[600px]"
-        )}
+        className="p-6 bg-gradient-to-b from-background to-muted/20 overflow-y-auto"
         style={{
+          height: 420,
           backgroundImage: `radial-gradient(circle at 50% 50%, hsl(var(--muted) / 0.3) 0%, transparent 70%)`,
         }}
         onMouseUp={() => handleTextSelection()}
@@ -1627,7 +1631,7 @@ const ChatStyleEditor = ({
 
       {/* Input area (only in edit mode and not in annotation mode) */}
       {mode === "edit" && !annotationMode && (
-        <div className="border-t border-border bg-muted/30 p-4">
+        <div className="border-t border-border bg-muted/30 p-4 flex-shrink-0">
           {/* Speaker toggle with icon pickers and view mode toggle */}
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">

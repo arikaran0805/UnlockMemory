@@ -47,18 +47,18 @@ const DraggableUserCard = ({
   onSelectUser: UserPoolSidebarProps["onSelectUser"];
   getRoleBadge: (role?: string | null) => React.ReactNode;
 }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `user-${user.id}`,
     data: { user, type: "user" },
     disabled: isAssigned,
   });
 
-  // Hide the original element completely when dragging (DragOverlay shows the visual)
+  // Ghost placeholder while dragging
   if (isDragging) {
     return (
       <div
         ref={setNodeRef}
-        className="w-full h-11 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5"
+        className="w-full h-[58px] rounded-lg border-2 border-dashed border-primary/30 bg-primary/5"
       />
     );
   }
@@ -66,46 +66,51 @@ const DraggableUserCard = ({
   return (
     <div
       ref={setNodeRef}
-      className={`
-        w-full flex items-center gap-2 p-2 rounded-lg text-left transition-colors
-        ${canSelect ? "hover:bg-primary/10 cursor-pointer" : ""}
-        ${isAssigned ? "opacity-50 bg-muted/50" : "hover:bg-muted/50"}
-        ${!selectedTarget && !isAssigned ? "cursor-grab active:cursor-grabbing" : ""}
-      `}
+      {...(!isAssigned ? attributes : {})}
+      {...(!isAssigned ? listeners : {})}
+      className={[
+        "group flex items-center gap-3 p-3 rounded-lg border transition-colors select-none",
+        isAssigned
+          ? "opacity-50 bg-muted/50 border-border cursor-not-allowed"
+          : canSelect
+          ? "bg-background border-border hover:border-primary hover:bg-primary/5 cursor-pointer"
+          : "bg-background border-border hover:border-primary hover:bg-primary/5 cursor-grab active:cursor-grabbing",
+      ].join(" ")}
       onClick={() => {
         if (canSelect) {
           onSelectUser(user.id, selectedTarget!.type, selectedTarget!.courseId);
         }
       }}
     >
-      <div 
-        {...attributes} 
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing"
-      >
-        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
-      </div>
-      <Avatar className="h-7 w-7 flex-shrink-0">
+      {/* Avatar */}
+      <Avatar className="h-8 w-8 flex-shrink-0">
         <AvatarImage src={user.avatar_url || undefined} />
-        <AvatarFallback className="text-xs bg-muted">
-          {user.full_name?.[0] || user.email[0]}
+        <AvatarFallback className="text-xs bg-muted font-medium">
+          {(user.full_name?.[0] || user.email[0]).toUpperCase()}
         </AvatarFallback>
       </Avatar>
+
+      {/* Name + email */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
+        <p className="text-xs font-medium truncate">
           {user.full_name || user.email}
         </p>
         {user.full_name && (
-          <p className="text-[10px] text-muted-foreground truncate">
+          <p className="text-[11px] text-muted-foreground truncate">
             {user.email}
           </p>
         )}
       </div>
-      {isAssigned ? (
-        <Check className="h-4 w-4 text-primary flex-shrink-0" />
-      ) : (
-        getRoleBadge(user.role)
-      )}
+
+      {/* Right side: role badge / check + grip indicator */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {isAssigned ? (
+          <Check className="h-4 w-4 text-primary" />
+        ) : (
+          getRoleBadge(user.role)
+        )}
+        <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+      </div>
     </div>
   );
 };

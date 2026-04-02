@@ -30,10 +30,10 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  admin:            "#0F6E56",
-  super_moderator:  "#1A7A62",
-  senior_moderator: "#268770",
-  moderator:        "#33947E",
+  admin:            "from-emerald-600 to-emerald-800",
+  super_moderator:  "from-emerald-500 to-emerald-700",
+  senior_moderator: "from-emerald-400 to-emerald-600",
+  moderator:        "from-emerald-300 to-emerald-500",
 };
 
 const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }: ProfileEditDialogProps) => {
@@ -89,46 +89,52 @@ const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm p-0 overflow-hidden rounded-2xl border border-[#D4DDD3] shadow-2xl bg-white">
+      <DialogContent 
+        className="sm:max-w-md p-0 overflow-hidden rounded-[2rem] border border-border/40 shadow-2xl backdrop-blur-xl bg-background/95"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
 
         {/* ── Avatar + name hero ── */}
-        <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-5">
-          {userProfile?.avatar_url ? (
-            <img
-              src={userProfile.avatar_url}
-              alt={displayName}
-              className="h-20 w-20 rounded-full object-cover ring-4 ring-[#D4DDD3]"
-            />
-          ) : (
-            <div
-              className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-              style={{ backgroundColor: ROLE_COLORS[activeRole ?? ""] ?? "#0F6E56" }}
-            >
-              {initials}
-            </div>
-          )}
+        <div className="flex flex-col items-center gap-4 px-8 pt-10 pb-6 relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+          
+          <div className="relative">
+            {userProfile?.avatar_url ? (
+              <img
+                src={userProfile.avatar_url}
+                alt={displayName}
+                className="h-24 w-24 rounded-full object-cover ring-4 ring-background shadow-lg"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "h-24 w-24 rounded-full flex items-center justify-center text-white text-3xl font-bold ring-4 ring-background shadow-lg bg-gradient-to-br",
+                  ROLE_COLORS[activeRole ?? ""] || "from-primary to-primary/80"
+                )}
+              >
+                {initials}
+              </div>
+            )}
+            {/* Online indicator dot */}
+            <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-emerald-500 ring-4 ring-background shadow-sm" />
+          </div>
 
           {/* Role badge */}
-          <span
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full"
-            style={{ backgroundColor: "#E8F0EB", color: "#2D5A3D" }}
-          >
-            <Shield className="h-3 w-3" />
+          <span className="flex items-center gap-1.5 text-xs font-semibold px-4 py-1.5 rounded-full bg-primary/10 text-primary ring-1 ring-primary/20 backdrop-blur-md">
+            <Shield className="h-3.5 w-3.5" />
             {roleLabel}
           </span>
         </div>
 
-        {/* ── Divider ── */}
-        <div className="mx-5 h-px bg-[#D4DDD3]" />
-
         {/* ── Editable fields ── */}
-        <div className="px-5 py-5 space-y-4">
+        <div className="px-8 pb-4 space-y-5">
           {/* Name */}
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "#6B8F71" }}>
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
               <User className="h-3.5 w-3.5" />
               Full Name
             </label>
@@ -138,19 +144,19 @@ const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }
               onChange={e => setName(e.target.value)}
               placeholder="Enter your name"
               className={cn(
-                "w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors",
-                "border border-[#D4DDD3] focus:border-[#4A7C59]",
-                "placeholder:text-[#A8C5B0]"
+                "w-full rounded-2xl px-4 py-3.5 text-sm outline-none transition-all",
+                "bg-muted/30 border border-border/50",
+                "focus:bg-background focus:border-primary/50 focus:ring-4 focus:ring-primary/10",
+                "placeholder:text-muted-foreground/60 text-foreground"
               )}
-              style={{ background: "#F7FAF8", color: "#1A3A2A" }}
             />
           </div>
 
           {/* Email */}
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "#6B8F71" }}>
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
               <Mail className="h-3.5 w-3.5" />
-              Email
+              Email Address
             </label>
             <input
               type="email"
@@ -158,14 +164,14 @@ const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }
               onChange={e => setEmail(e.target.value)}
               placeholder="Enter your email"
               className={cn(
-                "w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors",
-                "border border-[#D4DDD3] focus:border-[#4A7C59]",
-                "placeholder:text-[#A8C5B0]"
+                "w-full rounded-2xl px-4 py-3.5 text-sm outline-none transition-all",
+                "bg-muted/30 border border-border/50",
+                "focus:bg-background focus:border-primary/50 focus:ring-4 focus:ring-primary/10",
+                "placeholder:text-muted-foreground/60 text-foreground"
               )}
-              style={{ background: "#F7FAF8", color: "#1A3A2A" }}
             />
             {email.trim() !== (user?.email || "") && (
-              <p className="text-[11px] leading-tight" style={{ color: "#6B8F71" }}>
+              <p className="text-[11px] font-medium text-amber-600 dark:text-amber-500 ml-1 mt-1.5">
                 A confirmation link will be sent to your new email.
               </p>
             )}
@@ -173,11 +179,10 @@ const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }
         </div>
 
         {/* ── Actions ── */}
-        <div className="flex gap-2 px-5 pb-5">
+        <div className="flex gap-3 px-8 pb-8 pt-2">
           <button
             onClick={() => onOpenChange(false)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-colors border border-[#D4DDD3] hover:bg-[#EFF3EE]"
-            style={{ color: "#1A3A2A" }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-sm font-semibold transition-all border border-border/60 hover:bg-secondary hover:border-border text-muted-foreground hover:text-secondary-foreground active:scale-[0.98]"
           >
             <X className="h-4 w-4" />
             Cancel
@@ -186,12 +191,11 @@ const ProfileEditDialog = ({ open, onOpenChange, userProfile, onProfileUpdated }
             onClick={handleSave}
             disabled={!isDirty || saving}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium text-white transition-colors",
+              "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-sm font-semibold transition-all shadow-sm",
               isDirty && !saving
-                ? "hover:bg-[#2D5A3D]"
-                : "opacity-40 cursor-not-allowed"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
             )}
-            style={{ backgroundColor: "#4A7C59" }}
           >
             {saving
               ? <Loader2 className="h-4 w-4 animate-spin" />

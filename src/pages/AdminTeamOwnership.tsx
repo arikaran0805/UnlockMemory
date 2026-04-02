@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminSidebar } from "@/contexts/AdminSidebarContext";
+import { useRoleScope } from "@/hooks/useRoleScope";
 import TeamCard from "@/components/team-ownership/TeamCard";
 import TeamCanvasEditor from "@/components/team-ownership/TeamCanvasEditor";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,14 +16,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Plus, Users2, Briefcase } from "lucide-react";
+import { Search, Plus, Users2, Briefcase, Archive } from "lucide-react";
 import type { Team, Career } from "@/components/team-ownership/types";
 
 const AdminTeamOwnership = () => {
   const { userId } = useAuth();
   const { toast } = useToast();
   const { collapseSidebar } = useAdminSidebar();
+  const { role, teamIds: scopedTeamIds, loading: scopeLoading } = useRoleScope();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const isAdmin = role === "admin";
+  const isSuperMod = role === "super_moderator";
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [careers, setCareers] = useState<Career[]>([]);
@@ -30,6 +35,7 @@ const AdminTeamOwnership = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCareerDialog, setShowCareerDialog] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Derive view state from URL params
   const editingTeamId = searchParams.get("edit");
@@ -53,8 +59,8 @@ const AdminTeamOwnership = () => {
       if (careersError) throw careersError;
       setCareers(careersData || []);
 
-      // Fetch teams with career info
-      const { data: teamsData, error: teamsError } = await supabase
+      // Fetch teams with career info — scope to assigned teams for super_mod
+      let teamsQuery = supabase
         .from("teams")
         .select(`
           id,
@@ -64,8 +70,24 @@ const AdminTeamOwnership = () => {
           updated_at,
           archived_at
         `)
-        .is("archived_at", null)
         .order("name");
+
+      if (showArchived) {
+        teamsQuery = teamsQuery.not("archived_at", "is", null);
+      } else {
+        teamsQuery = teamsQuery.is("archived_at", null);
+      }
+
+      if (isSuperMod && scopedTeamIds.length > 0) {
+        teamsQuery = teamsQuery.in("id", scopedTeamIds);
+      } else if (isSuperMod && scopedTeamIds.length === 0) {
+        // Super mod with no assignments — show empty
+        setTeams([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: teamsData, error: teamsError } = await teamsQuery;
 
       if (teamsError) throw teamsError;
 
@@ -125,8 +147,8 @@ const AdminTeamOwnership = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!scopeLoading) fetchData();
+  }, [scopeLoading, showArchived]);
 
   // Collapse sidebar when editing a team
   useEffect(() => {
@@ -200,8 +222,8 @@ const AdminTeamOwnership = () => {
       if (error) throw error;
 
       setShowCareerDialog(false);
-      // Navigate to edit the newly created team
-      setSearchParams({ edit: teamData.id });
+      // Navigate to edit the newly created team (new=true tells breadcrumb this is a creation)
+      setSearchParams({ edit: teamData.id, new: "true" });
       fetchData();
     } catch (error: any) {
       toast({
@@ -226,6 +248,7 @@ const AdminTeamOwnership = () => {
         team={selectedTeam}
         onClose={handleCloseCanvas}
         onRefresh={fetchData}
+        viewerRole={isSuperMod ? "super_moderator" : "admin"}
       />
     );
   }
@@ -275,10 +298,22 @@ const AdminTeamOwnership = () => {
               className="pl-9"
             />
           </div>
-          <Button onClick={handleOpenNewTeamCanvas}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Team
-          </Button>
+          {isAdmin && (
+            <Button
+              variant={showArchived ? "secondary" : "outline"}
+              onClick={() => setShowArchived(!showArchived)}
+              className={showArchived ? "text-amber-600 dark:text-amber-500 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-900/40 border-amber-200 dark:border-amber-800" : ""}
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              {showArchived ? "Archived" : "Active"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button onClick={handleOpenNewTeamCanvas}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Team
+            </Button>
+          )}
         </div>
       </div>
 
@@ -350,12 +385,14 @@ const AdminTeamOwnership = () => {
           <Users2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">No teams yet</h3>
           <p className="text-muted-foreground mb-6">
-            Click the "New Team" button to create your first team
+            {isAdmin ? 'Click the "New Team" button to create your first team' : "No teams have been assigned to you yet"}
           </p>
-          <Button onClick={handleOpenNewTeamCanvas}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create First Team
-          </Button>
+          {isAdmin && (
+            <Button onClick={handleOpenNewTeamCanvas}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Team
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
@@ -375,13 +412,15 @@ const AdminTeamOwnership = () => {
                     ({careerTeams.length} team{careerTeams.length !== 1 ? "s" : ""})
                   </span>
                 </div>
-                <button
-                  onClick={handleOpenNewTeamCanvas}
-                  className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                  title="Add new team"
-                >
-                  <Plus className="h-5 w-5" />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={handleOpenNewTeamCanvas}
+                    className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    title="Add new team"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                )}
               </div>
 
               {/* Team Cards */}

@@ -3,7 +3,7 @@
  * 52px sticky header above main content — breadcrumb nav + optional role-preview badge.
  * Does NOT sit above the sidebar; it lives inside <main>.
  */
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useViewAsRole } from "@/contexts/ViewAsRoleContext";
 import { cn } from "@/lib/utils";
 
@@ -24,8 +24,9 @@ const ROLE_LABELS: Record<string, string> = {
 // ─── Breadcrumb builder ───────────────────────────────────────────────────────
 const buildBreadcrumbs = (
   pathname: string,
-  params: Record<string, string | undefined>,
+  search: string,
 ): BreadcrumbItem[] => {
+  const searchParams = new URLSearchParams(search);
 
   // ── Detect role prefix ────────────────────────────────────────────────────
   const prefixMap: Record<string, { label: string; root: string }> = {
@@ -51,6 +52,7 @@ const buildBreadcrumbs = (
     comments:         "Comments",
     annotations:      "Annotations",
     activity:         "Activity Log",
+    "activity-log":   "Activity Log",
     assignments:      "Assignment Logs",
     "team-ownership": "Team Ownership",
     users:            "Users",
@@ -58,8 +60,8 @@ const buildBreadcrumbs = (
     authors:          "Roles & Permissions",
     media:            "Media Library",
     monetization:     "Monetization",
+    "difficulty-levels": "Difficulty Levels",
     redirects:        "Redirects",
-    api:              "API & Integrations",
     analytics:        "Analytics",
     "social-analytics":"Social Analytics",
     settings:         "Settings",
@@ -72,7 +74,14 @@ const buildBreadcrumbs = (
     careers:          "Careers",
   };
   for (const [seg, label] of Object.entries(leafMap)) {
-    if (pathname === `${p}/${seg}`) return [root, { label }];
+    if (pathname === `${p}/${seg}`) {
+      // Team Ownership: ?edit=<id> means we're inside the canvas editor
+      if (seg === "team-ownership" && searchParams.has("edit")) {
+        const isNew = searchParams.get("new") === "true";
+        return [root, { label, path: `${p}/team-ownership` }, { label: isNew ? "New Team" : "Edit Team" }];
+      }
+      return [root, { label }];
+    }
   }
 
   // ── Posts ─────────────────────────────────────────────────────────────────
@@ -93,6 +102,24 @@ const buildBreadcrumbs = (
   if (new RegExp(`^${p}/courses/`).test(pathname))
     return [root, { label: "Courses", path: `${p}/courses` }, { label: "Edit Course" }];
 
+  // ── Admin-only: Monetization ──────────────────────────────────────────────
+  if (pathname === `${p}/monetization/new`)
+    return [root, { label: "Monetization", path: `${p}/monetization` }, { label: "New Advertisement" }];
+  if (new RegExp(`^${p}/monetization/[^/]+$`).test(pathname))
+    return [root, { label: "Monetization", path: `${p}/monetization` }, { label: "Edit Advertisement" }];
+
+  // ── Admin-only: Promo Code editor ─────────────────────────────────────────
+  if (pathname === `${p}/promo-codes/new`)
+    return [root, { label: "Promo Codes", path: `${p}/promo-codes` }, { label: "New Promo Code" }];
+  if (new RegExp(`^${p}/promo-codes/[^/]+$`).test(pathname))
+    return [root, { label: "Promo Codes", path: `${p}/promo-codes` }, { label: "Edit Promo Code" }];
+
+  // ── Admin-only: Announcement Bar editor ───────────────────────────────────
+  if (pathname === `${p}/announcement-bars/new`)
+    return [root, { label: "Announcement Bars", path: `${p}/announcement-bars` }, { label: "New Announcement Bar" }];
+  if (new RegExp(`^${p}/announcement-bars/[^/]+$`).test(pathname))
+    return [root, { label: "Announcement Bars", path: `${p}/announcement-bars` }, { label: "Edit Announcement Bar" }];
+
   // ── Admin-only: Careers ────────────────────────────────────────────────────
   if (pathname === `${p}/careers/new`)
     return [root, { label: "Careers", path: `${p}/careers` }, { label: "New Career" }];
@@ -100,37 +127,41 @@ const buildBreadcrumbs = (
     return [root, { label: "Careers", path: `${p}/careers` }, { label: "Edit Career" }];
 
   // ── Admin-only: Practice ───────────────────────────────────────────────────
-  const practiceRoot: BreadcrumbItem = { label: "Practice", path: `${p}/practice/skills` };
+  const practiceRoot: BreadcrumbItem = { label: "Practice Lab", path: `${p}/practice/skills` };
   if (pathname === `${p}/practice/skills`)
-    return [root, practiceRoot, { label: "Skills" }];
+    return [root, { label: "Practice Lab" }];
   if (pathname === `${p}/practice/skills/new`)
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "New Skill" }];
+    return [root, practiceRoot, { label: "New Skill" }];
   if (/\/practice\/skills\/[^/]+$/.test(pathname) && !pathname.includes("/problems") && !pathname.includes("/predict") && !pathname.includes("/fix-error") && !pathname.includes("/eliminate-wrong"))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Edit Skill" }];
+    return [root, practiceRoot, { label: "Edit Skill" }];
 
-  const skillId   = params["skillId"] || params["id"];
-  const skillBase = skillId ? `${p}/practice/skills/${skillId}` : `${p}/practice/skills`;
+  // Extract skillId directly from pathname (useParams is unreliable here since
+  // this component renders outside the nested <Routes> that define :skillId)
+  const skillIdFromPath = pathname.match(/\/practice\/skills\/([^/]+)\//)?.[1];
+  const skillBase = skillIdFromPath
+    ? `${p}/practice/skills/${skillIdFromPath}`
+    : `${p}/practice/skills`;
 
   if (/\/problems$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Problems" }];
+    return [root, practiceRoot, { label: "Problems" }];
   if (/\/problems\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Problems", path: `${skillBase}/problems` }, { label: "New Problem" }];
+    return [root, practiceRoot, { label: "Problems", path: `${skillBase}/problems` }, { label: "New Problem" }];
   if (/\/problems\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Problems", path: `${skillBase}/problems` }, { label: "Edit Problem" }];
+    return [root, practiceRoot, { label: "Problems", path: `${skillBase}/problems` }, { label: "Edit Problem" }];
   if (/\/predict-output$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Predict Output" }];
+    return [root, practiceRoot, { label: "Predict Output" }];
   if (/\/predict-output\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Predict Output", path: `${skillBase}/predict-output` }, { label: "New" }];
+    return [root, practiceRoot, { label: "Predict Output", path: `${skillBase}/predict-output` }, { label: "New" }];
   if (/\/predict-output\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Predict Output", path: `${skillBase}/predict-output` }, { label: "Edit" }];
+    return [root, practiceRoot, { label: "Predict Output", path: `${skillBase}/predict-output` }, { label: "Edit" }];
   if (/\/fix-error\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Fix Error" }, { label: "New" }];
+    return [root, practiceRoot, { label: "Fix Error" }, { label: "New" }];
   if (/\/fix-error\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Fix Error" }, { label: "Edit" }];
+    return [root, practiceRoot, { label: "Fix Error" }, { label: "Edit" }];
   if (/\/eliminate-wrong\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Eliminate Wrong" }, { label: "New" }];
+    return [root, practiceRoot, { label: "Eliminate Wrong" }, { label: "New" }];
   if (/\/eliminate-wrong\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Skills", path: `${p}/practice/skills` }, { label: "Eliminate Wrong" }, { label: "Edit" }];
+    return [root, practiceRoot, { label: "Eliminate Wrong" }, { label: "Edit" }];
 
   // ── Fallback ───────────────────────────────────────────────────────────────
   return [root];
@@ -140,7 +171,6 @@ const buildBreadcrumbs = (
 const AdminBreadcrumbHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const params   = useParams<Record<string, string>>();
   const { isViewingAs, viewAsRole, stopViewingAs } = useViewAsRole();
 
   const handleExitViewAs = () => {
@@ -148,7 +178,7 @@ const AdminBreadcrumbHeader = () => {
     navigate("/admin/dashboard");
   };
 
-  const items = buildBreadcrumbs(location.pathname, params);
+  const items = buildBreadcrumbs(location.pathname, location.search);
 
   return (
     <header

@@ -1,9 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
+import { AnnouncementBar } from "@/components/AnnouncementBar";
 import BlogCard from "@/components/BlogCard";
 import { ArrowRight, Compass, Search, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,10 @@ interface FeaturedCourse {
 
 const Index = () => {
   const navigate = useNavigate();
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const handleAnnouncementVisibility = useCallback((visible: boolean) => {
+    setShowAnnouncement(visible);
+  }, []);
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
   const [heroHeadline, setHeroHeadline] = useState("Master Any Subject");
   const [heroSubheadline, setHeroSubheadline] = useState("Learn through emojis, visuals, and stories that spark clarity and deeper understanding.");
@@ -149,8 +154,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-hidden flex flex-col">
       <SEOHead />
-      <Header />
-      <main className="flex-1 pt-24">
+      <div className="fixed top-0 left-0 right-0 z-[60]">
+        <AnnouncementBar onVisibilityChange={handleAnnouncementVisibility} />
+      </div>
+      <Header announcementVisible={showAnnouncement} />
+      <main className={`flex-1 ${showAnnouncement ? "pt-32" : "pt-24"}`}>
       <section 
         ref={heroAnimation.ref}
         className={`relative min-h-[90vh] flex items-center overflow-hidden transition-all duration-1000 ${

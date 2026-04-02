@@ -1,16 +1,14 @@
 /**
  * Team Canvas Editor - Full team management experience
- * 
+ *
  * Features:
  * - Editable team name
  * - Career display
- * - Career Manager assignments
- * - Course assignments with Course/Content Moderator roles
- * - Persistent User Pool sidebar for drag-drop style selections
+ * - Career Manager assignments via inline UserPickerPopover
+ * - Course assignments (Course Manager + Content Moderator) via inline UserPickerPopover
  * - All assignments save immediately
  */
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useSensor, useSensors, PointerSensor, useDroppable } from "@dnd-kit/core";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +18,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,44 +33,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft,
   Archive,
   Shield,
   GraduationCap,
   UserCog,
   Users,
-  Plus,
   Star,
   X,
   Briefcase,
+  Clock,
+  Download,
+  ChevronDown,
   CheckCircle2,
+  Circle,
 } from "lucide-react";
 import type { Team, UserProfile, CourseWithAssignments, SuperModeratorAssignment } from "./types";
-import UserPoolSidebar from "./UserPoolSidebar";
-
-// Droppable zone component
-const DroppableZone = ({ 
-  id, 
-  children, 
-  className,
-  activeClassName,
-}: { 
-  id: string; 
-  children: React.ReactNode;
-  className?: string;
-  activeClassName?: string;
-}) => {
-  const { isOver, setNodeRef } = useDroppable({ id });
-  
-  return (
-    <div 
-      ref={setNodeRef} 
-      className={`${className} ${isOver ? activeClassName : ''}`}
-    >
-      {children}
-    </div>
-  );
-};
+import UserPickerPopover from "@/components/admin/teams/UserPickerPopover";
 
 interface UserWithRole extends UserProfile {
   role?: "admin" | "super_moderator" | "senior_moderator" | "moderator" | "user" | null;
@@ -78,9 +58,11 @@ interface TeamCanvasEditorProps {
   team: Team;
   onClose: () => void;
   onRefresh: () => void;
+  viewerRole?: "admin" | "super_moderator";
 }
 
-const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) => {
+const TeamCanvasEditor = ({ team, onClose, onRefresh, viewerRole = "admin" }: TeamCanvasEditorProps) => {
+  const isSuperModViewer = viewerRole === "super_moderator";
   const { userId } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -92,83 +74,26 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
   const [courses, setCourses] = useState<CourseWithAssignments[]>([]);
   const [allUsers, setAllUsers] = useState<UserWithRole[]>([]);
 
-  // State for all existing course assignments (to prevent duplicates across teams)
-  const [allCourseAssignments, setAllCourseAssignments] = useState<{ user_id: string; course_id: string; role: string }[]>([]);
+  // Activity log sheet
+  const [showActivityLog, setShowActivityLog] = useState(false);
+  const [activityLog, setActivityLog] = useState<{
+    id: string;
+    action: string;
+    user_name: string;
+    role: string;
+    course_name?: string;
+    created_at: string;
+  }[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
-  // User Pool selection state
-  const [selectedTarget, setSelectedTarget] = useState<{
-    type: "super_moderator" | "senior_moderator" | "moderator";
-    courseId?: string;
-  } | null>(null);
+  // Computed set for Career Manager dedup
+  const assignedSuperModeratorIds = useMemo(
+    () => new Set(superModerators.map((sm) => sm.user_id)),
+    [superModerators],
+  );
 
-  // Active dragging user for DragOverlay
-  const [activeDragUser, setActiveDragUser] = useState<UserWithRole | null>(null);
-
-  // Ref for click-outside detection on add buttons
-  const addButtonRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
-
-  // Handle click outside to reset selection
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (!selectedTarget) return;
-    
-    const target = event.target as HTMLElement;
-    
-    // Check if click is inside sidebar (has the user pool area)
-    const sidebar = document.querySelector('[data-user-pool-sidebar]');
-    if (sidebar?.contains(target)) return;
-    
-    // Check if click is on any add button
-    let clickedOnAddButton = false;
-    addButtonRefs.current.forEach((buttonEl) => {
-      if (buttonEl?.contains(target)) {
-        clickedOnAddButton = true;
-      }
-    });
-    
-    if (!clickedOnAddButton) {
-      setSelectedTarget(null);
-    }
-  }, [selectedTarget]);
-
-  useEffect(() => {
-    if (selectedTarget) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [selectedTarget, handleClickOutside]);
-
-  // Computed sets for sidebar
-  const assignedSuperModeratorIds = useMemo(() => {
-    return new Set(superModerators.map((sm) => sm.user_id));
-  }, [superModerators]);
-
-  const assignedSeniorModeratorIds = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    courses.forEach((course) => {
-      const ids = new Set(course.seniorModerators.map((sm) => sm.user_id));
-      // Also add from allCourseAssignments (global)
-      allCourseAssignments
-        .filter((a) => a.course_id === course.id && a.role === "senior_moderator")
-        .forEach((a) => ids.add(a.user_id));
-      map.set(course.id, ids);
-    });
-    return map;
-  }, [courses, allCourseAssignments]);
-
-  const assignedModeratorIds = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    courses.forEach((course) => {
-      const ids = new Set(course.moderators.map((m) => m.user_id));
-      // Also add from allCourseAssignments (global)
-      allCourseAssignments
-        .filter((a) => a.course_id === course.id && a.role === "moderator")
-        .forEach((a) => ids.add(a.user_id));
-      map.set(course.id, ids);
-    });
-    return map;
-  }, [courses, allCourseAssignments]);
+  // Derive team status
+  const teamStatus = (team as any).archived_at ? "Archived" : "Active";
 
   const fetchCanvasData = async (showLoader = true) => {
     try {
@@ -178,17 +103,17 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
       const { data: usersData } = await supabase
         .from("profiles")
         .select("id, email, full_name, avatar_url");
-      
+
       const { data: rolesData } = await supabase
         .from("user_roles")
         .select("user_id, role");
-      
+
       const rolesMap = new Map<string, string>();
       rolesData?.forEach((r) => rolesMap.set(r.user_id, r.role));
-      
+
       const usersWithRoles: UserWithRole[] = (usersData || []).map((u) => ({
         ...u,
-        role: rolesMap.get(u.id) as any || null,
+        role: (rolesMap.get(u.id) as UserWithRole["role"]) ?? null,
       }));
       setAllUsers(usersWithRoles);
 
@@ -218,24 +143,6 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
 
       if (careerCoursesError) throw careerCoursesError;
 
-      // Get course IDs for this career
-      const courseIds = (careerCoursesData || [])
-        .filter((cc: any) => cc.course)
-        .map((cc: any) => cc.course.id);
-
-      // Fetch ALL course assignments for these courses (across all teams) to prevent duplicates
-      let allAssignmentsData: { user_id: string; course_id: string; role: string }[] = [];
-      if (courseIds.length > 0) {
-        const { data: allAssignments, error: allAssignmentsError } = await supabase
-          .from("course_assignments")
-          .select("user_id, course_id, role")
-          .in("course_id", courseIds);
-
-        if (allAssignmentsError) throw allAssignmentsError;
-        allAssignmentsData = allAssignments || [];
-      }
-      setAllCourseAssignments(allAssignmentsData);
-
       // Fetch course assignments for this team (for display)
       const { data: courseAssignmentsData, error: courseAssignmentsError } = await supabase
         .from("course_assignments")
@@ -244,7 +151,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
 
       if (courseAssignmentsError) throw courseAssignmentsError;
 
-      // Build courses with assignments - show ALL courses from career
+      // Build courses with assignments — show ALL courses from career
       const coursesList: CourseWithAssignments[] = (careerCoursesData || [])
         .filter((cc: any) => cc.course)
         .map((cc: any) => {
@@ -288,14 +195,9 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
 
   const handleSaveName = async () => {
     const trimmed = editedName.trim();
-
     if (!trimmed) return;
 
     if (trimmed === team.name) {
-      toast({
-        title: "No pending changes",
-        description: "Team roles are saved automatically.",
-      });
       return;
     }
 
@@ -306,15 +208,10 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
         .eq("id", team.id);
 
       if (error) throw error;
-
       toast({ title: "Team name updated" });
       onRefresh();
     } catch (error: any) {
-      toast({
-        title: "Error updating team",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error updating team", description: error.message, variant: "destructive" });
     }
   };
 
@@ -326,32 +223,55 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
         .eq("id", team.id);
 
       if (error) throw error;
-
-      toast({ title: "Team archived" });
+      toast({ title: "Team archived", description: "This team has been moved to the archived view." });
       onClose();
     } catch (error: any) {
-      toast({
-        title: "Error archiving team",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error archiving team", description: error.message, variant: "destructive" });
     }
   };
 
-  // Handle user selection from the sidebar
+  const handleUnarchive = async () => {
+    try {
+      const { error } = await supabase
+        .from("teams")
+        .update({ archived_at: null })
+        .eq("id", team.id);
+
+      if (error) throw error;
+      toast({ title: "Team restored", description: "This team is now active again." });
+      onClose();
+    } catch (error: any) {
+      toast({ title: "Error restoring team", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Handle user assignment from popover
   const handleSelectUserFromPool = async (
     selectedUserId: string,
     targetType: "super_moderator" | "senior_moderator" | "moderator",
-    courseId?: string
+    courseId?: string,
   ) => {
     try {
       if (targetType === "super_moderator") {
-        const { data, error } = await supabase.from("career_assignments").insert({
-          user_id: selectedUserId,
-          career_id: team.career_id,
-          team_id: team.id,
-          assigned_by: userId,
-        }).select().single();
+        if (assignedSuperModeratorIds.has(selectedUserId)) {
+          toast({
+            title: "Already assigned",
+            description: "This user is already a career manager for this team.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("career_assignments")
+          .insert({
+            user_id: selectedUserId,
+            career_id: team.career_id,
+            team_id: team.id,
+            assigned_by: userId,
+          })
+          .select()
+          .single();
 
         if (error) throw error;
 
@@ -360,16 +280,30 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
         toast({ title: "Career Manager added" });
       } else if (courseId) {
         const course = courses.find((c) => c.id === courseId);
+
+        if (targetType === "senior_moderator" && course?.seniorModerators.some((sm) => sm.user_id === selectedUserId)) {
+          toast({ title: "Already assigned", description: "This user is already a course manager for this course.", variant: "destructive" });
+          return;
+        }
+        if (targetType === "moderator" && course?.moderators.some((m) => m.user_id === selectedUserId)) {
+          toast({ title: "Already assigned", description: "This user is already a content moderator for this course.", variant: "destructive" });
+          return;
+        }
+
         const isFirstSenior = targetType === "senior_moderator" && course?.seniorModerators.length === 0;
 
-        const { data, error } = await supabase.from("course_assignments").insert({
-          user_id: selectedUserId,
-          course_id: courseId,
-          team_id: team.id,
-          role: targetType,
-          is_default_manager: isFirstSenior,
-          assigned_by: userId,
-        }).select().single();
+        const { data, error } = await supabase
+          .from("course_assignments")
+          .insert({
+            user_id: selectedUserId,
+            course_id: courseId,
+            team_id: team.id,
+            role: targetType,
+            is_default_manager: isFirstSenior,
+            assigned_by: userId,
+          })
+          .select()
+          .single();
 
         if (error) throw error;
 
@@ -384,95 +318,15 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
             } else {
               return { ...c, moderators: [...c.moderators, newAssignment] };
             }
-          })
+          }),
         );
 
-        setAllCourseAssignments((prev) => [...prev, { user_id: selectedUserId, course_id: courseId, role: targetType }]);
         toast({ title: `${targetType === "senior_moderator" ? "Course Manager" : "Content Moderator"} added` });
       }
-
-      setSelectedTarget(null);
     } catch (error: any) {
-      toast({
-        title: "Error adding assignment",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error adding assignment", description: error.message, variant: "destructive" });
     }
   };
-
-  // Handle drag start for DnD - show overlay
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    if (active.data.current?.user) {
-      setActiveDragUser(active.data.current.user as UserWithRole);
-    }
-  };
-
-  // Handle drag end for DnD
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    // Always clear the active drag user
-    setActiveDragUser(null);
-    
-    if (!over || !active.data.current?.user) return;
-
-    const draggedUser = active.data.current.user as UserWithRole;
-    const droppableId = over.id as string;
-
-    // Parse the droppable ID to determine target
-    if (droppableId === "drop-super-moderator") {
-      // Check if already assigned
-      if (assignedSuperModeratorIds.has(draggedUser.id)) {
-        toast({
-          title: "Already assigned",
-          description: "This user is already a career manager for this team.",
-          variant: "destructive",
-        });
-        return;
-      }
-      handleSelectUserFromPool(draggedUser.id, "super_moderator");
-    } else if (droppableId.startsWith("drop-senior-")) {
-      const courseId = droppableId.replace("drop-senior-", "");
-      // Check if already assigned
-      if (assignedSeniorModeratorIds.get(courseId)?.has(draggedUser.id)) {
-        toast({
-          title: "Already assigned",
-          description: "This user is already a course manager for this course.",
-          variant: "destructive",
-        });
-        return;
-      }
-      handleSelectUserFromPool(draggedUser.id, "senior_moderator", courseId);
-    } else if (droppableId.startsWith("drop-mod-")) {
-      const courseId = droppableId.replace("drop-mod-", "");
-      // Check if already assigned
-      if (assignedModeratorIds.get(courseId)?.has(draggedUser.id)) {
-        toast({
-          title: "Already assigned",
-          description: "This user is already a content moderator for this course.",
-          variant: "destructive",
-        });
-        return;
-      }
-      handleSelectUserFromPool(draggedUser.id, "moderator", courseId);
-    }
-  };
-
-  // Handle drag cancel
-  const handleDragCancel = () => {
-    setActiveDragUser(null);
-  };
-
-  // DnD sensors with activation constraint
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
 
   // Remove handlers
   const handleRemoveSuperModerator = async (assignmentId: string) => {
@@ -483,19 +337,19 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
         .eq("id", assignmentId);
 
       if (error) throw error;
-
       setSuperModerators((prev) => prev.filter((sm) => sm.id !== assignmentId));
       toast({ title: "Career Manager removed" });
     } catch (error: any) {
-      toast({
-        title: "Error removing career manager",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error removing career manager", description: error.message, variant: "destructive" });
     }
   };
 
-  const handleRemoveModerator = async (assignmentId: string, courseId: string, removedUserId: string, role: string) => {
+  const handleRemoveModerator = async (
+    assignmentId: string,
+    courseId: string,
+    _removedUserId: string,
+    role: string,
+  ) => {
     try {
       const { error } = await supabase
         .from("course_assignments")
@@ -512,20 +366,12 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
           } else {
             return { ...c, moderators: c.moderators.filter((m) => m.id !== assignmentId) };
           }
-        })
-      );
-
-      setAllCourseAssignments((prev) =>
-        prev.filter((a) => !(a.user_id === removedUserId && a.course_id === courseId && a.role === role))
+        }),
       );
 
       toast({ title: "Assignment removed" });
     } catch (error: any) {
-      toast({
-        title: "Error removing assignment",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error removing assignment", description: error.message, variant: "destructive" });
     }
   };
 
@@ -557,17 +403,117 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
               is_default_manager: sm.id === assignmentId,
             })),
           };
-        })
+        }),
       );
 
       toast({ title: "Default manager updated" });
     } catch (error: any) {
-      toast({
-        title: "Error updating default manager",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error updating default manager", description: error.message, variant: "destructive" });
     }
+  };
+
+  const fetchActivityLog = async () => {
+    setActivityLoading(true);
+    try {
+      const { data: careerAssigns } = await supabase
+        .from("career_assignments")
+        .select("id, user_id, assigned_at")
+        .eq("team_id", team.id)
+        .order("assigned_at", { ascending: false })
+        .limit(50);
+
+      const { data: courseAssigns } = await supabase
+        .from("course_assignments")
+        .select("id, user_id, role, course_id, assigned_at")
+        .eq("team_id", team.id)
+        .order("assigned_at", { ascending: false })
+        .limit(50);
+
+      const entries = [
+        ...(careerAssigns || []).map((a) => {
+          const user = allUsers.find((u) => u.id === a.user_id);
+          return {
+            id: a.id,
+            action: "assigned",
+            user_name: user?.full_name || user?.email || a.user_id,
+            role: "Career Manager",
+            course_name: undefined as string | undefined,
+            created_at: a.assigned_at,
+          };
+        }),
+        ...(courseAssigns || []).map((a) => {
+          const user = allUsers.find((u) => u.id === a.user_id);
+          const course = courses.find((c) => c.id === a.course_id);
+          return {
+            id: a.id,
+            action: "assigned",
+            user_name: user?.full_name || user?.email || a.user_id,
+            role: a.role === "senior_moderator" ? "Course Manager" : "Content Moderator",
+            course_name: course?.name,
+            created_at: a.assigned_at,
+          };
+        }),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setActivityLog(entries);
+    } catch (error: any) {
+      toast({ title: "Error loading activity", description: error.message, variant: "destructive" });
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
+  const handleExport = (format: "csv" | "json") => {
+    const rows = [
+      ...superModerators.map((sm) => ({
+        role: "Career Manager",
+        name: sm.user?.full_name || sm.user?.email || "",
+        email: sm.user?.email || "",
+        course: "",
+      })),
+      ...courses.flatMap((c) => [
+        ...c.seniorModerators.map((sm) => ({
+          role: "Course Manager",
+          name: sm.user?.full_name || sm.user?.email || "",
+          email: sm.user?.email || "",
+          course: c.name,
+        })),
+        ...c.moderators.map((m) => ({
+          role: "Content Moderator",
+          name: m.user?.full_name || m.user?.email || "",
+          email: m.user?.email || "",
+          course: c.name,
+        })),
+      ]),
+    ];
+
+    const filename = team.name.replace(/\s+/g, "_");
+
+    if (format === "json") {
+      const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${filename}_team.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const headers = ["Role", "Name", "Email", "Course"];
+      const csv = [
+        headers.join(","),
+        ...rows.map((r) =>
+          [r.role, r.name, r.email, r.course].map((v) => `"${v}"`).join(",")
+        ),
+      ].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${filename}_team.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    toast({ title: `Exported as ${format.toUpperCase()}` });
   };
 
   if (loading) {
@@ -584,61 +530,126 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
             <Skeleton className="h-48 w-full max-w-4xl rounded-xl" />
           </div>
         </div>
-        <div className="w-72 border-l bg-muted/30">
-          <Skeleton className="h-full" />
-        </div>
       </div>
     );
   }
 
   return (
-    <DndContext 
-      sensors={sensors} 
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
     <div className="flex h-full min-h-[calc(100vh-8rem)]">
       {/* Main Canvas Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-card">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <Input
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              className="text-xl font-bold w-64 border-transparent hover:border-input focus:border-input transition-colors"
-              placeholder="Team name"
-            />
-            <Badge
-              variant="outline"
-              style={{
-                borderColor: team.career?.color,
-                color: team.career?.color,
-                backgroundColor: `${team.career?.color}10`,
-              }}
-            >
-              <Briefcase className="h-3 w-3 mr-1" />
-              {team.career?.name}
-            </Badge>
+        {/* Toolbar */}
+        <TooltipProvider delayDuration={300}>
+          <div className="flex items-center gap-3 px-4 h-14 border-b bg-card flex-shrink-0 relative z-10">
+            {/* Left: team name + career badge + status */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Input
+                value={editedName}
+                onChange={(e) => !isSuperModViewer && setEditedName(e.target.value)}
+                onBlur={() => !isSuperModViewer && handleSaveName()}
+                onKeyDown={(e) => !isSuperModViewer && e.key === "Enter" && handleSaveName()}
+                readOnly={isSuperModViewer}
+                className={`h-8 text-sm font-semibold w-52 border-transparent transition-colors ${isSuperModViewer ? "cursor-default" : "hover:border-input focus:border-input"}`}
+                placeholder="Team name"
+              />
+              <Badge
+                variant="outline"
+                className="shrink-0"
+                style={{
+                  borderColor: team.career?.color,
+                  color: team.career?.color,
+                  backgroundColor: `${team.career?.color}10`,
+                }}
+              >
+                <Briefcase className="h-3 w-3 mr-1" />
+                {team.career?.name}
+              </Badge>
+              <span
+                className={[
+                  "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border shrink-0",
+                  teamStatus === "Active"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
+                    : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
+                ].join(" ")}
+              >
+                {teamStatus === "Active" ? (
+                  <CheckCircle2 className="h-3 w-3" />
+                ) : (
+                  <Circle className="h-3 w-3" />
+                )}
+                {teamStatus}
+              </span>
+            </div>
+
+            <Separator orientation="vertical" className="h-6" />
+
+
+
+            {/* Activity Log */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowActivityLog(true);
+                    fetchActivityLog();
+                  }}
+                >
+                  <Clock className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Activity log</TooltipContent>
+            </Tooltip>
+
+            {/* Export */}
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost">
+                      <Download className="h-4 w-4" />
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Export team</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport("csv")}>Export as CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("json")}>Export as JSON</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Archive / Unarchive — admin only */}
+            {!isSuperModViewer && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {teamStatus === "Active" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setShowArchiveDialog(true); }}
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-emerald-700 border-emerald-600/20 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20"
+                      onClick={(e) => { e.stopPropagation(); handleUnarchive(); }}
+                    >
+                      Restore Team
+                    </Button>
+                  )}
+                </TooltipTrigger>
+                <TooltipContent>{teamStatus === "Active" ? "Archive team" : "Restore this team"}</TooltipContent>
+              </Tooltip>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={handleSaveName} disabled={!editedName.trim()}>
-              Update Team
-            </Button>
-            <Button
-              variant="outline"
-              className="text-destructive hover:bg-destructive/10"
-              onClick={() => setShowArchiveDialog(true)}
-            >
-              <Archive className="h-4 w-4 mr-2" />
-              Archive
-            </Button>
-          </div>
-        </div>
+        </TooltipProvider>
 
         {/* Canvas Content */}
         <ScrollArea className="flex-1">
@@ -651,7 +662,10 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                 borderColor: team.career?.color,
               }}
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-center mb-1" style={{ color: team.career?.color }}>
+              <p
+                className="text-xs font-medium uppercase tracking-wide text-center mb-1"
+                style={{ color: team.career?.color }}
+              >
                 CAREER
               </p>
               <h2 className="text-xl font-bold text-foreground text-center">
@@ -674,11 +688,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                 </Badge>
               </div>
 
-              <DroppableZone 
-                id="drop-super-moderator" 
-                className="flex flex-wrap justify-center gap-3 p-3 rounded-xl border-2 border-transparent transition-all min-w-[200px]"
-                activeClassName="border-purple-500 bg-purple-500/5 border-dashed"
-              >
+              <div className="flex flex-wrap justify-center gap-3 p-3 rounded-xl min-w-[200px]">
                 {superModerators.map((sm) => (
                   <div
                     key={sm.id}
@@ -696,40 +706,30 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                       </p>
                       <p className="text-xs text-muted-foreground">{sm.user?.email}</p>
                     </div>
-                    <button
-                      onClick={() => handleRemoveSuperModerator(sm.id)}
-                      className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    {!isSuperModViewer && (
+                      <button
+                        onClick={() => handleRemoveSuperModerator(sm.id)}
+                        className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
 
-                {/* Add Career Manager Button */}
-                <button
-                  ref={(el) => addButtonRefs.current.set('super_moderator', el)}
-                  onClick={() => setSelectedTarget(
-                    selectedTarget?.type === "super_moderator" ? null : { type: "super_moderator" }
-                  )}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${
-                    selectedTarget?.type === "super_moderator"
-                      ? "border-purple-500 bg-purple-500/10 text-purple-600"
-                      : "border-muted-foreground/30 text-muted-foreground hover:border-purple-500/50 hover:text-purple-500"
-                  }`}
-                >
-                  {selectedTarget?.type === "super_moderator" ? (
-                    <>
-                      <CheckCircle2 className="h-5 w-5" />
-                      <span className="text-sm font-medium">Select from pool →</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-5 w-5" />
-                      <span className="text-sm">Add</span>
-                    </>
-                  )}
-                </button>
-              </DroppableZone>
+                {isSuperModViewer ? (
+                  <p className="text-xs text-muted-foreground italic">Managed by admin only</p>
+                ) : (
+                  <UserPickerPopover
+                    users={allUsers}
+                    assignedIds={assignedSuperModeratorIds}
+                    onSelect={(uid) => handleSelectUserFromPool(uid, "super_moderator")}
+                    mode="career_manager"
+                    careerId={team.career_id}
+                    size="md"
+                  />
+                )}
+              </div>
             </div>
 
             {/* Connector Line */}
@@ -769,7 +769,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                         </div>
                       </div>
 
-                      {/* Senior Moderators */}
+                      {/* Course Managers (Senior Moderators) */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -782,11 +782,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                             {course.seniorModerators.length}
                           </Badge>
                         </div>
-                        <DroppableZone 
-                          id={`drop-senior-${course.id}`}
-                          className="flex flex-wrap gap-2 p-2 rounded-lg border-2 border-transparent transition-all min-h-[40px]"
-                          activeClassName="border-amber-500 bg-amber-500/5 border-dashed"
-                        >
+                        <div className="flex flex-wrap gap-2 p-2 rounded-lg min-h-[40px]">
                           {course.seniorModerators.map((sm) => (
                             <div
                               key={sm.id}
@@ -826,32 +822,15 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                               </div>
                             </div>
                           ))}
-                          <button
-                            ref={(el) => addButtonRefs.current.set(`senior_${course.id}`, el)}
-                            onClick={() => setSelectedTarget(
-                              selectedTarget?.type === "senior_moderator" && selectedTarget?.courseId === course.id 
-                                ? null 
-                                : { type: "senior_moderator", courseId: course.id }
-                            )}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${
-                              selectedTarget?.type === "senior_moderator" && selectedTarget?.courseId === course.id
-                                ? "border-amber-500 bg-amber-500/10 text-amber-600"
-                                : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-amber-500/50 hover:text-amber-500"
-                            }`}
-                          >
-                            {selectedTarget?.type === "senior_moderator" && selectedTarget?.courseId === course.id ? (
-                              <>
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span className="text-sm">Select →</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-3.5 w-3.5" />
-                                <span className="text-sm">Add</span>
-                              </>
-                            )}
-                          </button>
-                        </DroppableZone>
+                          <UserPickerPopover
+                            users={allUsers}
+                            assignedIds={new Set(course.seniorModerators.map((sm) => sm.user_id))}
+                            onSelect={(uid) => handleSelectUserFromPool(uid, "senior_moderator", course.id)}
+                            mode="course_manager"
+                            courseId={course.id}
+                            size="sm"
+                          />
+                        </div>
                       </div>
 
                       {/* Connector */}
@@ -859,7 +838,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                         <div className="w-0.5 h-3 bg-border" />
                       </div>
 
-                      {/* Moderators */}
+                      {/* Content Moderators */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -872,11 +851,7 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                             {course.moderators.length}
                           </Badge>
                         </div>
-                        <DroppableZone 
-                          id={`drop-mod-${course.id}`}
-                          className="flex flex-wrap gap-2 p-2 rounded-lg border-2 border-transparent transition-all min-h-[40px]"
-                          activeClassName="border-blue-500 bg-blue-500/5 border-dashed"
-                        >
+                        <div className="flex flex-wrap gap-2 p-2 rounded-lg min-h-[40px]">
                           {course.moderators.map((mod) => (
                             <div
                               key={mod.id}
@@ -899,32 +874,15 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                               </button>
                             </div>
                           ))}
-                          <button
-                            ref={(el) => addButtonRefs.current.set(`mod_${course.id}`, el)}
-                            onClick={() => setSelectedTarget(
-                              selectedTarget?.type === "moderator" && selectedTarget?.courseId === course.id 
-                                ? null 
-                                : { type: "moderator", courseId: course.id }
-                            )}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${
-                              selectedTarget?.type === "moderator" && selectedTarget?.courseId === course.id
-                                ? "border-blue-500 bg-blue-500/10 text-blue-600"
-                                : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-blue-500/50 hover:text-blue-500"
-                            }`}
-                          >
-                            {selectedTarget?.type === "moderator" && selectedTarget?.courseId === course.id ? (
-                              <>
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span className="text-sm">Select →</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-3.5 w-3.5" />
-                                <span className="text-sm">Add</span>
-                              </>
-                            )}
-                          </button>
-                        </DroppableZone>
+                          <UserPickerPopover
+                            users={allUsers}
+                            assignedIds={new Set(course.moderators.map((m) => m.user_id))}
+                            onSelect={(uid) => handleSelectUserFromPool(uid, "moderator", course.id)}
+                            mode="content_moderator"
+                            courseId={course.id}
+                            size="sm"
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -935,16 +893,53 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
         </ScrollArea>
       </div>
 
-      {/* User Pool Sidebar */}
-      <UserPoolSidebar
-        allUsers={allUsers}
-        assignedSuperModeratorIds={assignedSuperModeratorIds}
-        assignedSeniorModeratorIds={assignedSeniorModeratorIds}
-        assignedModeratorIds={assignedModeratorIds}
-        selectedTarget={selectedTarget}
-        onSelectUser={handleSelectUserFromPool}
-        onClearSelection={() => setSelectedTarget(null)}
-      />
+      {/* Activity Log Sheet */}
+      <Sheet open={showActivityLog} onOpenChange={setShowActivityLog}>
+        <SheetContent className="w-80 sm:w-96">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Activity Log
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="mt-4 h-[calc(100vh-8rem)]">
+            {activityLoading ? (
+              <div className="space-y-3 p-1">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-14 rounded-lg" />
+                ))}
+              </div>
+            ) : activityLog.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">
+                No assignment history yet
+              </div>
+            ) : (
+              <div className="space-y-1 p-1">
+                {activityLog.map((entry) => (
+                  <div key={entry.id} className="flex gap-3 p-3 rounded-lg hover:bg-muted/50">
+                    <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{entry.user_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {entry.role}{entry.course_name ? ` — ${entry.course_name}` : ""}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {new Date(entry.created_at).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       {/* Archive Confirmation */}
       <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
@@ -961,10 +956,17 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
                   <li>Keep all assignments intact (not deleted)</li>
                   <li>Allow the team to be restored later if needed</li>
                 </ul>
-                {(superModerators.length > 0 || courses.some(c => c.seniorModerators.length > 0 || c.moderators.length > 0)) && (
+                {(superModerators.length > 0 ||
+                  courses.some(
+                    (c) => c.seniorModerators.length > 0 || c.moderators.length > 0,
+                  )) && (
                   <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">
                     ⚠️ This team has {superModerators.length} career manager(s) and{" "}
-                    {courses.reduce((acc, c) => acc + c.seniorModerators.length + c.moderators.length, 0)} course assignment(s)
+                    {courses.reduce(
+                      (acc, c) => acc + c.seniorModerators.length + c.moderators.length,
+                      0,
+                    )}{" "}
+                    course assignment(s)
                   </p>
                 )}
               </div>
@@ -982,26 +984,6 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh }: TeamCanvasEditorProps) =
         </AlertDialogContent>
       </AlertDialog>
     </div>
-
-    {/* DragOverlay - Shows dragged user card outside its container */}
-    <DragOverlay dropAnimation={null}>
-      {activeDragUser ? (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border-2 border-primary shadow-lg">
-          <Avatar className="h-7 w-7 flex-shrink-0">
-            <AvatarImage src={activeDragUser.avatar_url || undefined} />
-            <AvatarFallback className="text-xs bg-primary/10 text-primary">
-              {activeDragUser.full_name?.[0] || activeDragUser.email[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {activeDragUser.full_name || activeDragUser.email}
-            </p>
-          </div>
-        </div>
-      ) : null}
-    </DragOverlay>
-    </DndContext>
   );
 };
 

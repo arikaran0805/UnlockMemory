@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useRoleScope } from "@/hooks/useRoleScope";
 import { useCourseVersions } from "@/hooks/useCourseVersions";
 import { useCourseAnnotations } from "@/hooks/useCourseAnnotations";
 import { useCoursePrerequisites } from "@/hooks/useCoursePrerequisites";
@@ -44,6 +45,8 @@ const AdminCourseEditor = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { isAdmin, isModerator, userId, isLoading: roleLoading } = useUserRole();
+  const { role: userRole, careerIds } = useRoleScope();
+  const isSuperMod = userRole === "super_moderator";
   
   // Determine base path from current route
   const basePath = location.pathname.startsWith("/super-moderator")
@@ -438,6 +441,19 @@ const AdminCourseEditor = () => {
               course_id: courseId,
               created_by: session.user.id,
             });
+
+          // Super moderator: auto-link course to their assigned career
+          if (isSuperMod && careerIds.length > 0) {
+            const { error: careerCourseError } = await supabase
+              .from("career_courses")
+              .insert({ career_id: careerIds[0], course_id: courseId });
+
+            if (careerCourseError) {
+              // Roll back the course creation
+              await supabase.from("courses").delete().eq("id", courseId);
+              throw new Error(`Failed to link course to career: ${careerCourseError.message}`);
+            }
+          }
         }
 
         toast({ title: "Course created successfully" });
@@ -453,7 +469,7 @@ const AdminCourseEditor = () => {
         toast({ title: "Course submitted for approval" });
       }
       
-      navigate("/admin/courses");
+      navigate(`${basePath}/courses`);
     } catch (error: any) {
       toast({ title: "Error saving course", description: error.message, variant: "destructive" });
     }
@@ -557,8 +573,8 @@ const AdminCourseEditor = () => {
     );
   };
 
-  const canPublishDirectly = isAdmin;
-  const showSubmitForApproval = isModerator && !isAdmin;
+  const canPublishDirectly = isAdmin || isSuperMod;
+  const showSubmitForApproval = isModerator && !isAdmin && !isSuperMod;
 
   const editorInitLoading =
     roleLoading ||

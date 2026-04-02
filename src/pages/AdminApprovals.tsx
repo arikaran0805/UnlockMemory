@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useRoleScope } from "@/hooks/useRoleScope";
 
 import { ContentStatusBadge, ContentStatus } from "@/components/ContentStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -73,17 +74,20 @@ const AdminApprovals = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { role: userRole, courseIds, careerIds, loading: scopeLoading } = useRoleScope();
+  const isSuperMod = userRole === "super_moderator";
+  const isSeniorMod = userRole === "senior_moderator";
+  const canApprove = isAdmin || isSuperMod || isSeniorMod;
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin) {
+    if (roleLoading || scopeLoading) return;
+    if (!canApprove) {
       toast({ title: "Access Denied", variant: "destructive" });
       navigate("/admin");
       return;
     }
-    if (isAdmin) {
-      fetchAllPending();
-    }
-  }, [isAdmin, roleLoading]);
+    fetchAllPending();
+  }, [canApprove, roleLoading, scopeLoading]);
 
   const fetchAllPending = async () => {
     setLoading(true);
@@ -112,11 +116,20 @@ const AdminApprovals = () => {
 
   const fetchPendingPosts = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("posts")
         .select("*")
         .eq("status", "pending")
         .order("updated_at", { ascending: false });
+
+      if (!isAdmin && courseIds.length > 0) {
+        query = query.in("category_id", courseIds);
+      } else if (!isAdmin && courseIds.length === 0) {
+        setPendingPosts([]);
+        return;
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       
@@ -136,11 +149,20 @@ const AdminApprovals = () => {
 
   const fetchPendingCourses = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("courses")
         .select("*")
         .eq("status", "pending")
         .order("updated_at", { ascending: false });
+
+      if (!isAdmin && courseIds.length > 0) {
+        query = query.in("id", courseIds);
+      } else if (!isAdmin && courseIds.length === 0) {
+        setPendingCourses([]);
+        return;
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       
@@ -158,12 +180,26 @@ const AdminApprovals = () => {
   };
 
   const fetchPendingCareers = async () => {
+    // Senior mods don't have career-level scope — skip
+    if (!isAdmin && !isSuperMod) {
+      setPendingCareers([]);
+      return;
+    }
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("careers")
         .select("*")
         .eq("status", "pending")
         .order("updated_at", { ascending: false });
+
+      if (isSuperMod && careerIds.length > 0) {
+        query = query.in("id", careerIds);
+      } else if (isSuperMod && careerIds.length === 0) {
+        setPendingCareers([]);
+        return;
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       

@@ -25,7 +25,7 @@ const AdminCareers = () => {
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id)
-      .in("role", ["admin", "moderator"]);
+      .in("role", ["admin", "super_moderator", "moderator"]);
 
     if (roleError || !rolesData || rolesData.length === 0) {
       toast({ title: "Access Denied", variant: "destructive" });

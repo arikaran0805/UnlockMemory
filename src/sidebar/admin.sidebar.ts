@@ -13,21 +13,19 @@ import {
   Image,
   DollarSign,
   Link2,
-  Key,
   Briefcase,
-  BarChart3,
-  Share2,
   Layers,
+  Gauge,
   ClipboardCheck,
   Trash2,
   Flag,
   MessageSquarePlus,
   Activity,
-  Shield,
   UserCog,
-  Users2,
   Dumbbell,
   Ticket,
+  Network,
+  Megaphone,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
@@ -55,6 +53,7 @@ const contentSection: SidebarSection = {
   items: [
     { icon: BookOpen, label: "Posts", path: "/admin/posts" },
     { icon: Layers, label: "Courses", path: "/admin/courses" },
+    { icon: Gauge, label: "Difficulty Levels", path: "/admin/difficulty-levels" },
     { icon: Dumbbell, label: "Practice Lab", path: "/admin/practice/skills" },
     { icon: Briefcase, label: "Careers", path: "/admin/careers" },
     { icon: Tags, label: "Tags", path: "/admin/tags" },
@@ -65,28 +64,26 @@ const contentSection: SidebarSection = {
   ],
 };
 
-// Section 4: Analytics
-const analyticsSection: SidebarSection = {
-  title: "Analytics",
+
+// Section 5: Logs
+const logsSection: SidebarSection = {
+  title: "Logs",
   items: [
-    { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
-    { icon: Share2, label: "Social Analytics", path: "/admin/social-analytics" },
     { icon: Activity, label: "Activity Log", path: "/admin/activity-log" },
+    { icon: UserCog, label: "Assignment Logs", path: "/admin/assignments" },
   ],
 };
 
-// Section 5: System & Business
+// Section 6: System & Business
 const systemSection: SidebarSection = {
   title: "System & Business",
   items: [
-    { icon: Users, label: "Users", path: "/admin/users" },
-    { icon: Shield, label: "Roles & Permissions", path: "/admin/authors" },
-    { icon: Users2, label: "Team Ownership", path: "/admin/team-ownership" },
-    { icon: UserCog, label: "Assignment Logs", path: "/admin/assignments" },
+    { icon: Users, label: "Users & Roles", path: "/admin/users" },
+    { icon: Network, label: "Team Ownership", path: "/admin/team-ownership" },
     { icon: DollarSign, label: "Monetization", path: "/admin/monetization" },
     { icon: Ticket, label: "Promo Codes", path: "/admin/promo-codes" },
+    { icon: Megaphone, label: "Announcement Bars", path: "/admin/announcement-bars" },
     { icon: Link2, label: "Redirects", path: "/admin/redirects" },
-    { icon: Key, label: "API & Integrations", path: "/admin/api" },
   ],
 };
 
@@ -95,7 +92,7 @@ export const adminSidebarConfig: Omit<SidebarConfig, "roleLabel" | "roleColor"> 
     overviewSection,
     workflowSection,
     contentSection,
-    analyticsSection,
+    logsSection,
     systemSection,
   ],
 };

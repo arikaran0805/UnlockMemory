@@ -1,16 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import UMLoader from "@/components/UMLoader";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -18,13 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,14 +34,42 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, Trash2, DollarSign, Code, Upload, Copy, RefreshCw, Megaphone, CheckCircle, XCircle, CalendarClock } from "lucide-react";
-import { format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  DollarSign,
+  RefreshCw,
+  Search,
+  Download,
+  CheckCircle,
+  XCircle,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Columns,
+  X,
+} from "lucide-react";
+import { format, isPast, isFuture } from "date-fns";
 
+/* ─── types ─── */
 interface Ad {
   id: string;
   name: string;
   placement: string;
+  ad_label?: string | null;
   ad_code: string | null;
   image_url: string | null;
   redirect_url: string | null;
@@ -61,137 +80,111 @@ interface Ad {
   created_at: string;
 }
 
+type AdStatus = "active" | "disabled" | "scheduled" | "expired";
+
+/* ─── constants ─── */
+// Single placement for now — All Courses Page Banner
 const PLACEMENTS = [
-  { value: "header", label: "Header" },
-  { value: "sidebar", label: "Sidebar" },
-  { value: "sidebar-2", label: "Sidebar 2" },
-  { value: "sidebar-3", label: "Sidebar 3" },
-  { value: "footer", label: "Footer" },
-  { value: "in-content", label: "In Content" },
-  { value: "before-comments", label: "Before Comments" },
-  { value: "after-post", label: "After Post" },
+  { value: "courses-banner", label: "All Courses Page Banner" },
 ];
+
+const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
+
+const COLUMN_LABELS: Record<string, string> = {
+  name: "Name",
+  label: "Label",
+  placement: "Placement",
+  schedule: "Schedule",
+  status: "Status",
+};
+
+
+/* ─── helpers ─── */
+function getAdStatus(ad: Ad): AdStatus {
+  if (!ad.is_active) return "disabled";
+  if (ad.end_date && isPast(new Date(ad.end_date))) return "expired";
+  if (ad.start_date && isFuture(new Date(ad.start_date))) return "scheduled";
+  return "active";
+}
+
+function StatusBadge({ status }: { status: AdStatus }) {
+  switch (status) {
+    case "active":
+      return (
+        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 font-medium">
+          <CheckCircle className="h-3 w-3" />Active
+        </Badge>
+      );
+    case "disabled":
+      return (
+        <Badge variant="secondary" className="gap-1 font-medium">
+          <XCircle className="h-3 w-3" />Disabled
+        </Badge>
+      );
+    case "scheduled":
+      return (
+        <Badge variant="outline" className="gap-1 font-medium text-amber-600 border-amber-500/40">
+          <CalendarClock className="h-3 w-3" />Scheduled
+        </Badge>
+      );
+    case "expired":
+      return (
+        <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20 gap-1 font-medium">
+          <XCircle className="h-3 w-3" />Expired
+        </Badge>
+      );
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════ */
 
 const AdminMonetization = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  /* ─── data ─── */
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  /* ─── toolbar ─── */
+  const [searchQuery, setSearchQuery] = useState("");
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  /* ─── filter + columns ─── */
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [visibleColumns, setVisibleColumns] = useState({
+    name: true,
+    label: true,
+    placement: true,
+    schedule: true,
+    status: true,
+  });
+
+  /* ─── selection ─── */
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+  /* ─── single delete ─── */
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    placement: "sidebar",
-    ad_code: "",
-    image_url: "",
-    redirect_url: "",
-    is_active: true,
-    start_date: "",
-    end_date: "",
-    priority: 0,
-  });
-  const [adImageUploading, setAdImageUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Embed code generator state
-  const [embedImageUrl, setEmbedImageUrl] = useState("");
-  const [embedRedirectUrl, setEmbedRedirectUrl] = useState("");
-  const [embedWidth, setEmbedWidth] = useState("300");
-  const [embedHeight, setEmbedHeight] = useState("250");
-  const [embedAltText, setEmbedAltText] = useState("");
-  const [generatedEmbedCode, setGeneratedEmbedCode] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<{ name: string; url: string }[]>([]);
-
-  // Announcement bar settings
-  const [announcementEnabled, setAnnouncementEnabled] = useState(false);
-  const [announcementMessage, setAnnouncementMessage] = useState("");
-  const [announcementLinkText, setAnnouncementLinkText] = useState("");
-  const [announcementLinkUrl, setAnnouncementLinkUrl] = useState("");
-  const [announcementBgColor, setAnnouncementBgColor] = useState("#22c55e");
-  const [announcementTextColor, setAnnouncementTextColor] = useState("#ffffff");
-  const [announcementStartDate, setAnnouncementStartDate] = useState("");
-  const [announcementEndDate, setAnnouncementEndDate] = useState("");
-  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
-
+  /* ─── init ─── */
   useEffect(() => {
-    checkAdminAccess();
+    fetchAds();
   }, []);
 
-  const checkAdminAccess = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", session.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      toast({ title: "Access Denied", variant: "destructive" });
-      navigate("/");
-      return;
-    }
-
-    fetchAds();
-    fetchUploadedImages();
-    fetchAnnouncementSettings();
-  };
-
-  const fetchAnnouncementSettings = async () => {
-    const { data, error } = await supabase
-      .from("site_settings")
-      .select("announcement_enabled, announcement_message, announcement_link_text, announcement_link_url, announcement_bg_color, announcement_text_color, announcement_start_date, announcement_end_date")
-      .limit(1)
-      .maybeSingle();
-
-    if (!error && data) {
-      setAnnouncementEnabled(data.announcement_enabled || false);
-      setAnnouncementMessage(data.announcement_message || "");
-      setAnnouncementLinkText(data.announcement_link_text || "");
-      setAnnouncementLinkUrl(data.announcement_link_url || "");
-      setAnnouncementBgColor(data.announcement_bg_color || "#22c55e");
-      setAnnouncementTextColor(data.announcement_text_color || "#ffffff");
-      setAnnouncementStartDate(data.announcement_start_date ? data.announcement_start_date.split("T")[0] : "");
-      setAnnouncementEndDate(data.announcement_end_date ? data.announcement_end_date.split("T")[0] : "");
-    }
-  };
-
-  const saveAnnouncementSettings = async () => {
-    setSavingAnnouncement(true);
-    const { error } = await supabase
-      .from("site_settings")
-      .update({
-        announcement_enabled: announcementEnabled,
-        announcement_message: announcementMessage,
-        announcement_link_text: announcementLinkText,
-        announcement_link_url: announcementLinkUrl,
-        announcement_bg_color: announcementBgColor,
-        announcement_text_color: announcementTextColor,
-        announcement_start_date: announcementStartDate || null,
-        announcement_end_date: announcementEndDate || null,
-      })
-      .eq("id", (await supabase.from("site_settings").select("id").limit(1).single()).data?.id);
-
-    if (error) {
-      toast({ title: "Failed to save settings", variant: "destructive" });
-    } else {
-      toast({ title: "Announcement settings saved" });
-    }
-    setSavingAnnouncement(false);
-  };
-
   const fetchAds = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from("ads")
       .select("*")
-      .order("priority", { ascending: false });
-
+      .order("priority", { ascending: false })
+      .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Error fetching ads", variant: "destructive" });
     } else {
@@ -200,952 +193,543 @@ const AdminMonetization = () => {
     setLoading(false);
   };
 
-  // Fetch uploaded ad images
-  const fetchUploadedImages = async () => {
-    try {
-      const { data, error } = await supabase.storage.from("ad-images").list();
-      if (error) throw error;
-      
-      const images = data
-        .filter(file => file.name !== ".emptyFolderPlaceholder")
-        .map(file => ({
-          name: file.name,
-          url: supabase.storage.from("ad-images").getPublicUrl(file.name).data.publicUrl
-        }));
-      setUploadedImages(images);
-    } catch (error) {
-      console.error("Error fetching uploaded images:", error);
+  /* ─── filtered + paginated ─── */
+  const filtered = useMemo(() => {
+    let result = ads;
+    const q = searchQuery.toLowerCase();
+    if (q) {
+      result = result.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          (a.redirect_url ?? "").toLowerCase().includes(q)
+      );
     }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please upload a JPG, PNG, GIF, or WebP image", variant: "destructive" });
-      return;
+    if (statusFilter !== "all") {
+      result = result.filter((a) => getAdStatus(a) === statusFilter);
     }
+    return result;
+  }, [ads, searchQuery, statusFilter]);
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Please upload an image smaller than 5MB", variant: "destructive" });
-      return;
-    }
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds(new Set());
+  }, [searchQuery, rowsPerPage]);
 
-    setUploadingImage(true);
-    try {
-      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-      const { error } = await supabase.storage.from("ad-images").upload(fileName, file);
-      
-      if (error) throw error;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+  const paginated = filtered.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
-      const { data: { publicUrl } } = supabase.storage.from("ad-images").getPublicUrl(fileName);
-      setEmbedImageUrl(publicUrl);
-      
-      // Get image dimensions
-      const img = new Image();
-      img.onload = () => {
-        setEmbedWidth(img.width.toString());
-        setEmbedHeight(img.height.toString());
-      };
-      img.src = URL.createObjectURL(file);
-
-      toast({ title: "Image uploaded", description: "Ad image uploaded successfully" });
-      fetchUploadedImages();
-    } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const handleDeleteImage = async (fileName: string) => {
-    try {
-      const { error } = await supabase.storage.from("ad-images").remove([fileName]);
-      if (error) throw error;
-      toast({ title: "Deleted", description: "Image deleted successfully" });
-      fetchUploadedImages();
-      // Clear the URL if it matches the deleted image
-      if (embedImageUrl.includes(fileName)) {
-        setEmbedImageUrl("");
-      }
-    } catch (error: any) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-    }
-  };
-
-  const generateEmbedCode = () => {
-    if (!embedImageUrl) {
-      toast({ title: "Error", description: "Please enter an image URL", variant: "destructive" });
-      return;
-    }
-    const code = embedRedirectUrl
-      ? `<a href="${embedRedirectUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
-  <img src="${embedImageUrl}" alt="${embedAltText || 'Advertisement'}" width="${embedWidth}" height="${embedHeight}" style="max-width:100%;height:auto;border:0;" />
-</a>`
-      : `<img src="${embedImageUrl}" alt="${embedAltText || 'Advertisement'}" width="${embedWidth}" height="${embedHeight}" style="max-width:100%;height:auto;border:0;" />`;
-    setGeneratedEmbedCode(code);
-    toast({ title: "Code Generated", description: "Embed code has been generated successfully" });
-  };
-
-  const openCreateDialog = () => {
-    setSelectedAd(null);
-    setFormData({
-      name: "",
-      placement: "sidebar",
-      ad_code: "",
-      image_url: "",
-      redirect_url: "",
-      is_active: true,
-      start_date: "",
-      end_date: "",
-      priority: 0,
-    });
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (ad: Ad) => {
-    setSelectedAd(ad);
-    setFormData({
-      name: ad.name,
-      placement: ad.placement,
-      ad_code: ad.ad_code || "",
-      image_url: ad.image_url || "",
-      redirect_url: ad.redirect_url || "",
-      is_active: ad.is_active,
-      start_date: ad.start_date ? ad.start_date.split("T")[0] : "",
-      end_date: ad.end_date ? ad.end_date.split("T")[0] : "",
-      priority: ad.priority,
-    });
-    setDialogOpen(true);
-  };
-
-  const handleAdImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please upload a JPG, PNG, GIF, or WebP image", variant: "destructive" });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Please upload an image smaller than 5MB", variant: "destructive" });
-      return;
-    }
-
-    setAdImageUploading(true);
-    try {
-      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-      const { error } = await supabase.storage.from("ad-images").upload(fileName, file);
-      
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage.from("ad-images").getPublicUrl(fileName);
-      setFormData({ ...formData, image_url: publicUrl });
-      
-      toast({ title: "Image uploaded", description: "Ad image uploaded successfully" });
-      fetchUploadedImages();
-    } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
-    } finally {
-      setAdImageUploading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!formData.name.trim()) {
-      toast({ title: "Name is required", variant: "destructive" });
-      return;
-    }
-
-    if (!formData.image_url && !formData.ad_code?.trim()) {
-      toast({ title: "Image URL or Ad Code is required", variant: "destructive" });
-      return;
-    }
-
-    const adData = {
-      name: formData.name.trim(),
-      placement: formData.placement,
-      ad_code: formData.ad_code || null,
-      image_url: formData.image_url || null,
-      redirect_url: formData.redirect_url || null,
-      is_active: formData.is_active,
-      start_date: formData.start_date || null,
-      end_date: formData.end_date || null,
-      priority: formData.priority,
-    };
-
-    if (selectedAd) {
-      const { error } = await supabase
-        .from("ads")
-        .update(adData)
-        .eq("id", selectedAd.id);
-
-      if (error) {
-        toast({ title: "Failed to update ad", variant: "destructive" });
-      } else {
-        toast({ title: "Ad updated" });
-        fetchAds();
-      }
+  /* ─── selection ─── */
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === paginated.length) {
+      setSelectedIds(new Set());
     } else {
-      const { error } = await supabase.from("ads").insert(adData);
-
-      if (error) {
-        toast({ title: "Failed to create ad", variant: "destructive" });
-      } else {
-        toast({ title: "Ad created" });
-        fetchAds();
-      }
+      setSelectedIds(new Set(paginated.map((a) => a.id)));
     }
-    setDialogOpen(false);
   };
 
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  /* ─── bulk delete ─── */
+  const handleBulkDelete = async () => {
+    setBulkDeleteLoading(true);
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("ads").delete().in("id", ids);
+    if (error) {
+      toast({ title: "Failed to delete", variant: "destructive" });
+    } else {
+      setAds((prev) => prev.filter((a) => !selectedIds.has(a.id)));
+      toast({ title: `${ids.length} ad${ids.length > 1 ? "s" : ""} deleted` });
+      setSelectedIds(new Set());
+    }
+    setBulkDeleteLoading(false);
+    setBulkDeleteOpen(false);
+  };
+
+  /* ─── export CSV ─── */
+  const handleExportCSV = () => {
+    const headers = ["Name", "Placement", "Priority", "Status", "Start", "End"];
+    const rows = filtered.map((a) => [
+      a.name,
+      PLACEMENTS.find((p) => p.value === a.placement)?.label ?? a.placement,
+      String(a.priority),
+      getAdStatus(a),
+      a.start_date ? format(new Date(a.start_date), "dd MMM yyyy") : "",
+      a.end_date ? format(new Date(a.end_date), "dd MMM yyyy") : "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ads_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exported successfully" });
+  };
+
+  /* ─── optimistic toggle ─── */
+  const toggleActive = async (ad: Ad) => {
+    const next = !ad.is_active;
+    setAds((prev) => prev.map((a) => (a.id === ad.id ? { ...a, is_active: next } : a)));
+    const { error } = await supabase
+      .from("ads")
+      .update({ is_active: next })
+      .eq("id", ad.id);
+    if (error) {
+      setAds((prev) => prev.map((a) => (a.id === ad.id ? { ...a, is_active: ad.is_active } : a)));
+      toast({ title: "Failed to update status", variant: "destructive" });
+    }
+  };
+
+  /* ─── delete ─── */
   const handleDelete = async () => {
     if (!selectedAd) return;
-
+    setIsDeleting(true);
     const { error } = await supabase.from("ads").delete().eq("id", selectedAd.id);
-
     if (error) {
       toast({ title: "Failed to delete ad", variant: "destructive" });
     } else {
+      setAds((prev) => prev.filter((a) => a.id !== selectedAd.id));
       toast({ title: "Ad deleted" });
-      fetchAds();
+      setDeleteDialogOpen(false);
+      setSelectedAd(null);
     }
-    setDeleteDialogOpen(false);
-    setSelectedAd(null);
+    setIsDeleting(false);
   };
 
-  const toggleActive = async (ad: Ad) => {
-    const { error } = await supabase
-      .from("ads")
-      .update({ is_active: !ad.is_active })
-      .eq("id", ad.id);
+  /* ─── derived KPIs ─── */
+  const activeCount = ads.filter((a) => getAdStatus(a) === "active").length;
+  const scheduledCount = ads.filter((a) => getAdStatus(a) === "scheduled").length;
 
-    if (error) {
-      toast({ title: "Failed to update status", variant: "destructive" });
-    } else {
-      fetchAds();
-    }
-  };
-
+  /* ══════════ render ══════════ */
   return (
     <>
       <div className="flex flex-col gap-0">
+
+        {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Monetization</h1>
-            <p className="text-muted-foreground">Manage ads, embed codes, and site-wide announcements</p>
+            <p className="text-muted-foreground">Manage affiliate and display ads</p>
           </div>
+          <Button onClick={() => navigate("/admin/monetization/new")} className="gap-2">
+            <Plus className="h-4 w-4" />New Advertisement
+          </Button>
         </div>
 
         <div className="admin-section-spacing-top" />
 
-        <div className="space-y-6">
-          <Tabs defaultValue="ads" className="w-full">
-          <TabsList>
-            <TabsTrigger value="ads" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Ad Management
-            </TabsTrigger>
-            <TabsTrigger value="embed" className="flex items-center gap-2">
-              <Code className="h-4 w-4" />
-              Embed Code Generator
-            </TabsTrigger>
-            <TabsTrigger value="announcement" className="flex items-center gap-2">
-              <Megaphone className="h-4 w-4" />
-              Announcement Bar
-            </TabsTrigger>
-          </TabsList>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-md p-2 bg-muted text-muted-foreground">
+                <DollarSign className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Ads</p>
+                <p className="text-xl font-bold">{ads.length}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Ad Management Tab */}
-          <TabsContent value="ads" className="space-y-6">
-            <div className="flex justify-end">
-              <Button onClick={openCreateDialog}>
-                <Plus className="h-4 w-4 mr-2" /> Add Ad
-              </Button>
-            </div>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-md p-2 bg-emerald-500/10 text-emerald-600">
+                <CheckCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Active Now</p>
+                <p className="text-xl font-bold text-emerald-600">{activeCount}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Ads</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{ads.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Active Ads</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    {ads.filter((a) => a.is_active).length}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Placements Used</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {new Set(ads.map((a) => a.placement)).size}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-md p-2 bg-amber-500/10 text-amber-600">
+                <CalendarClock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Scheduled</p>
+                <p className="text-xl font-bold text-amber-600">{scheduledCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {loading ? (
-              <div className="text-center py-12 text-muted-foreground">Loading...</div>
-            ) : ads.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No ads configured yet.</p>
-                  <Button className="mt-4" onClick={openCreateDialog}>
-                    Create Your First Ad
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Placement</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Schedule</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ads.map((ad) => (
-                      <TableRow key={ad.id}>
-                        <TableCell className="font-medium">{ad.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {PLACEMENTS.find((p) => p.value === ad.placement)?.label || ad.placement}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{ad.priority}</TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={ad.is_active}
-                            onCheckedChange={() => toggleActive(ad)}
-                          />
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {ad.start_date || ad.end_date ? (
-                            <>
-                              {ad.start_date && format(new Date(ad.start_date), "MMM d")}
-                              {ad.start_date && ad.end_date && " - "}
-                              {ad.end_date && format(new Date(ad.end_date), "MMM d")}
-                            </>
-                          ) : (
-                            "Always"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => openEditDialog(ad)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedAd(ad);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
-            )}
-          </TabsContent>
+        <div className="mb-6" />
 
-          {/* Embed Code Generator Tab */}
-          <TabsContent value="embed" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Code className="h-5 w-5 text-primary" />
-                  Embed Code Generator
-                </CardTitle>
-                <CardDescription>Generate embed code for custom image ads with redirect links</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Image Upload Section */}
-                <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-                  <Label className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Upload Ad Image
-                  </Label>
-                  <div className="flex gap-4">
-                    <Input
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                      className="cursor-pointer"
-                    />
-                    {uploadingImage && <RefreshCw className="h-5 w-5 animate-spin text-primary" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Upload JPG, PNG, GIF, or WebP (max 5MB). Image dimensions will be auto-detected.</p>
-                  
-                  {/* Uploaded Images Gallery */}
-                  {uploadedImages.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-sm">Previously Uploaded Images</Label>
-                      <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-[200px] overflow-y-auto">
-                        {uploadedImages.map((img) => (
-                          <div 
-                            key={img.name} 
-                            className={`relative group cursor-pointer border rounded overflow-hidden ${embedImageUrl === img.url ? 'ring-2 ring-primary' : ''}`}
-                            onClick={() => setEmbedImageUrl(img.url)}
-                          >
-                            <img src={img.url} alt={img.name} className="w-full h-16 object-cover" />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteImage(img.name); }}
-                              className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search ads…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
 
-                <Separator />
+          {selectedIds.size > 0 && (
+            <Button
+              variant="destructive"
+              className="gap-2"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={bulkDeleteLoading}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete {selectedIds.size} row{selectedIds.size > 1 ? "s" : ""}
+            </Button>
+          )}
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="embed_image_url">Image URL</Label>
-                      <Input
-                        id="embed_image_url"
-                        placeholder="https://example.com/ad-image.jpg"
-                        value={embedImageUrl}
-                        onChange={(e) => setEmbedImageUrl(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">URL of the ad image to display (auto-filled when uploading)</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="embed_redirect_url">Redirect URL</Label>
-                      <Input
-                        id="embed_redirect_url"
-                        placeholder="https://example.com/landing-page"
-                        value={embedRedirectUrl}
-                        onChange={(e) => setEmbedRedirectUrl(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">URL to redirect when the ad is clicked</p>
-                    </div>
-                    
-                    {/* Preset Ad Sizes Dropdown */}
-                    <div className="space-y-2">
-                      <Label>Preset Ad Sizes</Label>
-                      <Select
-                        onValueChange={(value) => {
-                          if (value !== "custom") {
-                            const [w, h] = value.split("x");
-                            setEmbedWidth(w);
-                            setEmbedHeight(h);
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a preset size or use custom" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="300x250">Medium Rectangle (300×250)</SelectItem>
-                          <SelectItem value="336x280">Large Rectangle (336×280)</SelectItem>
-                          <SelectItem value="728x90">Leaderboard (728×90)</SelectItem>
-                          <SelectItem value="970x90">Large Leaderboard (970×90)</SelectItem>
-                          <SelectItem value="160x600">Wide Skyscraper (160×600)</SelectItem>
-                          <SelectItem value="300x600">Half Page (300×600)</SelectItem>
-                          <SelectItem value="320x50">Mobile Banner (320×50)</SelectItem>
-                          <SelectItem value="320x100">Large Mobile Banner (320×100)</SelectItem>
-                          <SelectItem value="468x60">Banner (468×60)</SelectItem>
-                          <SelectItem value="250x250">Square (250×250)</SelectItem>
-                          <SelectItem value="200x200">Small Square (200×200)</SelectItem>
-                          <SelectItem value="120x600">Skyscraper (120×600)</SelectItem>
-                          <SelectItem value="custom">Custom Size</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="embed_width">Width (px)</Label>
-                        <Input
-                          id="embed_width"
-                          type="number"
-                          placeholder="300"
-                          value={embedWidth}
-                          onChange={(e) => setEmbedWidth(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="embed_height">Height (px)</Label>
-                        <Input
-                          id="embed_height"
-                          type="number"
-                          placeholder="250"
-                          value={embedHeight}
-                          onChange={(e) => setEmbedHeight(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="embed_alt_text">Alt Text</Label>
-                      <Input
-                        id="embed_alt_text"
-                        placeholder="Advertisement"
-                        value={embedAltText}
-                        onChange={(e) => setEmbedAltText(e.target.value)}
-                      />
-                    </div>
-                    <Button onClick={generateEmbedCode} className="w-full">
-                      <Code className="mr-2 h-4 w-4" />
-                      Generate Embed Code
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Generated Embed Code</Label>
-                      <Textarea
-                        placeholder="Generated embed code will appear here..."
-                        rows={10}
-                        value={generatedEmbedCode}
-                        readOnly
-                        className="font-mono text-sm"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        if (generatedEmbedCode) {
-                          navigator.clipboard.writeText(generatedEmbedCode);
-                          toast({ title: "Copied!", description: "Embed code copied to clipboard" });
-                        }
-                      }}
-                      disabled={!generatedEmbedCode}
-                      className="w-full"
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy Embed Code
-                    </Button>
-                    {embedImageUrl && (
-                      <div className="space-y-2">
-                        <Label>Preview</Label>
-                        <div className="border rounded-lg p-4 bg-muted/20 flex items-center justify-center min-h-[150px]">
-                          {embedRedirectUrl ? (
-                            <a href={embedRedirectUrl} target="_blank" rel="noopener noreferrer">
-                              <img 
-                                src={embedImageUrl} 
-                                alt={embedAltText || "Advertisement"} 
-                                style={{ maxWidth: `${embedWidth}px`, maxHeight: `${embedHeight}px`, objectFit: "contain" }}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150'%3E%3Crect fill='%23ddd' width='200' height='150'/%3E%3Ctext fill='%23666' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EImage Error%3C/text%3E%3C/svg%3E";
-                                }}
-                              />
-                            </a>
-                          ) : (
-                            <img 
-                              src={embedImageUrl} 
-                              alt={embedAltText || "Advertisement"} 
-                              style={{ maxWidth: `${embedWidth}px`, maxHeight: `${embedHeight}px`, objectFit: "contain" }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150'%3E%3Crect fill='%23ddd' width='200' height='150'/%3E%3Ctext fill='%23666' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EImage Error%3C/text%3E%3C/svg%3E";
-                              }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Announcement Bar Tab */}
-          <TabsContent value="announcement" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Megaphone className="h-5 w-5 text-primary" />
-                  Announcement Bar Settings
-                </CardTitle>
-                <CardDescription>Configure the sticky announcement bar that appears at the top of your site</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
-                  <div className="space-y-0.5">
-                    <Label>Enable Announcement Bar</Label>
-                    <p className="text-sm text-muted-foreground">Show announcement bar to all visitors</p>
-                  </div>
-                  <Switch
-                    checked={announcementEnabled}
-                    onCheckedChange={setAnnouncementEnabled}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="announcement-message">Message</Label>
-                    <Input
-                      id="announcement-message"
-                      value={announcementMessage}
-                      onChange={(e) => setAnnouncementMessage(e.target.value)}
-                      placeholder="🎉 New courses available! Learn the latest skills today."
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Use emojis to make your message stand out</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="announcement-link-text">Link Text (optional)</Label>
-                      <Input
-                        id="announcement-link-text"
-                        value={announcementLinkText}
-                        onChange={(e) => setAnnouncementLinkText(e.target.value)}
-                        placeholder="Explore now →"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="announcement-link-url">Link URL</Label>
-                      <Input
-                        id="announcement-link-url"
-                        value={announcementLinkUrl}
-                        onChange={(e) => setAnnouncementLinkUrl(e.target.value)}
-                        placeholder="/courses"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="announcement-bg-color">Background Color</Label>
-                    <div className="flex items-center gap-3 mt-1">
-                      <input
-                        type="color"
-                        id="announcement-bg-color"
-                        value={announcementBgColor}
-                        onChange={(e) => setAnnouncementBgColor(e.target.value)}
-                        className="w-12 h-10 rounded border cursor-pointer"
-                      />
-                      <Input
-                        value={announcementBgColor}
-                        onChange={(e) => setAnnouncementBgColor(e.target.value)}
-                        placeholder="#22c55e"
-                        className="w-32"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Choose a background color for the announcement bar</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="announcement-text-color">Text Color</Label>
-                    <div className="flex items-center gap-3 mt-1">
-                      <input
-                        type="color"
-                        id="announcement-text-color"
-                        value={announcementTextColor}
-                        onChange={(e) => setAnnouncementTextColor(e.target.value)}
-                        className="w-12 h-10 rounded border cursor-pointer"
-                      />
-                      <Input
-                        value={announcementTextColor}
-                        onChange={(e) => setAnnouncementTextColor(e.target.value)}
-                        placeholder="#ffffff"
-                        className="w-32"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Choose a text color for better contrast</p>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label>Scheduling (Optional)</Label>
-                    <p className="text-xs text-muted-foreground">Set start and end dates to automatically show/hide the announcement</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="announcement-start-date">Start Date</Label>
-                        <Input
-                          id="announcement-start-date"
-                          type="date"
-                          value={announcementStartDate}
-                          onChange={(e) => setAnnouncementStartDate(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="announcement-end-date">End Date</Label>
-                        <Input
-                          id="announcement-end-date"
-                          type="date"
-                          value={announcementEndDate}
-                          onChange={(e) => setAnnouncementEndDate(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Leave empty to show the announcement indefinitely when enabled</p>
-                  </div>
-                </div>
-
-                {/* Preview */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Preview</Label>
-                    {(() => {
-                      const now = new Date();
-                      const startDate = announcementStartDate ? new Date(announcementStartDate) : null;
-                      const endDate = announcementEndDate ? new Date(announcementEndDate) : null;
-                      
-                      if (!announcementEnabled) {
-                        return (
-                          <Badge variant="secondary" className="flex items-center gap-1">
-                            <XCircle className="h-3 w-3" />
-                            Disabled
-                          </Badge>
-                        );
-                      }
-                      
-                      if (endDate && now > endDate) {
-                        return (
-                          <Badge variant="destructive" className="flex items-center gap-1">
-                            <XCircle className="h-3 w-3" />
-                            Expired
-                          </Badge>
-                        );
-                      }
-                      
-                      if (startDate && now < startDate) {
-                        return (
-                          <Badge variant="outline" className="flex items-center gap-1 text-amber-600 border-amber-600">
-                            <CalendarClock className="h-3 w-3" />
-                            Upcoming
-                          </Badge>
-                        );
-                      }
-                      
-                      return (
-                        <Badge className="flex items-center gap-1 bg-primary">
-                          <CheckCircle className="h-3 w-3" />
-                          Active
-                        </Badge>
-                      );
-                    })()}
-                  </div>
-                  <div className="border rounded-lg overflow-hidden">
-                    <div 
-                      className="py-2 px-4 text-center text-sm font-medium"
-                      style={{ backgroundColor: announcementBgColor, color: announcementTextColor }}
-                    >
-                      <span>{announcementMessage || "Your announcement message here..."}</span>
-                      {announcementLinkText && (
-                        <span className="ml-2 underline underline-offset-2 font-semibold">
-                          {announcementLinkText}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <Button onClick={saveAnnouncementSettings} disabled={savingAnnouncement}>
-                  {savingAnnouncement ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Announcement Settings"
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Filter */}
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filter
+                  {statusFilter !== "all" && (
+                    <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[10px] ml-0.5">1</Badge>
                   )}
                 </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        </div>
-      </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selectedAd ? "Edit Ad" : "Create Ad"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ad name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="placement">Placement</Label>
-                <Select
-                  value={formData.placement}
-                  onValueChange={(value) => setFormData({ ...formData, placement: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLACEMENTS.map((p) => (
-                      <SelectItem key={p.value} value={p.value}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Image Upload Section */}
-            <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
-              <Label className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Ad Image
-              </Label>
-              <div className="flex gap-4 items-center">
-                <Input
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleAdImageUpload}
-                  disabled={adImageUploading}
-                  className="cursor-pointer"
-                />
-                {adImageUploading && <RefreshCw className="h-5 w-5 animate-spin text-primary" />}
-              </div>
-              <Input
-                placeholder="Or paste image URL directly..."
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-              />
-              {formData.image_url && (
-                <div className="mt-2">
-                  <img 
-                    src={formData.image_url} 
-                    alt="Ad preview" 
-                    className="max-h-32 rounded border object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+              </PopoverTrigger>
+              <PopoverContent className="w-[220px] p-4 shadow-lg space-y-3" align="end">
+                <h4 className="text-sm font-semibold text-foreground">Filters</h4>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">Status</p>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="disabled">Disabled</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </div>
+                {statusFilter !== "all" && (
+                  <Button
+                    variant="ghost" size="sm"
+                    className="w-full h-8 text-xs text-muted-foreground"
+                    onClick={() => { setStatusFilter("all"); setFilterOpen(false); }}
+                  >
+                    <X className="h-3.5 w-3.5 mr-1" />Clear filter
+                  </Button>
+                )}
+              </PopoverContent>
+            </Popover>
 
-            <div>
-              <Label htmlFor="redirect_url">Redirect URL (where to go when clicked)</Label>
-              <Input
-                id="redirect_url"
-                value={formData.redirect_url}
-                onChange={(e) => setFormData({ ...formData, redirect_url: e.target.value })}
-                placeholder="https://example.com/landing-page"
-              />
-            </div>
+            {/* Columns */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Columns className="h-4 w-4" />Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 p-2">
+                <div className="mb-2 px-1 py-0.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Toggle Columns
+                </div>
+                {Object.entries(COLUMN_LABELS).map(([key, label]) => (
+                  <DropdownMenuItem
+                    key={key}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+                    }}
+                    className="flex items-center gap-3 py-2 cursor-pointer focus:bg-accent rounded-md"
+                  >
+                    <Switch checked={visibleColumns[key as keyof typeof visibleColumns]} className="pointer-events-none" />
+                    <span className="text-sm font-medium">{label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            <Separator />
+            <Button variant="outline" className="gap-2" onClick={handleExportCSV}>
+              <Download className="h-4 w-4" />Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={refreshing}
+              onClick={async () => {
+                setRefreshing(true);
+                await fetchAds();
+                setRefreshing(false);
+              }}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
 
-            <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                Advanced: Custom HTML/JS Ad Code (optional)
-              </summary>
-              <div className="mt-3">
-                <Textarea
-                  id="ad_code"
-                  value={formData.ad_code}
-                  onChange={(e) => setFormData({ ...formData, ad_code: e.target.value })}
-                  placeholder="Paste custom ad code here (overrides image if provided)..."
-                  rows={4}
-                  className="font-mono text-sm"
-                />
-              </div>
-            </details>
+        <div className="mt-3" />
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="priority">Priority</Label>
-                <Input
-                  id="priority"
-                  type="number"
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="start_date">Start Date</Label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="end_date">End Date</Label>
-                <Input
-                  id="end_date"
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                />
-              </div>
-            </div>
+        {/* Table */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <UMLoader size={44} label="Loading ads…" />
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th:not(:last-child)]:border-r">
+                  <TableHead className="w-10 h-9 pl-4">
+                    <div className="flex items-center justify-center h-full">
+                      <input
+                        type="checkbox"
+                        checked={paginated.length > 0 && selectedIds.size === paginated.length}
+                        ref={(el) => {
+                          if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < paginated.length;
+                        }}
+                        onChange={handleToggleSelectAll}
+                        className="h-4 w-4 rounded border-border accent-primary cursor-pointer block"
+                      />
+                    </div>
+                  </TableHead>
+                  {visibleColumns.name && <TableHead className="w-[220px] text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9 px-4">Name</TableHead>}
+                  {visibleColumns.label && <TableHead className="w-[140px] text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9 px-4">Label</TableHead>}
+                  {visibleColumns.placement && <TableHead className="w-[200px] text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9 px-4">Placement</TableHead>}
+                  {visibleColumns.schedule && <TableHead className="w-[160px] text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9 px-4">Schedule</TableHead>}
+                  {visibleColumns.status && <TableHead className="w-[180px] text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9 px-4">Status</TableHead>}
+                  <TableHead className="w-20 text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9 px-4">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-16">
+                      <DollarSign className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground font-medium">
+                        {searchQuery || statusFilter !== "all"
+                          ? "No ads match your search or filter."
+                          : "No ads configured yet."}
+                      </p>
+                      {!searchQuery && statusFilter === "all" && (
+                        <Button className="mt-4" onClick={() => navigate("/admin/monetization/new")}>
+                          Create Your First Advertisement
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginated.map((ad) => {
+                    const status = getAdStatus(ad);
+                    return (
+                      <TableRow
+                        key={ad.id}
+                        className="hover:bg-muted/30 transition-colors [&>td:not(:last-child)]:border-r"
+                      >
+                        {/* Checkbox */}
+                        <TableCell className="w-10 pl-4 py-3">
+                          <div className="flex items-center justify-center h-full">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(ad.id)}
+                              onChange={() => handleToggleSelectRow(ad.id)}
+                              className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                            />
+                          </div>
+                        </TableCell>
 
+                        {/* Name */}
+                        {visibleColumns.name && (
+                          <TableCell className="py-3 px-4 w-[220px]">
+                            <div className="space-y-0.5">
+                              <p className="font-medium text-sm truncate">{ad.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Priority {ad.priority}
+                              </p>
+                            </div>
+                          </TableCell>
+                        )}
+
+                        {/* Label */}
+                        {visibleColumns.label && (
+                          <TableCell className="py-3 px-4 w-[140px]">
+                            {ad.ad_label ? (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs font-medium capitalize ${
+                                  ad.ad_label === "sponsored"
+                                    ? "border-slate-400/40 text-slate-600"
+                                    : ad.ad_label === "partner"
+                                    ? "border-blue-400/40 text-blue-600"
+                                    : "border-emerald-400/40 text-emerald-600"
+                                }`}
+                              >
+                                {ad.ad_label.charAt(0).toUpperCase() + ad.ad_label.slice(1)}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        )}
+
+                        {/* Placement */}
+                        {visibleColumns.placement && (
+                          <TableCell className="py-3 px-4 w-[200px]">
+                            <Badge variant="outline" className="text-xs font-medium">
+                              {PLACEMENTS.find((p) => p.value === ad.placement)?.label ?? ad.placement}
+                            </Badge>
+                          </TableCell>
+                        )}
+
+                        {/* Schedule */}
+                        {visibleColumns.schedule && (
+                          <TableCell className="py-3 px-4 w-[160px]">
+                            {ad.start_date || ad.end_date ? (
+                              <span className="text-xs text-muted-foreground">
+                                {ad.start_date && format(new Date(ad.start_date), "dd MMM yy")}
+                                {ad.start_date && ad.end_date && " → "}
+                                {ad.end_date && format(new Date(ad.end_date), "dd MMM yy")}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Always</span>
+                            )}
+                          </TableCell>
+                        )}
+
+                        {/* Status */}
+                        {visibleColumns.status && (
+                          <TableCell className="py-3 px-4 w-[180px]">
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={ad.is_active}
+                                onCheckedChange={() => toggleActive(ad)}
+                              />
+                              <StatusBadge status={status} />
+                            </div>
+                          </TableCell>
+                        )}
+
+                        {/* Actions */}
+                        <TableCell className="py-3 px-4 w-20">
+                          <div className="flex items-center justify-start gap-1">
+                            <Button
+                              size="icon" variant="ghost" className="h-8 w-8"
+                              onClick={() => navigate(`/admin/monetization/${ad.id}`)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => { setSelectedAd(ad); setDeleteDialogOpen(true); }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Footer */}
+        {!loading && (
+          <div className="flex items-center justify-between pt-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              />
-              <Label htmlFor="is_active">Active</Label>
+              <span>Rows per page</span>
+              <Select
+                value={String(rowsPerPage)}
+                onValueChange={(v) => setRowsPerPage(Number(v))}
+              >
+                <SelectTrigger className="h-8 w-16 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROWS_PER_PAGE_OPTIONS.map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3">
+              <span>{filtered.length} record{filtered.length !== 1 ? "s" : ""}</span>
+              <span>Page {currentPage} of {totalPages}</span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline" size="icon" className="h-8 w-8"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline" size="icon" className="h-8 w-8"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
 
+      {/* Single delete */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Ad?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{selectedAd?.name}". This action cannot be undone.
+              Permanently delete <strong>{selectedAd?.name}</strong>. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} Ad{selectedIds.size > 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedIds.size} ad{selectedIds.size > 1 ? "s" : ""}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleteLoading ? "Deleting…" : `Delete ${selectedIds.size}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

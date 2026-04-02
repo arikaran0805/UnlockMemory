@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search, Layers, Upload, X, ExternalLink, Check, Image as ImageIcon,
-  FileText, MessageCircle, GripVertical,
+  FileText, MessageCircle, GripVertical, Maximize2, Minimize2, Trash2,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,21 @@ export interface AssetItem {
   source?: string;
 }
 
+interface CanvasBlockEntry {
+  id: string;
+  name: string;
+  kind: 'text' | 'chat';
+}
+
 interface AssetsSidebarProps {
   isOpen: boolean;
   editorType?: 'rich' | 'chat' | 'canvas';
   onInsert?: (asset: AssetItem) => void;
+  isExpanded?: boolean;
+  onExpandToggle?: () => void;
+  canvasBlocks?: CanvasBlockEntry[];
+  onScrollToBlock?: (id: string) => void;
+  onDeleteBlock?: (id: string) => void;
 }
 
 const ICONIFY_SEARCH = 'https://api.iconify.design/search';
@@ -44,7 +55,7 @@ function SkeletonGrid({ cols, count }: { cols: number; count: number }) {
   );
 }
 
-export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert }: AssetsSidebarProps) {
+export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpanded, onExpandToggle, canvasBlocks = [], onScrollToBlock, onDeleteBlock }: AssetsSidebarProps) {
   const isCanvas = editorType === 'canvas';
   const [activeTab, setActiveTab] = useState<'images' | 'icons' | 'svg' | 'upload' | 'blocks'>(
     isCanvas ? 'blocks' : 'images'
@@ -184,31 +195,55 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert }: AssetsS
                 </span>
               )}
             </div>
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder={
-                  activeTab === 'images'
-                    ? 'Search photos…'
-                    : activeTab === 'upload'
-                    ? 'No search needed'
-                    : 'Search icons…'
-                }
-                disabled={activeTab === 'upload' || activeTab === 'blocks'}
-                className="pl-8 h-8 text-sm"
-              />
-              {query && (
-                <button
-                  onClick={() => setQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+            {/* Search or Expand CTA */}
+            {isCanvas && activeTab === 'blocks' ? (
+              <button
+                onClick={onExpandToggle}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 h-8 rounded-md border text-xs font-medium transition-colors',
+                  isExpanded
+                    ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10'
+                    : 'border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                {isExpanded ? (
+                  <>
+                    <Minimize2 className="h-3.5 w-3.5" />
+                    Exit Focus Mode
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    Expand Canvas
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder={
+                    activeTab === 'images'
+                      ? 'Search photos…'
+                      : activeTab === 'upload'
+                      ? 'No search needed'
+                      : 'Search icons…'
+                  }
+                  disabled={activeTab === 'upload'}
+                  className="pl-8 h-8 text-sm"
+                />
+                {query && (
+                  <button
+                    onClick={() => setQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Tabs */}
@@ -586,6 +621,41 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert }: AssetsS
                     You can also double-click anywhere on the canvas to add a block inline.
                   </p>
                 </div>
+
+                {canvasBlocks.length > 0 && (
+                  <div className="pt-3 border-t flex flex-col gap-1">
+                    <p className="text-[11px] font-medium text-muted-foreground pb-1">On canvas</p>
+                    <div className="max-h-[220px] overflow-y-auto space-y-0.5 pr-1">
+                      {canvasBlocks.map((b) => (
+                        <div
+                          key={b.id}
+                          className="group flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-muted transition-colors"
+                        >
+                          <div className="flex-shrink-0 w-6 h-6 rounded bg-muted flex items-center justify-center">
+                            {b.kind === 'chat'
+                              ? <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                              : <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                            }
+                          </div>
+                          <button
+                            onClick={() => onScrollToBlock?.(b.id)}
+                            className="flex-1 min-w-0 text-left"
+                          >
+                            <span className="text-xs truncate text-foreground block">
+                              {b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block')}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => onDeleteBlock?.(b.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-0.5 rounded hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </ScrollArea>
           </Tabs>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useRoleScope } from "@/hooks/useRoleScope";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ interface CourseGroup {
 }
 
 const AdminComments = () => {
+  const { role, courseIds } = useRoleScope();
   const [comments, setComments] = useState<Comment[]>([]);
   const [reactions, setReactions] = useState<Map<string, { likes: number; dislikes: number }>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -96,7 +98,7 @@ const AdminComments = () => {
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id)
-      .in("role", ["admin", "moderator"]);
+      .in("role", ["admin", "super_moderator", "senior_moderator", "moderator"]);
 
     if (roleError || !rolesData || rolesData.length === 0) {
       toast({ title: "Access Denied", variant: "destructive" });
@@ -107,7 +109,7 @@ const AdminComments = () => {
     const roles = rolesData.map(r => r.role);
     const userIsAdmin = roles.includes("admin");
     const userIsModerator = roles.includes("moderator");
-    
+
     setIsAdmin(userIsAdmin);
     setIsModerator(userIsModerator);
 
@@ -126,9 +128,27 @@ const AdminComments = () => {
         `)
         .order("created_at", { ascending: false });
 
-      // Moderators only see comments they created
       if (!userIsAdmin) {
-        query = query.eq("user_id", userId);
+        // Scope comments to assigned courses via post's category_id
+        if (courseIds.length > 0) {
+          // Get post IDs in scope first, then filter comments
+          const { data: scopedPosts } = await supabase
+            .from("posts")
+            .select("id")
+            .in("category_id", courseIds);
+          const scopedPostIds = (scopedPosts || []).map((p) => p.id);
+          if (scopedPostIds.length > 0) {
+            query = query.in("post_id", scopedPostIds);
+          } else {
+            setComments([]);
+            setLoading(false);
+            return;
+          }
+        } else {
+          setComments([]);
+          setLoading(false);
+          return;
+        }
       }
 
       const { data, error } = await query;

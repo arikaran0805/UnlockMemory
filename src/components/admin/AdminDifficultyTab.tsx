@@ -55,9 +55,9 @@ const SortableRow = ({ level, onEdit, onDelete }: SortableRowProps) => {
   };
 
   return (
-    <TableRow 
-      ref={setNodeRef} 
-      style={style} 
+    <TableRow
+      ref={setNodeRef}
+      style={style}
       className={isDragging ? "opacity-50 bg-muted" : ""}
     >
       <TableCell>
@@ -139,7 +139,7 @@ const AdminDifficultyTab = () => {
       const oldIndex = levels.findIndex((item) => item.id === active.id);
       const newIndex = levels.findIndex((item) => item.id === over.id);
       const newLevels = arrayMove(levels, oldIndex, newIndex);
-      
+
       setLevels(newLevels);
 
       // Update display_order in database
@@ -225,7 +225,7 @@ const AdminDifficultyTab = () => {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>

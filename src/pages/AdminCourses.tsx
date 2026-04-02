@@ -72,7 +72,7 @@ const AdminCourses = () => {
 
       if (error) throw error;
       setCategories(data || []);
-      
+
       if (data && data.length > 0) {
         await fetchCategoryStats(data.map(c => c.id));
       }
@@ -128,7 +128,7 @@ const AdminCourses = () => {
         .from("courses")
         .update({ featured: !currentFeatured })
         .eq("id", id);
-      
+
       if (error) throw error;
       toast({ title: `Course ${!currentFeatured ? "marked as featured" : "unmarked as featured"}` });
       fetchCategories();
@@ -164,102 +164,102 @@ const AdminCourses = () => {
 
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
-            <Card key={category.id}>
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <span>{category.name}</span>
-                  <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => window.open(`/course/${category.slug}`, "_blank")}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/courses/${category.id}`)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Info className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="p-3">
-                          <div className="space-y-1 text-sm">
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-muted-foreground">Posts:</span>
-                              <span className="font-medium">{categoryStats[category.id]?.postCount || 0}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-muted-foreground">Created:</span>
-                              <span className="font-medium">{format(new Date(category.created_at), "MMM d, yyyy")}</span>
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(category.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground break-words">/{category.slug}</p>
-                {category.description && (
-                  <div>
-                    <div 
-                      className="text-sm break-words prose prose-sm max-w-none line-clamp-3"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(category.description) }}
-                    />
-                    {category.description.length > 150 && (
-                      <button
-                        onClick={() => setPreviewCategory(category)}
-                        className="text-xs text-primary hover:underline mt-1"
+            {categories.map((category) => (
+              <Card key={category.id}>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    <span>{category.name}</span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => window.open(`/course/${category.slug}`, "_blank")}
                       >
-                        Read more
-                      </button>
-                    )}
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/courses/${category.id}`)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="p-3">
+                            <div className="space-y-1 text-sm">
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-muted-foreground">Posts:</span>
+                                <span className="font-medium">{categoryStats[category.id]?.postCount || 0}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-muted-foreground">Created:</span>
+                                <span className="font-medium">{format(new Date(category.created_at), "MMM d, yyyy")}</span>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(category.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground break-words">/{category.slug}</p>
+                  {category.description && (
+                    <div>
+                      <div
+                        className="text-sm break-words prose prose-sm max-w-none line-clamp-3"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(category.description) }}
+                      />
+                      {category.description.length > 150 && (
+                        <button
+                          onClick={() => setPreviewCategory(category)}
+                          className="text-xs text-primary hover:underline mt-1"
+                        >
+                          Read more
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {category.level && (
+                    <p className="text-sm font-medium break-words">Level: {category.level}</p>
+                  )}
+                  <div className="flex items-center gap-2 pt-3 border-t">
+                    <Star className={`h-4 w-4 ${category.featured ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                    <span className="text-sm font-medium">Featured</span>
+                    <Switch
+                      checked={category.featured}
+                      onCheckedChange={() => toggleFeatured(category.id, category.featured)}
+                    />
                   </div>
-                )}
-                {category.level && (
-                  <p className="text-sm font-medium break-words">Level: {category.level}</p>
-                )}
-                <div className="flex items-center gap-2 pt-3 border-t">
-                  <Star className={`h-4 w-4 ${category.featured ? "fill-primary text-primary" : "text-muted-foreground"}`} />
-                  <span className="text-sm font-medium">Featured</span>
-                  <Switch
-                    checked={category.featured}
-                    onCheckedChange={() => toggleFeatured(category.id, category.featured)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
 
-        {/* Preview Dialog */}
-        <Dialog open={!!previewCategory} onOpenChange={() => setPreviewCategory(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">{previewCategory?.name}</DialogTitle>
-              {previewCategory?.level && (
-                <p className="text-sm text-muted-foreground">Level: {previewCategory.level}</p>
-              )}
-            </DialogHeader>
-            {previewCategory?.description && (
-              <div 
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: previewCategory.description }}
-              />
+      {/* Preview Dialog */}
+      <Dialog open={!!previewCategory} onOpenChange={() => setPreviewCategory(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{previewCategory?.name}</DialogTitle>
+            {previewCategory?.level && (
+              <p className="text-sm text-muted-foreground">Level: {previewCategory.level}</p>
             )}
-          </DialogContent>
-        </Dialog>
+          </DialogHeader>
+          {previewCategory?.description && (
+            <div
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: previewCategory.description }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

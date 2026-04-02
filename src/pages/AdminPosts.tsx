@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -382,13 +382,7 @@ const AdminPosts = () => {
         <div className="space-y-6">
 
       <Card>
-        <CardHeader>
-          <CardTitle>All Posts</CardTitle>
-          <CardDescription>
-            {moderatorOnly ? "Posts you created or were assigned to you" : "Manage all blog posts"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -523,8 +517,14 @@ const AdminPosts = () => {
               })}
               {posts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No posts yet. Create your first post!
+                  <TableCell colSpan={5} className="py-12 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-muted-foreground">No posts yet.</p>
+                      <Button onClick={() => navigate("/admin/posts/new")}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create New Post
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useRoleScope } from "@/hooks/useRoleScope";
 import { Plus, Pencil, Trash2, Eye, MoreHorizontal, Code2, FileText, Link2, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,7 @@ interface SkillCardProps {
   isCustom: boolean;
   onEdit: () => void;
   onManageProblems: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onViewCourse?: () => void;
   getStatusBadge: (status: string) => JSX.Element;
 }
@@ -66,13 +67,15 @@ function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onView
                 <FileText className="h-4 w-4 mr-2" />
                 Manage Problems
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={onDelete}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
+              {onDelete && (
+                <DropdownMenuItem
+                  onClick={onDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -126,6 +129,17 @@ export default function AdminPracticeSkills() {
   const { data: skills, isLoading } = usePracticeSkills();
   const deleteMutation = useDeletePracticeSkill();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { role, courseIds } = useRoleScope();
+  const isAdmin = role === "admin";
+  const isSuperMod = role === "super_moderator";
+  const canManageLabs = isAdmin || isSuperMod;
+
+  // Filter skills to scope for non-admin roles
+  const scopedSkills = !isAdmin && skills
+    ? skills.filter((s) =>
+        !s.course_id || courseIds.includes(s.course_id)
+      )
+    : skills;
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -152,10 +166,12 @@ export default function AdminPracticeSkills() {
           <h1 className="text-3xl font-bold text-foreground">Practice Skills</h1>
           <p className="text-muted-foreground">Manage practice skill categories</p>
         </div>
-        <Button onClick={() => navigate("/admin/practice/skills/new")} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Skill
-        </Button>
+        {canManageLabs && (
+          <Button onClick={() => navigate("/admin/practice/skills/new")} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Skill
+          </Button>
+        )}
       </div>
 
       <div className="admin-section-spacing-top" />
@@ -168,24 +184,24 @@ export default function AdminPracticeSkills() {
             <Skeleton key={i} className="h-40 w-full rounded-lg" />
           ))}
         </div>
-      ) : skills && skills.length > 0 ? (
+      ) : scopedSkills && scopedSkills.length > 0 ? (
         <>
           {/* Custom Skills Section */}
-          {skills.filter(s => !s.course_id).length > 0 && (
+          {scopedSkills.filter(s => !s.course_id).length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-amber-500" />
                 <h2 className="text-sm font-semibold text-muted-foreground">Custom Problem Collections</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {skills.filter(s => !s.course_id).map((skill) => (
+                {scopedSkills.filter(s => !s.course_id).map((skill) => (
                   <SkillCard
                     key={skill.id}
                     skill={skill}
                     isCustom
                     onEdit={() => navigate(`/admin/practice/skills/${skill.id}`)}
                     onManageProblems={() => navigate(`/admin/practice/skills/${skill.id}/problems`)}
-                    onDelete={() => setDeleteId(skill.id)}
+                    onDelete={canManageLabs ? () => setDeleteId(skill.id) : undefined}
                     onViewCourse={skill.course_id ? () => navigate(`/admin/courses/${skill.course_id}`) : undefined}
                     getStatusBadge={getStatusBadge}
                   />
@@ -195,21 +211,21 @@ export default function AdminPracticeSkills() {
           )}
 
           {/* Course-Linked Skills Section */}
-          {skills.filter(s => s.course_id).length > 0 && (
+          {scopedSkills.filter(s => s.course_id).length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-semibold text-muted-foreground">Course-Linked Skills</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {skills.filter(s => s.course_id).map((skill) => (
+                {scopedSkills.filter(s => s.course_id).map((skill) => (
                   <SkillCard
                     key={skill.id}
                     skill={skill}
                     isCustom={false}
                     onEdit={() => navigate(`/admin/practice/skills/${skill.id}`)}
                     onManageProblems={() => navigate(`/admin/practice/skills/${skill.id}/problems`)}
-                    onDelete={() => setDeleteId(skill.id)}
+                    onDelete={canManageLabs ? () => setDeleteId(skill.id) : undefined}
                     onViewCourse={() => navigate(`/admin/courses/${skill.course_id}`)}
                     getStatusBadge={getStatusBadge}
                   />

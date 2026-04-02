@@ -3,7 +3,7 @@ import UMLoader from "@/components/UMLoader";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useRoleScope } from "@/hooks/useRoleScope";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -78,11 +78,24 @@ const AdminCoursesTab = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAdmin, isModerator, userId } = useUserRole();
+  const { role, courseIds, careerIds, loading: scopeLoading } = useRoleScope();
+
+  const isAdmin = role === "admin";
+  const isSuperMod = role === "super_moderator";
+  const isSeniorMod = role === "senior_moderator";
+  const isModerator = role === "moderator";
+
+  // Roles that can create courses
+  const canCreateCourse = isAdmin || isSuperMod;
+  // Roles that can directly delete (not just request)
+  const canDirectDelete = (courseId: string) =>
+    isAdmin || (isSuperMod && courseIds.includes(courseId));
 
   useEffect(() => {
-    fetchCategories();
-  }, [userId, isAdmin, isModerator]);
+    if (!scopeLoading) {
+      fetchCategories();
+    }
+  }, [scopeLoading, role]);
 
   const fetchCategories = async () => {
     try {
@@ -91,9 +104,16 @@ const AdminCoursesTab = () => {
         .select("*")
         .order("name", { ascending: true });
 
-      // Moderators only see their own courses or assigned courses
-      if (isModerator && !isAdmin && userId) {
-        query = query.or(`author_id.eq.${userId},assigned_to.eq.${userId}`);
+      // Scope filter for non-admin roles
+      if (!isAdmin) {
+        if (courseIds.length > 0) {
+          query = query.in("id", courseIds);
+        } else {
+          // No assigned courses — return empty
+          setCategories([]);
+          setLoading(false);
+          return;
+        }
       }
 
       const { data, error } = await query;
@@ -177,6 +197,11 @@ const AdminCoursesTab = () => {
   };
 
   const handleDelete = async (id: string) => {
+    // Scope guard: super_mod can only delete courses in their career scope
+    if (isSuperMod && !courseIds.includes(id)) {
+      toast({ title: "You can only delete courses in your assigned career", variant: "destructive" });
+      return;
+    }
     if (!confirm("Are you sure you want to delete this course?")) return;
     try {
       const { error } = await supabase.from("courses").delete().eq("id", id);
@@ -261,7 +286,7 @@ const AdminCoursesTab = () => {
     );
   };
 
-  if (loading) {
+  if (loading || scopeLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <UMLoader size={44} label="Unlocking memory…" />
@@ -269,26 +294,30 @@ const AdminCoursesTab = () => {
     );
   }
 
+  // Determine correct "new course" path based on role prefix
+  const newCoursePath = isSuperMod
+    ? "/super-moderator/courses/new"
+    : "/admin/courses/new";
+
+  const editCoursePath = (id: string) =>
+    isSuperMod ? `/super-moderator/courses/${id}` : `/admin/courses/${id}`;
+
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">All Courses</h2>
-            <p className="text-sm text-muted-foreground">
-              {categories.length} course{categories.length !== 1 ? "s" : ""} total
-            </p>
+      <div className="space-y-4">
+        {canCreateCourse && (
+          <div className="flex justify-end">
+            <Button onClick={() => navigate(newCoursePath)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Course
+            </Button>
           </div>
-          <Button onClick={() => navigate("/admin/courses/new")} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Course
-          </Button>
-        </div>
+        )}
 
         {categories.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No courses found</p>
+            <p>{isAdmin ? "No courses found" : "No courses assigned to you yet"}</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -323,8 +352,8 @@ const AdminCoursesTab = () => {
                       </div>
                     </div>
                     
-                    {/* Status Badge - for moderators only */}
-                    {isModerator && !isAdmin && (
+                    {/* Status Badge - for non-admin roles */}
+                    {!isAdmin && (
                       <div className="mt-2">
                         <ContentStatusBadge status={category.status as ContentStatus} />
                       </div>
@@ -393,7 +422,7 @@ const AdminCoursesTab = () => {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => navigate(`/admin/courses/${category.id}`)}
+                              onClick={() => navigate(editCoursePath(category.id))}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -401,8 +430,8 @@ const AdminCoursesTab = () => {
                           <TooltipContent>Edit</TooltipContent>
                         </Tooltip>
                       </div>
-                      
-                      {isAdmin ? (
+
+                      {canDirectDelete(category.id) ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -416,7 +445,7 @@ const AdminCoursesTab = () => {
                           </TooltipTrigger>
                           <TooltipContent>Delete</TooltipContent>
                         </Tooltip>
-                      ) : (
+                      ) : isSeniorMod || isModerator ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -430,7 +459,7 @@ const AdminCoursesTab = () => {
                           </TooltipTrigger>
                           <TooltipContent>Request Delete</TooltipContent>
                         </Tooltip>
-                      )}
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

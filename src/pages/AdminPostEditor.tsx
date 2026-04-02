@@ -6,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { CanvasEditor, type CanvasEditorRef } from "@/components/canvas-editor";
+import { CanvasEditor, type CanvasEditorRef, type BlockKind } from "@/components/canvas-editor";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useRoleScope } from "@/hooks/useRoleScope";
 import { usePostVersions, PostVersion } from "@/hooks/usePostVersions";
 import { usePostAnnotations } from "@/hooks/usePostAnnotations";
 import { useAutoSaveDraft } from "@/hooks/useAutoSaveDraft";
@@ -72,6 +73,7 @@ const AdminPostEditor = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin, isModerator, userId, isLoading: roleLoading } = useUserRole();
+  const { role: userRole, courseIds } = useRoleScope();
 
   // Get sidebar context to collapse when editing/annotating
   const { collapseSidebar } = useAdminSidebar();
@@ -116,6 +118,9 @@ const AdminPostEditor = () => {
   const canvasEditorRef = useRef<CanvasEditorRef>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [annotationMode, setAnnotationMode] = useState(false);
+  const [activeTab, setActiveTab] = useState(id ? "content" : "details");
+  const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
+  const [canvasBlockList, setCanvasBlockList] = useState<{ id: string; name: string; kind: BlockKind }[]>([]);
   const previousContentRef = useRef<string>("");
 
   // Version and annotation hooks
@@ -239,9 +244,17 @@ const AdminPostEditor = () => {
         .select("*")
         .order("name");
 
-      // For moderators (non-admins), only show courses they created or are assigned to
-      if (isModerator && !isAdmin && userId) {
-        query = query.or(`author_id.eq.${userId},assigned_to.eq.${userId}`);
+      // For non-admins, scope to their assigned courses
+      if (!isAdmin) {
+        if (courseIds.length > 0) {
+          query = query.in("id", courseIds);
+        } else if (isModerator && userId) {
+          // Fallback: moderator scoped by author/assignment
+          query = query.or(`author_id.eq.${userId},assigned_to.eq.${userId}`);
+        } else if (courseIds.length === 0) {
+          setCategories([]);
+          return;
+        }
       }
 
       const { data, error } = await query;
@@ -797,52 +810,70 @@ const AdminPostEditor = () => {
     );
   }
 
+  const isEditorTab = activeTab === "content";
+
   return (
-    <div className="flex gap-4 h-[calc(100vh-4rem)] overflow-hidden">
+    <div className={`flex gap-4 ${isEditorTab ? "h-[calc(100vh-116px)] overflow-hidden" : ""}`}>
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <Tabs defaultValue={id ? "content" : "details"} className="flex-1 flex flex-col min-h-0">
+      <div className={`flex-1 min-w-0 flex flex-col ${isEditorTab ? "overflow-hidden" : ""}`}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v);
+            if (v !== "content") {
+              setIsCanvasExpanded(false);
+            } else {
+              requestAnimationFrame(() => {
+                if (canvasEditorRef.current) setCanvasBlockList(canvasEditorRef.current.getBlocks());
+              });
+            }
+          }}
+          className={`flex flex-col ${isEditorTab ? "flex-1 min-h-0" : ""}`}
+        >
           <div className="flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold text-foreground">
-                    {id ? "Edit Post" : "Create New Post"}
-                  </h1>
-                  {formData.status && formData.status !== "draft" && (
-                    <ContentStatusBadge status={formData.status as ContentStatus} />
-                  )}
-                  {/* Autosave Status Indicator */}
-                  {autoSaveStatus === 'saving' && (
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground animate-pulse ml-1">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Saving…</span>
-                    </div>
-                  )}
-                  {autoSaveStatus === 'saved' && (
-                    <div className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 ml-1">
-                      <Check className="h-3.5 w-3.5" />
-                      <span>Saved</span>
-                    </div>
-                  )}
+            {!(isEditorTab && isCanvasExpanded) && (
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-foreground">
+                      {id ? "Edit Post" : "Create New Post"}
+                    </h1>
+                    {formData.status && formData.status !== "draft" && (
+                      <ContentStatusBadge status={formData.status as ContentStatus} />
+                    )}
+                    {autoSaveStatus === 'saving' && (
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground animate-pulse ml-1">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Saving…</span>
+                      </div>
+                    )}
+                    {autoSaveStatus === 'saved' && (
+                      <div className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 ml-1">
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Saved</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-xs leading-none mt-1">
+                    Compose and manage platform articles and learning content
+                  </p>
                 </div>
-                <p className="text-muted-foreground text-xs leading-none mt-1">
-                  Compose and manage platform articles and learning content
-                </p>
               </div>
-            </div>
-            <TabsList>
-              <TabsTrigger value="details" className="gap-1.5">
-                <FileText className="h-3.5 w-3.5" />
-                Post Details
-              </TabsTrigger>
-              <TabsTrigger value="content" className="gap-1.5">
-                Editor
-                {annotationMode && <Highlighter className="h-3 w-3 text-primary" />}
-              </TabsTrigger>
-            </TabsList>
+            )}
+            {!(isEditorTab && isCanvasExpanded) && (
+              <TabsList>
+                <TabsTrigger value="details" className="gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  Post Details
+                </TabsTrigger>
+                <TabsTrigger value="content" className="gap-1.5">
+                  Editor
+                  {annotationMode && <Highlighter className="h-3 w-3 text-primary" />}
+                </TabsTrigger>
+              </TabsList>
+            )}
           </div>
-          <div className="admin-section-spacing-top" />
+          {!(isEditorTab && isCanvasExpanded) && <div className="admin-section-spacing-top" />}
 
           {/* Admin edit notification banner for moderators */}
           {shouldShowAdminBanner && metadata.lastAdminEdit && (
@@ -864,7 +895,7 @@ const AdminPostEditor = () => {
             </div>
           )}
 
-          <TabsContent value="details" className="space-y-6 mt-0 flex-1 overflow-y-auto pb-24 pr-4">
+          <TabsContent value="details" className="space-y-6 mt-0 pb-10 px-1">
             <div>
               <Label htmlFor="title" className="text-base">Title</Label>
               <Input
@@ -950,7 +981,14 @@ const AdminPostEditor = () => {
             <CanvasEditor
               ref={canvasEditorRef}
               value={formData.content}
-              onChange={(value) => setFormData({ ...formData, content: value })}
+              onChange={(value) => {
+                setFormData({ ...formData, content: value });
+                requestAnimationFrame(() => {
+                  if (canvasEditorRef.current) {
+                    setCanvasBlockList(canvasEditorRef.current.getBlocks());
+                  }
+                });
+              }}
               className="flex-1 min-h-0"
               lessonLabel={categories.find(c => c.id === formData.category_id)?.name}
             />
@@ -959,7 +997,7 @@ const AdminPostEditor = () => {
       </div>
 
       {/* Right Sidebar with Vertical Tab Toggle */}
-      <div className="flex-shrink-0 flex">
+      <div className={`flex-shrink-0 flex ${!isEditorTab ? "sticky top-[52px] self-start h-[calc(100vh-116px)]" : ""}`}>
         {/* Vertical Tab Strip - Settings + Assets + Review */}
         <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
           <button
@@ -994,7 +1032,7 @@ const AdminPostEditor = () => {
         </div>
 
         {/* Sidebar Content */}
-        <Card className={`flex flex-col min-h-0 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
+        <Card className={`flex flex-col rounded-l-none border-l-0 ${isEditorTab ? 'min-h-0' : ''} ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
           <div className={`p-4 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
             {openSidebar === 'review' ? (
               <div className="flex items-center gap-2 mb-3">
@@ -1072,10 +1110,9 @@ const AdminPostEditor = () => {
 
           <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
             <div className="p-4 space-y-4">
-              {/* Status - Only show to admins */}
               {canPublishDirectly && (
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status" className="text-sm font-medium">Status</Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value: any) => setFormData({ ...formData, status: value })}
@@ -1105,31 +1142,33 @@ const AdminPostEditor = () => {
                 />
               </div>
 
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2">
                 <Label className="text-sm font-medium">Tags</Label>
                 <div className="flex gap-2">
                   <Input
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-                    placeholder="Add..."
+                    placeholder="Add a tag..."
                     className="h-8 text-xs"
                   />
                   <Button type="button" onClick={handleAddTag} size="sm" className="h-8 px-2 text-xs">
                     Add
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {selectedTags.map((tag) => (
-                    <Badge key={tag.id} variant="secondary" className="gap-1 px-2 py-0.5 text-[10px] font-medium">
-                      {tag.name}
-                      <X
-                        className="h-2.5 w-2.5 cursor-pointer opacity-70 hover:opacity-100"
-                        onClick={() => handleRemoveTag(tag.id)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {selectedTags.map((tag) => (
+                      <Badge key={tag.id} variant="secondary" className="gap-1 px-2 py-0.5 text-[10px] font-medium">
+                        {tag.name}
+                        <X
+                          className="h-2.5 w-2.5 cursor-pointer opacity-70 hover:opacity-100"
+                          onClick={() => handleRemoveTag(tag.id)}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </ScrollArea>
@@ -1139,9 +1178,18 @@ const AdminPostEditor = () => {
         <AssetsSidebar
           isOpen={openSidebar === 'assets'}
           editorType="canvas"
+          isExpanded={isCanvasExpanded}
+          onExpandToggle={() => setIsCanvasExpanded(v => !v)}
+          canvasBlocks={canvasBlockList}
+          onScrollToBlock={(blockId) => canvasEditorRef.current?.scrollToBlock(blockId)}
+          onDeleteBlock={(blockId) => {
+            canvasEditorRef.current?.deleteBlock(blockId);
+            setCanvasBlockList(prev => prev.filter(b => b.id !== blockId));
+          }}
           onInsert={(asset) => {
             if (asset.type === 'block' && asset.blockKind && canvasEditorRef.current) {
               canvasEditorRef.current.addBlock(asset.blockKind);
+              setCanvasBlockList(canvasEditorRef.current.getBlocks());
             } else {
               navigator.clipboard.writeText(asset.url);
               toast({ title: "URL copied", description: "Paste it into the editor." });

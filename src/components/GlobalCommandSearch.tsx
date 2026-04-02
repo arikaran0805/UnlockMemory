@@ -31,7 +31,6 @@ import {
   Shield,
   DollarSign,
   Link2,
-  Key,
   Trash2,
   ClipboardCheck,
   Share2,
@@ -118,7 +117,7 @@ const getCommandsForRole = (
       { id: "activity", label: "Activity Log", icon: Activity, path: "/admin/activity", category: "navigation", keywords: ["audit", "history"] },
       { id: "monetization", label: "Monetization", icon: DollarSign, path: "/admin/monetization", category: "navigation", keywords: ["billing", "revenue"], isAdminOnly: true },
       { id: "redirects", label: "Redirects", icon: Link2, path: "/admin/redirects", category: "navigation", keywords: ["urls", "links"] },
-      { id: "api", label: "API & Integrations", icon: Key, path: "/admin/api", category: "navigation", keywords: ["webhooks", "connections"], isAdminOnly: true },
+
       { id: "settings", label: "Settings", icon: Settings, path: "/admin/settings", category: "navigation", keywords: ["config", "preferences"] },
       // Actions
       { id: "create-career", label: "Create Career", description: "Add a new career path", icon: Plus, path: "/admin/careers/new", category: "actions", keywords: ["add career", "new path"] },

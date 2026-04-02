@@ -47,6 +47,8 @@ interface DraggableBlockProps {
   onSelect: (id: string) => void;
   onRegisterRef: (id: string, el: HTMLElement | null) => void;
   lessonLabel?: string;
+  isCollapsed: boolean;
+  onToggleCollapse: (id: string) => void;
 }
 
 const DraggableBlock = ({
@@ -58,9 +60,10 @@ const DraggableBlock = ({
   onSelect,
   onRegisterRef,
   lessonLabel,
+  isCollapsed,
+  onToggleCollapse,
 }: DraggableBlockProps) => {
   const [isFocused, setIsFocused] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -136,7 +139,7 @@ const DraggableBlock = ({
         name={block.name}
         onNameChange={handleNameChange}
         isCollapsed={isCollapsed}
-        onToggleCollapse={() => setIsCollapsed(c => !c)}
+        onToggleCollapse={() => onToggleCollapse(block.id)}
         onDuplicate={() => onDuplicate(block.id)}
         onDelete={() => onDelete(block.id)}
         dragHandleProps={{ ...listeners, ...attributes }}
@@ -151,7 +154,7 @@ const DraggableBlock = ({
               value={block.content}
               onChange={handleContentChange}
               placeholder="Write your content here…"
-              className="min-h-[80px]"
+              className="min-h-[450px]"
             />
           ) : (
             <ChatStyleEditor

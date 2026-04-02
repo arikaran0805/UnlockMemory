@@ -12,6 +12,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ViewAsRoleProvider } from "@/contexts/ViewAsRoleContext";
 import { PricingDrawerProvider } from "@/contexts/PricingDrawerContext";
 import { CareerPlanProvider } from "@/contexts/CareerPlanContext";
+import { supabase } from "@/integrations/supabase/client";
 
 
 
@@ -30,6 +31,36 @@ const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const prevLocationRef = useRef(location.pathname);
+
+  // ── Redirect rules engine ──────────────────────────────────────────────────
+  // Fetch all active redirect rules once on mount, store in a ref so we never
+  // re-query on every navigation.
+  const redirectRulesRef = useRef<{ source_path: string; destination_url: string }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("redirects")
+      .select("source_path, destination_url")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        if (data) redirectRulesRef.current = data;
+      });
+  }, []);
+
+  useEffect(() => {
+    const match = redirectRulesRef.current.find(
+      (r) => r.source_path === location.pathname
+    );
+    if (!match) return;
+
+    const dest = match.destination_url;
+    if (dest.startsWith("http://") || dest.startsWith("https://")) {
+      window.location.href = dest;   // external URL — full browser redirect
+    } else {
+      navigate(dest, { replace: true }); // internal path — React Router redirect
+    }
+  }, [location.pathname, navigate]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   // If user opens an email recovery link, redirect to the dedicated /reset-password page.
   useEffect(() => {
