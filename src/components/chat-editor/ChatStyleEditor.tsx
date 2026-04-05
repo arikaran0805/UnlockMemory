@@ -355,7 +355,12 @@ const SortableMessageItem = ({
 
   // Action buttons component
   const ActionButtons = () => (
-    <div className="flex flex-row-reverse items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-lg px-1 py-1 shadow-sm">
+    <div
+      className={cn(
+        "flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-lg px-1 py-1 shadow-sm",
+        isMentor ? "flex-row-reverse" : "flex-row"
+      )}
+    >
       <Button
         variant="ghost"
         size="icon"
@@ -712,6 +717,9 @@ const ChatStyleEditor = ({
   const [selectedCourse, setSelectedCourse] = useState(courseType);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [courses, setCourses] = useState<Course[]>([]);
+  const normalizeCourseKey = useCallback((value: string) => {
+    return value.toLowerCase().replace(/[\s_-]+/g, "");
+  }, []);
   const [manualHeight, setManualHeight] = useState<number | null>(null);
   const [isComposerExpanded, setIsComposerExpanded] = useState(false);
   const [splitViewHeight, setSplitViewHeight] = useState(120); // Custom height for split view
@@ -772,27 +780,37 @@ const ChatStyleEditor = ({
       if (!error && data) {
         setCourses(data);
         // Set first course as default if current selection is not in the list
-        if (data.length > 0 && !data.find(c => c.slug === selectedCourse)) {
+        if (
+          data.length > 0 &&
+          !data.find(
+            (c) =>
+              c.slug === selectedCourse ||
+              normalizeCourseKey(c.slug) === normalizeCourseKey(selectedCourse) ||
+              normalizeCourseKey(c.name) === normalizeCourseKey(selectedCourse)
+          )
+        ) {
           setSelectedCourse(data[0].slug);
         }
       }
     };
     fetchCourses();
-  }, []);
+  }, [normalizeCourseKey, selectedCourse]);
 
   // Sync selectedCourse with courseType prop when it changes
   useEffect(() => {
     if (courseType && courses.length > 0) {
       // Find matching course by slug or name
-      const matchingCourse = courses.find(
-        c => c.slug === courseType || 
-             c.name.toLowerCase().replace(/\s+/g, '') === courseType.toLowerCase()
-      );
+      const matchingCourse = courses.find((c) => {
+        const slugKey = normalizeCourseKey(c.slug);
+        const nameKey = normalizeCourseKey(c.name);
+        const typeKey = normalizeCourseKey(courseType);
+        return c.slug === courseType || slugKey === typeKey || nameKey === typeKey;
+      });
       if (matchingCourse) {
         setSelectedCourse(matchingCourse.slug);
       }
     }
-  }, [courseType, courses]);
+  }, [courseType, courses, normalizeCourseKey]);
 
   // Get course character from fetched courses
   const getCourseCharacter = useCallback((courseSlug: string): CourseCharacter => {
@@ -1163,9 +1181,16 @@ const ChatStyleEditor = ({
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isModKey = isMac ? e.metaKey : e.ctrlKey;
 
-      // If focus is inside the rich text editor (Quill/contenteditable), let it handle its own shortcuts.
+      // If focus is inside any editable surface, let that editor handle its own shortcuts.
       const target = e.target as HTMLElement | null;
-      if (target?.closest?.('.ql-editor') || target?.isContentEditable) return;
+      const activeEl = document.activeElement as HTMLElement | null;
+      const targetIsEditable =
+        !!target?.closest?.('.ql-editor, .ProseMirror, input, textarea, select, [contenteditable="true"]') ||
+        !!target?.isContentEditable;
+      const activeIsEditable =
+        !!activeEl?.closest?.('.ql-editor, .ProseMirror, input, textarea, select, [contenteditable="true"]') ||
+        !!activeEl?.isContentEditable;
+      if (targetIsEditable || activeIsEditable) return;
 
       // Skip if editing a bubble or if focus is on main textarea (handled by onKeyDown)
       if (editingId) return;

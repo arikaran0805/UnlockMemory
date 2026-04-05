@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, X, Image, icons, Save, Send, User, UserCog, Shield, Users, Settings, Layers, FileText, MessageCircle, Highlighter, BookOpen, MessageSquare } from "lucide-react";
+import { Upload, X, Image, icons, Save, Send, User, UserCog, Shield, Users, Settings, FileText, MessageCircle, Highlighter, BookOpen, MessageSquare } from "lucide-react";
 import { AssetsSidebar } from "@/components/assets/AssetsSidebar";
 import LessonManager from "@/components/LessonManager";
 import { CanvasEditor, type CanvasEditorRef } from "@/components/canvas-editor";
@@ -93,7 +93,6 @@ const AdminCourseEditor = () => {
   const [originalContent, setOriginalContent] = useState<string>("");
   const [didSyncLatestVersion, setDidSyncLatestVersion] = useState(false);
   const [openSidebar, setOpenSidebar] = useState<'settings' | 'assets' | 'review' | null>('settings');
-  const rightSidebarOpen = openSidebar === 'settings' || openSidebar === 'review';
   const [annotationMode, setAnnotationMode] = useState(false);
   const [showVersioningNoteDialog, setShowVersioningNoteDialog] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -587,28 +586,26 @@ const AdminCourseEditor = () => {
 
   return (
     <>
-      <div className="flex gap-4 h-[calc(100vh-4rem)] overflow-hidden">
+      <div className="flex gap-4 h-[calc(100vh-4rem)] overflow-y-auto overflow-x-hidden">
         {/* Main Content Area */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col">
           {/* Main Tabs */}
           <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => navigate("/admin/courses")} className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Courses
-                </Button>
-                <div className="flex flex-col">
-                  <h1 className="text-3xl font-bold text-foreground">
-                    {id ? "Edit Course" : "Create New Course"}
-                  </h1>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-foreground">
+                      {id ? "Edit Course" : "Create New Course"}
+                    </h1>
+                    {formData.status && formData.status !== "draft" && (
+                      <ContentStatusBadge status={formData.status as ContentStatus} />
+                    )}
+                  </div>
                   <p className="text-muted-foreground text-xs leading-none">
                     Manage course details, curriculum, and publishing status
                   </p>
                 </div>
-                {formData.status && formData.status !== "draft" && (
-                  <ContentStatusBadge status={formData.status as ContentStatus} />
-                )}
               </div>
               <TabsList>
                 <TabsTrigger value="details" className="gap-2">
@@ -639,7 +636,7 @@ const AdminCourseEditor = () => {
             )}
 
             {/* Course Details Tab */}
-            <TabsContent value="details" className="space-y-6 mt-0 flex-1 overflow-y-auto">
+            <TabsContent value="details" className="space-y-6 mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle>Course Details</CardTitle>
@@ -755,44 +752,11 @@ const AdminCourseEditor = () => {
           </Tabs>
         </div>
 
-        {/* Right Sidebar with Vertical Tab Toggle */}
+        {/* Right Sidebar */}
         <div className="flex-shrink-0 flex">
-          {/* Vertical Tab Strip - Settings + Assets + Review */}
-          <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
-            <button
-              onClick={() => setOpenSidebar(openSidebar === 'settings' ? null : 'settings')}
-              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'settings' ? 'bg-muted' : 'hover:bg-muted'}`}
-            >
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-                Settings
-              </span>
-            </button>
-            <button
-              onClick={() => setOpenSidebar(openSidebar === 'assets' ? null : 'assets')}
-              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'assets' ? 'bg-muted' : 'hover:bg-muted'}`}
-            >
-              <Layers className="h-4 w-4 text-muted-foreground" />
-              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-                Assets
-              </span>
-            </button>
-            {id && (
-              <button
-                onClick={() => setOpenSidebar(openSidebar === 'review' ? null : 'review')}
-                className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'review' ? 'bg-muted' : 'hover:bg-muted'}`}
-              >
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-                  Review
-                </span>
-              </button>
-            )}
-          </div>
-
           {/* Sidebar Content */}
-          <Card className={`flex flex-col min-h-0 rounded-l-none border-l-0 ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
-            <div className={`p-4 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
+          <Card className="flex flex-col min-h-0 w-72">
+            <div className="p-4 border-b flex-shrink-0">
               {openSidebar === 'review' ? (
                 <div className="flex items-center gap-2 mb-3">
                   <MessageSquare className="h-4 w-4 text-primary" />
@@ -897,7 +861,7 @@ const AdminCourseEditor = () => {
               </div>}
             </div>
 
-            <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
+            <ScrollArea className={`flex-1 min-h-0 ${openSidebar === 'review' ? 'hidden' : ''}`}>
               <div className="p-4 space-y-4">
                 {/* Ownership & Assignment Card - Admin Only */}
                 {isAdmin && id && (

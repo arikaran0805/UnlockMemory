@@ -106,6 +106,20 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     extensions,
     content: initialContent,
     editable: !readOnly && !annotationMode,
+    editorProps: {
+      handleDOMEvents: {
+        keydown: (_view, event) => {
+          // Keep global/document shortcuts from hijacking editor typing/paste shortcuts.
+          event.stopPropagation();
+          return false;
+        },
+        paste: (_view, event) => {
+          // Allow TipTap default paste, but isolate it from parent/global handlers.
+          event.stopPropagation();
+          return false;
+        },
+      },
+    },
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
       onChange(serializeContent(json));

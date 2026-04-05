@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { sanitizeHtml } from "@/lib/sanitize";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -31,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { History, RotateCcw, Upload, Eye, CheckCircle, GitCompare, Shield, User, AlertTriangle, ArrowLeftRight, ExternalLink, Bookmark, Pencil } from "lucide-react";
+import { History, RotateCcw, Upload, Eye, CheckCircle, GitCompare, Shield, User, AlertTriangle, ArrowLeftRight, ExternalLink, Bookmark, Pencil, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { VersioningNoteType } from "@/components/VersioningNoteDialog";
@@ -49,6 +50,7 @@ interface VersionHistoryPanelProps {
   onPublish: (version: PostVersion) => void;
   onPreview: (version: PostVersion) => void;
   onUpdateNote?: (versionId: string, noteType: string | null, summary: string | null) => Promise<boolean>;
+  showVersionNotes?: boolean;
 }
 
 const VERSIONING_OPTIONS: { type: VersioningNoteType; label: string }[] = [
@@ -68,6 +70,7 @@ const VersionHistoryPanel = ({
   onPublish,
   onPreview,
   onUpdateNote,
+  showVersionNotes = true,
 }: VersionHistoryPanelProps) => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -153,8 +156,8 @@ const VersionHistoryPanel = ({
 
   const handleEditNoteClick = (version: PostVersion) => {
     setSelectedVersion(version);
-    setEditNoteType(version.versioning_note_type || null);
-    setEditNoteSummary(version.change_summary || "");
+    setEditNoteType(getVersionNoteType(version));
+    setEditNoteSummary(getVersionNoteSummary(version) || "");
     setEditNoteDialogOpen(true);
   };
 
@@ -185,6 +188,27 @@ const VersionHistoryPanel = ({
     return format(new Date(dateString), "MMM d, yyyy, h:mm a");
   };
 
+  const getVersionNoteSummary = (version: PostVersion): string | null => {
+    return (
+      (version as PostVersion & { change_summary?: string | null }).change_summary ??
+      null
+    );
+  };
+
+  const getVersionNoteType = (version: PostVersion): string | null => {
+    return (
+      (version as PostVersion & { versioning_note_type?: string | null })
+        .versioning_note_type ?? null
+    );
+  };
+
+  const isVersionNoteLocked = (version: PostVersion): boolean => {
+    return (
+      (version as PostVersion & { versioning_note_locked?: boolean })
+        .versioning_note_locked ?? false
+    );
+  };
+
   // Find the currently published/live version
   const currentlyPublishedVersion = useMemo(() => {
     return versions.find((v) => publishedVersionIds.has(v.id)) || null;
@@ -202,10 +226,11 @@ const VersionHistoryPanel = ({
     const versionIsBookmarked = isBookmarked(version.id);
     const isCurrentlyPublished = currentlyPublishedVersion?.id === version.id;
 
-    const noteText =
-      version.change_summary ||
-      version.versioning_note_type?.replace(/_/g, " ") ||
-      "No notes";
+    const noteSummary = getVersionNoteSummary(version);
+    const noteType = getVersionNoteType(version);
+    const noteText = showVersionNotes
+      ? noteSummary || noteType?.replace(/_/g, " ") || "No notes"
+      : `Version ${version.version_number}`;
 
     const day = format(new Date(version.created_at), "MMM d, yyyy");
     const time = format(new Date(version.created_at), "h:mm a");
@@ -257,9 +282,9 @@ const VersionHistoryPanel = ({
               </div>
 
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                {version.versioning_note_type && version.change_summary && (
+                {showVersionNotes && noteType && noteSummary && (
                   <span className="capitalize">
-                    {version.versioning_note_type.replace(/_/g, " ")}
+                    {noteType.replace(/_/g, " ")}
                   </span>
                 )}
                 <span className="flex items-center gap-1">
@@ -298,7 +323,7 @@ const VersionHistoryPanel = ({
                   fill={versionIsBookmarked ? "currentColor" : "none"}
                 />
               </Button>
-              {!version.versioning_note_locked && onUpdateNote && (
+              {showVersionNotes && !isVersionNoteLocked(version) && onUpdateNote && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -356,21 +381,32 @@ const VersionHistoryPanel = ({
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="w-[460px] sm:w-[640px] max-w-[90vw] p-0">
+        <SheetContent className="w-[460px] sm:w-[640px] max-w-[90vw] p-0 [&>button:last-child]:hidden">
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
-            <SheetTitle className="flex items-center justify-between">
-              History
-              {id && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/admin/posts/${id}/versions`)}
-                  className="gap-1 text-muted-foreground hover:text-foreground"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              )}
-            </SheetTitle>
+            <div className="flex items-center justify-between gap-4">
+              <SheetTitle>History</SheetTitle>
+              <div className="flex items-center gap-1">
+                {id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate(`/admin/posts/${id}/versions`)}
+                    className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                )}
+                <SheetClose asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </SheetClose>
+              </div>
+            </div>
           </SheetHeader>
           
           <ScrollArea className="h-[calc(100vh-100px)]">
@@ -700,9 +736,9 @@ const VersionHistoryPanel = ({
                     Created on {format(new Date(selectedVersion.created_at), "MMMM d, yyyy 'at' h:mm a")} by{" "}
                     {selectedVersion.editor_profile?.full_name || selectedVersion.editor_profile?.email || "Unknown"}
                   </div>
-                  {selectedVersion.change_summary && (
+                  {showVersionNotes && getVersionNoteSummary(selectedVersion) && (
                     <div className="text-sm text-muted-foreground mt-1 italic">
-                      "{selectedVersion.change_summary}"
+                      "{getVersionNoteSummary(selectedVersion)}"
                     </div>
                   )}
                 </div>
@@ -781,62 +817,63 @@ const VersionHistoryPanel = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Edit Note Dialog */}
-      <Dialog open={editNoteDialogOpen} onOpenChange={setEditNoteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Version Note</DialogTitle>
-            <DialogDescription>
-              Update the note type and summary for this version.
-            </DialogDescription>
-          </DialogHeader>
+      {showVersionNotes && (
+        <Dialog open={editNoteDialogOpen} onOpenChange={setEditNoteDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Version Note</DialogTitle>
+              <DialogDescription>
+                Update the note type and summary for this version.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Note Type</Label>
-              <Select
-                value={editNoteType || ""}
-                onValueChange={(value) => setEditNoteType(value || null)}
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Note Type</Label>
+                <Select
+                  value={editNoteType || ""}
+                  onValueChange={(value) => setEditNoteType(value || null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VERSIONING_OPTIONS.map((option) => (
+                      <SelectItem key={option.type} value={option.type}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-change-summary">Change Summary</Label>
+                <Textarea
+                  id="edit-change-summary"
+                  value={editNoteSummary}
+                  onChange={(e) => setEditNoteSummary(e.target.value)}
+                  placeholder="Describe what changed..."
+                  className="h-20 resize-none"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setEditNoteDialogOpen(false)}
+                disabled={editNoteLoading}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {VERSIONING_OPTIONS.map((option) => (
-                    <SelectItem key={option.type} value={option.type}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-change-summary">Change Summary</Label>
-              <Textarea
-                id="edit-change-summary"
-                value={editNoteSummary}
-                onChange={(e) => setEditNoteSummary(e.target.value)}
-                placeholder="Describe what changed..."
-                className="h-20 resize-none"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setEditNoteDialogOpen(false)}
-              disabled={editNoteLoading}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmEditNote} disabled={editNoteLoading}>
-              {editNoteLoading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmEditNote} disabled={editNoteLoading}>
+                {editNoteLoading ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

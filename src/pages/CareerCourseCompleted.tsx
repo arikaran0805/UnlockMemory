@@ -257,7 +257,7 @@ const CareerCourseCompleted = () => {
                   .eq("course_id", nextCourseData.id).is("deleted_at", null)
                   .order("lesson_rank", { ascending: true }),
                 supabase.from("posts")
-                  .select("id, title, content, excerpt, slug, featured_image, published_at, updated_at, lesson_id, post_rank, post_type, status, profiles:author_id (full_name)")
+                  .select("id, title, content, excerpt, slug, published_at, updated_at, lesson_id, post_rank, post_type, status, profiles:author_id (full_name)")
                   .eq("category_id", nextCourseData.id).eq("status", "published")
                   .order("post_rank", { ascending: true }),
               ]).then(([lessonsRes, postsRes]) => {

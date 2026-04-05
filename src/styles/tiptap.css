@@ -213,6 +213,235 @@
 }
 
 /* ============================================
+   ARTICLE READING MODE
+   Used by CourseDetail and CareerCourseDetail for lesson/article-style text
+   ============================================ */
+
+.content-renderer-article,
+.content-renderer-article .tiptap-content,
+.content-renderer-article .ProseMirror,
+.content-renderer-article-canvas .canvas-rendered-block-text,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror {
+  font-family: Georgia, "Times New Roman", Times, serif;
+  color: #242424;
+}
+
+.content-renderer-article,
+.content-renderer-article-canvas .canvas-rendered-block-text {
+  font-size: 18px;
+  line-height: 1.8;
+  letter-spacing: 0.2px;
+}
+
+.content-renderer-article p,
+.content-renderer-article .tiptap-content p,
+.content-renderer-article .ProseMirror p,
+.content-renderer-article-canvas .canvas-rendered-block-text p,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content p,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror p {
+  font-size: 1em;
+  line-height: 1.8;
+  margin: 20px 0 24px;
+  color: #242424;
+}
+
+.content-renderer-article h1,
+.content-renderer-article .tiptap-content h1,
+.content-renderer-article .ProseMirror h1,
+.content-renderer-article-canvas .canvas-rendered-block-text h1,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content h1,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror h1 {
+  font-family: inherit;
+  font-size: clamp(2.25rem, 3.3vw, 2.5rem);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #242424;
+}
+
+.content-renderer-article h2,
+.content-renderer-article .tiptap-content h2,
+.content-renderer-article .ProseMirror h2,
+.content-renderer-article-canvas .canvas-rendered-block-text h2,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content h2,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror h2 {
+  font-family: inherit;
+  font-size: clamp(1.625rem, 2.4vw, 1.75rem);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  color: #242424;
+}
+
+.content-renderer-article h3,
+.content-renderer-article .tiptap-content h3,
+.content-renderer-article .ProseMirror h3,
+.content-renderer-article-canvas .canvas-rendered-block-text h3,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content h3,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror h3 {
+  font-family: inherit;
+  font-size: clamp(1.25rem, 2vw, 1.375rem);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 24px;
+  margin-bottom: 10px;
+  color: #242424;
+}
+
+.content-renderer-article a,
+.content-renderer-article .tiptap-content a,
+.content-renderer-article .ProseMirror a,
+.content-renderer-article-canvas .canvas-rendered-block-text a,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content a,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror a {
+  color: #242424;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.12em;
+}
+
+.content-renderer-article em,
+.content-renderer-article .tiptap-content em,
+.content-renderer-article .ProseMirror em,
+.content-renderer-article-canvas .canvas-rendered-block-text em,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content em,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror em {
+  font-style: italic;
+}
+
+.content-renderer-article strong,
+.content-renderer-article .tiptap-content strong,
+.content-renderer-article .ProseMirror strong,
+.content-renderer-article-canvas .canvas-rendered-block-text strong,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content strong,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror strong {
+  font-weight: 700;
+  color: #242424;
+}
+
+.content-renderer-article ul,
+.content-renderer-article ol,
+.content-renderer-article .tiptap-content ul,
+.content-renderer-article .tiptap-content ol,
+.content-renderer-article .ProseMirror ul,
+.content-renderer-article .ProseMirror ol,
+.content-renderer-article-canvas .canvas-rendered-block-text ul,
+.content-renderer-article-canvas .canvas-rendered-block-text ol,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content ul,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content ol,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror ul,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror ol {
+  margin: 16px 0;
+  padding-left: 20px;
+  color: #242424;
+}
+
+.content-renderer-article li,
+.content-renderer-article .tiptap-content li,
+.content-renderer-article .ProseMirror li,
+.content-renderer-article-canvas .canvas-rendered-block-text li,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content li,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror li {
+  margin: 0.45rem 0;
+  line-height: 1.8;
+}
+
+.content-renderer-article blockquote,
+.content-renderer-article .tiptap-content blockquote,
+.content-renderer-article .ProseMirror blockquote,
+.content-renderer-article-canvas .canvas-rendered-block-text blockquote,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content blockquote,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror blockquote {
+  font-size: 1.05em;
+  line-height: 1.8;
+  margin: 1.5em 0;
+  border-left: 3px solid rgba(36, 36, 36, 0.18);
+  background: rgba(36, 36, 36, 0.03);
+  color: #6b6b6b;
+}
+
+.content-renderer-article pre,
+.content-renderer-article .tiptap-content pre,
+.content-renderer-article .ProseMirror pre,
+.content-renderer-article-canvas .canvas-rendered-block-text pre,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content pre,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror pre {
+  margin: 1.5rem 0;
+  padding: 1rem 1.125rem;
+  border-radius: 0.875rem;
+  background: #f7f7f5;
+  border: 1px solid rgba(36, 36, 36, 0.08);
+  color: #242424;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.content-renderer-article code,
+.content-renderer-article .tiptap-content code,
+.content-renderer-article .ProseMirror code,
+.content-renderer-article-canvas .canvas-rendered-block-text code,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content code,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror code {
+  font-family: "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, monospace;
+}
+
+.content-renderer-article img,
+.content-renderer-article video,
+.content-renderer-article iframe,
+.content-renderer-article .tiptap-content img,
+.content-renderer-article .tiptap-content video,
+.content-renderer-article .tiptap-content iframe,
+.content-renderer-article .ProseMirror img,
+.content-renderer-article .ProseMirror video,
+.content-renderer-article .ProseMirror iframe,
+.content-renderer-article-canvas .canvas-rendered-block-text img,
+.content-renderer-article-canvas .canvas-rendered-block-text video,
+.content-renderer-article-canvas .canvas-rendered-block-text iframe,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content img,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content video,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content iframe,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror img,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror video,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror iframe {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 24px 0;
+}
+
+.content-renderer-article .text-muted-foreground,
+.content-renderer-article .tiptap-content .text-muted-foreground,
+.content-renderer-article .ProseMirror .text-muted-foreground,
+.content-renderer-article-canvas .canvas-rendered-block-text .text-muted-foreground,
+.content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content .text-muted-foreground,
+.content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror .text-muted-foreground {
+  color: #6b6b6b;
+}
+
+@media (max-width: 768px) {
+  .content-renderer-article,
+  .content-renderer-article-canvas .canvas-rendered-block-text {
+    font-size: 16.5px;
+    line-height: 1.8;
+  }
+
+  .content-renderer-article p,
+  .content-renderer-article .tiptap-content p,
+  .content-renderer-article .ProseMirror p,
+  .content-renderer-article-canvas .canvas-rendered-block-text p,
+  .content-renderer-article-canvas .canvas-rendered-block-text .tiptap-content p,
+  .content-renderer-article-canvas .canvas-rendered-block-text .ProseMirror p {
+    line-height: 1.8;
+    margin: 18px 0 22px;
+  }
+}
+
+/* ============================================
    LISTS
    ============================================ */
 

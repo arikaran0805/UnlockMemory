@@ -31,11 +31,6 @@ const AdminEditBanner = ({
             <span className="font-medium">
               {format(new Date(lastAdminEdit.created_at), "MMM d, yyyy 'at' h:mm a")}
             </span>
-            {lastAdminEdit.change_summary && (
-              <span className="block text-xs mt-1 opacity-80">
-                Note: {lastAdminEdit.change_summary}
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-2">
             <Button

@@ -11,6 +11,7 @@
 import {
   useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle,
 } from 'react';
+import type { Editor } from '@tiptap/react';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, TouchSensor, closestCenter, useSensor, useSensors,
@@ -32,6 +33,9 @@ export interface CanvasEditorRef {
   scrollToBlock: (id: string) => void;
   getBlocks: () => { id: string; name: string; kind: BlockKind }[];
   deleteBlock: (id: string) => void;
+  renameBlock: (id: string, newName: string) => void;
+  insertImageIntoBlock: (blockId: string, imageUrl: string, alt?: string) => boolean;
+  getSelectedBlockId: () => string | null;
 }
 
 interface CanvasEditorProps {
@@ -55,6 +59,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
   ({ value, onChange, className, lessonLabel }, ref) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const blockElRefs = useRef<Map<string, HTMLElement>>(new Map());
+    const blockEditorRefs = useRef<Map<string, Editor>>(new Map());
 
     const [canvasData, setCanvasData] = useState<CanvasData>(() => parseCanvasContent(value));
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -87,6 +92,11 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     const registerBlockRef = useCallback((id: string, el: HTMLElement | null) => {
       if (el) blockElRefs.current.set(id, el);
       else blockElRefs.current.delete(id);
+    }, []);
+
+    const registerBlockEditor = useCallback((id: string, editor: Editor | null) => {
+      if (editor) blockEditorRefs.current.set(id, editor);
+      else blockEditorRefs.current.delete(id);
     }, []);
 
     const scrollToBlock = useCallback((id: string) => {
@@ -184,12 +194,27 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       if (selectedBlockId === id) setSelectedBlockId(null);
     }, [canvasData, selectedBlockId, updateAndNotify]);
 
+    const handleRenameBlock = useCallback((id: string, newName: string) => {
+      handleUpdateBlock(id, { name: newName });
+    }, [handleUpdateBlock]);
+
+    const insertImageIntoBlock = useCallback((blockId: string, imageUrl: string, alt?: string): boolean => {
+      const editor = blockEditorRefs.current.get(blockId);
+      if (!editor) return false;
+      // Insert image at the end of the document
+      editor.chain().focus('end').setImage({ src: imageUrl, alt: alt || '' }).run();
+      return true;
+    }, []);
+
     useImperativeHandle(ref, () => ({
       addBlock,
       scrollToBlock,
       getBlocks: () => canvasData.blocks.map(b => ({ id: b.id, name: b.name, kind: b.kind })),
       deleteBlock: handleDeleteBlock,
-    }), [addBlock, scrollToBlock, canvasData.blocks, handleDeleteBlock]);
+      renameBlock: handleRenameBlock,
+      insertImageIntoBlock,
+      getSelectedBlockId: () => selectedBlockId,
+    }), [addBlock, scrollToBlock, canvasData.blocks, handleDeleteBlock, handleRenameBlock, insertImageIntoBlock, selectedBlockId]);
 
     // ── Sortable drag (reorder blocks) ────────────────────────────────────────
     const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -359,6 +384,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                         isSelected={selectedBlockId === block.id}
                         onSelect={setSelectedBlockId}
                         onRegisterRef={registerBlockRef}
+                        onRegisterEditor={registerBlockEditor}
                         lessonLabel={lessonLabel}
                         isCollapsed={collapsedIds.has(block.id)}
                         onToggleCollapse={(id) =>

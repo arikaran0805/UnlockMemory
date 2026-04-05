@@ -19,8 +19,6 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useUserState } from "@/hooks/useUserState";
 import { usePracticeSkillByCourse, useLessonProblemCounts, useLessonProblemsCompletion } from "@/hooks/useLessonProblems";
 
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useNotesTabOpener } from "@/hooks/useNotesTabManager";
 import { useCourseTabRegistration } from "@/hooks/useCourseTabManager";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -33,18 +31,12 @@ import { ReviewPreviewCard } from "@/components/course-completed";
 import ShareTooltip from "@/components/ShareTooltip";
 import CommentDialog from "@/components/CommentDialog";
 import ReportSuggestDialog from "@/components/ReportSuggestDialog";
-import CourseMetadataSidebar from "@/components/course/CourseMetadataSidebar";
-import CourseNotesTab from "@/components/course/CourseNotesTab";
 import LessonFooter from "@/components/course/LessonFooter";
-import { ProTeaser } from "@/components/course/ProTeaser";
-import { LearningCockpit } from "@/components/course/LearningCockpit";
 import { CourseSidebarAds } from "@/components/course/CourseSidebarAds";
 import { 
   GuestContextBanner, 
   CertificateTeaser, 
   CompletionNudge,
-  LockedSidebarSection,
-  NonCareerCourseNudge,
 } from "@/components/course/nudges";
 import { usePricingDrawer } from "@/contexts/PricingDrawerContext";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -82,7 +74,6 @@ import {
   AlertTriangle, 
   Info, 
   List,
-  StickyNote,
   Award,
   Play,
   Lock,
@@ -94,10 +85,8 @@ import {
   Clock,
   Linkedin,
   Copy,
-  ExternalLink,
 } from "lucide-react";
 import CourseSidebar from "@/components/course/CourseSidebar";
-import LessonRightSidebar from "@/components/course/LessonRightSidebar";
 import LessonShareMenu from "@/components/LessonShareMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -137,7 +126,6 @@ interface Post {
   title: string;
   excerpt: string | null;
   slug: string;
-  featured_image: string | null;
   published_at: string | null;
   updated_at: string;
   status: string;
@@ -191,7 +179,6 @@ const CourseDetail = () => {
   const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
   const { userState, entrySource, isGuest, isLearner, isPro, shouldShowAds, shouldShowProFeatures, markAsInternal, isLoading: userStateLoading } = useUserState();
   const { openPricingDrawer } = usePricingDrawer();
-  const isMobile = useIsMobile();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [loadingPost, setLoadingPost] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -210,17 +197,6 @@ const CourseDetail = () => {
   const [suggestDialogOpen, setSuggestDialogOpen] = useState(false);
   const [allTags, setAllTags] = useState<Array<{id: string; name: string; slug: string}>>([]);
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [careers, setCareers] = useState<Array<{id: string; name: string; slug: string}>>([]);
-  const [courseCreator, setCourseCreator] = useState<{id: string; full_name: string | null; avatar_url: string | null; role: string} | null>(null);
-  const [maintenanceTeam, setMaintenanceTeam] = useState<Array<{id: string; full_name: string | null; avatar_url: string | null; role: string}>>([]);
-  const [linkedPrerequisites, setLinkedPrerequisites] = useState<Array<{
-    id: string;
-    prerequisite_course_id: string | null;
-    prerequisite_text: string | null;
-    linkedCourse?: { id: string; name: string; slug: string } | null;
-    isCompleted?: boolean;
-    progressPercentage?: number;
-  }>>([]);
   const { toast } = useToast();
   const { settings: adSettings } = useAdSettings();
   const { isBookmarked, toggleBookmark } = useBookmarks();
@@ -258,9 +234,6 @@ const CourseDetail = () => {
 
   // Time tracking hook
   useLessonTimeTracking({ lessonId: selectedPost?.id, courseId: course?.id });
-
-  // Notes tab manager - prevents multiple notes tabs for same course
-  const { openNotesTab } = useNotesTabOpener(course?.id);
 
   // Handle navigation to lesson from external tabs (Deep Notes, etc.)
   const handleExternalLessonNavigation = useCallback((lessonSlug: string) => {
@@ -371,7 +344,7 @@ const CourseDetail = () => {
 
     // Priority 2: If tab is specified in URL, use it (for persistence across refresh / manual selection)
     // This ensures we don't override the user's manual tab selection
-    if (tabParam && ["details", "lessons", "notes", "certificate"].includes(tabParam)) {
+    if (tabParam && ["details", "lessons", "certificate"].includes(tabParam)) {
       // Only honor certificate tab if it's actually available
       if (tabParam === "certificate") {
         // Need posts loaded to check completion status
@@ -578,21 +551,6 @@ const CourseDetail = () => {
     }
   }, [selectedPost]);
 
-  // Fetch careers mapped to this course
-  useEffect(() => {
-    if (course?.id) {
-      fetchCareers();
-      fetchCourseTeam();
-    }
-  }, [course?.id]);
-
-  // Fetch prerequisites separately so it can re-run when user changes (for completion data)
-  useEffect(() => {
-    if (course?.id) {
-      fetchLinkedPrerequisites();
-    }
-  }, [course?.id, user?.id]);
-
   // Legacy: Listen for NAVIGATE_TO_LESSON messages via window.postMessage (fallback)
   // The primary method is now via BroadcastChannel in useCourseTabRegistration
   useEffect(() => {
@@ -612,151 +570,6 @@ const CourseDetail = () => {
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [slug, handleExternalLessonNavigation]);
-
-  const fetchCareers = async () => {
-    if (!course?.id) return;
-    try {
-      const { data, error } = await supabase
-        .from("career_courses")
-        .select("careers(id, name, slug)")
-        .eq("course_id", course.id)
-        .is("deleted_at", null);
-
-      if (error) throw error;
-      const mappedCareers = data?.map(item => (item.careers as any)).filter(Boolean) || [];
-      setCareers(mappedCareers);
-    } catch (error) {
-      console.error("Error fetching careers:", error);
-    }
-  };
-
-  const fetchCourseTeam = async () => {
-    if (!course?.id) return;
-    try {
-      // Fetch course creator (author)
-      if (course.author_id) {
-        const { data: authorData } = await supabase
-          .from("profiles")
-          .select("id, full_name, avatar_url")
-          .eq("id", course.author_id)
-          .single();
-
-        if (authorData) {
-          setCourseCreator({
-            id: authorData.id,
-            full_name: authorData.full_name,
-            avatar_url: authorData.avatar_url,
-            role: "creator",
-          });
-        }
-      }
-
-      // Fetch maintenance team from course_assignments
-      const { data: assignmentsData, error: assignmentsError } = await supabase
-        .from("course_assignments")
-        .select("user_id, role, profiles:user_id(id, full_name, avatar_url)")
-        .eq("course_id", course.id);
-
-      if (assignmentsError) throw assignmentsError;
-
-      if (assignmentsData) {
-        const team = assignmentsData
-          .filter(a => a.profiles)
-          .map(a => ({
-            id: (a.profiles as any).id,
-            full_name: (a.profiles as any).full_name,
-            avatar_url: (a.profiles as any).avatar_url,
-            role: a.role,
-          }));
-        setMaintenanceTeam(team);
-      }
-    } catch (error) {
-      console.error("Error fetching course team:", error);
-    }
-  };
-
-  const fetchLinkedPrerequisites = async () => {
-    if (!course?.id) return;
-    try {
-      const { data, error } = await supabase
-        .from("course_prerequisites")
-        .select("id, prerequisite_course_id, prerequisite_text, display_order")
-        .eq("course_id", course.id)
-        .order("display_order");
-
-      if (error) throw error;
-
-      // Fetch linked course details
-      const courseIds = (data || [])
-        .filter(p => p.prerequisite_course_id)
-        .map(p => p.prerequisite_course_id) as string[];
-
-      let coursesMap: Record<string, { id: string; name: string; slug: string }> = {};
-      let completionMap: Record<string, { isCompleted: boolean; progressPercentage: number }> = {};
-      
-      if (courseIds.length > 0) {
-        // Fetch course details
-        const { data: courses, error: coursesError } = await supabase
-          .from("courses")
-          .select("id, name, slug")
-          .in("id", courseIds);
-
-        if (!coursesError && courses) {
-          coursesMap = Object.fromEntries(courses.map(c => [c.id, c]));
-        }
-
-        // Fetch completion data for logged-in user
-        if (user) {
-          // For each prerequisite course, get total lessons and completed lessons
-          const completionPromises = courseIds.map(async (prereqCourseId) => {
-            // Get total published lessons for this course
-            const { count: totalLessons } = await supabase
-              .from("posts")
-              .select("*", { count: "exact", head: true })
-              .eq("category_id", prereqCourseId)
-              .eq("status", "published")
-              .is("deleted_at", null);
-
-            // Get completed lessons for this user
-            const { count: completedLessons } = await supabase
-              .from("lesson_progress")
-              .select("*", { count: "exact", head: true })
-              .eq("user_id", user.id)
-              .eq("course_id", prereqCourseId)
-              .eq("completed", true);
-
-            const total = totalLessons || 0;
-            const completed = completedLessons || 0;
-            const progressPercentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-            const isCompleted = total > 0 && completed >= total;
-
-            return { courseId: prereqCourseId, isCompleted, progressPercentage };
-          });
-
-          const completionResults = await Promise.all(completionPromises);
-          completionMap = Object.fromEntries(
-            completionResults.map(r => [r.courseId, { isCompleted: r.isCompleted, progressPercentage: r.progressPercentage }])
-          );
-        }
-      }
-
-      const enrichedPrereqs = (data || []).map(p => {
-        const completion = p.prerequisite_course_id ? completionMap[p.prerequisite_course_id] : undefined;
-        return {
-          id: p.id,
-          prerequisite_course_id: p.prerequisite_course_id,
-          prerequisite_text: p.prerequisite_text,
-          linkedCourse: p.prerequisite_course_id ? coursesMap[p.prerequisite_course_id] || null : null,
-          isCompleted: completion?.isCompleted,
-          progressPercentage: completion?.progressPercentage,
-        };
-      });
-
-      setLinkedPrerequisites(enrichedPrereqs);
-    } catch (error) {
-      console.error("Error fetching prerequisites:", error);
-    }
-  };
 
   const fetchSiteSettings = async () => {
     try {
@@ -818,7 +631,6 @@ const CourseDetail = () => {
           title,
           excerpt,
           slug,
-          featured_image,
           published_at,
           updated_at,
           lesson_id,
@@ -948,7 +760,7 @@ const CourseDetail = () => {
 
       if (error) throw error;
 
-      const shouldUseLatestVersion = canPreview;
+      const shouldUseLatestVersion = isPreviewMode && canPreview;
       let hydratedPost: any = data;
 
       if (shouldUseLatestVersion) {
@@ -1643,15 +1455,6 @@ const CourseDetail = () => {
                       <Separator className="mt-2" />
                     </div>
 
-                    {/* Featured Image */}
-                    {selectedPost.featured_image && (
-                      <img 
-                        src={selectedPost.featured_image} 
-                        alt={selectedPost.title}
-                        className="w-full h-auto rounded-lg mb-8 shadow-md"
-                      />
-                    )}
-
                     {/* Guest Context Banner - dismissible, session-based */}
                     {isGuest && (
                       <GuestContextBanner className="mb-6" />
@@ -1669,11 +1472,14 @@ const CourseDetail = () => {
                     )}
 
                     {/* Lesson Content */}
-                    <ContentRenderer 
-                      htmlContent={selectedPost.content || ''}
-                      courseType={course?.slug?.toLowerCase()}
-                      codeTheme={selectedPost.code_theme || undefined}
-                    />
+                    <div className="mx-auto mt-10 w-full max-w-[720px]">
+                      <ContentRenderer 
+                        htmlContent={selectedPost.content || ''}
+                        courseType={course?.slug?.toLowerCase()}
+                        codeTheme={selectedPost.code_theme || undefined}
+                        variant="article"
+                      />
+                    </div>
 
                     {/* Certificate Teaser - after lesson content */}
                     {(isGuest || isLearner) && (
@@ -1825,44 +1631,6 @@ const CourseDetail = () => {
                           <List className="h-4 w-4" />
                           Lessons ({lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length})
                         </TabsTrigger>
-                        {/* Notes tab - hidden for free users (guests & free learners) */}
-                        {user && course && (isPro || isAdmin || isModerator) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              {isMobile ? (
-                                <Link
-                                  to={`/courses/${course.id}/notes`}
-                                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                                >
-                                  <StickyNote className="h-4 w-4" />
-                                  Notes
-                                </Link>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    openNotesTab({
-                                      lessonId: selectedPost?.id,
-                                      entityType: selectedPost ? 'lesson' : undefined,
-                                    });
-                                  }}
-                                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                                >
-                                  <StickyNote className="h-4 w-4" />
-                                  Notes
-                                  <ExternalLink className="h-3 w-3 opacity-50" />
-                                </button>
-                              )}
-                            </TooltipTrigger>
-                            {!isMobile && (
-                              <TooltipContent side="bottom" className="text-xs">
-                                Opens notes in a new tab
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        )}
-                        
                         {/* Certificate Tab - Always visible for Pro users (enrollment checked in content) */}
                         {isPro && (
                           <TabsTrigger value="certificate" className="gap-2">
@@ -1882,10 +1650,13 @@ const CourseDetail = () => {
                           {course.description && (
                             <div>
                               <h3 className="text-xl font-semibold mb-4">About This Course</h3>
-                              <ContentRenderer
-                                htmlContent={course.description}
-                                courseType={course?.slug?.toLowerCase()}
-                              />
+                              <div className="mx-auto w-full max-w-[720px]">
+                                <ContentRenderer
+                                  htmlContent={course.description}
+                                  courseType={course?.slug?.toLowerCase()}
+                                  variant="article"
+                                />
+                              </div>
                             </div>
                           )}
 
@@ -2294,141 +2065,19 @@ const CourseDetail = () => {
             </Card>
           </main>
 
-          {/* RIGHT SIDEBAR - Role-based content */}
-          {selectedPost ? (
-            /* Lesson view sidebars */
-            isPro ? (
-              /* PRO on NON-CAREER COURSE: Show ads with clarity text + nudge
-                 (Career courses use /career-board shell with Learning Cockpit) */
-              <aside className="hidden xl:block w-[300px] flex-shrink-0">
-                <div className={cn(
-                  "sticky transition-[top] duration-200 ease-out",
-                  isHeaderVisible
-                    ? (showAnnouncement ? 'top-[8.75rem]' : 'top-[6.5rem]')
-                    : (showAnnouncement ? 'top-[4.75rem]' : 'top-10')
-                )}>
-                  <div className="space-y-4 p-1 pb-6">
-                    {/* Non-career course nudge for Pro users */}
-                    <NonCareerCourseNudge
-                      onSwitchToCareer={() => navigate(`/careers`)}
-                    />
-                    
-                    {/* Ad slots with clarity text */}
-                    {shouldShowAdsInCourse && (
-                      <CourseSidebarAds
-                        adSettings={adSettings ? {
-                          googleAdClient: adSettings.googleAdClient,
-                          sidebarTopSlot: adSettings.sidebarTopSlot,
-                          sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
-                          sidebarBottomSlot: adSettings.sidebarBottomSlot,
-                        } : null}
-                        isHeaderVisible={isHeaderVisible}
-                        showAnnouncement={showAnnouncement}
-                        showClarityText={true}
-                      />
-                    )}
-                  </div>
-                </div>
-              </aside>
-            ) : isLearner && courseStats.isEnrolled ? (
-              /* LEARNER (enrolled): Show ads + Pro teaser */
-              <aside className="hidden xl:block w-[300px] flex-shrink-0">
-                <div className={cn(
-                  "sticky transition-[top] duration-200 ease-out",
-                  isHeaderVisible
-                    ? (showAnnouncement ? 'top-[8.75rem]' : 'top-[6.5rem]')
-                    : (showAnnouncement ? 'top-[4.75rem]' : 'top-10')
-                )}>
-                  <div className="space-y-4 p-1 pb-6">
-                    {/* Ad slots for free learners */}
-                    <CourseSidebarAds
-                      adSettings={adSettings ? {
-                        googleAdClient: adSettings.googleAdClient,
-                        sidebarTopSlot: adSettings.sidebarTopSlot,
-                        sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
-                        sidebarBottomSlot: adSettings.sidebarBottomSlot,
-                      } : null}
-                      isHeaderVisible={isHeaderVisible}
-                      showAnnouncement={showAnnouncement}
-                    />
-                    
-                    {/* Locked Pro features for learners */}
-                    <LockedSidebarSection
-                      onUpgrade={() => openPricingDrawer("locked_sidebar")}
-                    />
-                  </div>
-                </div>
-              </aside>
-            ) : isGuest ? (
-              /* GUEST: Show ads only */
-              <CourseSidebarAds
-                adSettings={adSettings ? {
-                  googleAdClient: adSettings.googleAdClient,
-                  sidebarTopSlot: adSettings.sidebarTopSlot,
-                  sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
-                  sidebarBottomSlot: adSettings.sidebarBottomSlot,
-                } : null}
-                isHeaderVisible={isHeaderVisible}
-                showAnnouncement={showAnnouncement}
-              />
-            ) : null
-          ) : (
-            /* Course overview sidebars */
-            activeTab !== "notes" && (
-              <aside className="hidden xl:block w-[300px] flex-shrink-0">
-                <div className={cn(
-                  "sticky transition-[top] duration-200 ease-out",
-                  isHeaderVisible
-                    ? (showAnnouncement ? 'top-[8.75rem]' : 'top-[6.5rem]')
-                    : (showAnnouncement ? 'top-[4.75rem]' : 'top-10')
-                )}>
-                  <div className="space-y-4 p-1 pb-6">
-                    {/* Course metadata always shown */}
-                    <CourseMetadataSidebar
-                      course={course}
-                      careers={careers}
-                      estimatedDuration={formatTotalReadingTime(posts)}
-                      lastUpdated={posts[0]?.updated_at 
-                        ? new Date(posts[0].updated_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                        : undefined
-                      }
-                      isAdmin={isAdmin}
-                      isModerator={isModerator}
-                      isHeaderVisible={isHeaderVisible}
-                      showAnnouncement={showAnnouncement}
-                      linkedPrerequisites={linkedPrerequisites}
-                      creator={courseCreator}
-                      maintenanceTeam={maintenanceTeam}
-                    />
-                    
-                    {/* Non-career course nudge for Pro users on overview */}
-                    {isPro && (
-                      <NonCareerCourseNudge
-                        onSwitchToCareer={() => navigate('/careers')}
-                      />
-                    )}
-                    
-                    {/* Ads: Show for guests/learners OR Pro users on non-career courses */}
-                    {shouldShowAdsInCourse && (
-                      <CourseSidebarAds
-                        adSettings={adSettings ? {
-                          googleAdClient: adSettings.googleAdClient,
-                          sidebarTopSlot: adSettings.sidebarTopSlot,
-                          sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
-                          sidebarBottomSlot: adSettings.sidebarBottomSlot,
-                        } : null}
-                        isHeaderVisible={isHeaderVisible}
-                        showAnnouncement={showAnnouncement}
-                        showClarityText={isPro}
-                      />
-                    )}
-                    
-                    {/* Pro teaser for free learners */}
-                    {isLearner && <ProTeaser />}
-                  </div>
-                </div>
-              </aside>
-            )
+          {/* RIGHT SIDEBAR - AdSense blocks for course + post views */}
+          {shouldShowAdsInCourse && (
+            <CourseSidebarAds
+              adSettings={adSettings ? {
+                googleAdClient: adSettings.googleAdClient,
+                sidebarTopSlot: adSettings.sidebarTopSlot,
+                sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
+                sidebarBottomSlot: adSettings.sidebarBottomSlot,
+              } : null}
+              isHeaderVisible={isHeaderVisible}
+              showAnnouncement={showAnnouncement}
+              showClarityText={isPro}
+            />
           )}
         </div>
       </div>

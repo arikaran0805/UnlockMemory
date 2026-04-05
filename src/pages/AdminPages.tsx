@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Edit, Trash2, Eye, Info } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Info, FileText, Search } from "lucide-react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -41,6 +43,7 @@ const AdminPages = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<Page | null>(null);
   const [formData, setFormData] = useState({ title: "", slug: "", content: "", status: "draft" });
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -170,129 +173,249 @@ const AdminPages = () => {
     setDialogOpen(true);
   };
 
+  const openCreateDialog = () => {
+    setEditingPage(null);
+    setFormData({ title: "", slug: "", content: "", status: "draft" });
+    setDialogOpen(true);
+  };
+
+  const filteredPages = pages.filter((page) =>
+    page.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    page.slug.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) return <div>Loading...</div>;
 
   return (
-    <>
-    <div className="flex flex-col gap-0">
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <div className="flex flex-col gap-0">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Static Pages</h1>
             <p className="text-muted-foreground">Create and manage content pages for your site</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { setEditingPage(null); setFormData({ title: "", slug: "", content: "", status: "draft" }); }}>
-                <Plus className="mr-2 h-4 w-4" /> New Page
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{editingPage ? "Edit Page" : "Create New Page"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  placeholder="Page Title"
-                  value={formData.title}
-                  onChange={(e) => {
-                    setFormData({ ...formData, title: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") });
-                  }}
-                  required
-                />
-                <Input
-                  placeholder="Slug"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  required
-                />
-                <Textarea
-                  placeholder="Page Content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={10}
-                  required
-                />
-                <select
-                  className="w-full px-3 py-2 border border-input rounded-md"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
-                <Button type="submit" className="w-full">
-                  {editingPage ? "Update Page" : "Create Page"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <DialogTrigger asChild>
+            <Button onClick={openCreateDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Page
+            </Button>
+          </DialogTrigger>
         </div>
 
         <div className="admin-section-spacing-top" />
 
-        <div className="space-y-6">
+        <Card className="border border-border/70 shadow-sm">
+          <CardHeader className="gap-6 border-b border-border/60 pb-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full md:w-[68%]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search pages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-11 pl-10"
+                />
+              </div>
+              <Badge variant="secondary" className="h-11 rounded-full px-4 text-sm font-medium">
+                {filteredPages.length} {filteredPages.length === 1 ? "Page" : "Pages"}
+              </Badge>
+            </div>
+          </CardHeader>
 
-        <div className="grid gap-4">
-          {pages.map((page) => (
-            <Card key={page.id}>
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <span>{page.title}</span>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => window.open(`/${page.slug}`, "_blank")}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(page)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Info className="h-4 w-4" />
+          <CardContent className="p-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Title</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Slug / Url</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Updated</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPages.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-0">
+                      <div className="flex min-h-[420px] flex-col items-center justify-center px-6 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/20 text-muted-foreground shadow-sm">
+                          <FileText className="h-6 w-6" />
+                        </div>
+                        <h2 className="mt-6 text-2xl font-semibold text-foreground">
+                          {searchQuery ? "No pages match your search" : "No pages created yet"}
+                        </h2>
+                        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+                          {searchQuery
+                            ? "Try a different keyword or clear the search to browse all pages."
+                            : "Create static pages like About, Privacy Policy, or Terms for your site"}
+                        </p>
+                        {!searchQuery ? (
+                          <Button className="mt-6" onClick={openCreateDialog}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create your first page
                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="p-3">
-                          <div className="space-y-1 text-sm">
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-muted-foreground">Views:</span>
-                              <span className="font-medium">{pageStats[page.id]?.views || 0}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-muted-foreground">Status:</span>
-                              <span className="font-medium">{page.status}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-muted-foreground">Created:</span>
-                              <span className="font-medium">{format(new Date(page.created_at), "MMM d, yyyy")}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-muted-foreground">Last Updated:</span>
-                              <span className="font-medium">{format(new Date(page.updated_at), "MMM d, yyyy")}</span>
-                            </div>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPages.map((page) => (
+                    <TableRow key={page.id} className="transition-colors hover:bg-muted/20">
+                      <TableCell className="font-medium">
+                        <div className="space-y-1">
+                          <p className="text-foreground">{page.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Created {format(new Date(page.created_at), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        /{page.slug}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${
+                            page.status === "published"
+                              ? "border-primary/20 bg-primary/10 text-primary"
+                              : "border-border/70 bg-muted/40 text-muted-foreground"
+                          }`}
+                        >
+                          {page.status === "published" ? "Published" : "Draft"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(page.updated_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <TooltipProvider>
+                          <div className="flex justify-end gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(`/${page.slug}`, "_blank")}
+                                  className="h-9 px-3"
+                                  aria-label={`View ${page.title}`}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>View page</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(page)}
+                                  className="h-9 px-3"
+                                  aria-label={`Edit ${page.title}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit page</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-9 px-3"
+                                  aria-label={`View details for ${page.title}`}
+                                >
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="p-3">
+                                <div className="space-y-1 text-sm">
+                                  <div className="flex items-center justify-between gap-4">
+                                    <span className="text-muted-foreground">Views:</span>
+                                    <span className="font-medium">{pageStats[page.id]?.views || 0}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-4">
+                                    <span className="text-muted-foreground">Status:</span>
+                                    <span className="font-medium">{page.status}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-4">
+                                    <span className="text-muted-foreground">Created:</span>
+                                    <span className="font-medium">{format(new Date(page.created_at), "MMM d, yyyy")}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-4">
+                                    <span className="text-muted-foreground">Last Updated:</span>
+                                    <span className="font-medium">{format(new Date(page.updated_at), "MMM d, yyyy")}</span>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(page.id)}
+                                  className="h-9 px-3 text-muted-foreground hover:text-destructive"
+                                  aria-label={`Delete ${page.title}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete page</TooltipContent>
+                            </Tooltip>
                           </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(page.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">/{page.slug}</p>
-                <span className={`inline-block mt-2 px-2 py-1 rounded text-xs ${page.status === 'published' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  {page.status}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                        </TooltipProvider>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingPage ? "Edit Page" : "Create New Page"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              placeholder="Page Title"
+              value={formData.title}
+              onChange={(e) => {
+                setFormData({ ...formData, title: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") });
+              }}
+              required
+            />
+            <Input
+              placeholder="Slug"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+              required
+            />
+            <Textarea
+              placeholder="Page Content"
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              rows={10}
+              required
+            />
+            <select
+              className="w-full px-3 py-2 border border-input rounded-md"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+            <Button type="submit" className="w-full">
+              {editingPage ? "Update Page" : "Create Page"}
+            </Button>
+          </form>
+        </DialogContent>
       </div>
-    </div>
-  </>
-);
+    </Dialog>
+  );
 };
 
 export default AdminPages;

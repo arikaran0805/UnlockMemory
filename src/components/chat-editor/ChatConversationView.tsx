@@ -543,57 +543,49 @@ const ChatConversationView = ({
         id="lesson-chat-bubbles"
         data-flow="chat"
         className={cn(
-          "chat-conversation-view rounded-2xl overflow-hidden",
-          "bg-gradient-to-b from-background via-background to-muted/30",
-          "border border-border/50 shadow-xl"
+          "chat-conversation-view overflow-hidden"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-muted/30">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-black/[0.045]">
           <div className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {/* Mentor (Karan) avatar - use dynamic or static mentor colors */}
-              <div 
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg ring-2 ring-background",
-                  !dynamicColors && getChatColors(true).avatar
-                )}
-                style={dynamicColors ? { 
-                  background: `linear-gradient(135deg, ${dynamicColors.mentor.avatarGradientFrom}, ${dynamicColors.mentor.avatarGradientTo})` 
-                } : undefined}
+            <div className="flex -space-x-1.5">
+              {/* Mentor (Karan) avatar */}
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-emerald-500/16"
+                style={{ backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }}
               >
-                👨‍🎓
+                K
               </div>
-              {/* Course avatar - use dynamic or static course colors */}
-              <div 
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg ring-2 ring-background",
-                  !dynamicColors && getChatColors(false).avatar
-                )}
-                style={dynamicColors ? { 
-                  background: `linear-gradient(135deg, ${dynamicColors.course.avatarGradientFrom}, ${dynamicColors.course.avatarGradientTo})` 
-                } : undefined}
+              {/* Course avatar */}
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-[#E2EBE6]"
+                style={
+                  { backgroundColor: "#E8F0EC", color: "#5E7068" }
+                }
               >
-                {renderCourseIcon(courseCharacter.emoji, 16)}
+                {courseCharacter.name?.charAt(0)?.toUpperCase() || "U"}
               </div>
             </div>
-            <div>
-              <div className="text-sm font-semibold">
-                Karan & {courseCharacter.name}
+            <div className="flex flex-col gap-0">
+              <div className="text-[12.5px] font-semibold text-[#1e1e1e] tracking-tight leading-tight">
+                Karan {'&'} {courseCharacter.name}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[11px] text-[#9A9A9A] leading-tight mt-0.5">
                 Interactive Lesson
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs text-muted-foreground">Live</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" />
+            <span className="text-[11px] text-[#9A9A9A] tracking-wide">Live</span>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="p-6 space-y-4">
+        <div className="relative p-6">
+          {/* Conversation spine — aligns with left avatar center (p-6=24px + w-7/2=14px = 38px) */}
+          <div className="pointer-events-none absolute bottom-6 left-[38px] top-6 w-px bg-emerald-400/[0.24]" />
           {/* Empty state when no messages */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -655,71 +647,71 @@ const ChatConversationView = ({
 
             const dynamicStyle = getDynamicStyles(dynamicColors, isMentorBubble);
 
+            // Tighten spacing when adjacent messages are from the same speaker
+            const prevMessage = index > 0 ? messages[index - 1] : null;
+            const isSameSpeakerAsPrev =
+              prevMessage?.type === "message" &&
+              prevMessage.speaker.toLowerCase() === message.speaker.toLowerCase();
+
             return (
               <div
                 key={message.id}
                 className={cn(
-                  "flex items-end gap-2.5 animate-in fade-in-0 slide-in-from-bottom-2",
+                  "relative flex items-end gap-2 animate-in fade-in-0 slide-in-from-bottom-2",
+                  isSameSpeakerAsPrev ? "mb-2.5 mt-0" : "mb-7",
                   isMentorBubble ? "flex-row-reverse" : "flex-row"
                 )}
                 style={{ animationDelay: `${index * 100}ms`, animationFillMode: "backwards" }}
               >
-                {/* Avatar */}
+                {/* Avatar — hidden for consecutive same-speaker messages to reduce visual noise */}
                 <div
                   className={cn(
-                    "flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-lg",
-                    "shadow-lg transition-transform duration-300 hover:scale-110",
-                    !dynamicStyle && getChatColors(isMentorBubble).avatar
+                    "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors",
+                    isSameSpeakerAsPrev ? "opacity-0 pointer-events-none" : "opacity-55",
                   )}
-                  style={dynamicStyle?.avatarStyle}
+                  style={
+                    isMentorBubble
+                      ? { backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }
+                      : { backgroundColor: "#E8F0EC", color: "#5E7068" }
+                  }
                 >
                   {isMentorBubble ? (
-                    <span className="text-sm">👨‍🎓</span>
+                    <span className="leading-none">K</span>
                   ) : (
-                    renderCourseIcon(character.emoji, 18)
+                    <span className="leading-none">{character.name?.charAt(0)?.toUpperCase() || "U"}</span>
                   )}
                 </div>
 
                 {/* Bubble */}
                 <div
                   className={cn(
-                    "relative px-5 py-3 rounded-2xl",
-                    hasCodeBlock(message.content) ? "w-[75%] max-w-[75%] min-w-[360px]" : "max-w-[75%]",
-                    "shadow-md transition-all duration-200 hover:shadow-lg",
-                    !dynamicStyle && getChatColors(isMentorBubble).bubble,
-                    !dynamicStyle && getChatColors(isMentorBubble).text,
-                    isMentorBubble
-                      ? "rounded-br-md"
-                      : "rounded-bl-md border border-border/30"
+                    "relative px-[12px] py-2 rounded-xl transition-colors duration-200",
+                    hasCodeBlock(message.content) ? "w-[75%] max-w-[75%] min-w-[360px]" : "max-w-[75%]"
                   )}
-                  style={dynamicStyle ? { ...dynamicStyle.bubbleStyle, ...dynamicStyle.textStyle } : undefined}
+                  style={{
+                    backgroundColor: dynamicStyle
+                      ? dynamicStyle.bubbleStyle.backgroundColor
+                      : isMentorBubble
+                        ? "rgba(16, 185, 129, 0.05)"
+                        : "rgba(0, 0, 0, 0.019)",
+                    ...(dynamicStyle ? dynamicStyle.textStyle : undefined),
+                  }}
                 >
-                  {/* Subtle speaker indicator */}
-                  <div
-                    className={cn(
-                      "text-[10px] font-semibold mb-1.5 tracking-wide uppercase",
-                      !dynamicStyle && getChatColors(isMentorBubble).speaker
-                    )}
-                    style={dynamicStyle?.textStyle}
-                  >
-                    {character.name}
-                  </div>
+                  {/* Speaker label — only on first in a run */}
+                  {!isSameSpeakerAsPrev && (
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#888888]">
+                      {character.name}
+                    </div>
+                  )}
 
                   {/* Content */}
-                  <div className="text-[15px] leading-relaxed">
+                  <div className="text-[14px] leading-[1.6] text-[#1F1F1F]">
                     {renderContent(message.content, isMentorBubble)}
                   </div>
                 </div>
               </div>
             );
           })}
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            💡 Learning through conversation
-          </span>
         </div>
 
         <style>{`

@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
-  Search, Layers, Upload, X, ExternalLink, Check, Image as ImageIcon,
-  FileText, MessageCircle, GripVertical, Maximize2, Minimize2, Trash2,
+  Layers, Upload, Check, Image as ImageIcon,
+  FileText, MessageCircle, GripVertical, Maximize2, Minimize2, Trash2, Pencil,
+  Loader2, AlertCircle,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import type { MediaItem } from '@/hooks/useMediaLibrary';
 
 export interface AssetItem {
   type: 'image' | 'icon' | 'svg' | 'block';
@@ -25,6 +25,15 @@ interface CanvasBlockEntry {
   kind: 'text' | 'chat';
 }
 
+interface MediaLibraryState {
+  mediaItems: MediaItem[];
+  isLoading: boolean;
+  isUploading: boolean;
+  uploadError: string | null;
+  uploadMedia: (file: File) => Promise<MediaItem | null>;
+  deleteMedia: (item: MediaItem) => Promise<boolean>;
+}
+
 interface AssetsSidebarProps {
   isOpen: boolean;
   editorType?: 'rich' | 'chat' | 'canvas';
@@ -34,146 +43,71 @@ interface AssetsSidebarProps {
   canvasBlocks?: CanvasBlockEntry[];
   onScrollToBlock?: (id: string) => void;
   onDeleteBlock?: (id: string) => void;
+  onRenameBlock?: (id: string, newName: string) => void;
+  mediaLibrary?: MediaLibraryState;
 }
 
-const ICONIFY_SEARCH = 'https://api.iconify.design/search';
-const ICONIFY_SVG_URL = (prefix: string, name: string, color = '%230F2A1D') =>
-  `https://api.iconify.design/${prefix}/${name}.svg?color=${color}`;
-const ICONIFY_SVG_RAW = (prefix: string, name: string) =>
-  `https://api.iconify.design/${prefix}/${name}.svg`;
-
-const UNSPLASH_SEARCH = 'https://api.unsplash.com/search/photos';
-const UNSPLASH_KEY_STORAGE = 'assets_sidebar_unsplash_key';
-
-function SkeletonGrid({ cols, count }: { cols: number; count: number }) {
-  return (
-    <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="aspect-square rounded bg-muted animate-pulse" />
-      ))}
-    </div>
-  );
-}
-
-export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpanded, onExpandToggle, canvasBlocks = [], onScrollToBlock, onDeleteBlock }: AssetsSidebarProps) {
+export function AssetsSidebar({
+  isOpen, editorType = 'rich', onInsert, isExpanded, onExpandToggle,
+  canvasBlocks = [], onScrollToBlock, onDeleteBlock, onRenameBlock,
+  mediaLibrary,
+}: AssetsSidebarProps) {
   const isCanvas = editorType === 'canvas';
-  const [activeTab, setActiveTab] = useState<'images' | 'icons' | 'svg' | 'upload' | 'blocks'>(
-    isCanvas ? 'blocks' : 'images'
+  const [activeTab, setActiveTab] = useState<'blocks' | 'media'>(
+    isCanvas ? 'blocks' : 'media'
   );
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [iconResults, setIconResults] = useState<string[]>([]);
-  const [imageResults, setImageResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [unsplashKey, setUnsplashKey] = useState(() => localStorage.getItem(UNSPLASH_KEY_STORAGE) || '');
-  const [keyInput, setKeyInput] = useState('');
-  const [showKeyConfig, setShowKeyConfig] = useState(false);
+
   const [insertedId, setInsertedId] = useState<string | null>(null);
+
+  // Inline rename state
+  const [renamingBlockId, setRenamingBlockId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-
-  // Debounce query
-  useEffect(() => {
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedQuery(query), 400);
-    return () => clearTimeout(debounceRef.current);
-  }, [query]);
-
-  // Reset results when switching tabs
-  useEffect(() => {
-    setQuery('');
-    setIconResults([]);
-    setImageResults([]);
-  }, [activeTab]);
-
-  // Search icons via Iconify
-  useEffect(() => {
-    if ((activeTab !== 'icons' && activeTab !== 'svg') || !debouncedQuery.trim()) {
-      setIconResults([]);
-      return;
-    }
-    const controller = new AbortController();
-    setLoading(true);
-    fetch(`${ICONIFY_SEARCH}?query=${encodeURIComponent(debouncedQuery)}&limit=48`, {
-      signal: controller.signal,
-    })
-      .then(r => r.json())
-      .then(data => {
-        setIconResults(data.icons || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-    return () => controller.abort();
-  }, [debouncedQuery, activeTab]);
-
-  // Search images via Unsplash
-  useEffect(() => {
-    if (activeTab !== 'images' || !debouncedQuery.trim() || !unsplashKey) {
-      setImageResults([]);
-      return;
-    }
-    const controller = new AbortController();
-    setLoading(true);
-    fetch(`${UNSPLASH_SEARCH}?query=${encodeURIComponent(debouncedQuery)}&per_page=20`, {
-      headers: { Authorization: `Client-ID ${unsplashKey}` },
-      signal: controller.signal,
-    })
-      .then(r => r.json())
-      .then(data => {
-        setImageResults(data.results || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-    return () => controller.abort();
-  }, [debouncedQuery, activeTab, unsplashKey]);
 
   const flashInserted = useCallback((id: string) => {
     setInsertedId(id);
     setTimeout(() => setInsertedId(null), 1400);
   }, []);
 
-  const handleIconInsert = useCallback((iconId: string) => {
-    const [prefix, name] = iconId.split(':');
-    const url = ICONIFY_SVG_RAW(prefix, name);
-    onInsert?.({ type: activeTab === 'svg' ? 'svg' : 'icon', url, name: iconId });
-    flashInserted(iconId);
-  }, [activeTab, onInsert, flashInserted]);
-
-  const handleImageInsert = useCallback((photo: any) => {
-    onInsert?.({
-      type: 'image',
-      url: photo.urls.regular,
-      name: photo.alt_description || photo.id,
-      author: photo.user?.name,
-      authorUrl: photo.user?.links?.html,
-      source: 'Unsplash',
-    });
-    flashInserted(photo.id);
-  }, [onInsert, flashInserted]);
-
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    onInsert?.({ type: 'image', url, name: file.name });
     e.target.value = '';
-  }, [onInsert]);
 
-  const handleFileDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
+    if (mediaLibrary) {
+      const result = await mediaLibrary.uploadMedia(file);
+      if (result) {
+        onInsert?.({ type: 'image', url: result.fileUrl, name: result.fileName });
+        flashInserted(result.id);
+      }
+    } else {
       const url = URL.createObjectURL(file);
       onInsert?.({ type: 'image', url, name: file.name });
     }
-  }, [onInsert]);
+  }, [onInsert, flashInserted, mediaLibrary]);
 
-  const saveUnsplashKey = () => {
-    localStorage.setItem(UNSPLASH_KEY_STORAGE, keyInput.trim());
-    setUnsplashKey(keyInput.trim());
-    setShowKeyConfig(false);
-    setKeyInput('');
-  };
+  const handleFileDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    if (mediaLibrary) {
+      const result = await mediaLibrary.uploadMedia(file);
+      if (result) {
+        onInsert?.({ type: 'image', url: result.fileUrl, name: result.fileName });
+        flashInserted(result.id);
+      }
+    } else {
+      const url = URL.createObjectURL(file);
+      onInsert?.({ type: 'image', url, name: file.name });
+    }
+  }, [onInsert, flashInserted, mediaLibrary]);
+
+  const handleLibraryItemClick = useCallback((item: MediaItem) => {
+    onInsert?.({ type: 'image', url: item.fileUrl, name: item.fileName });
+    flashInserted(item.id);
+  }, [onInsert, flashInserted]);
 
   return (
     <div
@@ -184,7 +118,7 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpande
     >
       {isOpen && (
         <>
-          {/* Header with sticky search */}
+          {/* Header */}
           <div className="p-4 border-b flex-shrink-0 space-y-3">
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4 text-primary" />
@@ -195,7 +129,7 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpande
                 </span>
               )}
             </div>
-            {/* Search or Expand CTA */}
+            {/* Expand CTA for blocks tab */}
             {isCanvas && activeTab === 'blocks' ? (
               <button
                 onClick={onExpandToggle}
@@ -218,32 +152,7 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpande
                   </>
                 )}
               </button>
-            ) : (
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder={
-                    activeTab === 'images'
-                      ? 'Search photos…'
-                      : activeTab === 'upload'
-                      ? 'No search needed'
-                      : 'Search icons…'
-                  }
-                  disabled={activeTab === 'upload'}
-                  className="pl-8 h-8 text-sm"
-                />
-                {query && (
-                  <button
-                    onClick={() => setQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* Tabs */}
@@ -252,380 +161,233 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpande
             onValueChange={v => setActiveTab(v as typeof activeTab)}
             className="flex flex-col flex-1 min-h-0"
           >
-            <div className="border-b flex-shrink-0 px-2 pt-1.5">
+            <div className="border-b flex-shrink-0 px-3 pt-1.5">
               {isCanvas ? (
-                <TabsList className="h-7 w-full grid grid-cols-5 text-[11px]">
-                  <TabsTrigger value="blocks" className="text-[11px] px-0.5">Blocks</TabsTrigger>
-                  <TabsTrigger value="images" className="text-[11px] px-0.5">Images</TabsTrigger>
-                  <TabsTrigger value="icons" className="text-[11px] px-0.5">Icons</TabsTrigger>
-                  <TabsTrigger value="svg" className="text-[11px] px-0.5">SVG</TabsTrigger>
-                  <TabsTrigger value="upload" className="text-[11px] px-0.5">Upload</TabsTrigger>
+                <TabsList className="h-8 w-full grid grid-cols-2">
+                  <TabsTrigger value="blocks" className="text-xs gap-1.5">
+                    <FileText className="h-3.5 w-3.5" />
+                    Blocks
+                  </TabsTrigger>
+                  <TabsTrigger value="media" className="text-xs gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    Media
+                  </TabsTrigger>
                 </TabsList>
               ) : (
-                <TabsList className="h-7 w-full grid grid-cols-4 text-[11px]">
-                  <TabsTrigger value="images" className="text-[11px] px-1">Images</TabsTrigger>
-                  <TabsTrigger value="icons" className="text-[11px] px-1">Icons</TabsTrigger>
-                  <TabsTrigger value="svg" className="text-[11px] px-1">SVG</TabsTrigger>
-                  <TabsTrigger value="upload" className="text-[11px] px-1">Upload</TabsTrigger>
+                <TabsList className="h-8 w-full grid grid-cols-1">
+                  <TabsTrigger value="media" className="text-xs gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    Media
+                  </TabsTrigger>
                 </TabsList>
               )}
             </div>
 
-            <ScrollArea className="flex-1 min-h-0">
-              {/* ── Images ── */}
-              <TabsContent value="images" className="m-0 p-3 space-y-3">
-                {!unsplashKey && !showKeyConfig ? (
-                  <div className="text-center py-6 space-y-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto">
-                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium">Connect Unsplash</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Add a free API key to search millions of photos
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => setShowKeyConfig(true)}
-                    >
-                      Configure API Key
-                    </Button>
+            {/* ── Media Tab ── */}
+            {activeTab === 'media' && (
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-3 space-y-3">
+                  {/* ─── Section 1: Upload Zone ─── */}
+                  <div
+                    className={cn(
+                      'border border-dashed rounded-lg p-4 text-center cursor-pointer transition-all space-y-1',
+                      mediaLibrary?.isUploading
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5',
+                    )}
+                    onClick={() => !mediaLibrary?.isUploading && fileInputRef.current?.click()}
+                    onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-primary', 'bg-primary/5'); }}
+                    onDragLeave={e => { e.currentTarget.classList.remove('border-primary', 'bg-primary/5'); }}
+                    onDrop={e => { e.currentTarget.classList.remove('border-primary', 'bg-primary/5'); handleFileDrop(e); }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Upload image"
+                    onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+                  >
+                    {mediaLibrary?.isUploading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mx-auto text-primary animate-spin" />
+                        <p className="text-xs font-medium text-primary">Uploading…</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5 mx-auto text-muted-foreground/50" />
+                        <p className="text-xs font-medium">Drag & drop or click to upload</p>
+                        <p className="text-[10px] text-muted-foreground">JPG, PNG, GIF, WebP, SVG · Max 10MB</p>
+                      </>
+                    )}
                   </div>
-                ) : showKeyConfig ? (
-                  <div className="space-y-2 py-1">
-                    <p className="text-xs text-muted-foreground">Unsplash Access Key:</p>
-                    <Input
-                      value={keyInput}
-                      onChange={e => setKeyInput(e.target.value)}
-                      placeholder="Paste your access key…"
-                      className="h-8 text-xs"
-                      onKeyDown={e => e.key === 'Enter' && keyInput.trim() && saveUnsplashKey()}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs flex-1"
-                        onClick={saveUnsplashKey}
-                        disabled={!keyInput.trim()}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        onClick={() => setShowKeyConfig(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                    <a
-                      href="https://unsplash.com/developers"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-[11px] text-primary hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Get a free API key →
-                    </a>
-                  </div>
-                ) : !query.trim() ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-xs">Search for photos above</p>
-                    <button
-                      className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground mt-4"
-                      onClick={() => setShowKeyConfig(true)}
-                    >
-                      Change API key
-                    </button>
-                  </div>
-                ) : loading ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="aspect-video rounded bg-muted animate-pulse" />
-                    ))}
-                  </div>
-                ) : imageResults.length === 0 ? (
-                  <p className="text-center py-8 text-xs text-muted-foreground">No photos found</p>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      {imageResults.map(photo => (
-                        <div
-                          key={photo.id}
-                          className="group relative aspect-video rounded overflow-hidden cursor-pointer ring-1 ring-transparent hover:ring-primary transition-all"
-                          draggable
-                          onDragStart={e => {
-                            e.dataTransfer.setData('text/uri-list', photo.urls.regular);
-                            e.dataTransfer.setData('text/plain', photo.urls.regular);
-                          }}
-                          onClick={() => handleImageInsert(photo)}
-                          title={photo.alt_description || photo.user?.name || ''}
-                        >
-                          <img
-                            src={photo.urls.thumb}
-                            alt={photo.alt_description || ''}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            {insertedId === photo.id ? (
-                              <Check className="h-5 w-5 text-white" />
-                            ) : (
-                              <span className="text-white text-[10px] font-semibold">Insert</span>
-                            )}
-                          </div>
-                          {photo.user?.name && (
-                            <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-white/80 px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity truncate">
-                              {photo.user.name}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground text-center pt-1">
-                      Photos from{' '}
-                      <a
-                        href="https://unsplash.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        Unsplash
-                      </a>
-                    </p>
-                  </>
-                )}
-              </TabsContent>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.svg"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    aria-label="Choose image file"
+                  />
 
-              {/* ── Icons ── */}
-              <TabsContent value="icons" className="m-0 p-3 space-y-3">
-                {!query.trim() ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-xs">Search 200,000+ icons</p>
-                    <p className="text-[11px] mt-1 opacity-50">Powered by Iconify</p>
-                  </div>
-                ) : loading ? (
-                  <SkeletonGrid cols={6} count={24} />
-                ) : iconResults.length === 0 ? (
-                  <p className="text-center py-8 text-xs text-muted-foreground">No icons found</p>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-6 gap-1.5">
-                      {iconResults.map(iconId => {
-                        const [prefix, name] = iconId.split(':');
-                        return (
-                          <button
-                            key={iconId}
-                            title={iconId}
-                            className={cn(
-                              'aspect-square rounded border flex items-center justify-center transition-all hover:border-primary hover:bg-primary/5 hover:scale-110',
-                              insertedId === iconId
-                                ? 'border-primary bg-primary/10'
-                                : 'border-muted',
-                            )}
-                            draggable
-                            onDragStart={e => {
-                              e.dataTransfer.setData('text/uri-list', ICONIFY_SVG_RAW(prefix, name));
-                              e.dataTransfer.setData('text/plain', iconId);
-                            }}
-                            onClick={() => handleIconInsert(iconId)}
-                          >
-                            {insertedId === iconId ? (
-                              <Check className="h-3.5 w-3.5 text-primary" />
-                            ) : (
+                  {/* Upload error */}
+                  {mediaLibrary?.uploadError && (
+                    <div className="flex items-start gap-1.5 text-destructive text-[11px] bg-destructive/10 rounded-md px-2.5 py-2">
+                      <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                      <span>{mediaLibrary.uploadError}</span>
+                    </div>
+                  )}
+
+                  {/* ─── Section 2: Media Library ─── */}
+                  <div>
+                    <div className="flex items-center gap-2 pb-2">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                        Library
+                      </span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+
+                    {mediaLibrary?.isLoading ? (
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="aspect-square rounded-md bg-muted animate-pulse" />
+                        ))}
+                      </div>
+                    ) : !mediaLibrary || mediaLibrary.mediaItems.length === 0 ? (
+                      <div className="text-center py-5 text-muted-foreground">
+                        <ImageIcon className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
+                        <p className="text-[11px]">No images yet</p>
+                        <p className="text-[10px] opacity-60 mt-0.5">Upload images to build your library</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {mediaLibrary.mediaItems.map(item => (
+                          <div key={item.id} className="space-y-0.5">
+                            <div
+                              className={cn(
+                                'group relative aspect-square rounded-md overflow-hidden cursor-pointer transition-all ring-1 focus-within:ring-2 focus-within:ring-primary',
+                                insertedId === item.id
+                                  ? 'ring-primary ring-2'
+                                  : item.isNew
+                                  ? 'ring-primary/40'
+                                  : 'ring-border hover:ring-primary/60',
+                              )}
+                              style={{
+                                backgroundImage: 'linear-gradient(45deg, hsl(var(--muted)) 25%, transparent 25%), linear-gradient(-45deg, hsl(var(--muted)) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, hsl(var(--muted)) 75%), linear-gradient(-45deg, transparent 75%, hsl(var(--muted)) 75%)',
+                                backgroundSize: '12px 12px',
+                                backgroundPosition: '0 0, 0 6px, 6px -6px, -6px 0',
+                              }}
+                            >
                               <img
-                                src={ICONIFY_SVG_URL(prefix, name)}
-                                alt={name}
-                                className="w-5 h-5"
+                                src={item.fileUrl}
+                                alt={item.fileName}
+                                className="w-full h-full object-cover relative"
                                 loading="lazy"
                               />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground text-center pt-1">
-                      Icons via{' '}
-                      <a
-                        href="https://iconify.design"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        Iconify
-                      </a>
-                    </p>
-                  </>
-                )}
-              </TabsContent>
-
-              {/* ── SVG ── */}
-              <TabsContent value="svg" className="m-0 p-3 space-y-3">
-                {!query.trim() ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-xs">Search SVG icons</p>
-                    <p className="text-[11px] mt-1 opacity-50">Click to insert · Drag to place</p>
+                              {/* Hover overlay with Insert + Delete */}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleLibraryItemClick(item); }}
+                                  className="text-white text-[9px] font-semibold bg-white/20 rounded px-2 py-0.5 hover:bg-white/30 transition-colors"
+                                  aria-label={`Insert ${item.fileName}`}
+                                >
+                                  {insertedId === item.id ? (
+                                    <Check className="h-3 w-3 inline" />
+                                  ) : 'Insert'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    mediaLibrary.deleteMedia(item);
+                                  }}
+                                  className="text-red-300 text-[9px] font-medium bg-red-500/20 rounded px-2 py-0.5 hover:bg-red-500/40 transition-colors"
+                                  aria-label={`Delete ${item.fileName}`}
+                                >
+                                  <Trash2 className="h-2.5 w-2.5 inline" />
+                                </button>
+                              </div>
+                              {/* New badge */}
+                              {item.isNew && insertedId !== item.id && (
+                                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-primary" />
+                              )}
+                            </div>
+                            {/* Filename */}
+                            <p className="text-[9px] text-muted-foreground truncate px-0.5" title={item.fileName}>
+                              {item.fileName}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : loading ? (
-                  <SkeletonGrid cols={4} count={12} />
-                ) : iconResults.length === 0 ? (
-                  <p className="text-center py-8 text-xs text-muted-foreground">No SVGs found</p>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-4 gap-2">
-                      {iconResults.map(iconId => {
-                        const [prefix, name] = iconId.split(':');
-                        const rawUrl = ICONIFY_SVG_RAW(prefix, name);
-                        return (
-                          <button
-                            key={iconId}
-                            title={`${iconId}\nClick to insert`}
-                            className={cn(
-                              'aspect-square rounded border flex flex-col items-center justify-center gap-1 p-1 transition-all hover:border-primary hover:bg-primary/5',
-                              insertedId === iconId
-                                ? 'border-primary bg-primary/10'
-                                : 'border-muted',
-                            )}
-                            draggable
-                            onDragStart={e => {
-                              e.dataTransfer.setData('text/uri-list', rawUrl);
-                              e.dataTransfer.setData('text/plain', iconId);
-                            }}
-                            onClick={() => handleIconInsert(iconId)}
-                          >
-                            {insertedId === iconId ? (
-                              <Check className="h-5 w-5 text-primary" />
-                            ) : (
-                              <>
-                                <img
-                                  src={ICONIFY_SVG_URL(prefix, name)}
-                                  alt={name}
-                                  className="w-7 h-7"
-                                  loading="lazy"
-                                />
-                                <span className="text-[9px] text-muted-foreground truncate w-full text-center leading-none">
-                                  {name}
-                                </span>
-                              </>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground text-center pt-1">
-                      SVGs via{' '}
-                      <a
-                        href="https://iconify.design"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        Iconify
-                      </a>
-                    </p>
-                  </>
-                )}
-              </TabsContent>
 
-              {/* ── Upload ── */}
-              <TabsContent value="upload" className="m-0 p-3 space-y-3">
-                <div
-                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors space-y-2"
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={handleFileDrop}
-                >
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                  <p className="text-xs font-medium">Drop an image here</p>
-                  <p className="text-[11px] text-muted-foreground">or click to browse files</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs mt-1 pointer-events-none"
-                    type="button"
-                  >
-                    Choose File
-                  </Button>
+
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.svg"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-                <p className="text-[11px] text-muted-foreground text-center">
-                  Supports JPG, PNG, GIF, WebP, SVG
-                </p>
-              </TabsContent>
+              </ScrollArea>
+            )}
 
-              {/* ── Blocks (canvas only) ── */}
-              <TabsContent value="blocks" className="m-0 p-3 space-y-2">
-                <p className="text-[11px] text-muted-foreground pb-1">
-                  Click to add · Drag onto canvas to place
-                </p>
-
-                {/* Text Block */}
-                <div
-                  className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
-                  draggable
-                  onDragStart={e => {
-                    e.dataTransfer.setData('block-kind', 'text');
-                    e.dataTransfer.effectAllowed = 'copy';
-                  }}
-                  onClick={() =>
-                    onInsert?.({ type: 'block', url: '', name: 'Text Block', blockKind: 'text' })
-                  }
-                >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium">Text Block</p>
-                    <p className="text-[11px] text-muted-foreground">Rich-text content</p>
-                  </div>
-                  <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
-                </div>
-
-                {/* Chat Block */}
-                <div
-                  className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
-                  draggable
-                  onDragStart={e => {
-                    e.dataTransfer.setData('block-kind', 'chat');
-                    e.dataTransfer.effectAllowed = 'copy';
-                  }}
-                  onClick={() =>
-                    onInsert?.({ type: 'block', url: '', name: 'Chat Block', blockKind: 'chat' })
-                  }
-                >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium">Chat Block</p>
-                    <p className="text-[11px] text-muted-foreground">Conversation-style content</p>
-                  </div>
-                  <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
-                </div>
-
-                <div className="pt-3 border-t">
-                  <p className="text-[11px] text-muted-foreground/70">
-                    You can also double-click anywhere on the canvas to add a block inline.
+            {/* ── Blocks Tab (canvas only) — pinned top + scrollable list ── */}
+            {activeTab === 'blocks' && (
+              <div className="flex-1 min-h-0 flex flex-col">
+                {/* Pinned: block templates + hint */}
+                <div className="p-3 space-y-2 flex-shrink-0">
+                  <p className="text-[11px] text-muted-foreground pb-1">
+                    Click to add · Drag onto canvas to place
                   </p>
+
+                  {/* Text Block */}
+                  <div
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('block-kind', 'text');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() =>
+                      onInsert?.({ type: 'block', url: '', name: 'Text Block', blockKind: 'text' })
+                    }
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">Text Block</p>
+                      <p className="text-[11px] text-muted-foreground">Rich-text content</p>
+                    </div>
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                  </div>
+
+                  {/* Chat Block */}
+                  <div
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('block-kind', 'chat');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() =>
+                      onInsert?.({ type: 'block', url: '', name: 'Chat Block', blockKind: 'chat' })
+                    }
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                      <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">Chat Block</p>
+                      <p className="text-[11px] text-muted-foreground">Conversation-style content</p>
+                    </div>
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                  </div>
+
+                  <div className="pt-3 border-t">
+                    <p className="text-[11px] text-muted-foreground/70">
+                      You can also double-click anywhere on the canvas to add a block inline.
+                    </p>
+                  </div>
                 </div>
 
+                {/* Scrollable: On canvas block list */}
                 {canvasBlocks.length > 0 && (
-                  <div className="pt-3 border-t flex flex-col gap-1">
-                    <p className="text-[11px] font-medium text-muted-foreground pb-1">On canvas</p>
-                    <div className="max-h-[220px] overflow-y-auto space-y-0.5 pr-1">
+                  <div className="flex-1 min-h-0 flex flex-col border-t mx-3">
+                    <p className="text-[11px] font-medium text-muted-foreground py-2 flex-shrink-0">On canvas</p>
+                    <div className="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-1 pb-3 co-scrollbar-green">
                       {canvasBlocks.map((b) => (
                         <div
                           key={b.id}
@@ -637,14 +399,58 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpande
                               : <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                             }
                           </div>
-                          <button
-                            onClick={() => onScrollToBlock?.(b.id)}
-                            className="flex-1 min-w-0 text-left"
-                          >
-                            <span className="text-xs truncate text-foreground block">
-                              {b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block')}
-                            </span>
-                          </button>
+                          {renamingBlockId === b.id ? (
+                            <input
+                              ref={renameInputRef}
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              onBlur={() => {
+                                const trimmed = renameValue.trim();
+                                if (trimmed && trimmed !== b.name) {
+                                  onRenameBlock?.(b.id, trimmed);
+                                }
+                                setRenamingBlockId(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                } else if (e.key === 'Escape') {
+                                  setRenamingBlockId(null);
+                                }
+                              }}
+                              className="flex-1 min-w-0 text-xs bg-background border border-primary/40 rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
+                              autoFocus
+                            />
+                          ) : (
+                            <button
+                              onClick={() => onScrollToBlock?.(b.id)}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                setRenamingBlockId(b.id);
+                                setRenameValue(b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block'));
+                                setTimeout(() => renameInputRef.current?.select(), 0);
+                              }}
+                              className="flex-1 min-w-0 text-left"
+                              title="Click to scroll · Double-click to rename"
+                            >
+                              <span className="text-xs truncate text-foreground block">
+                                {b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block')}
+                              </span>
+                            </button>
+                          )}
+                          {renamingBlockId !== b.id && (
+                            <button
+                              onClick={() => {
+                                setRenamingBlockId(b.id);
+                                setRenameValue(b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block'));
+                                setTimeout(() => renameInputRef.current?.select(), 0);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-0.5 rounded hover:bg-primary/10"
+                              title="Rename block"
+                            >
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          )}
                           <button
                             onClick={() => onDeleteBlock?.(b.id)}
                             className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-0.5 rounded hover:bg-destructive/10"
@@ -656,8 +462,8 @@ export function AssetsSidebar({ isOpen, editorType = 'rich', onInsert, isExpande
                     </div>
                   </div>
                 )}
-              </TabsContent>
-            </ScrollArea>
+              </div>
+            )}
           </Tabs>
         </>
       )}

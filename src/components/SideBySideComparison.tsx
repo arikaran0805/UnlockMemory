@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PostVersion } from "@/hooks/usePostVersions";
-import { computeWordDiff } from "@/lib/diffUtils";
+import { computeWordDiff, normalizeDiffContent } from "@/lib/diffUtils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -121,16 +121,18 @@ const RichTextSideBySide = ({
   showHighlights,
   onToggleHighlights,
 }: SideBySideProps) => {
-  const diff = computeWordDiff(oldVersion.content, newVersion.content);
+  const oldText = normalizeDiffContent(oldVersion.content);
+  const newText = normalizeDiffContent(newVersion.content);
+  const diff = computeWordDiff(oldText, newText);
 
   // Separate segments into old and new views
   const renderOldContent = () => {
     if (!showHighlights) {
-      return <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: oldVersion.content }} />;
+      return <div className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">{oldText}</div>;
     }
 
     return (
-      <div className="prose dark:prose-invert max-w-none">
+      <div className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
         {diff.map((segment, index) => {
           if (segment.type === "added") {
             return null; // Don't show added content in old view
@@ -140,11 +142,12 @@ const RichTextSideBySide = ({
               <span
                 key={index}
                 className="bg-red-200 dark:bg-red-800/50 line-through text-red-700 dark:text-red-300 px-0.5 rounded"
-                dangerouslySetInnerHTML={{ __html: segment.text }}
-              />
+              >
+                {segment.text}
+              </span>
             );
           }
-          return <span key={index} dangerouslySetInnerHTML={{ __html: segment.text }} />;
+          return <span key={index}>{segment.text}</span>;
         })}
       </div>
     );
@@ -152,11 +155,11 @@ const RichTextSideBySide = ({
 
   const renderNewContent = () => {
     if (!showHighlights) {
-      return <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: newVersion.content }} />;
+      return <div className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">{newText}</div>;
     }
 
     return (
-      <div className="prose dark:prose-invert max-w-none">
+      <div className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
         {diff.map((segment, index) => {
           if (segment.type === "removed") {
             return null; // Don't show removed content in new view
@@ -166,8 +169,9 @@ const RichTextSideBySide = ({
               <span
                 key={index}
                 className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200 px-0.5 rounded"
-                dangerouslySetInnerHTML={{ __html: segment.text }}
-              />
+              >
+                {segment.text}
+              </span>
             );
           }
           // Check if this unchanged segment is adjacent to changes
@@ -180,11 +184,12 @@ const RichTextSideBySide = ({
               <span
                 key={index}
                 className="bg-amber-100 dark:bg-amber-800/30 px-0.5 rounded"
-                dangerouslySetInnerHTML={{ __html: segment.text }}
-              />
+              >
+                {segment.text}
+              </span>
             );
           }
-          return <span key={index} dangerouslySetInnerHTML={{ __html: segment.text }} />;
+          return <span key={index}>{segment.text}</span>;
         })}
       </div>
     );

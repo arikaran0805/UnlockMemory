@@ -903,6 +903,12 @@ All colors MUST be HSL.
 .co-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .co-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
 
+/* Green scrollbar for assets sidebar */
+.co-scrollbar-green::-webkit-scrollbar { width: 5px; }
+.co-scrollbar-green::-webkit-scrollbar-track { background: transparent; }
+.co-scrollbar-green::-webkit-scrollbar-thumb { background: hsl(var(--primary) / 0.25); border-radius: 10px; }
+.co-scrollbar-green::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.45); }
+
 /* ── UMLoader animations ───────────────────────────────────────────────── */
 @keyframes um-d1pulse {
   0%,100% { transform:scale(1); opacity:0.75; }

@@ -6,7 +6,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -16,15 +17,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  FileText, 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
   BookOpen,
-  User,
-  Calendar,
-  MessageSquare
+  Eye,
+  MessageSquare,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -52,6 +60,7 @@ const AdminDeleteRequests = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin, isModerator, isLoading: roleLoading, userId } = useUserRole();
+  const [activeTab, setActiveTab] = useState("posts");
   const [requests, setRequests] = useState<DeleteRequest[]>([]);
   const [users, setUsers] = useState<Map<string, UserProfile>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -67,13 +76,14 @@ const AdminDeleteRequests = () => {
     if (!roleLoading && (isAdmin || isModerator)) {
       fetchRequests();
     }
-  }, [isAdmin, isModerator, roleLoading]);
+  }, [isAdmin, isModerator, roleLoading, navigate]);
 
   const fetchRequests = async () => {
     try {
       let query = supabase
         .from("delete_requests")
         .select("*")
+        .eq("status", "pending")
         .order("created_at", { ascending: false });
 
       // Moderators can only see their own delete requests
@@ -86,9 +96,8 @@ const AdminDeleteRequests = () => {
       if (error) throw error;
       setRequests(data || []);
 
-      // Fetch user profiles
       const userIds = new Set<string>();
-      data?.forEach(req => {
+      data?.forEach((req) => {
         userIds.add(req.requested_by);
         if (req.reviewed_by) userIds.add(req.reviewed_by);
       });
@@ -100,8 +109,10 @@ const AdminDeleteRequests = () => {
           .in("id", Array.from(userIds));
 
         const userMap = new Map<string, UserProfile>();
-        profiles?.forEach(p => userMap.set(p.id, p));
+        profiles?.forEach((p) => userMap.set(p.id, p));
         setUsers(userMap);
+      } else {
+        setUsers(new Map());
       }
     } catch (error: any) {
       toast({ title: "Error fetching requests", description: error.message, variant: "destructive" });
@@ -116,8 +127,7 @@ const AdminDeleteRequests = () => {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // Delete the actual content
+
       const tableName = selectedRequest.content_type === "course" ? "courses" : "posts";
       const { error: deleteError } = await supabase
         .from(tableName)
@@ -126,20 +136,22 @@ const AdminDeleteRequests = () => {
 
       if (deleteError) throw deleteError;
 
-      // Update the request status
       const { error: updateError } = await supabase
         .from("delete_requests")
         .update({
           status: "approved",
           reviewed_by: user?.id,
           reviewed_at: new Date().toISOString(),
-          review_notes: reviewNotes || null
+          review_notes: reviewNotes || null,
         })
         .eq("id", selectedRequest.id);
 
       if (updateError) throw updateError;
 
-      toast({ title: "Delete request approved", description: `${selectedRequest.content_title} has been deleted` });
+      toast({
+        title: "Delete request approved",
+        description: `${selectedRequest.content_title} has been deleted`,
+      });
       setSelectedRequest(null);
       setReviewNotes("");
       fetchRequests();
@@ -163,7 +175,7 @@ const AdminDeleteRequests = () => {
           status: "rejected",
           reviewed_by: user?.id,
           reviewed_at: new Date().toISOString(),
-          review_notes: reviewNotes || null
+          review_notes: reviewNotes || null,
         })
         .eq("id", selectedRequest.id);
 
@@ -180,168 +192,246 @@ const AdminDeleteRequests = () => {
     }
   };
 
-  const getUserName = (userId: string) => {
-    const user = users.get(userId);
-    return user?.full_name || user?.email?.split("@")[0] || "Unknown";
+  const getUserName = (requesterId: string) => {
+    const user = users.get(requesterId);
+    return user?.full_name || user?.email || "Unknown";
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
+        return (
+          <Badge className="border-amber-200/80 bg-amber-50 text-amber-700 hover:bg-amber-50">
+            Pending
+          </Badge>
+        );
       case "approved":
-        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1"><CheckCircle className="h-3 w-3" />Approved</Badge>;
+        return (
+          <Badge className="border-emerald-200/80 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
+            Approved
+          </Badge>
+        );
       case "rejected":
-        return <Badge className="bg-red-500/10 text-red-600 border-red-500/20 gap-1"><XCircle className="h-3 w-3" />Rejected</Badge>;
+        return (
+          <Badge className="border-red-200/80 bg-red-50 text-red-700 hover:bg-red-50">
+            Rejected
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const getContentIcon = (type: string) => {
-    return type === "course" ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />;
-  };
+  const getPublishedContentPath = (contentType: string) =>
+    contentType === "course" ? "/admin/courses" : "/admin/posts";
 
-  const pendingRequests = requests.filter(r => r.status === "pending");
-  const processedRequests = requests.filter(r => r.status !== "pending");
+  const renderRequestsTable = (items: DeleteRequest[], contentType: "post" | "course", icon: React.ReactNode) => (
+    <Card>
+      <CardContent className="p-0">
+        {items.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mx-auto flex justify-center text-foreground/60 [&_svg]:opacity-95 [&_svg]:stroke-[1.75]">
+              {icon}
+            </div>
+            <p className="mt-4 text-base font-medium text-foreground">No pending {contentType}s</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              All submissions are reviewed. You're up to date.
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-muted-foreground/90">No new delete requests from moderators</p>
+              <p className="text-xs text-muted-foreground/75">Last checked just now</p>
+            </div>
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-border/70 bg-background/80 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                onClick={() => navigate(getPublishedContentPath(contentType))}
+              >
+                View Published Content
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Requested By</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell className="font-medium">{request.content_title}</TableCell>
+                  <TableCell className="text-muted-foreground">{getUserName(request.requested_by)}</TableCell>
+                  <TableCell>{getStatusBadge(request.status)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {format(new Date(request.reviewed_at || request.created_at), "MMM d, yyyy HH:mm")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setReviewNotes(request.review_notes || "");
+                        }}
+                        title="Review"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setReviewNotes(request.review_notes || "");
+                        }}
+                        title="Approve & Delete"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setReviewNotes(request.review_notes || "");
+                        }}
+                        title="Reject"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   if (roleLoading || loading) {
     return (
       <div className="flex flex-col gap-0">
         <div className="admin-section-spacing-top" />
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </div>
     );
   }
 
+  const pendingPosts = requests.filter((request) => request.status === "pending" && request.content_type === "post");
+  const pendingCourses = requests.filter((request) => request.status === "pending" && request.content_type === "course");
+  const totalPending = pendingPosts.length + pendingCourses.length;
+  const queueStatus =
+    totalPending === 0
+      ? {
+          label: "All Clear",
+          className:
+            "border-emerald-200/80 bg-emerald-50 text-emerald-700 hover:bg-emerald-50",
+        }
+      : totalPending <= 5
+        ? {
+            label: "Few Pending",
+            className:
+              "border-amber-200/80 bg-amber-50 text-amber-700 hover:bg-amber-50",
+          }
+        : {
+            label: "High Priority",
+            className:
+              "border-red-200/80 bg-red-50 text-red-700 hover:bg-red-50",
+          };
+
   return (
     <>
-    <div className="flex flex-col gap-0">
+      <div className="flex flex-col gap-0">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Delete Requests</h1>
-            <p className="text-muted-foreground">Review and manage content deletion requests from moderators</p>
+            <p className="text-muted-foreground">
+              Review and manage content deletion requests from moderators
+            </p>
           </div>
+          <Badge
+            variant="secondary"
+            className={`text-lg px-4 py-2 ${queueStatus.className}`}
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            {queueStatus.label}
+          </Badge>
         </div>
 
         <div className="admin-section-spacing-top" />
 
         <div className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger
+                value="posts"
+                className="flex items-center gap-2 transition-colors hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <BookOpen className="h-4 w-4" />
+                Posts
+                <Badge
+                  variant="outline"
+                  className="ml-1 h-5 min-w-5 border-border/70 bg-background/70 px-1.5 text-[11px] font-semibold text-muted-foreground"
+                >
+                  {pendingPosts.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger
+                value="courses"
+                className="flex items-center gap-2 transition-colors hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <BookOpen className="h-4 w-4" />
+                Courses
+                <Badge
+                  variant="outline"
+                  className="ml-1 h-5 min-w-5 border-border/70 bg-background/70 px-1.5 text-[11px] font-semibold text-muted-foreground"
+                >
+                  {pendingCourses.length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Pending Requests */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Clock className="h-5 w-5 text-yellow-500" />
-            Pending Requests ({pendingRequests.length})
-          </h2>
-          
-          {pendingRequests.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No pending delete requests
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {pendingRequests.map((request) => (
-                <Card key={request.id} className="border-yellow-500/20">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-muted">
-                          {getContentIcon(request.content_type)}
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{request.content_title}</CardTitle>
-                          <p className="text-sm text-muted-foreground capitalize">{request.content_type}</p>
-                        </div>
-                      </div>
-                      {getStatusBadge(request.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <User className="h-4 w-4" />
-                        <span>Requested by: <span className="text-foreground font-medium">{getUserName(request.requested_by)}</span></span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(new Date(request.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
-                      </div>
-                    </div>
-                    
-                    {request.reason && (
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-sm text-muted-foreground flex items-start gap-2">
-                          <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                          <span>{request.reason}</span>
-                        </p>
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2 pt-2">
-                      <Button 
-                        variant="default" 
-                        className="gap-2"
-                        onClick={() => setSelectedRequest(request)}
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Review
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+            <TabsContent value="posts" className="mt-6">
+              {renderRequestsTable(
+                pendingPosts,
+                "post",
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto" />,
+              )}
+            </TabsContent>
+            <TabsContent value="courses" className="mt-6">
+              {renderRequestsTable(
+                pendingCourses,
+                "course",
+                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />,
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {/* Processed Requests */}
-        {processedRequests.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">History ({processedRequests.length})</h2>
-            <div className="grid gap-4">
-              {processedRequests.map((request) => (
-                <Card key={request.id} className="opacity-75">
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-muted">
-                          {getContentIcon(request.content_type)}
-                        </div>
-                        <div>
-                          <p className="font-medium">{request.content_title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Requested by {getUserName(request.requested_by)} • {format(new Date(request.created_at), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {request.reviewed_by && (
-                          <span className="text-sm text-muted-foreground">
-                            Reviewed by {getUserName(request.reviewed_by)}
-                          </span>
-                        )}
-                        {getStatusBadge(request.status)}
-                      </div>
-                    </div>
-                    {request.review_notes && (
-                      <p className="text-sm text-muted-foreground mt-2 pl-12">
-                        Note: {request.review_notes}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Review Dialog */}
-        <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+        <Dialog
+          open={!!selectedRequest}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedRequest(null);
+              setReviewNotes("");
+            }
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Review Delete Request</DialogTitle>
@@ -349,15 +439,17 @@ const AdminDeleteRequests = () => {
                 {selectedRequest?.content_type === "course" ? "Course" : "Post"}: {selectedRequest?.content_title}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               {selectedRequest?.reason && (
                 <div>
                   <p className="text-sm font-medium mb-1">Reason for deletion:</p>
-                  <p className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">{selectedRequest.reason}</p>
+                  <p className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                    {selectedRequest.reason}
+                  </p>
                 </div>
               )}
-              
+
               <div>
                 <label className="text-sm font-medium">Review notes (optional)</label>
                 <Textarea
@@ -372,7 +464,10 @@ const AdminDeleteRequests = () => {
             <DialogFooter className="gap-2">
               <Button
                 variant="outline"
-                onClick={() => setSelectedRequest(null)}
+                onClick={() => {
+                  setSelectedRequest(null);
+                  setReviewNotes("");
+                }}
                 disabled={isProcessing}
               >
                 Cancel
@@ -398,9 +493,8 @@ const AdminDeleteRequests = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
 };
 
 export default AdminDeleteRequests;

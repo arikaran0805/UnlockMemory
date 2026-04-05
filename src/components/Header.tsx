@@ -19,7 +19,6 @@ import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { useUserState } from "@/hooks/useUserState";
 import { ThemeToggle } from "./ThemeToggle";
 import { SearchDialog } from "./SearchDialog";
-import NotificationDropdown from "./NotificationDropdown";
 import { useCareerPlan } from "@/contexts/CareerPlanContext";
 
 interface SiteSettings {
@@ -258,35 +257,12 @@ const Header = ({
                 )}
               </Button>
 
-              {/* Notification Bell - Only for Admin/Moderator */}
-              {user && (isAdmin || isModerator) && (
-                <NotificationDropdown 
-                  isAdmin={isAdmin} 
-                  isModerator={isModerator} 
-                  userId={user?.id || null} 
-                />
-              )}
-              
               {/* Theme Toggle */}
               <ThemeToggle />
 
               {/* User Menu - Desktop */}
               {user ? (
                 <div className="hidden md:flex items-center gap-1">
-                  {(isAdmin || isModerator) && (
-                    <Button 
-                      asChild
-                      className={`h-8 px-3 rounded-full transition-all duration-200 ${
-                        isAdmin 
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                          : 'bg-amber-500 text-white hover:bg-amber-600'
-                      }`}
-                    >
-                      <Link to="/admin">
-                        <Shield className="h-4 w-4" strokeWidth={1.5} />
-                      </Link>
-                    </Button>
-                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button 

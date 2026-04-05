@@ -21,7 +21,6 @@ interface Bookmark {
     title: string;
     slug: string;
     excerpt: string | null;
-    featured_image: string | null;
     category_id: string | null;
     courses?: {
       slug: string;
@@ -67,7 +66,6 @@ export const useBookmarks = () => {
             title,
             slug,
             excerpt,
-            featured_image,
             category_id,
             courses:category_id (
               slug
@@ -149,7 +147,6 @@ export const useBookmarks = () => {
               title,
               slug,
               excerpt,
-              featured_image,
               category_id,
               courses:category_id (
                 slug

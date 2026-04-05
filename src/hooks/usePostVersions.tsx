@@ -15,9 +15,6 @@ export interface PostVersion {
   editor_role: "admin" | "moderator";
   created_at: string;
   status: VersionStatus;
-  change_summary: string | null;
-  versioning_note_type: string | null;
-  versioning_note_locked: boolean;
   is_published: boolean | null;
   editor_profile?: {
     full_name: string | null;
@@ -105,9 +102,7 @@ export const usePostVersions = (postId: string | undefined) => {
   const saveVersion = async (
     content: string,
     editorType: "rich-text" | "chat" | "canvas",
-    changeSummary?: string,
-    markAsPublished: boolean = false,
-    versioningNoteType?: string
+    markAsPublished: boolean = false
   ) => {
     if (!postId) return null;
 
@@ -115,49 +110,139 @@ export const usePostVersions = (postId: string | undefined) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Not authenticated");
 
-      // Get the next version number (start at 0)
-      const nextVersionNumber = versions.length > 0 
-        ? Math.max(...versions.map(v => v.version_number)) + 1 
-        : 0;
-
       // Determine editor role
       const editorRole = isAdmin ? "admin" : "moderator";
+      const normalizedContent = content.trim();
 
-      // If marking as published, archive other published versions first
-      if (markAsPublished) {
-        await supabase
+      // Draft path: keep a dedicated draft version separate from published ones.
+      if (!markAsPublished) {
+        const { data: latestDraftRows, error: latestDraftError } = await supabase
           .from("post_versions")
-          .update({ status: "archived" })
+          .select("id, content, version_number")
           .eq("post_id", postId)
-          .eq("status", "published");
+          .eq("status", "draft")
+          .order("version_number", { ascending: false })
+          .limit(1);
+
+        if (latestDraftError) throw latestDraftError;
+
+        const latestDraft = latestDraftRows?.[0];
+
+        // No-op when draft content hasn't changed.
+        if (latestDraft && (latestDraft.content || "").trim() === normalizedContent) {
+          return latestDraft as any;
+        }
+
+        // If a draft already exists, update that draft instead of creating duplicates.
+        if (latestDraft) {
+          const { data, error } = await supabase
+            .from("post_versions")
+            .update({
+              content,
+              editor_type: editorType,
+              edited_by: session.user.id,
+              editor_role: editorRole,
+              status: "draft",
+              is_published: false,
+            })
+            .eq("id", latestDraft.id)
+            .select()
+            .single();
+
+          if (error) throw error;
+          await fetchVersions();
+          return data;
+        }
+
+        // Otherwise create a new draft version.
+        const nextVersionNumber = versions.length > 0
+          ? Math.max(...versions.map(v => v.version_number)) + 1
+          : 1;
+
+        const { data, error } = await supabase
+          .from("post_versions")
+          .insert({
+            post_id: postId,
+            version_number: nextVersionNumber,
+            content,
+            editor_type: editorType,
+            edited_by: session.user.id,
+            editor_role: editorRole,
+            status: "draft",
+            is_published: false,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        await fetchVersions();
+        return data;
       }
 
-      // Default change summary based on action
-      const defaultSummary = markAsPublished 
-        ? `Published as v${nextVersionNumber}` 
-        : `Draft saved (v${nextVersionNumber})`;
-
-      // Determine status
-      const status: VersionStatus = markAsPublished ? "published" : "draft";
-
-      const { data, error } = await supabase
+      // Publish path: promote the latest draft in place when available.
+      const { data: latestDraftRows, error: latestDraftError } = await supabase
         .from("post_versions")
-        .insert({
-          post_id: postId,
-          version_number: nextVersionNumber,
-          content,
-          editor_type: editorType,
-          edited_by: session.user.id,
-          editor_role: editorRole,
-          change_summary: changeSummary || defaultSummary,
-          status,
-          versioning_note_type: versioningNoteType || null,
-        })
-        .select()
-        .single();
+        .select("id, version_number")
+        .eq("post_id", postId)
+        .eq("status", "draft")
+        .order("version_number", { ascending: false })
+        .limit(1);
+
+      if (latestDraftError) throw latestDraftError;
+
+      const latestDraft = latestDraftRows?.[0];
+
+      await supabase
+        .from("post_versions")
+        .update({ status: "archived", is_published: false })
+        .eq("post_id", postId)
+        .eq("status", "published");
+
+      let data;
+      let error;
+
+      if (latestDraft) {
+        const result = await supabase
+          .from("post_versions")
+          .update({
+            content,
+            editor_type: editorType,
+            edited_by: session.user.id,
+            editor_role: editorRole,
+            status: "published",
+            is_published: true,
+          })
+          .eq("id", latestDraft.id)
+          .select()
+          .single();
+
+        data = result.data;
+        error = result.error;
+      } else {
+        const nextVersionNumber = versions.length > 0
+          ? Math.max(...versions.map(v => v.version_number)) + 1
+          : 1;
+
+        const result = await supabase
+          .from("post_versions")
+          .insert({
+            post_id: postId,
+            version_number: nextVersionNumber,
+            content,
+            editor_type: editorType,
+            edited_by: session.user.id,
+            editor_role: editorRole,
+            status: "published",
+            is_published: true,
+          })
+          .select()
+          .single();
+
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
-
       await fetchVersions();
       return data;
     } catch (error: any) {
@@ -174,11 +259,9 @@ export const usePostVersions = (postId: string | undefined) => {
   // Save version as draft (not published)
   const saveVersionAsDraft = async (
     content: string,
-    editorType: "rich-text" | "chat" | "canvas",
-    changeSummary?: string,
-    versioningNoteType?: string
+    editorType: "rich-text" | "chat" | "canvas"
   ) => {
-    return saveVersion(content, editorType, changeSummary, false, versioningNoteType);
+    return saveVersion(content, editorType, false);
   };
 
   // Save version on publish (creates a new version and marks it as published)
@@ -186,19 +269,10 @@ export const usePostVersions = (postId: string | undefined) => {
     content: string,
     editorType: "rich-text" | "chat" | "canvas"
   ) => {
-    const versionNumber = versions.length > 0 
-      ? Math.max(...versions.map(v => v.version_number)) + 1 
-      : 0;
-    
-    return saveVersion(
-      content,
-      editorType,
-      `Published as v${versionNumber}`,
-      true
-    );
+    return saveVersion(content, editorType, true);
   };
 
-  // Create initial v0 when post is first saved
+  // Create initial v1 when post is first saved
   const createInitialVersion = async (
     content: string,
     editorType: "rich-text" | "chat" | "canvas",
@@ -214,13 +288,13 @@ export const usePostVersions = (postId: string | undefined) => {
         .from("post_versions")
         .insert({
           post_id: postId,
-          version_number: 0,
+          version_number: 1,
           content,
           editor_type: editorType,
           edited_by: session.user.id,
           editor_role: editorRole,
-          change_summary: "Initial version (v0)",
           status: "draft",
+          is_published: false,
         })
         .select()
         .single();
@@ -252,14 +326,14 @@ export const usePostVersions = (postId: string | undefined) => {
       // Archive any currently published versions
       await supabase
         .from("post_versions")
-        .update({ status: "archived" })
+        .update({ status: "archived", is_published: false })
         .eq("post_id", postId)
         .eq("status", "published");
 
       // Mark this version as published
       const { error: versionError } = await supabase
         .from("post_versions")
-        .update({ status: "published" })
+        .update({ status: "published", is_published: true })
         .eq("id", versionId);
 
       if (versionError) throw versionError;
@@ -285,52 +359,6 @@ export const usePostVersions = (postId: string | undefined) => {
   const restoreVersion = async (version: PostVersion) => {
     setCurrentVersion(version);
     return version.content;
-  };
-
-  // Update versioning note for a specific version
-  const updateVersionNote = async (
-    versionId: string,
-    versioningNoteType: string | null,
-    changeSummary: string | null
-  ) => {
-    try {
-      // Check if the note is locked
-      const version = versions.find(v => v.id === versionId);
-      if (version?.versioning_note_locked) {
-        toast({
-          title: "Cannot edit",
-          description: "This version's note is locked (published versions cannot be edited)",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      const { error } = await supabase
-        .from("post_versions")
-        .update({
-          versioning_note_type: versioningNoteType,
-          change_summary: changeSummary,
-        })
-        .eq("id", versionId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Note updated",
-        description: "Version note has been updated",
-      });
-
-      await fetchVersions();
-      return true;
-    } catch (error: any) {
-      console.error("Error updating version note:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update version note",
-        variant: "destructive",
-      });
-      return false;
-    }
   };
 
   // Get versions with admin changes after a specific version
@@ -359,7 +387,6 @@ export const usePostVersions = (postId: string | undefined) => {
     createInitialVersion,
     publishVersion,
     restoreVersion,
-    updateVersionNote,
     getAdminChangesAfterVersion,
     wasEditedByAdmin,
   };

@@ -34,7 +34,13 @@ const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRen
   return (
     <div className={cn("space-y-6", className)}>
       {blocks.map((block) => (
-        <div key={block.id} className="canvas-rendered-block">
+        <div
+          key={block.id}
+          className={cn(
+            "canvas-rendered-block",
+            block.kind === "text" ? "canvas-rendered-block-text" : "canvas-rendered-block-chat"
+          )}
+        >
           {block.kind === 'text' ? (
             <RichTextRenderer content={block.content} />
           ) : (

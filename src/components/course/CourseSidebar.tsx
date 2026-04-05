@@ -399,7 +399,6 @@ export const CourseSidebar = memo(({
                   const isExpanded = expandedLessons.has(lesson.id);
                   const hasActivePost = lessonPosts.some(p => p.id === selectedPost?.id);
                   const lessonProgress = getLessonProgress(lesson.id);
-                  const isSingleModule = filteredLessons.length === 1;
                   const panelId = `lesson-panel-${lesson.id}`;
                   const headerId = `lesson-header-${lesson.id}`;
 
@@ -466,21 +465,18 @@ export const CourseSidebar = memo(({
                               {lessonProgress.completedPosts}/{lessonProgress.totalPosts}
                             </span>
                           )}
-                          {/* Chevron - hide for single module if not needed */}
-                          {!isSingleModule && (
-                            <ChevronDown
-                              className={cn(
-                                "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                                isExpanded && "rotate-180"
-                              )}
-                            />
-                          )}
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                              isExpanded && "rotate-180"
+                            )}
+                          />
                         </div>
                       </div>
                     </button>
 
                     {/* Lesson Posts - Accordion Panel */}
-                    {(isExpanded || isSingleModule) && (
+                    {isExpanded && (
                       <div 
                         id={panelId}
                         role="region"

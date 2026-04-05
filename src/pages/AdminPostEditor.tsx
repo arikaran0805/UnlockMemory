@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,14 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { AdminEditorSkeleton } from "@/components/admin/AdminEditorSkeleton";
 import { ContentStatusBadge, ContentStatus } from "@/components/ContentStatusBadge";
 import VersionHistoryPanel from "@/components/VersionHistoryPanel";
+import { VersioningNoteDialog, VersioningNoteType } from "@/components/VersioningNoteDialog";
 import { AnnotationPanel, FloatingAnnotationPopup } from "@/components/annotations";
 import AdminEditBanner from "@/components/AdminEditBanner";
 import SideBySideComparison from "@/components/SideBySideComparison";
 import VersionDiffViewer from "@/components/VersionDiffViewer";
-import { VersioningNoteDialog, VersioningNoteType } from "@/components/VersioningNoteDialog";
-import { Save, X, FileText, Send, AlertCircle, Eye, Loader2, Check, Highlighter, Settings, Layers, MessageSquare } from "lucide-react";
+import { Save, X, FileText, Send, AlertCircle, Eye, Loader2, Check, Highlighter, Settings, Layers, MessageSquare, Clock } from "lucide-react";
 import { AssetsSidebar } from "@/components/assets/AssetsSidebar";
+import { useMediaLibrary } from "@/hooks/useMediaLibrary";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { z } from "zod";
@@ -45,7 +46,6 @@ const postSchema = z.object({
   slug: z.string().min(1, "Slug is required").max(200),
   excerpt: z.string().max(500, "Excerpt too long").optional(),
   content: z.string().min(1, "Content is required"),
-  featured_image: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   category_id: z.string().uuid().optional().or(z.literal("")),
   status: z.enum(["draft", "published", "pending", "rejected", "changes_requested"]),
 });
@@ -67,16 +67,61 @@ interface Tag {
   slug: string;
 }
 
+type PostEditorStatus = "draft" | "published" | "pending" | "rejected" | "changes_requested";
+type PostEditorAction = "save_draft" | "publish" | "submit_for_review";
+
+const createEmptyFormData = () => ({
+  title: "",
+  slug: "",
+  excerpt: "",
+  content: "",
+  category_id: "",
+  lesson_id: "" as string,
+  status: "draft" as "draft" | "published" | "pending" | "rejected" | "changes_requested",
+  code_theme: "" as string,
+});
+
+const getRequiredIndicatorClass = (hasValue: boolean) =>
+  hasValue ? "text-green-600 dark:text-green-400" : "text-destructive";
+
+const resolvePostStatus = ({
+  action,
+  canDirectPublish,
+  currentStatus,
+  hasPublishedVersion,
+}: {
+  action: PostEditorAction;
+  canDirectPublish: boolean;
+  currentStatus: PostEditorStatus;
+  hasPublishedVersion: boolean;
+}): PostEditorStatus => {
+  if (action === "save_draft") {
+    if (hasPublishedVersion || currentStatus === "published") return "published";
+    return "draft";
+  }
+
+  if (action === "publish") {
+    if (canDirectPublish) return "published";
+    return "pending";
+  }
+
+  // submit_for_review is always non-live pending approval
+  return "pending";
+};
+
 const AdminPostEditor = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin, isModerator, userId, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isSuperModerator, isSeniorModerator, isModerator, userId, isLoading: roleLoading } = useUserRole();
   const { role: userRole, courseIds } = useRoleScope();
 
   // Get sidebar context to collapse when editing/annotating
   const { collapseSidebar } = useAdminSidebar();
+
+  // Media library — single source of truth for sidebar upload + library
+  const mediaLib = useMediaLibrary();
 
   const [loading, setLoading] = useState(!!id);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -84,17 +129,7 @@ const AdminPostEditor = () => {
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [formData, setFormData] = useState({
-    title: "",
-    slug: "",
-    excerpt: "",
-    content: "",
-    featured_image: "",
-    category_id: "",
-    lesson_id: "" as string,
-    status: "draft" as "draft" | "published" | "pending" | "rejected" | "changes_requested",
-    code_theme: "" as string,
-  });
+  const [formData, setFormData] = useState(createEmptyFormData);
   const [originalAuthorId, setOriginalAuthorId] = useState<string | null>(null);
   const [postDbContent, setPostDbContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
@@ -111,24 +146,27 @@ const AdminPostEditor = () => {
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showAdminChangesDialog, setShowAdminChangesDialog] = useState(false);
   const [showPublishPreviewDialog, setShowPublishPreviewDialog] = useState(false);
-  const [showVersioningNoteDialog, setShowVersioningNoteDialog] = useState(false);
   const [dismissedAdminBanner, setDismissedAdminBanner] = useState(false);
   const [openSidebar, setOpenSidebar] = useState<'settings' | 'assets' | 'review' | null>('assets');
   const rightSidebarOpen = openSidebar === 'settings' || openSidebar === 'review';
   const canvasEditorRef = useRef<CanvasEditorRef>(null);
-  const [savingDraft, setSavingDraft] = useState(false);
+  const [savingDraftVersion, setSavingDraftVersion] = useState(false);
+  const [showVersioningNoteDialog, setShowVersioningNoteDialog] = useState(false);
   const [annotationMode, setAnnotationMode] = useState(false);
   const [activeTab, setActiveTab] = useState(id ? "content" : "details");
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   const [canvasBlockList, setCanvasBlockList] = useState<{ id: string; name: string; kind: BlockKind }[]>([]);
   const previousContentRef = useRef<string>("");
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [readTimeOverride, setReadTimeOverride] = useState<number | null>(null);
+  const canvasEditorInstanceKey = id ? `post-${id}` : "new-post";
 
   // Version and annotation hooks
-  const { versions, loading: versionsLoading, metadata, saveVersion, saveVersionAsDraft, saveVersionOnPublish, createInitialVersion, publishVersion, restoreVersion, updateVersionNote } = usePostVersions(id);
+  const { versions, loading: versionsLoading, metadata, saveVersionAsDraft, saveVersionOnPublish, publishVersion, restoreVersion } = usePostVersions(id);
   const { annotations, loading: annotationsLoading, createAnnotation, createReply, deleteReply, updateAnnotationStatus, deleteAnnotation } = usePostAnnotations(id);
 
-  // Auto-save draft hook - saves content to localStorage with debounce
-  const draftKey = id ? `post_${id}` : `new_post_${formData.slug || 'untitled'}`;
+  // Only existing posts restore autosaved drafts; new posts should always open clean.
+  const draftKey = id ? `post_${id}` : "";
 
   // Collapse sidebar when editing a post (has id) or when annotation mode is activated
   useEffect(() => {
@@ -142,21 +180,59 @@ const AdminPostEditor = () => {
       collapseSidebar();
     }
   }, [annotationMode, collapseSidebar]);
-  const { loadDraft, clearDraft, status: autoSaveStatus } = useAutoSaveDraft(draftKey, formData.content, true);
+  const { loadDraft, clearDraft, status: autoSaveStatus } = useAutoSaveDraft(draftKey, formData.content, autoSaveEnabled);
 
-  // Load draft on mount for new posts or if content is empty
+  // Estimated read time — strip HTML, count words, 200 WPM average
+  const calculatedReadTime = useMemo(() => {
+    if (!formData.content) return 0;
+    const text = formData.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = text ? text.split(' ').length : 0;
+    return Math.max(1, Math.ceil(wordCount / 200));
+  }, [formData.content]);
+  const estimatedReadTime = readTimeOverride ?? calculatedReadTime;
+
+  // Reset editor state whenever we enter the brand-new post flow.
   useEffect(() => {
-    if (!loading && !formData.content) {
-      const savedDraft = loadDraft();
-      if (savedDraft) {
-        setFormData(prev => ({ ...prev, content: savedDraft }));
-        toast({
-          title: "Draft restored",
-          description: "Your previous work has been recovered",
-        });
-      }
+    if (id) return;
+
+    setFormData(createEmptyFormData());
+    setSelectedTags([]);
+    setTagInput("");
+    setOriginalAuthorId(null);
+    setPostDbContent("");
+    setOriginalContent("");
+    setDidSyncLatestVersion(false);
+    setSelectedText(null);
+    setPreviewVersion(null);
+    setShowPreviewDialog(false);
+    setShowAdminChangesDialog(false);
+    setShowPublishPreviewDialog(false);
+    setDismissedAdminBanner(false);
+    setOpenSidebar('assets');
+    setSavingDraftVersion(false);
+    setShowVersioningNoteDialog(false);
+    setAnnotationMode(false);
+    setActiveTab("details");
+    setIsCanvasExpanded(false);
+    setCanvasBlockList([]);
+    setReadTimeOverride(null);
+    previousContentRef.current = "";
+    setLoading(false);
+  }, [id]);
+
+  // Restore autosaved drafts only for existing posts with empty content.
+  useEffect(() => {
+    if (!id || loading || formData.content) return;
+
+    const savedDraft = loadDraft();
+    if (savedDraft) {
+      setFormData(prev => ({ ...prev, content: savedDraft }));
+      toast({
+        title: "Draft restored",
+        description: "Your previous work has been recovered",
+      });
     }
-  }, [loading, loadDraft]);
+  }, [id, loading, formData.content, loadDraft, toast]);
 
   // Check if moderator should see admin edit banner
   const shouldShowAdminBanner = !isAdmin && isModerator && metadata.hasAdminEdits && !dismissedAdminBanner && metadata.lastAdminEdit;
@@ -351,7 +427,6 @@ const AdminPostEditor = () => {
           slug: data.slug || "",
           excerpt: data.excerpt || "",
           content: prev.content ? prev.content : (data.content || ""),
-          featured_image: data.featured_image || "",
           category_id: data.category_id || "",
           lesson_id: data.lesson_id || "",
           status: (data.status as any) || "draft",
@@ -380,24 +455,37 @@ const AdminPostEditor = () => {
     }
   };
 
-  const handleSubmit = async (submitForApproval: boolean = false) => {
+  const handleSubmit = async (
+    action: "save_draft" | "publish" | "submit_for_review",
+    options?: { navigateToList?: boolean }
+  ) => {
     try {
       setLoading(true);
+      const navigateToList = options?.navigateToList ?? true;
 
-      // Determine status - Moderators can only create drafts or submit for approval
-      let status = formData.status;
-      if (isModerator && !isAdmin) {
-        // Moderators can only set draft or pending status
-        if (submitForApproval) {
-          status = "pending";
-        } else {
-          status = "draft";
-        }
-      } else if (submitForApproval) {
-        status = "pending";
+      const resolvedStatus = resolvePostStatus({
+        action,
+        canDirectPublish: canPublishDirectly,
+        currentStatus: formData.status as PostEditorStatus,
+        hasPublishedVersion,
+      });
+      const isPublishing = action === "publish" && canPublishDirectly && resolvedStatus === "published";
+      const shouldCreateApprovalHistory =
+        action === "submit_for_review" || (!canPublishDirectly && action === "publish");
+
+      if (!formData.category_id || !formData.lesson_id) {
+        toast({
+          title: "Complete required post details",
+          description: `Please fill in the ${[
+            !formData.category_id ? "course" : null,
+            !formData.lesson_id ? "lesson" : null,
+          ].filter(Boolean).join(" and ")} before continuing.`,
+          variant: "destructive",
+        });
+        return;
       }
 
-      const validated = postSchema.parse({ ...formData, status });
+      const validated = postSchema.parse({ ...formData, status: resolvedStatus });
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -407,17 +495,15 @@ const AdminPostEditor = () => {
         slug: validated.slug,
         excerpt: validated.excerpt || null,
         content: validated.content,
-        featured_image: validated.featured_image || null,
         category_id: validated.category_id || null,
         lesson_id: formData.lesson_id || null,
         status: validated.status,
         author_id: originalAuthorId || session.user.id,
-        published_at: validated.status === "published" ? new Date().toISOString() : null,
         code_theme: formData.code_theme || null,
+        ...(isPublishing ? { published_at: new Date().toISOString() } : {}),
       };
 
       let postId = id;
-      const isPublishing = validated.status === "published";
 
       if (id) {
         // Update existing post
@@ -456,19 +542,19 @@ const AdminPostEditor = () => {
         if (error) throw error;
         postId = newPost.id;
 
-        // Always create v0 as initial version
+        // Always create v1 as initial version
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (currentSession?.user && postId) {
           await supabase
             .from("post_versions")
             .insert({
               post_id: postId,
-              version_number: 0,
+              version_number: 1,
               content: formData.content,
               editor_type: "canvas",
               edited_by: currentSession.user.id,
               editor_role: isAdmin ? "admin" : "moderator",
-              change_summary: "Initial version (v0)",
+              status: isPublishing ? "published" : "draft",
               is_published: isPublishing,
             });
         }
@@ -521,8 +607,7 @@ const AdminPostEditor = () => {
         }
       }
 
-      // Record approval history if submitting for approval
-      if (submitForApproval && postId) {
+      if (shouldCreateApprovalHistory && postId) {
         await supabase.from("approval_history").insert({
           content_type: "post",
           content_id: postId,
@@ -536,12 +621,20 @@ const AdminPostEditor = () => {
 
       toast({
         title: "Success",
-        description: submitForApproval
+        description: shouldCreateApprovalHistory
           ? "Post submitted for approval"
-          : (id ? "Post updated successfully" : "Post created successfully"),
+          : isPublishing
+            ? (id ? "Post published successfully" : "Post created and published successfully")
+            : action === "save_draft"
+              ? (id ? "Draft saved successfully" : "Draft created successfully")
+              : (id ? "Post updated successfully" : "Post created successfully"),
       });
 
-      navigate("/admin/posts");
+      if (navigateToList) {
+        navigate("/admin/posts");
+      } else if (!id && postId) {
+        navigate(`/admin/posts/edit/${postId}`, { replace: true });
+      }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
@@ -688,8 +781,10 @@ const AdminPostEditor = () => {
   };
 
   // Check if moderator can only save as draft or submit for approval
-  const canPublishDirectly = isAdmin;
-  const showSubmitForApproval = isModerator && !isAdmin;
+  const canPublishDirectly = isAdmin || isSuperModerator || isSeniorModerator;
+  const showSubmitForApproval = isModerator && !canPublishDirectly;
+  const hasPublishedVersion = versions.some(v => v.status === "published" || v.is_published === true);
+  const shouldShowStatusBadge = Boolean(id) || formData.status !== "draft";
 
   // Handle text selection for annotations (admin only)
   // Handle text selection for annotations (admin and moderators)
@@ -737,23 +832,21 @@ const AdminPostEditor = () => {
 
   // Get the currently published version for comparison
   const publishedVersion = versions.find(v => v.status === "published");
+  const latestWorkingVersion = versions.find(v => v.status !== "published");
   const hasContentChanges = formData.content !== originalContent && originalContent !== "";
 
   // Create a mock version object for the current editor content
   const currentEditorVersion = {
-    id: "current",
+    id: latestWorkingVersion?.id || "current",
     post_id: id || "",
-    version_number: versions.length > 0 ? Math.max(...versions.map(v => v.version_number)) + 1 : 1,
+    version_number: latestWorkingVersion?.version_number || (versions.length > 0 ? Math.max(...versions.map(v => v.version_number)) + 1 : 1),
     content: formData.content,
-    editor_type: "canvas",
-    edited_by: userId || "",
+    editor_type: latestWorkingVersion?.editor_type || "canvas",
+    edited_by: latestWorkingVersion?.edited_by || userId || "",
     editor_role: isAdmin ? "admin" : "moderator",
-    created_at: new Date().toISOString(),
-    status: "draft",
-    change_summary: null,
-    versioning_note_type: null,
-    versioning_note_locked: false,
-    editor_profile: undefined,
+    created_at: latestWorkingVersion?.created_at || new Date().toISOString(),
+    status: latestWorkingVersion?.status || "draft",
+    editor_profile: latestWorkingVersion?.editor_profile,
   } as PostVersion;
 
   // Handle publish with preview
@@ -768,11 +861,53 @@ const AdminPostEditor = () => {
 
   const handleConfirmPublish = async () => {
     setShowPublishPreviewDialog(false);
-    setFormData(prev => ({ ...prev, status: "published" }));
-    // Wait for state update then submit
-    setTimeout(() => {
-      handleSubmit(false);
-    }, 0);
+    await handleSubmit("publish");
+  };
+
+  const handleSaveDraftVersion = async () => {
+    if (!id) {
+      await handleSubmit("save_draft", { navigateToList: false });
+      return;
+    }
+
+    if (formData.content === previousContentRef.current) {
+      toast({
+        title: "No changes to save",
+        description: "Draft content is already up to date.",
+      });
+      return;
+    }
+
+    setSavingDraftVersion(true);
+    try {
+      const nextStatus = resolvePostStatus({
+        action: "save_draft",
+        canDirectPublish: canPublishDirectly,
+        currentStatus: formData.status as PostEditorStatus,
+        hasPublishedVersion,
+      });
+
+      if (nextStatus !== formData.status) {
+        await supabase
+          .from("posts")
+          .update({ status: nextStatus })
+          .eq("id", id);
+        setFormData(prev => ({ ...prev, status: nextStatus }));
+      }
+
+      const saved = await saveVersionAsDraft(formData.content, "canvas");
+      if (saved) {
+        previousContentRef.current = formData.content;
+        toast({
+          title: "Draft saved",
+          description: publishedVersion
+            ? "Unpublished changes saved. Live published version is unchanged."
+            : "Saved as a private draft version (not live).",
+        });
+      }
+    } finally {
+      setSavingDraftVersion(false);
+    }
   };
 
   // Handle annotation creation with type support
@@ -798,6 +933,13 @@ const AdminPostEditor = () => {
 
   // Check if content has admin edits (different from original)
   const hasAdminEdits = isAdmin && id && formData.content !== originalContent && originalContent !== "";
+  const missingDetailFields = [
+    !formData.title.trim() ? "title" : null,
+    !formData.slug.trim() ? "slug" : null,
+    !formData.category_id ? "course" : null,
+    !formData.lesson_id ? "lesson" : null,
+  ].filter(Boolean) as string[];
+  const canOpenEditorTab = Boolean(id) || missingDetailFields.length === 0;
 
   const editorInitLoading =
     roleLoading ||
@@ -819,6 +961,15 @@ const AdminPostEditor = () => {
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
+            if (v === "content" && !canOpenEditorTab) {
+              toast({
+                title: "Complete post details first",
+                description: `Please fill in the ${missingDetailFields.join(" and ")} before opening the editor.`,
+                variant: "destructive",
+              });
+              return;
+            }
+
             setActiveTab(v);
             if (v !== "content") {
               setIsCanvasExpanded(false);
@@ -866,7 +1017,10 @@ const AdminPostEditor = () => {
                   <FileText className="h-3.5 w-3.5" />
                   Post Details
                 </TabsTrigger>
-                <TabsTrigger value="content" className="gap-1.5">
+                <TabsTrigger
+                  value="content"
+                  className={`gap-1.5 ${!canOpenEditorTab ? "opacity-60" : ""}`}
+                >
                   Editor
                   {annotationMode && <Highlighter className="h-3 w-3 text-primary" />}
                 </TabsTrigger>
@@ -896,10 +1050,14 @@ const AdminPostEditor = () => {
           )}
 
           <TabsContent value="details" className="space-y-6 mt-0 pb-10 px-1">
-            <div>
-              <Label htmlFor="title" className="text-base">Title</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="title" className="text-base">
+                Title <span className={getRequiredIndicatorClass(Boolean(formData.title.trim()))}>*</span>
+              </Label>
               <Input
                 id="title"
+                required
+                aria-required="true"
                 value={formData.title}
                 onChange={(e) => {
                   setFormData({ ...formData, title: e.target.value });
@@ -912,17 +1070,21 @@ const AdminPostEditor = () => {
               />
             </div>
 
-            <div>
-              <Label htmlFor="slug" className="text-base">Slug</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="slug" className="text-base">
+                Slug <span className={getRequiredIndicatorClass(Boolean(formData.slug.trim()))}>*</span>
+              </Label>
               <Input
                 id="slug"
+                required
+                aria-required="true"
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                 placeholder="post-url-slug"
               />
             </div>
 
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="excerpt" className="text-base">Excerpt</Label>
               <Textarea
                 id="excerpt"
@@ -934,7 +1096,9 @@ const AdminPostEditor = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Course</Label>
+              <Label htmlFor="category">
+                Course <span className={getRequiredIndicatorClass(Boolean(formData.category_id))}>*</span>
+              </Label>
               <Select
                 value={formData.category_id || "none"}
                 onValueChange={(value) => setFormData({ ...formData, category_id: value === "none" ? "" : value, lesson_id: "" })}
@@ -955,7 +1119,9 @@ const AdminPostEditor = () => {
 
             {formData.category_id && courseLessons.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="lesson">Lesson</Label>
+                <Label htmlFor="lesson">
+                  Lesson <span className={getRequiredIndicatorClass(Boolean(formData.lesson_id))}>*</span>
+                </Label>
                 <Select
                   value={formData.lesson_id || "none"}
                   onValueChange={(value) => setFormData({ ...formData, lesson_id: value === "none" ? "" : value })}
@@ -979,6 +1145,7 @@ const AdminPostEditor = () => {
 
           <TabsContent value="content" className="mt-0 flex-1 min-h-0 flex flex-col">
             <CanvasEditor
+              key={canvasEditorInstanceKey}
               ref={canvasEditorRef}
               value={formData.content}
               onChange={(value) => {
@@ -1065,13 +1232,13 @@ const AdminPostEditor = () => {
                   <VersionHistoryPanel
                     versions={versions}
                     loading={versionsLoading}
-                    isAdmin={isAdmin}
+                    isAdmin={canPublishDirectly}
                     currentContent={formData.content}
                     liveContent={postDbContent}
                     onRestore={handleRestoreVersion}
                     onPublish={handlePublishVersion}
                     onPreview={handlePreviewVersion}
-                    onUpdateNote={updateVersionNote}
+                    showVersionNotes={false}
                   />
                 </div>
                 <div className="[&>*]:w-full">
@@ -1093,53 +1260,78 @@ const AdminPostEditor = () => {
               </div>
             )}
             {/* Action Buttons */}
-            {openSidebar !== 'review' && id && (
-              <div className="space-y-2">
-                <Button
-                  onClick={() => setShowVersioningNoteDialog(true)}
-                  disabled={loading}
-                  variant="outline"
-                  className="w-full text-xs h-8"
-                >
-                  <Save className="mr-2 h-3.5 w-3.5" />
-                  Save Version Note
-                </Button>
-              </div>
-            )}
           </div>
 
           <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
             <div className="p-4 space-y-4">
-              {canPublishDirectly && (
-                <div className="space-y-2">
-                  <Label htmlFor="status" className="text-sm font-medium">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="pending">Pending Approval</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="changes_requested">Changes Requested</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
               <div className="space-y-2">
-                <Label htmlFor="featured_image" className="text-sm font-medium">Featured Image</Label>
-                <Input
-                  id="featured_image"
-                  value={formData.featured_image || ""}
-                  onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })}
-                  placeholder="Image URL..."
-                  className="h-8 text-xs"
+                <Label className="text-sm font-medium">Status</Label>
+                <div className="h-9 px-3 rounded-md border bg-muted/20 flex items-center">
+                  {shouldShowStatusBadge ? (
+                    <ContentStatusBadge status={formData.status as ContentStatus} />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No status yet</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Auto Save toggle */}
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Save className={`h-3.5 w-3.5 ${autoSaveEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div>
+                    <Label className="text-sm font-medium leading-none">Auto Save</Label>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {autoSaveEnabled
+                        ? autoSaveStatus === 'saving' ? 'Saving…' : autoSaveStatus === 'saved' ? 'Saved' : 'On'
+                        : 'Off'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={autoSaveEnabled}
+                  onCheckedChange={setAutoSaveEnabled}
+                  className="scale-90"
                 />
+              </div>
+
+              {/* Estimated Read Time */}
+              <div className="flex items-start justify-between gap-3 pt-1">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label className="text-sm font-medium leading-none">Read Time</Label>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                    {readTimeOverride === null ? "Auto-calculated from content" : "Manually adjusted"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={estimatedReadTime}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val >= 1 && val <= 120) {
+                        setReadTimeOverride(val);
+                      }
+                    }}
+                    className="h-8 text-xs w-16 text-center"
+                    aria-label="Estimated read time in minutes"
+                  />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">min read</span>
+                  {readTimeOverride !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setReadTimeOverride(null)}
+                      className="text-[10px] text-primary hover:underline"
+                    >
+                      Auto
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -1172,6 +1364,48 @@ const AdminPostEditor = () => {
               </div>
             </div>
           </ScrollArea>
+
+          {/* ── Action CTAs (pinned footer) ── */}
+          <div className={`p-3 border-t flex-shrink-0 space-y-2 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
+            {canPublishDirectly && (
+              <Button
+                onClick={handlePublishWithPreview}
+                disabled={loading}
+                className="w-full h-8 text-xs gap-1.5"
+              >
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                Publish
+              </Button>
+            )}
+            {showSubmitForApproval && (
+              <Button
+                onClick={() => handleSubmit("submit_for_review")}
+                disabled={loading}
+                className="w-full h-8 text-xs gap-1.5"
+              >
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                Submit for Approval
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowVersioningNoteDialog(true)}
+                disabled={loading || savingDraftVersion}
+                variant="outline"
+                className="flex-1 h-8 text-xs gap-1.5"
+              >
+                {savingDraftVersion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {savingDraftVersion ? "Saving..." : "Save Draft"}
+              </Button>
+              <Button
+                onClick={() => navigate('/admin/posts')}
+                variant="ghost"
+                className="h-8 text-xs px-3"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </Card>
 
         {/* Assets Sidebar */}
@@ -1182,17 +1416,31 @@ const AdminPostEditor = () => {
           onExpandToggle={() => setIsCanvasExpanded(v => !v)}
           canvasBlocks={canvasBlockList}
           onScrollToBlock={(blockId) => canvasEditorRef.current?.scrollToBlock(blockId)}
+          mediaLibrary={mediaLib}
           onDeleteBlock={(blockId) => {
             canvasEditorRef.current?.deleteBlock(blockId);
             setCanvasBlockList(prev => prev.filter(b => b.id !== blockId));
+          }}
+          onRenameBlock={(blockId, newName) => {
+            canvasEditorRef.current?.renameBlock(blockId, newName);
+            setCanvasBlockList(prev => prev.map(b => b.id === blockId ? { ...b, name: newName } : b));
           }}
           onInsert={(asset) => {
             if (asset.type === 'block' && asset.blockKind && canvasEditorRef.current) {
               canvasEditorRef.current.addBlock(asset.blockKind);
               setCanvasBlockList(canvasEditorRef.current.getBlocks());
-            } else {
-              navigator.clipboard.writeText(asset.url);
-              toast({ title: "URL copied", description: "Paste it into the editor." });
+            } else if (asset.type === 'image' && canvasEditorRef.current) {
+              const selectedId = canvasEditorRef.current.getSelectedBlockId();
+              if (selectedId) {
+                const inserted = canvasEditorRef.current.insertImageIntoBlock(selectedId, asset.url, asset.name);
+                if (inserted) {
+                  toast({ title: "Image inserted", description: "Added to the selected block." });
+                } else {
+                  toast({ title: "Cannot insert image", description: "Select a Text Block first, then try again.", variant: "destructive" });
+                }
+              } else {
+                toast({ title: "No block selected", description: "Click on a Text Block first, then insert the image.", variant: "destructive" });
+              }
             }
           }}
         />
@@ -1287,32 +1535,13 @@ const AdminPostEditor = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Versioning Note Dialog */}
       <VersioningNoteDialog
         open={showVersioningNoteDialog}
         onOpenChange={setShowVersioningNoteDialog}
-        loading={savingDraft}
-        onSave={async (noteType: VersioningNoteType, changeSummary: string) => {
-          setSavingDraft(true);
-          try {
-            const saved = await saveVersionAsDraft(
-              formData.content,
-              "canvas",
-              changeSummary,
-              noteType
-            );
-
-            if (saved) {
-              previousContentRef.current = formData.content;
-              setShowVersioningNoteDialog(false);
-              toast({
-                title: "Draft saved",
-                description: "Saved as a private draft version (not live).",
-              });
-            }
-          } finally {
-            setSavingDraft(false);
-          }
+        loading={savingDraftVersion}
+        onSave={async (_noteType: VersioningNoteType, _changeSummary: string) => {
+          await handleSaveDraftVersion();
+          setShowVersioningNoteDialog(false);
         }}
       />
 

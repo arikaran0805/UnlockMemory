@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-import { Plus, Pencil, Trash2, Tag, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Search, FolderPlus } from "lucide-react";
 import UMLoader from "@/components/UMLoader";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 const tagSchema = z.object({
   name: z.string().trim().min(1, "Tag name is required").max(50, "Tag name too long"),
@@ -262,44 +264,65 @@ const AdminTags = () => {
       <div className="admin-section-spacing-top" />
 
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
+        <Card className="border border-border/70 shadow-sm">
+          <CardHeader className="gap-6 border-b border-border/60 pb-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full md:w-[68%]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search tags..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="h-11 pl-10"
                 />
               </div>
-              <Badge variant="secondary" className="text-lg px-4 py-2">
-                {filteredTags.length} Tags
+              <Badge variant="secondary" className="h-11 rounded-full px-4 text-sm font-medium">
+                {filteredTags.length} {filteredTags.length === 1 ? "Tag" : "Tags"}
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead className="text-center">Posts</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Name</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Slug</TableHead>
+                  <TableHead className="text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">Posts</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created On</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTags.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                      {searchQuery ? "No tags found matching your search" : "No tags created yet"}
+                    <TableCell colSpan={5} className="py-0">
+                      <div className="flex min-h-[360px] flex-col items-center justify-center px-6 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/20 text-muted-foreground shadow-sm">
+                          <Tag className="h-6 w-6" />
+                        </div>
+                        <h2 className="mt-6 text-2xl font-semibold text-foreground">
+                          {searchQuery ? "No tags match your search" : "No tags created yet"}
+                        </h2>
+                        <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+                          {searchQuery
+                            ? "Try a different keyword or clear the search to browse all tags."
+                            : "Create tags to organize your content"}
+                        </p>
+                        {!searchQuery ? (
+                          <Button className="mt-6 gap-2" onClick={handleOpenCreateDialog}>
+                            <FolderPlus className="h-4 w-4" />
+                            Create your first tag
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredTags.map((tag) => (
-                    <TableRow key={tag.id}>
+                    <TableRow
+                      key={tag.id}
+                      className="cursor-default transition-colors hover:bg-muted/20"
+                    >
                       <TableCell className="font-medium">
                         <Badge variant="secondary" className="bg-primary/10 text-primary">
                           {tag.name}
@@ -314,29 +337,41 @@ const AdminTags = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {new Date(tag.created_at).toLocaleDateString()}
+                        {format(new Date(tag.created_at), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenEditDialog(tag)}
-                            className="gap-1"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDeleteDialog(tag)}
-                            className="gap-1 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </Button>
-                        </div>
+                        <TooltipProvider>
+                          <div className="flex justify-end gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenEditDialog(tag)}
+                                  className="h-9 px-3"
+                                  aria-label={`Edit ${tag.name}`}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit tag</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenDeleteDialog(tag)}
+                                  className="h-9 px-3 text-muted-foreground hover:text-destructive"
+                                  aria-label={`Delete ${tag.name}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete tag</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))
@@ -361,7 +396,7 @@ const AdminTags = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="name">Tag Name</Label>
               <Input
                 id="name"
@@ -376,7 +411,7 @@ const AdminTags = () => {
                 placeholder="e.g., JavaScript"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="slug">Slug</Label>
               <Input
                 id="slug"

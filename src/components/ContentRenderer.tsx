@@ -11,6 +11,7 @@ interface ContentRendererProps {
   htmlContent: string;
   courseType?: string;
   codeTheme?: string;
+  variant?: "default" | "article";
 }
 
 // Helper to extract code blocks from HTML and replace with placeholders
@@ -63,6 +64,7 @@ const ContentRenderer = ({
   htmlContent, 
   courseType = "python",
   codeTheme,
+  variant = "default",
 }: ContentRendererProps) => {
   // Check for corrupted/partial TipTap JSON that should be suppressed
   const isCorruptedJson = useMemo(() => {
@@ -95,11 +97,21 @@ const ContentRenderer = ({
     setEditedCodes(prev => ({ ...prev, [index]: newCode }));
   };
 
+  const contentWrapperClass =
+    variant === "article"
+      ? "content-renderer-article prose prose-lg max-w-none"
+      : "prose prose-lg max-w-none";
+
   // Render Canvas content - blocks in reading order
   if (isCanvas) {
     return (
       <div className="prose prose-lg max-w-none">
-        <CanvasRenderer content={htmlContent} courseType={courseType} codeTheme={codeTheme} />
+        <CanvasRenderer
+          content={htmlContent}
+          courseType={courseType}
+          codeTheme={codeTheme}
+          className={variant === "article" ? "content-renderer-article-canvas" : undefined}
+        />
       </div>
     );
   }
@@ -107,7 +119,7 @@ const ContentRenderer = ({
   // Suppress corrupted JSON fragments - don't render garbage
   if (isCorruptedJson) {
     return (
-      <div className="prose prose-lg max-w-none text-muted-foreground italic">
+      <div className={`${contentWrapperClass} text-muted-foreground italic`}>
         Content unavailable
       </div>
     );
@@ -126,9 +138,10 @@ const ContentRenderer = ({
   // ✅ TipTap JSON: Use RichTextRenderer with full schema (ExecutableCodeBlock, AnnotationMark)
   if (isTipTap) {
     return (
-      <div className="prose prose-lg max-w-none">
+      <div className={contentWrapperClass}>
         <RichTextRenderer 
           content={htmlContent} 
+          className={variant === "article" ? "content-renderer-article" : undefined}
           emptyPlaceholder="No content available"
         />
       </div>
@@ -139,7 +152,7 @@ const ContentRenderer = ({
   if (codeBlocks.length === 0) {
     return (
       <div 
-        className="prose prose-lg max-w-none"
+        className={contentWrapperClass}
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlContent) }}
       />
     );
@@ -149,7 +162,7 @@ const ContentRenderer = ({
   const parts = processedHtml.split(/<!--CODE_BLOCK_(\d+)-->/);
   
   return (
-    <div className="prose prose-lg max-w-none">
+    <div className={contentWrapperClass}>
       {parts.map((part, idx) => {
         // Even indices are HTML content, odd indices are code block indices
         if (idx % 2 === 0) {

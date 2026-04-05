@@ -2,9 +2,61 @@
  * Simple diff utility to compare two strings and highlight differences
  */
 
+import { isCanvasContent, parseCanvasContent, sortBlocksForReading } from "@/components/canvas-editor/types";
+import {
+  extractExplanation,
+  htmlToPlainTextPreserveNewlines,
+  isChatTranscript,
+  normalizeChatInput,
+} from "@/lib/chatContent";
+import { extractPlainText, isTipTapJSON, parseContent } from "@/lib/tiptapMigration";
+
 export interface DiffSegment {
   type: "unchanged" | "added" | "removed";
   text: string;
+}
+
+export function normalizeDiffContent(content: string): string {
+  if (!content?.trim()) return "";
+
+  if (isCanvasContent(content)) {
+    const canvas = parseCanvasContent(content);
+    return sortBlocksForReading(canvas.blocks)
+      .map((block) => {
+        if (block.kind === "text") {
+          return normalizeDiffContent(block.content);
+        }
+        return normalizeChatInput(block.content);
+      })
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+  }
+
+  if (isChatTranscript(content)) {
+    const transcript = normalizeChatInput(content);
+    const explanation = extractExplanation(content);
+
+    return [transcript, explanation ? normalizeDiffContent(explanation) : ""]
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+  }
+
+  if (isTipTapJSON(content)) {
+    try {
+      return extractPlainText(parseContent(content));
+    } catch {
+      return "";
+    }
+  }
+
+  const trimmed = content.trim();
+  if (trimmed.startsWith("<")) {
+    return htmlToPlainTextPreserveNewlines(content);
+  }
+
+  return content;
 }
 
 /**

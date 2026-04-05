@@ -14,8 +14,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { CanvasBlock } from './types';
 import CanvasBlockToolbar from './CanvasBlockToolbar';
-import { RichTextEditor } from '@/components/tiptap';
+import { RichTextEditor, type RichTextEditorRef } from '@/components/tiptap';
 import { ChatStyleEditor } from '@/components/chat-editor';
+import type { Editor } from '@tiptap/react';
 
 /** Extract a short plain-text preview from block content */
 function getContentPreview(content: string): string {
@@ -46,6 +47,7 @@ interface DraggableBlockProps {
   isSelected: boolean;
   onSelect: (id: string) => void;
   onRegisterRef: (id: string, el: HTMLElement | null) => void;
+  onRegisterEditor?: (id: string, editor: Editor | null) => void;
   lessonLabel?: string;
   isCollapsed: boolean;
   onToggleCollapse: (id: string) => void;
@@ -58,6 +60,7 @@ const DraggableBlock = ({
   onDelete,
   isSelected,
   onSelect,
+  onRegisterEditor,
   onRegisterRef,
   lessonLabel,
   isCollapsed,
@@ -65,6 +68,7 @@ const DraggableBlock = ({
 }: DraggableBlockProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const richEditorRef = useRef<RichTextEditorRef>(null);
 
   const {
     attributes,
@@ -118,6 +122,14 @@ const DraggableBlock = ({
     return () => observer.disconnect();
   }, [block.id, block.h, onUpdate]);
 
+  // Register inner TipTap editor with parent for image insertion
+  useEffect(() => {
+    if (block.kind !== 'text' || !onRegisterEditor) return;
+    const editor = richEditorRef.current?.getEditor() ?? null;
+    onRegisterEditor(block.id, editor);
+    return () => onRegisterEditor(block.id, null);
+  });
+
   return (
     <div
       ref={setRefs}
@@ -129,7 +141,13 @@ const DraggableBlock = ({
           ? 'border-primary shadow-md ring-1 ring-primary/20'
           : 'border-border/50 hover:border-border',
       )}
-      onClick={() => onSelect(block.id)}
+      onClick={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest('.ProseMirror, input, textarea, select, [contenteditable="true"]')) {
+          return;
+        }
+        onSelect(block.id);
+      }}
       onFocus={handleFocus}
       onBlur={handleBlur}
     >
@@ -151,6 +169,7 @@ const DraggableBlock = ({
         <div className="p-4">
           {block.kind === 'text' ? (
             <RichTextEditor
+              ref={richEditorRef}
               value={block.content}
               onChange={handleContentChange}
               placeholder="Write your content here…"
@@ -161,7 +180,7 @@ const DraggableBlock = ({
               value={block.content}
               onChange={handleContentChange}
               placeholder="Start a conversation…"
-              courseType="python"
+              courseType={lessonLabel || "python"}
               showExplanation={false}
               lessonLabel={lessonLabel}
             />

@@ -137,7 +137,6 @@ interface Post {
   title: string;
   excerpt: string | null;
   slug: string;
-  featured_image: string | null;
   published_at: string | null;
   updated_at: string;
   status: string;
@@ -813,7 +812,7 @@ const CareerCourseDetail = () => {
           .order("lesson_rank", { ascending: true }),
         supabase
           .from("posts")
-          .select("id, title, content, excerpt, slug, featured_image, published_at, updated_at, lesson_id, post_rank, post_type, status, profiles:author_id (full_name)")
+          .select("id, title, content, excerpt, slug, published_at, updated_at, lesson_id, post_rank, post_type, status, profiles:author_id (full_name)")
           .eq("category_id", courseId)
           .eq("status", "published")
           .order("post_rank", { ascending: true }),
@@ -899,7 +898,6 @@ const CareerCourseDetail = () => {
           content,
           excerpt,
           slug,
-          featured_image,
           published_at,
           updated_at,
           lesson_id,
@@ -1032,7 +1030,7 @@ const CareerCourseDetail = () => {
     }
 
     try {
-      const shouldUseLatestVersion = canPreview;
+      const shouldUseLatestVersion = isPreviewMode && canPreview;
       const needsNetworkFetch = shouldUseLatestVersion || !post.content;
       
       // 3. Background fetch if we need a preview version or if content was somehow missing
@@ -1674,21 +1672,15 @@ const CareerCourseDetail = () => {
                     <Separator className="mt-2" />
                   </div>
 
-                  {/* Featured Image */}
-                  {selectedPost.featured_image && (
-                    <img 
-                      src={selectedPost.featured_image} 
-                      alt={selectedPost.title}
-                      className="w-full h-auto rounded-lg mb-8 shadow-md"
-                    />
-                  )}
-
                   {/* Lesson Content */}
-                  <ContentRenderer 
-                    htmlContent={selectedPost.content || ''}
-                    courseType={course?.slug?.toLowerCase()}
-                    codeTheme={selectedPost.code_theme || undefined}
-                  />
+                  <div className="mx-auto mt-10 w-full max-w-[720px]">
+                    <ContentRenderer 
+                      htmlContent={selectedPost.content || ''}
+                      courseType={course?.slug?.toLowerCase()}
+                      codeTheme={selectedPost.code_theme || undefined}
+                      variant="article"
+                    />
+                  </div>
 
                   {/* Lesson Footer */}
                   <LessonFooter
@@ -1906,10 +1898,13 @@ const CareerCourseDetail = () => {
                         {course.description && (
                           <div>
                             <h3 className="text-xl font-semibold mb-4">About This Course</h3>
-                            <ContentRenderer
-                              htmlContent={course.description}
-                              courseType={course?.slug?.toLowerCase()}
-                            />
+                            <div className="mx-auto w-full max-w-[720px]">
+                              <ContentRenderer
+                                htmlContent={course.description}
+                                courseType={course?.slug?.toLowerCase()}
+                                variant="article"
+                              />
+                            </div>
                           </div>
                         )}
 

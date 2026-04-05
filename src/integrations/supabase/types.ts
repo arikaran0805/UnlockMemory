@@ -2710,7 +2710,6 @@ export type Database = {
       }
       post_versions: {
         Row: {
-          change_summary: string | null
           content: string
           created_at: string
           edited_by: string
@@ -2721,11 +2720,8 @@ export type Database = {
           post_id: string
           status: string
           version_number: number
-          versioning_note_locked: boolean
-          versioning_note_type: string | null
         }
         Insert: {
-          change_summary?: string | null
           content: string
           created_at?: string
           edited_by: string
@@ -2736,11 +2732,8 @@ export type Database = {
           post_id: string
           status?: string
           version_number?: number
-          versioning_note_locked?: boolean
-          versioning_note_type?: string | null
         }
         Update: {
-          change_summary?: string | null
           content?: string
           created_at?: string
           edited_by?: string
@@ -2751,8 +2744,6 @@ export type Database = {
           post_id?: string
           status?: string
           version_number?: number
-          versioning_note_locked?: boolean
-          versioning_note_type?: string | null
         }
         Relationships: [
           {
@@ -2817,7 +2808,6 @@ export type Database = {
           created_by_type: string
           deleted_at: string | null
           excerpt: string | null
-          featured_image: string | null
           id: string
           lesson_id: string | null
           post_rank: string | null
@@ -2843,7 +2833,6 @@ export type Database = {
           created_by_type?: string
           deleted_at?: string | null
           excerpt?: string | null
-          featured_image?: string | null
           id?: string
           lesson_id?: string | null
           post_rank?: string | null
@@ -2869,7 +2858,6 @@ export type Database = {
           created_by_type?: string
           deleted_at?: string | null
           excerpt?: string | null
-          featured_image?: string | null
           id?: string
           lesson_id?: string | null
           post_rank?: string | null

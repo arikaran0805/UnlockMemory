@@ -288,12 +288,6 @@ const AdminPostVersions = () => {
                       )}
                     </div>
                     
-                    {version.change_summary && (
-                      <p className="text-sm text-muted-foreground mb-2 italic line-clamp-2">
-                        "{version.change_summary}"
-                      </p>
-                    )}
-                    
                     <div className="text-xs text-muted-foreground mb-3">
                       <div>{version.editor_profile?.full_name || version.editor_profile?.email || "Unknown"}</div>
                       <div>{format(new Date(version.created_at), "MMM d, yyyy 'at' h:mm a")}</div>
@@ -534,9 +528,6 @@ const AdminPostVersions = () => {
                 </div>
                 
                 <div className="text-sm text-muted-foreground mb-4">
-                  {selectedVersion.change_summary && (
-                    <p className="italic mb-1">"{selectedVersion.change_summary}"</p>
-                  )}
                   <p>
                     By {selectedVersion.editor_profile?.full_name || selectedVersion.editor_profile?.email} 
                     on {format(new Date(selectedVersion.created_at), "MMMM d, yyyy 'at' h:mm a")}

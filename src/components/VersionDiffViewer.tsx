@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { PostVersion } from "@/hooks/usePostVersions";
-import { computeWordDiff, DiffSegment } from "@/lib/diffUtils";
+import { computeWordDiff, DiffSegment, normalizeDiffContent } from "@/lib/diffUtils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { isChatTranscript, extractChatSegments, extractExplanation } from "@/lib/chatContent";
 import { Separator } from "@/components/ui/separator";
-import { sanitizeHtml } from "@/lib/sanitize";
 
 interface VersionDiffViewerProps {
   currentVersion: PostVersion;
@@ -26,16 +25,18 @@ const VersionDiffViewer = ({
 
   const diff = useMemo(() => {
     const hasCompareVersion = compareVersion !== null;
-    const oldContent = hasCompareVersion 
-      ? compareVersion.content 
-      : "";
+    const oldContent = hasCompareVersion ? compareVersion.content : "";
     const newContent = currentVersion.content;
+    const normalizedOldContent = normalizeDiffContent(oldContent);
+    const normalizedNewContent = normalizeDiffContent(newContent);
 
     // Extract explanation portions for mixed content
     const oldExplanation = hasCompareVersion ? extractExplanation(oldContent) : null;
     const newExplanation = extractExplanation(newContent);
+    const normalizedOldExplanation = oldExplanation ? normalizeDiffContent(oldExplanation) : null;
+    const normalizedNewExplanation = newExplanation ? normalizeDiffContent(newExplanation) : null;
     const explanationDiff = (oldExplanation || newExplanation)
-      ? computeWordDiff(oldExplanation || "", newExplanation || "")
+      ? computeWordDiff(normalizedOldExplanation || "", normalizedNewExplanation || "")
       : null;
 
     // If no old content, show all as "added"
@@ -53,7 +54,7 @@ const VersionDiffViewer = ({
       }
       return { 
         type: "rich" as const, 
-        data: [{ type: "added" as const, text: newContent }],
+        data: [{ type: "added" as const, text: normalizedNewContent }],
         isFirstVersion: true,
         explanationDiff: null,
         oldExplanation: null,
@@ -68,19 +69,19 @@ const VersionDiffViewer = ({
         data: compareChatBubbles(oldContent, newContent), 
         isFirstVersion: false,
         explanationDiff,
-        oldExplanation,
-        newExplanation
+        oldExplanation: normalizedOldExplanation,
+        newExplanation: normalizedNewExplanation
       };
     }
 
     // Rich text diff
     return { 
       type: "rich" as const, 
-      data: computeWordDiff(oldContent, newContent), 
+      data: computeWordDiff(normalizedOldContent, normalizedNewContent), 
       isFirstVersion: false,
-      explanationDiff: null,
-      oldExplanation: null,
-      newExplanation: null
+      explanationDiff,
+      oldExplanation: normalizedOldExplanation,
+      newExplanation: normalizedNewExplanation
     };
   }, [currentVersion, compareVersion, currentContent]);
 
@@ -353,9 +354,9 @@ const ChatDiffView = ({
                 <Separator className="my-4" />
                 <div className="p-4 bg-muted/20 rounded-lg">
                   <h4 className="text-sm font-semibold text-muted-foreground mb-2">Explanation</h4>
-                  <div className="prose dark:prose-invert max-w-none text-sm">
+                  <div className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
                     {!showHighlights || !explanationDiff ? (
-                      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(newExplanation || oldExplanation || "") }} />
+                      <div>{newExplanation || oldExplanation || ""}</div>
                     ) : (
                       explanationDiff.map((segment, index) => {
                         if (segment.type === "removed") {
@@ -363,8 +364,9 @@ const ChatDiffView = ({
                             <span
                               key={index}
                               className="bg-red-200 dark:bg-red-800/50 line-through text-red-700 dark:text-red-300 px-0.5 rounded"
-                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(segment.text) }}
-                            />
+                            >
+                              {segment.text}
+                            </span>
                           );
                         }
                         if (segment.type === "added") {
@@ -372,11 +374,12 @@ const ChatDiffView = ({
                             <span
                               key={index}
                               className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200 px-0.5 rounded"
-                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(segment.text) }}
-                            />
+                            >
+                              {segment.text}
+                            </span>
                           );
                         }
-                        return <span key={index} dangerouslySetInnerHTML={{ __html: sanitizeHtml(segment.text) }} />;
+                        return <span key={index}>{segment.text}</span>;
                       })
                     )}
                   </div>
@@ -410,11 +413,11 @@ const RichTextDiffView = ({
           <span className="text-sm font-medium">Inline Diff View</span>
         </div>
         <ScrollArea className="h-[600px]">
-          <div className="prose dark:prose-invert max-w-none p-4">
+          <div className="whitespace-pre-wrap break-words p-4 text-sm leading-7 text-foreground">
             {segments.map((segment, index) => {
               if (!showHighlights) {
                 if (segment.type === "removed") return null;
-                return <span key={index} dangerouslySetInnerHTML={{ __html: segment.text }} />;
+                return <span key={index}>{segment.text}</span>;
               }
               
               switch (segment.type) {
@@ -424,8 +427,9 @@ const RichTextDiffView = ({
                       key={index}
                       className="bg-green-200 dark:bg-green-800/50 text-green-900 dark:text-green-100 px-0.5 rounded"
                       title="Added"
-                      dangerouslySetInnerHTML={{ __html: segment.text }}
-                    />
+                    >
+                      {segment.text}
+                    </span>
                   );
                 case "removed":
                   return (
@@ -433,11 +437,12 @@ const RichTextDiffView = ({
                       key={index}
                       className="bg-red-200 dark:bg-red-800/50 line-through px-0.5 rounded text-red-700 dark:text-red-300"
                       title="Removed"
-                      dangerouslySetInnerHTML={{ __html: segment.text }}
-                    />
+                    >
+                      {segment.text}
+                    </span>
                   );
                 default:
-                  return <span key={index} dangerouslySetInnerHTML={{ __html: segment.text }} />;
+                  return <span key={index}>{segment.text}</span>;
               }
             })}
 

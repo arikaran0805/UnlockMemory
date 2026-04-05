@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, Trash2, Edit2, Search, Image, FileText, Video, Music, Copy } from "lucide-react";
+import { Upload, Trash2, Edit2, Search, Image, FileText, Video, Music, Copy, FolderOpen } from "lucide-react";
 
 interface MediaFile {
   id: string;
@@ -208,6 +209,22 @@ const AdminMedia = () => {
     file.file_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const renderLoadingGrid = () => (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 10 }).map((_, index) => (
+        <Card key={`media-skeleton-${index}`} className="overflow-hidden">
+          <CardContent className="p-0">
+            <Skeleton className="aspect-square w-full rounded-none" />
+            <div className="space-y-2 p-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
   return (
     <>
     <div className="flex flex-col gap-0">
@@ -216,98 +233,148 @@ const AdminMedia = () => {
           <h1 className="text-3xl font-bold text-foreground">Media Library</h1>
           <p className="text-muted-foreground">Upload and manage images, videos, and other assets</p>
         </div>
-        <div className="flex items-center gap-2">
+        <Button asChild disabled={uploading}>
           <Label htmlFor="upload" className="cursor-pointer">
-            <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-              <Upload className="h-4 w-4" />
-              {uploading ? "Uploading..." : "Upload Files"}
-            </div>
-            <Input
-              id="upload"
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleUpload}
-              disabled={uploading}
-            />
+            <Upload className="h-4 w-4" />
+            {uploading ? "Uploading..." : "Upload Files"}
           </Label>
-        </div>
+        </Button>
+        <Input
+          id="upload"
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleUpload}
+          disabled={uploading}
+        />
       </div>
 
       <div className="admin-section-spacing-top" />
 
       <div className="space-y-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80" />
+              <Input
+                placeholder="Search files by name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-10 pl-10"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {filteredMedia.length} {filteredMedia.length === 1 ? "file" : "files"} shown
+              <span className="mx-2">•</span>
+              Supports images, videos, and documents
+            </p>
+          </div>
+          <div className="hidden shrink-0 text-xs text-muted-foreground lg:block">
+            Built for uploads now, ready for filters and views later
+          </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
-        ) : filteredMedia.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            {searchQuery ? "No files found" : "No media files yet. Upload some!"}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredMedia.map((file) => (
-              <Card key={file.id} className="group overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="aspect-square relative bg-muted flex items-center justify-center overflow-hidden">
-                    {file.file_type.startsWith("image/") ? (
-                      <img
-                        src={file.file_url}
-                        alt={file.file_name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      getFileIcon(file.file_type)
-                    )}
-                    <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        onClick={() => copyToClipboard(file.file_url)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        onClick={() => {
-                          setSelectedFile(file);
-                          setNewFileName(file.file_name);
-                          setRenameDialogOpen(true);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedFile(file);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="p-2">
-                    <p className="text-sm font-medium truncate">{file.file_name}</p>
-                    <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        <Card className="border-border/70">
+          <CardContent className="p-6">
+            {loading ? (
+              renderLoadingGrid()
+            ) : filteredMedia.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="mb-4 rounded-2xl border border-border/60 bg-muted/40 p-4">
+                  <FolderOpen className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {searchQuery ? "No matching files" : "No media files yet"}
+                </h3>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                  {searchQuery
+                    ? "Try a different file name or clear your search to see the full library."
+                    : "Upload images, videos, and other assets to use across your platform."}
+                </p>
+                {!searchQuery && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Supports common image, video, audio, and document formats
+                  </p>
+                )}
+                {!searchQuery && (
+                  <Button asChild className="mt-5" disabled={uploading}>
+                    <Label htmlFor="upload-empty" className="cursor-pointer">
+                      <Upload className="h-4 w-4" />
+                      Upload your first file
+                    </Label>
+                  </Button>
+                )}
+                {!searchQuery && (
+                  <Input
+                    id="upload-empty"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleUpload}
+                    disabled={uploading}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {filteredMedia.map((file) => (
+                  <Card key={file.id} className="group overflow-hidden border-border/70">
+                    <CardContent className="p-0">
+                      <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-muted">
+                        {file.file_type.startsWith("image/") ? (
+                          <img
+                            src={file.file_url}
+                            alt={file.file_name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          getFileIcon(file.file_type)
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-background/80 opacity-0 transition-opacity group-hover:opacity-100">
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            onClick={() => copyToClipboard(file.file_url)}
+                            aria-label={`Copy URL for ${file.file_name}`}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            onClick={() => {
+                              setSelectedFile(file);
+                              setNewFileName(file.file_name);
+                              setRenameDialogOpen(true);
+                            }}
+                            aria-label={`Rename ${file.file_name}`}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            onClick={() => {
+                              setSelectedFile(file);
+                              setDeleteDialogOpen(true);
+                            }}
+                            aria-label={`Delete ${file.file_name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <p className="truncate text-sm font-medium">{file.file_name}</p>
+                        <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
 

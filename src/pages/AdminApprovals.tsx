@@ -27,9 +27,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
+import {
   CheckCircle, XCircle, MessageSquare, Clock, BookOpen, 
-  GraduationCap, Briefcase, Tags, Eye, History
+  GraduationCap, Eye, History
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -57,8 +57,6 @@ const AdminApprovals = () => {
   const [activeTab, setActiveTab] = useState("posts");
   const [pendingPosts, setPendingPosts] = useState<PendingItem[]>([]);
   const [pendingCourses, setPendingCourses] = useState<PendingItem[]>([]);
-  const [pendingCareers, setPendingCareers] = useState<PendingItem[]>([]);
-  const [pendingTags, setPendingTags] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Dialog states
@@ -74,7 +72,7 @@ const AdminApprovals = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const { role: userRole, courseIds, careerIds, loading: scopeLoading } = useRoleScope();
+  const { role: userRole, courseIds, loading: scopeLoading } = useRoleScope();
   const isSuperMod = userRole === "super_moderator";
   const isSeniorMod = userRole === "senior_moderator";
   const canApprove = isAdmin || isSuperMod || isSeniorMod;
@@ -94,8 +92,6 @@ const AdminApprovals = () => {
     await Promise.all([
       fetchPendingPosts(),
       fetchPendingCourses(),
-      fetchPendingCareers(),
-      fetchPendingTags(),
     ]);
     setLoading(false);
   };
@@ -176,66 +172,6 @@ const AdminApprovals = () => {
       setPendingCourses(coursesWithAuthors);
     } catch (error: any) {
       console.error("Error fetching pending courses:", error);
-    }
-  };
-
-  const fetchPendingCareers = async () => {
-    // Senior mods don't have career-level scope — skip
-    if (!isAdmin && !isSuperMod) {
-      setPendingCareers([]);
-      return;
-    }
-    try {
-      let query = supabase
-        .from("careers")
-        .select("*")
-        .eq("status", "pending")
-        .order("updated_at", { ascending: false });
-
-      if (isSuperMod && careerIds.length > 0) {
-        query = query.in("id", careerIds);
-      } else if (isSuperMod && careerIds.length === 0) {
-        setPendingCareers([]);
-        return;
-      }
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      const careersWithAuthors = await Promise.all(
-        (data || []).map(async (career) => ({
-          ...career,
-          author: await fetchAuthorInfo(career.author_id),
-        }))
-      );
-      
-      setPendingCareers(careersWithAuthors);
-    } catch (error: any) {
-      console.error("Error fetching pending careers:", error);
-    }
-  };
-
-  const fetchPendingTags = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("tags")
-        .select("*")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      
-      const tagsWithAuthors = await Promise.all(
-        (data || []).map(async (tag) => ({
-          ...tag,
-          author: await fetchAuthorInfo(tag.author_id),
-        }))
-      );
-      
-      setPendingTags(tagsWithAuthors);
-    } catch (error: any) {
-      console.error("Error fetching pending tags:", error);
     }
   };
 
@@ -377,14 +313,36 @@ const AdminApprovals = () => {
 
   const getItemName = (item: PendingItem) => item.title || item.name || "Untitled";
   const getAuthorName = (item: PendingItem) => item.author?.full_name || item.author?.email || "Unknown";
+  const getPublishedContentPath = (contentType: string) =>
+    contentType === "course" ? "/admin/courses" : "/admin/posts";
 
   const renderContentTable = (items: PendingItem[], contentType: string, icon: React.ReactNode) => (
     <Card>
       <CardContent className="p-0">
         {items.length === 0 ? (
           <div className="text-center py-12">
-            {icon}
-            <p className="text-muted-foreground mt-4">No pending {contentType}s</p>
+            <div className="mx-auto flex justify-center text-foreground/60 [&_svg]:opacity-95 [&_svg]:stroke-[1.75]">
+              {icon}
+            </div>
+            <p className="mt-4 text-base font-medium text-foreground">No pending {contentType}s</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              All submissions are reviewed. You're up to date.
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-muted-foreground/90">No new submissions from moderators</p>
+              <p className="text-xs text-muted-foreground/75">Last checked just now</p>
+            </div>
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-border/70 bg-background/80 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                onClick={() => navigate(getPublishedContentPath(contentType))}
+              >
+                View Published Content
+              </Button>
+            </div>
           </div>
         ) : (
           <Table>
@@ -487,7 +445,25 @@ const AdminApprovals = () => {
     );
   }
 
-  const totalPending = pendingPosts.length + pendingCourses.length + pendingCareers.length + pendingTags.length;
+  const totalPending = pendingPosts.length + pendingCourses.length;
+  const queueStatus =
+    totalPending === 0
+      ? {
+          label: "All Clear",
+          className:
+            "border-emerald-200/80 bg-emerald-50 text-emerald-700 hover:bg-emerald-50",
+        }
+      : totalPending <= 5
+        ? {
+            label: "Few Pending",
+            className:
+              "border-amber-200/80 bg-amber-50 text-amber-700 hover:bg-amber-50",
+          }
+        : {
+            label: "High Priority",
+            className:
+              "border-red-200/80 bg-red-50 text-red-700 hover:bg-red-50",
+          };
 
   return (
     <>
@@ -499,9 +475,12 @@ const AdminApprovals = () => {
             Review and approve content submitted by moderators
           </p>
         </div>
-        <Badge variant="secondary" className="text-lg px-4 py-2">
+        <Badge
+          variant="secondary"
+          className={`text-lg px-4 py-2 ${queueStatus.className}`}
+        >
           <Clock className="h-4 w-4 mr-2" />
-          {totalPending} Pending
+          {queueStatus.label}
         </Badge>
       </div>
 
@@ -509,42 +488,32 @@ const AdminApprovals = () => {
 
       <div className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
-            <TabsTrigger value="posts" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger
+              value="posts"
+              className="flex items-center gap-2 transition-colors hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
               <BookOpen className="h-4 w-4" />
               Posts
-              {pendingPosts.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 min-w-5">
-                  {pendingPosts.length}
-                </Badge>
-              )}
+              <Badge
+                variant="outline"
+                className="ml-1 h-5 min-w-5 border-border/70 bg-background/70 px-1.5 text-[11px] font-semibold text-muted-foreground data-[state=active]:text-foreground"
+              >
+                {pendingPosts.length}
+              </Badge>
             </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center gap-2">
+            <TabsTrigger
+              value="courses"
+              className="flex items-center gap-2 transition-colors hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
               <GraduationCap className="h-4 w-4" />
               Courses
-              {pendingCourses.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 min-w-5">
-                  {pendingCourses.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="careers" className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
-              Careers
-              {pendingCareers.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 min-w-5">
-                  {pendingCareers.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="tags" className="flex items-center gap-2">
-              <Tags className="h-4 w-4" />
-              Tags
-              {pendingTags.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 min-w-5">
-                  {pendingTags.length}
-                </Badge>
-              )}
+              <Badge
+                variant="outline"
+                className="ml-1 h-5 min-w-5 border-border/70 bg-background/70 px-1.5 text-[11px] font-semibold text-muted-foreground data-[state=active]:text-foreground"
+              >
+                {pendingCourses.length}
+              </Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -553,12 +522,6 @@ const AdminApprovals = () => {
           </TabsContent>
           <TabsContent value="courses" className="mt-6">
             {renderContentTable(pendingCourses, "course", <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto" />)}
-          </TabsContent>
-          <TabsContent value="careers" className="mt-6">
-            {renderContentTable(pendingCareers, "career", <Briefcase className="h-12 w-12 text-muted-foreground mx-auto" />)}
-          </TabsContent>
-          <TabsContent value="tags" className="mt-6">
-            {renderContentTable(pendingTags, "tag", <Tags className="h-12 w-12 text-muted-foreground mx-auto" />)}
           </TabsContent>
         </Tabs>
       </div>
