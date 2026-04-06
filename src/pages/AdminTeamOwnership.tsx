@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,13 +10,24 @@ import TeamCanvasEditor from "@/components/team-ownership/TeamCanvasEditor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Plus, Users2, Briefcase, Archive } from "lucide-react";
+import { Search, Plus, Users2, Briefcase, Archive, ClipboardList } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { useApprovalRouting } from "@/hooks/useApprovalRouting";
+import type { ApprovalTaskWithMeta } from "@/hooks/useApprovalRouting";
 import type { Team, Career } from "@/components/team-ownership/types";
 
 const AdminTeamOwnership = () => {
@@ -36,6 +47,62 @@ const AdminTeamOwnership = () => {
   const [showCareerDialog, setShowCareerDialog] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+
+  // Pending approvals panel
+  const { getTasksAssignedTo, reassignTask, getEligibleReassignees } = useApprovalRouting();
+  const [pendingTasks, setPendingTasks] = useState<ApprovalTaskWithMeta[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [reassignees, setReassignees] = useState<Record<string, Array<{ id: string; full_name: string; role: string }>>>({});
+
+  const fetchPendingTasks = useCallback(async () => {
+    if (!userId) return;
+    setTasksLoading(true);
+    try {
+      const tasks = await getTasksAssignedTo(userId);
+      setPendingTasks(tasks);
+
+      // Pre-fetch eligible reassignees for each task
+      const reassignerRole = isSuperMod ? "super_moderator" : "senior_moderator";
+      const entries = await Promise.all(
+        tasks.map(async (t) => {
+          const list = await getEligibleReassignees({
+            reassignerRole,
+            careerId: t.career_id,
+            courseId: t.course_id ?? undefined,
+            excludeUserId: userId,
+          });
+          return [t.id, list] as const;
+        }),
+      );
+      setReassignees(Object.fromEntries(entries));
+    } catch {
+      // Non-critical: panel silently stays empty if approval_tasks table not yet migrated
+    } finally {
+      setTasksLoading(false);
+    }
+  }, [userId, isSuperMod, getTasksAssignedTo, getEligibleReassignees]);
+
+  useEffect(() => {
+    if (!scopeLoading && userId) fetchPendingTasks();
+  }, [scopeLoading, userId, fetchPendingTasks]);
+
+  const handleReassign = async (taskId: string, newAssignee: string, careerId: string) => {
+    if (!userId) return;
+    try {
+      await reassignTask({
+        taskId,
+        reassignedBy: userId,
+        reassignedByRole: isSuperMod ? "super_moderator" : "senior_moderator",
+        newAssignee,
+        careerId,
+      });
+      toast({ title: "Task reassigned successfully" });
+      fetchPendingTasks();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast({ title: "Reassign failed", description: msg, variant: "destructive" });
+    }
+  };
 
   // Derive view state from URL params
   const editingTeamId = searchParams.get("edit");
@@ -436,6 +503,81 @@ const AdminTeamOwnership = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pending Approvals Panel */}
+      {(isAdmin || isSuperMod || role === "senior_moderator") && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <ClipboardList className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-xl font-semibold text-foreground">Pending approvals</h2>
+            {pendingTasks.length > 0 && (
+              <Badge variant="secondary">{pendingTasks.length}</Badge>
+            )}
+          </div>
+
+          {tasksLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-16 rounded-xl" />
+              ))}
+            </div>
+          ) : pendingTasks.length === 0 ? (
+            <div className="card-premium rounded-xl p-6 text-center text-muted-foreground">
+              No pending approvals assigned to you.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {pendingTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="card-premium rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Badge variant="outline" className="shrink-0 capitalize">
+                      {task.content_type}
+                    </Badge>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {task.submitter_name}
+                      </p>
+                      {task.course_name && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {task.course_name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground shrink-0">
+                    {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
+                  </p>
+                  <Select
+                    onValueChange={(newAssignee) =>
+                      handleReassign(task.id, newAssignee, task.career_id)
+                    }
+                  >
+                    <SelectTrigger className="w-44 shrink-0">
+                      <SelectValue placeholder="Reassign…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(reassignees[task.id] ?? []).length === 0 ? (
+                        <SelectItem value="__none__" disabled>
+                          No eligible reviewers
+                        </SelectItem>
+                      ) : (
+                        (reassignees[task.id] ?? []).map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.full_name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

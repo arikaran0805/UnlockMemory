@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import type { Team, UserProfile, CourseWithAssignments, SuperModeratorAssignment } from "./types";
 import UserPickerPopover from "@/components/admin/teams/UserPickerPopover";
+import { syncModeratorLinks, syncSeniorModeratorLinks } from "@/services/ownershipSyncService";
 
 interface UserWithRole extends UserProfile {
   role?: "admin" | "super_moderator" | "senior_moderator" | "moderator" | "user" | null;
@@ -278,6 +279,14 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh, viewerRole = "admin" }: Te
         const user = allUsers.find((u) => u.id === selectedUserId);
         setSuperModerators((prev) => [...prev, { ...data, user }]);
         toast({ title: "Career Manager added" });
+
+        // Sync super_moderator_id on all senior_mod assignments for this career
+        try {
+          await syncSeniorModeratorLinks({ seniorModeratorId: selectedUserId, careerId: team.career_id });
+        } catch (syncErr: unknown) {
+          const msg = syncErr instanceof Error ? syncErr.message : "Unknown sync error";
+          toast({ title: "Ownership sync warning", description: msg, variant: "destructive" });
+        }
       } else if (courseId) {
         const course = courses.find((c) => c.id === courseId);
 
@@ -322,6 +331,16 @@ const TeamCanvasEditor = ({ team, onClose, onRefresh, viewerRole = "admin" }: Te
         );
 
         toast({ title: `${targetType === "senior_moderator" ? "Course Manager" : "Content Moderator"} added` });
+
+        // Sync ownership routing links after a moderator assignment
+        if (targetType === "moderator") {
+          try {
+            await syncModeratorLinks({ moderatorId: selectedUserId, courseId });
+          } catch (syncErr: unknown) {
+            const msg = syncErr instanceof Error ? syncErr.message : "Unknown sync error";
+            toast({ title: "Ownership sync warning", description: msg, variant: "destructive" });
+          }
+        }
       }
     } catch (error: any) {
       toast({ title: "Error adding assignment", description: error.message, variant: "destructive" });
