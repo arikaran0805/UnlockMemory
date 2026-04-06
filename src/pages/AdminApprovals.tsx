@@ -249,6 +249,60 @@ const AdminApprovals = () => {
 
       if (updateError) throw updateError;
 
+      // When approving a post, promote the latest draft version to published (fix #1)
+      if (selectedContentType === "post" && actionType === "approve") {
+        // Archive any currently published version rows
+        await supabase
+          .from("post_versions")
+          .update({ status: "archived", is_published: false })
+          .eq("post_id", selectedItem.id)
+          .eq("status", "published");
+
+        // Find the latest draft version to promote
+        const { data: latestDraftRows } = await supabase
+          .from("post_versions")
+          .select("id")
+          .eq("post_id", selectedItem.id)
+          .eq("status", "draft")
+          .order("version_number", { ascending: false })
+          .limit(1);
+
+        if (latestDraftRows?.length) {
+          await supabase
+            .from("post_versions")
+            .update({ status: "published", is_published: true })
+            .eq("id", latestDraftRows[0].id);
+        } else {
+          // No draft version exists — create a published version from the post's current content
+          const { data: postData } = await supabase
+            .from("posts")
+            .select("content")
+            .eq("id", selectedItem.id)
+            .single();
+
+          if (postData?.content) {
+            const { data: maxVersionRow } = await supabase
+              .from("post_versions")
+              .select("version_number")
+              .eq("post_id", selectedItem.id)
+              .order("version_number", { ascending: false })
+              .limit(1);
+            const nextVersionNumber = (maxVersionRow?.[0]?.version_number ?? 0) + 1;
+
+            await supabase.from("post_versions").insert({
+              post_id: selectedItem.id,
+              version_number: nextVersionNumber,
+              content: postData.content,
+              editor_type: "canvas",
+              edited_by: session.user.id,
+              editor_role: "admin",
+              status: "published",
+              is_published: true,
+            });
+          }
+        }
+      }
+
       // Record the action in approval history
       const { error: historyError } = await supabase
         .from("approval_history")

@@ -533,6 +533,28 @@ const AdminPostEditor = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // When submitting for review, verify an approver is assigned to this course (#2, #3)
+      let approverUserId: string | null = null;
+      if (shouldCreateApprovalHistory && formData.category_id) {
+        const { data: approverData } = await supabase
+          .from("course_assignments")
+          .select("user_id")
+          .eq("course_id", formData.category_id)
+          .in("role", ["senior_moderator", "super_moderator"])
+          .limit(1)
+          .maybeSingle();
+
+        if (!approverData) {
+          toast({
+            title: "No reviewer assigned",
+            description: "This course has no senior or super moderator assigned. Please contact an admin before submitting.",
+            variant: "destructive",
+          });
+          return;
+        }
+        approverUserId = approverData.user_id;
+      }
+
       const postData = {
         title: validated.title,
         slug: validated.slug,
@@ -657,6 +679,23 @@ const AdminPostEditor = () => {
           action: "submitted",
           performed_by: session.user.id,
         });
+
+        // Persist the assigned approver on the post and notify them (#2)
+        if (approverUserId) {
+          await supabase
+            .from("posts")
+            .update({ related_senior_moderator_user_id: approverUserId })
+            .eq("id", postId);
+
+          await supabase.from("moderator_notifications").insert({
+            user_id: approverUserId,
+            type: "submission",
+            title: `New post awaiting review: "${validated.title}"`,
+            message: `A post has been submitted for your review.`,
+            content_id: postId,
+            content_type: "post",
+          });
+        }
       }
 
       // Clear auto-saved draft on successful save

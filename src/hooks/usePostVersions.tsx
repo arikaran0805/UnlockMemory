@@ -155,9 +155,13 @@ export const usePostVersions = (postId: string | undefined) => {
         }
 
         // Otherwise create a new draft version.
-        const nextVersionNumber = versions.length > 0
-          ? Math.max(...versions.map(v => v.version_number)) + 1
-          : 1;
+        const { data: maxVersionRow } = await supabase
+          .from("post_versions")
+          .select("version_number")
+          .eq("post_id", postId)
+          .order("version_number", { ascending: false })
+          .limit(1);
+        const nextVersionNumber = (maxVersionRow?.[0]?.version_number ?? 0) + 1;
 
         const { data, error } = await supabase
           .from("post_versions")
@@ -219,15 +223,19 @@ export const usePostVersions = (postId: string | undefined) => {
         data = result.data;
         error = result.error;
       } else {
-        const nextVersionNumber = versions.length > 0
-          ? Math.max(...versions.map(v => v.version_number)) + 1
-          : 1;
+        const { data: maxVersionRow2 } = await supabase
+          .from("post_versions")
+          .select("version_number")
+          .eq("post_id", postId)
+          .order("version_number", { ascending: false })
+          .limit(1);
+        const nextVersionNumber2 = (maxVersionRow2?.[0]?.version_number ?? 0) + 1;
 
         const result = await supabase
           .from("post_versions")
           .insert({
             post_id: postId,
-            version_number: nextVersionNumber,
+            version_number: nextVersionNumber2,
             content,
             editor_type: editorType,
             edited_by: session.user.id,
