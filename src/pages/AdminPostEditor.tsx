@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { CanvasEditor, type CanvasEditorRef, type BlockKind } from "@/components/canvas-editor";
+import { CanvasEditor, type CanvasEditorRef, type BlockKind, parseCanvasContent, isCanvasContent } from "@/components/canvas-editor";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -49,6 +49,30 @@ const postSchema = z.object({
   category_id: z.string().uuid().optional().or(z.literal("")),
   status: z.enum(["draft", "published", "pending", "rejected", "changes_requested"]),
 });
+
+/** Returns an error message if any checkpoint block is incomplete, otherwise null. */
+const validateCheckpointBlocks = (content: string): string | null => {
+  if (!isCanvasContent(content)) return null;
+  const { blocks } = parseCanvasContent(content);
+  for (const block of blocks) {
+    if (block.kind !== 'checkpoint') continue;
+    const d = block.data;
+    const blockName = block.name || 'Unnamed checkpoint';
+    if (!d || !d.question?.trim()) {
+      return `Checkpoint "${blockName}" is missing a question.`;
+    }
+    if (!d.options || d.options.length < 2) {
+      return `Checkpoint "${blockName}" must have at least 2 options.`;
+    }
+    if (!d.correctOptionId || !d.options.some(o => o.id === d.correctOptionId)) {
+      return `Checkpoint "${blockName}" has no correct answer selected.`;
+    }
+    if (d.options.some(o => !o.text?.trim())) {
+      return `Checkpoint "${blockName}" has one or more empty options.`;
+    }
+  }
+  return null;
+};
 
 interface Category {
   id: string;
@@ -159,11 +183,18 @@ const AdminPostEditor = () => {
   const previousContentRef = useRef<string>("");
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [readTimeOverride, setReadTimeOverride] = useState<number | null>(null);
-  const canvasEditorInstanceKey = id ? `post-${id}` : "new-post";
 
   // Version and annotation hooks
   const { versions, loading: versionsLoading, metadata, saveVersionAsDraft, saveVersionOnPublish, publishVersion, restoreVersion } = usePostVersions(id);
   const { annotations, loading: annotationsLoading, createAnnotation, createReply, deleteReply, updateAnnotationStatus, deleteAnnotation } = usePostAnnotations(id);
+  const latestEditedVersion = useMemo(
+    () => versions.find((version) => version.status === "draft") ?? versions[0] ?? null,
+    [versions]
+  );
+  const canvasEditorInstanceKey = useMemo(
+    () => (id ? `post-${id}-${latestEditedVersion?.id ?? "base"}` : "new-post"),
+    [id, latestEditedVersion?.id]
+  );
 
   // Only existing posts restore autosaved drafts; new posts should always open clean.
   const draftKey = id ? `post_${id}` : "";
@@ -304,15 +335,14 @@ const AdminPostEditor = () => {
   // By default, load the most recently edited version into the editor
   useEffect(() => {
     if (!id || versionsLoading || didSyncLatestVersion) return;
-    if (versions.length === 0) return;
+    if (!latestEditedVersion) return;
 
-    const latest = versions[0];
-    setFormData((prev) => ({ ...prev, content: latest.content }));
-    setOriginalContent(latest.content);
-    previousContentRef.current = latest.content;
+    setFormData((prev) => ({ ...prev, content: latestEditedVersion.content }));
+    setOriginalContent(latestEditedVersion.content);
+    previousContentRef.current = latestEditedVersion.content;
 
     setDidSyncLatestVersion(true);
-  }, [id, versionsLoading, versions, didSyncLatestVersion]);
+  }, [id, versionsLoading, latestEditedVersion, didSyncLatestVersion]);
   const fetchCategories = async () => {
     try {
       let query = supabase
@@ -486,6 +516,19 @@ const AdminPostEditor = () => {
       }
 
       const validated = postSchema.parse({ ...formData, status: resolvedStatus });
+
+      // Validate checkpoint blocks before publishing
+      if (isPublishing) {
+        const checkpointError = validateCheckpointBlocks(formData.content);
+        if (checkpointError) {
+          toast({
+            title: "Incomplete checkpoint",
+            description: checkpointError,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;

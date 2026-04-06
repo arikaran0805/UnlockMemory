@@ -2065,20 +2065,19 @@ const CourseDetail = () => {
             </Card>
           </main>
 
-          {/* RIGHT SIDEBAR - AdSense blocks for course + post views */}
-          {shouldShowAdsInCourse && (
-            <CourseSidebarAds
-              adSettings={adSettings ? {
-                googleAdClient: adSettings.googleAdClient,
-                sidebarTopSlot: adSettings.sidebarTopSlot,
-                sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
-                sidebarBottomSlot: adSettings.sidebarBottomSlot,
-              } : null}
-              isHeaderVisible={isHeaderVisible}
-              showAnnouncement={showAnnouncement}
-              showClarityText={isPro}
-            />
-          )}
+          {/* RIGHT SIDEBAR - keep width reserved so content does not shift when ads initialize */}
+          <CourseSidebarAds
+            adSettings={adSettings ? {
+              googleAdClient: adSettings.googleAdClient,
+              sidebarTopSlot: adSettings.sidebarTopSlot,
+              sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
+              sidebarBottomSlot: adSettings.sidebarBottomSlot,
+            } : null}
+            showAds={shouldShowAdsInCourse}
+            isHeaderVisible={isHeaderVisible}
+            showAnnouncement={showAnnouncement}
+            showClarityText={isPro}
+          />
         </div>
       </div>
 

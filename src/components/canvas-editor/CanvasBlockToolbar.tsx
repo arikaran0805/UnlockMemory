@@ -8,13 +8,13 @@
 import { useRef } from 'react';
 import {
   GripVertical, Copy, Trash2, ChevronDown, ChevronRight,
-  FileText, MessageCircle,
+  FileText, MessageCircle, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface CanvasBlockToolbarProps {
-  kind: 'text' | 'chat';
+  kind: 'text' | 'chat' | 'checkpoint';
   name: string;
   onNameChange: (name: string) => void;
   isCollapsed: boolean;
@@ -37,8 +37,8 @@ const CanvasBlockToolbar = ({
   contentPreview,
 }: CanvasBlockToolbarProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const KindIcon = kind === 'text' ? FileText : MessageCircle;
-  const kindLabel = kind === 'text' ? 'text' : 'chat';
+  const KindIcon = kind === 'text' ? FileText : kind === 'checkpoint' ? CheckCircle2 : MessageCircle;
+  const kindLabel = kind === 'text' ? 'text' : kind === 'checkpoint' ? 'checkpoint' : 'chat';
 
   return (
     <div

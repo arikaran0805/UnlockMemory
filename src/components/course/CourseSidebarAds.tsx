@@ -9,6 +9,7 @@ interface CourseSidebarAdsProps {
     sidebarMiddleSlot?: string;
     sidebarBottomSlot?: string;
   } | null;
+  showAds?: boolean;
   isHeaderVisible: boolean;
   showAnnouncement: boolean;
   className?: string;
@@ -24,6 +25,7 @@ interface CourseSidebarAdsProps {
  */
 export const CourseSidebarAds = ({
   adSettings,
+  showAds = true,
   isHeaderVisible,
   showAnnouncement,
   className = "",
@@ -37,30 +39,34 @@ export const CourseSidebarAds = ({
   return (
     <aside className={cn("hidden xl:block w-[300px] flex-shrink-0", className)}>
       <div className={cn("sticky transition-[top] duration-200 ease-out", stickyTopClass)}>
-        <div className="space-y-4 p-1 pb-6">
-          {/* Top Ad Slot */}
-          <SidebarAdTop
-            googleAdSlot={adSettings?.sidebarTopSlot}
-            googleAdClient={adSettings?.googleAdClient}
-          />
+        {showAds ? (
+          <div className="space-y-4 p-1 pb-6">
+            {/* Top Ad Slot */}
+            <SidebarAdTop
+              googleAdSlot={adSettings?.sidebarTopSlot}
+              googleAdClient={adSettings?.googleAdClient}
+            />
 
-          {/* Middle Ad Slot */}
-          <SidebarAdMiddle
-            googleAdSlot={adSettings?.sidebarMiddleSlot}
-            googleAdClient={adSettings?.googleAdClient}
-          />
+            {/* Middle Ad Slot */}
+            <SidebarAdMiddle
+              googleAdSlot={adSettings?.sidebarMiddleSlot}
+              googleAdClient={adSettings?.googleAdClient}
+            />
 
-          {/* Bottom Ad Slot */}
-          <SidebarAdBottom
-            googleAdSlot={adSettings?.sidebarBottomSlot}
-            googleAdClient={adSettings?.googleAdClient}
-          />
+            {/* Bottom Ad Slot */}
+            <SidebarAdBottom
+              googleAdSlot={adSettings?.sidebarBottomSlot}
+              googleAdClient={adSettings?.googleAdClient}
+            />
 
-          {/* Clarity text for Pro users on non-career courses */}
-          {showClarityText && (
-            <AdClarityText className="mt-2" />
-          )}
-        </div>
+            {/* Clarity text for Pro users on non-career courses */}
+            {showClarityText && (
+              <AdClarityText className="mt-2" />
+            )}
+          </div>
+        ) : (
+          <div aria-hidden="true" className="min-h-px p-1 pb-6" />
+        )}
       </div>
     </aside>
   );

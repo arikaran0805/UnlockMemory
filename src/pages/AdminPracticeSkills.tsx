@@ -235,17 +235,37 @@ export default function AdminPracticeSkills() {
           )}
         </>
       ) : (
-        <Card className="bg-muted/30">
-          <CardContent className="text-center py-12">
-            <Code2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No practice skills yet.</p>
-            <Button
-              variant="link"
-              onClick={() => navigate("/admin/practice/skills/new")}
-              className="mt-2"
-            >
-              Create your first skill
-            </Button>
+        <Card className="relative overflow-hidden rounded-2xl border-primary/15 bg-gradient-to-b from-primary/[0.035] via-background to-background">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-60"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 36%), linear-gradient(rgba(34, 197, 94, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 197, 94, 0.05) 1px, transparent 1px)",
+              backgroundSize: "100% 100%, 24px 24px, 24px 24px",
+            }}
+          />
+          <CardContent className="relative flex min-h-[360px] items-center justify-center px-6 py-16 sm:px-10 sm:py-20">
+            <div className="mx-auto flex w-full max-w-lg flex-col items-center text-center">
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-primary/15 bg-primary/10 shadow-sm shadow-primary/5">
+                <Code2 className="h-9 w-9 text-primary/70" />
+              </div>
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
+                No practice skills yet
+              </h2>
+              <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground sm:text-[15px]">
+                Start by creating your first skill to organize learning, practice, and progression more clearly.
+              </p>
+              {canManageLabs && (
+                <Button
+                  onClick={() => navigate("/admin/practice/skills/new")}
+                  className="mt-8 h-11 rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/15 hover:bg-primary/90"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create your first skill
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

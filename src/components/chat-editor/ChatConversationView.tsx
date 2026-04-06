@@ -47,6 +47,7 @@ interface ChatConversationViewProps {
   courseType?: string;
   className?: string;
   codeTheme?: string;
+  showHeader?: boolean;
   /** Allow rendering single-speaker conversations (used in canvas blocks) */
   allowSingleSpeaker?: boolean;
   /** Annotations for the explanation section */
@@ -253,6 +254,7 @@ const ChatConversationView = ({
   courseType = "python",
   className,
   codeTheme,
+  showHeader = true,
   allowSingleSpeaker = false,
   explanationAnnotations = [],
   isAdmin = false,
@@ -537,7 +539,7 @@ const ChatConversationView = ({
   }
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn("space-y-6 w-full", className)}>
       {/* Chat conversation - Chat Bubbles Section */}
       <div
         id="lesson-chat-bubbles"
@@ -546,46 +548,43 @@ const ChatConversationView = ({
           "chat-conversation-view overflow-hidden"
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-black/[0.045]">
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-1.5">
-              {/* Mentor (Karan) avatar */}
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-emerald-500/16"
-                style={{ backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }}
-              >
-                K
+        {showHeader && (
+          <div className="flex items-center justify-between pl-0 pr-6 py-3 border-b border-black/[0.045]">
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-1.5">
+                {/* Mentor (Karan) avatar */}
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-emerald-500/16"
+                  style={{ backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }}
+                >
+                  K
+                </div>
+                {/* Course avatar */}
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-[#E2EBE6]"
+                  style={
+                    { backgroundColor: "#E8F0EC", color: "#5E7068" }
+                  }
+                >
+                  {courseCharacter.name?.charAt(0)?.toUpperCase() || "U"}
+                </div>
               </div>
-              {/* Course avatar */}
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-[#E2EBE6]"
-                style={
-                  { backgroundColor: "#E8F0EC", color: "#5E7068" }
-                }
-              >
-                {courseCharacter.name?.charAt(0)?.toUpperCase() || "U"}
-              </div>
-            </div>
-            <div className="flex flex-col gap-0">
-              <div className="text-[12.5px] font-semibold text-[#1e1e1e] tracking-tight leading-tight">
-                Karan {'&'} {courseCharacter.name}
-              </div>
-              <div className="text-[11px] text-[#9A9A9A] leading-tight mt-0.5">
-                Interactive Lesson
+              <div className="flex flex-col gap-0">
+                <div className="text-[12.5px] font-semibold text-[#1e1e1e] tracking-tight leading-tight">
+                  Karan {'&'} {courseCharacter.name}
+                </div>
+                <div className="text-[11px] text-[#9A9A9A] leading-tight mt-0.5">
+                  Interactive Lesson
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" />
-            <span className="text-[11px] text-[#9A9A9A] tracking-wide">Live</span>
-          </div>
-        </div>
+        )}
 
         {/* Messages */}
-        <div className="relative p-6">
+        <div className="relative pl-0 pr-6 py-6">
           {/* Conversation spine — aligns with left avatar center (p-6=24px + w-7/2=14px = 38px) */}
-          <div className="pointer-events-none absolute bottom-6 left-[38px] top-6 w-px bg-emerald-400/[0.24]" />
+          <div className="pointer-events-none absolute bottom-6 left-[16px] top-6 w-px bg-emerald-400/[0.24]" />
           {/* Empty state when no messages */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">

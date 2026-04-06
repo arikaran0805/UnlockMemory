@@ -13,6 +13,7 @@ import {
 } from './types';
 import { RichTextRenderer } from '@/components/tiptap';
 import { ChatConversationView } from '@/components/chat-editor';
+import { InlineCheckpointRenderer } from './checkpoint';
 
 interface CanvasRendererProps {
   content: string;
@@ -27,6 +28,11 @@ const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRen
     return parseCanvasContent(content).blocks;
   }, [content]);
 
+  const firstChatBlockId = useMemo(
+    () => blocks.find((block) => block.kind === "chat")?.id ?? null,
+    [blocks]
+  );
+
   if (blocks.length === 0) {
     return null;
   }
@@ -38,16 +44,25 @@ const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRen
           key={block.id}
           className={cn(
             "canvas-rendered-block",
-            block.kind === "text" ? "canvas-rendered-block-text" : "canvas-rendered-block-chat"
+            block.kind === "text"
+              ? "canvas-rendered-block-text"
+              : block.kind === "checkpoint"
+                ? "canvas-rendered-block-checkpoint py-4"
+                : "canvas-rendered-block-chat"
           )}
         >
           {block.kind === 'text' ? (
             <RichTextRenderer content={block.content} />
+          ) : block.kind === 'checkpoint' ? (
+            block.data ? (
+              <InlineCheckpointRenderer data={block.data} blockId={block.id} />
+            ) : null
           ) : (
             <ChatConversationView
               content={block.content}
               courseType={courseType}
               codeTheme={codeTheme}
+              showHeader={block.id === firstChatBlockId}
               allowSingleSpeaker
             />
           )}

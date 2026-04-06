@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 import AdminCareersTab from "@/components/admin/AdminCareersTab";
 
@@ -46,6 +48,10 @@ const AdminCareers = () => {
           <h1 className="text-3xl font-bold text-foreground">Career Paths</h1>
           <p className="text-muted-foreground">Manage learning tracks and career progression paths</p>
         </div>
+        <Button onClick={() => navigate("/admin/careers/new")}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Career
+        </Button>
       </div>
 
       <div className="admin-section-spacing-top" />

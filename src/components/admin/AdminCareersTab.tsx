@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2, BookOpen } from "lucide-react";
 import * as Icons from "lucide-react";
 
 interface Career {
@@ -124,14 +124,7 @@ const AdminCareersTab = () => {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => navigate("/admin/careers/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Career
-        </Button>
-      </div>
-
+    <div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {careers.map((career) => (
           <Card key={career.id}>

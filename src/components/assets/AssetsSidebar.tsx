@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import {
   Layers, Upload, Check, Image as ImageIcon,
-  FileText, MessageCircle, GripVertical, Maximize2, Minimize2, Trash2, Pencil,
+  FileText, MessageCircle, CheckCircle2, GripVertical, Maximize2, Minimize2, Trash2, Pencil,
   Loader2, AlertCircle,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,7 +13,7 @@ export interface AssetItem {
   type: 'image' | 'icon' | 'svg' | 'block';
   url: string;
   name: string;
-  blockKind?: 'text' | 'chat';
+  blockKind?: 'text' | 'chat' | 'checkpoint';
   author?: string;
   authorUrl?: string;
   source?: string;
@@ -22,7 +22,7 @@ export interface AssetItem {
 interface CanvasBlockEntry {
   id: string;
   name: string;
-  kind: 'text' | 'chat';
+  kind: 'text' | 'chat' | 'checkpoint';
 }
 
 interface MediaLibraryState {
@@ -332,28 +332,6 @@ export function AssetsSidebar({
                     Click to add · Drag onto canvas to place
                   </p>
 
-                  {/* Text Block */}
-                  <div
-                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
-                    draggable
-                    onDragStart={e => {
-                      e.dataTransfer.setData('block-kind', 'text');
-                      e.dataTransfer.effectAllowed = 'copy';
-                    }}
-                    onClick={() =>
-                      onInsert?.({ type: 'block', url: '', name: 'Text Block', blockKind: 'text' })
-                    }
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium">Text Block</p>
-                      <p className="text-[11px] text-muted-foreground">Rich-text content</p>
-                    </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
-                  </div>
-
                   {/* Chat Block */}
                   <div
                     className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
@@ -376,6 +354,50 @@ export function AssetsSidebar({
                     <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
                   </div>
 
+                  {/* Text Block */}
+                  <div
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('block-kind', 'text');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() =>
+                      onInsert?.({ type: 'block', url: '', name: 'Text Block', blockKind: 'text' })
+                    }
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">Text Block</p>
+                      <p className="text-[11px] text-muted-foreground">Rich-text content</p>
+                    </div>
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                  </div>
+
+                  {/* Checkpoint Block */}
+                  <div
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('block-kind', 'checkpoint');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() =>
+                      onInsert?.({ type: 'block', url: '', name: 'Checkpoint Block', blockKind: 'checkpoint' })
+                    }
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">Checkpoint Block</p>
+                      <p className="text-[11px] text-muted-foreground">Knowledge-check content</p>
+                    </div>
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                  </div>
+
                   <div className="pt-3 border-t">
                     <p className="text-[11px] text-muted-foreground/70">
                       You can also double-click anywhere on the canvas to add a block inline.
@@ -394,10 +416,13 @@ export function AssetsSidebar({
                           className="group flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-muted transition-colors"
                         >
                           <div className="flex-shrink-0 w-6 h-6 rounded bg-muted flex items-center justify-center">
-                            {b.kind === 'chat'
-                              ? <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                              : <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                            }
+                            {b.kind === 'chat' ? (
+                              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                            ) : b.kind === 'checkpoint' ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            ) : (
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                            )}
                           </div>
                           {renamingBlockId === b.id ? (
                             <input
@@ -427,14 +452,28 @@ export function AssetsSidebar({
                               onDoubleClick={(e) => {
                                 e.stopPropagation();
                                 setRenamingBlockId(b.id);
-                                setRenameValue(b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block'));
+                                setRenameValue(
+                                  b.name || (
+                                    b.kind === 'chat'
+                                      ? 'Chat Block'
+                                      : b.kind === 'checkpoint'
+                                        ? 'Checkpoint Block'
+                                        : 'Text Block'
+                                  )
+                                );
                                 setTimeout(() => renameInputRef.current?.select(), 0);
                               }}
                               className="flex-1 min-w-0 text-left"
                               title="Click to scroll · Double-click to rename"
                             >
                               <span className="text-xs truncate text-foreground block">
-                                {b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block')}
+                                {b.name || (
+                                  b.kind === 'chat'
+                                    ? 'Chat Block'
+                                    : b.kind === 'checkpoint'
+                                      ? 'Checkpoint Block'
+                                      : 'Text Block'
+                                )}
                               </span>
                             </button>
                           )}
@@ -442,7 +481,15 @@ export function AssetsSidebar({
                             <button
                               onClick={() => {
                                 setRenamingBlockId(b.id);
-                                setRenameValue(b.name || (b.kind === 'chat' ? 'Chat Block' : 'Text Block'));
+                                setRenameValue(
+                                  b.name || (
+                                    b.kind === 'chat'
+                                      ? 'Chat Block'
+                                      : b.kind === 'checkpoint'
+                                        ? 'Checkpoint Block'
+                                        : 'Text Block'
+                                  )
+                                );
                                 setTimeout(() => renameInputRef.current?.select(), 0);
                               }}
                               className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-0.5 rounded hover:bg-primary/10"

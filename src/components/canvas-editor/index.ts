@@ -8,3 +8,4 @@ export { default as DraggableBlock } from './DraggableBlock';
 export { default as CanvasBlockToolbar } from './CanvasBlockToolbar';
 export { default as CanvasContextMenu } from './CanvasContextMenu';
 export * from './types';
+export * from './checkpoint';

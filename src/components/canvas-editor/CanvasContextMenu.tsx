@@ -2,7 +2,7 @@
  * CanvasContextMenu - Context menu for adding blocks
  */
 
-import { FileText, MessageCircle } from 'lucide-react';
+import { FileText, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { BlockKind, ContextMenuPosition } from './types';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +54,13 @@ const CanvasContextMenu = ({ position, onAddBlock, onClose }: CanvasContextMenuP
         >
           <MessageCircle className="h-4 w-4" />
           Chat Block
+        </button>
+        <button
+          onClick={() => handleAddBlock('checkpoint')}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          Checkpoint Block
         </button>
       </div>
     </>

@@ -12,10 +12,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
-import { CanvasBlock } from './types';
+import { CanvasBlock, InlineCheckpointData } from './types';
 import CanvasBlockToolbar from './CanvasBlockToolbar';
 import { RichTextEditor, type RichTextEditorRef } from '@/components/tiptap';
 import { ChatStyleEditor } from '@/components/chat-editor';
+import { InlineCheckpointEditor } from './checkpoint';
 import type { Editor } from '@tiptap/react';
 
 /** Extract a short plain-text preview from block content */
@@ -174,6 +175,13 @@ const DraggableBlock = ({
               onChange={handleContentChange}
               placeholder="Write your content here…"
               className="min-h-[450px]"
+            />
+          ) : block.kind === 'checkpoint' ? (
+            <InlineCheckpointEditor
+              data={block.data!}
+              onChange={(updatedData: InlineCheckpointData) =>
+                onUpdate(block.id, { data: updatedData })
+              }
             />
           ) : (
             <ChatStyleEditor

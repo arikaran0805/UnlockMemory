@@ -2,7 +2,23 @@
  * Canvas Editor Types
  */
 
-export type BlockKind = 'text' | 'chat';
+export type BlockKind = 'text' | 'chat' | 'checkpoint';
+
+export interface CheckpointOption {
+  id: string;
+  text: string;
+}
+
+export interface InlineCheckpointData {
+  question: string;
+  questionType?: 'text' | 'code';
+  questionLanguage?: string;
+  options: CheckpointOption[];
+  correctOptionId: string;
+  explanation: string;       // shown after answer; may be empty
+  allowRetry: boolean;
+  showExplanation: boolean;
+}
 
 export interface CanvasBlock {
   id: string;
@@ -13,6 +29,7 @@ export interface CanvasBlock {
   w: number;
   h: number;
   content: string;
+  data?: InlineCheckpointData;
 }
 
 export interface CanvasData {
@@ -63,17 +80,36 @@ export const isCanvasContent = (content: string): boolean => {
   }
 };
 
+const defaultCheckpointData = (): InlineCheckpointData => ({
+  question: '',
+  questionType: 'text',
+  questionLanguage: 'python',
+  options: [],
+  correctOptionId: '',
+  explanation: '',
+  allowRetry: true,
+  showExplanation: true,
+});
+
 export const parseCanvasContent = (content: string): CanvasData => {
   try {
     const parsed = JSON.parse(content);
     if (parsed?.version === 1 && Array.isArray(parsed?.blocks)) {
-      // Backfill name for old blocks that don't have one
+      // Backfill name and checkpoint data for blocks that don't have them
       return {
         ...parsed,
-        blocks: parsed.blocks.map((b: CanvasBlock) => ({
-          name: '',
-          ...b,
-        })),
+        blocks: parsed.blocks.map((b: CanvasBlock) => {
+          const block = { name: '', ...b };
+          if (block.kind === 'checkpoint' && !block.data) {
+            block.data = defaultCheckpointData();
+          } else if (block.kind === 'checkpoint' && block.data) {
+            block.data = {
+              ...defaultCheckpointData(),
+              ...block.data,
+            };
+          }
+          return block;
+        }),
       };
     }
   } catch {

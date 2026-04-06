@@ -19,11 +19,12 @@ import {
 import {
   SortableContext, arrayMove, verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, FileText, MessageSquare } from 'lucide-react';
+import { Plus, FileText, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   CanvasBlock, CanvasData, BlockKind, ContextMenuPosition,
   createEmptyBlock, parseCanvasContent, serializeCanvasContent,
+  InlineCheckpointData,
 } from './types';
 import DraggableBlock from './DraggableBlock';
 import CanvasContextMenu from './CanvasContextMenu';
@@ -135,7 +136,19 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     // ── Block management ──────────────────────────────────────────────────────
     const createBlock = useCallback((kind: BlockKind, existingBlocks: CanvasBlock[]) => {
       const name = autoName(kind, existingBlocks);
-      return createEmptyBlock(kind, CANVAS_PADDING, snapToGrid(existingBlocks.length * 60), name);
+      const block = createEmptyBlock(kind, CANVAS_PADDING, snapToGrid(existingBlocks.length * 60), name);
+      if (kind === 'checkpoint') {
+        const defaultData: InlineCheckpointData = {
+          question: '',
+          options: [],
+          correctOptionId: '',
+          explanation: '',
+          allowRetry: true,
+          showExplanation: true,
+        };
+        block.data = defaultData;
+      }
+      return block;
     }, []);
 
     const addBlockInternal = useCallback((kind: BlockKind, atIndex?: number) => {
@@ -371,6 +384,13 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                             <MessageSquare className="h-3 w-3" />
                             Chat
                           </button>
+                          <button
+                            onClick={() => addBlockInternal('checkpoint', index - 1)}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            Checkpoint
+                          </button>
                           <div className="h-px flex-1 w-8 bg-primary/40" />
                         </div>
                       )}
@@ -428,6 +448,13 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                         >
                           <MessageSquare className="h-3 w-3" />
                           Chat
+                        </button>
+                        <button
+                          onClick={() => addBlockInternal('checkpoint', canvasData.blocks.length - 1)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
+                        >
+                          <CheckCircle2 className="h-3 w-3" />
+                          Checkpoint
                         </button>
                         <div className="h-px w-8 bg-primary/40" />
                       </div>
