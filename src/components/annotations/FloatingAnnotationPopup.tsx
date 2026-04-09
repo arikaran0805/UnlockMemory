@@ -34,6 +34,30 @@ interface FloatingAnnotationPopupProps {
   isModerator: boolean;
 }
 
+// ── CSS Custom Highlight helpers ──────────────────────────────────────────
+// When the LightEditor inside the popup gets focus the browser clears the
+// native selection.  We use the CSS Custom Highlight API (Chrome 105+,
+// Safari 17.2+) to keep a visible highlight on the original text range.
+// The ::highlight(annotation-pending) rule in index.css colours it.
+
+const HIGHLIGHT_NAME = "annotation-pending";
+
+function paintCssHighlight(range: Range | null) {
+  if (!range) return;
+  try {
+    const hl = (CSS as unknown as { highlights: Map<string, unknown> }).highlights;
+    if (hl) hl.set(HIGHLIGHT_NAME, new (window as unknown as { Highlight: new (...r: Range[]) => unknown }).Highlight(range));
+  } catch { /* browser doesn't support CSS Custom Highlight API — silent fallback */ }
+}
+
+function clearCssHighlight() {
+  try {
+    const hl = (CSS as unknown as { highlights: Map<string, unknown> }).highlights;
+    if (hl) hl.delete(HIGHLIGHT_NAME);
+  } catch { /* silent */ }
+}
+// ─────────────────────────────────────────────────────────────────────────
+
 const FloatingAnnotationPopup = ({
   selectedText,
   onAddAnnotation,
@@ -47,37 +71,59 @@ const FloatingAnnotationPopup = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<LightEditorRef>(null);
-  const lastRectRef = useRef<DOMRect | null>(null);
+  // Cloned Range — stays valid even after the browser clears the selection
+  const rangeRef = useRef<Range | null>(null);
 
-  // Calculate position based on selection
+  // Capture range immediately when selectedText is set.
+  // Clear the CSS highlight when selection is dismissed.
+  useEffect(() => {
+    if (!selectedText) {
+      rangeRef.current = null;
+      clearCssHighlight();
+      return;
+    }
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      rangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  }, [selectedText]);
+
+  // When the popup expands the LightEditor steals focus and the browser
+  // drops the native selection. Paint our CSS highlight so the user can
+  // still see which text they're annotating.
+  useEffect(() => {
+    if (isExpanded) {
+      paintCssHighlight(rangeRef.current);
+    } else {
+      clearCssHighlight();
+    }
+  }, [isExpanded]);
+
+  // Position calculation — re-runs on scroll/resize using the stored Range
   useEffect(() => {
     if (!selectedText) {
       setPosition(null);
       setIsExpanded(false);
       setComment("");
       setPlacement("top");
-      lastRectRef.current = null;
       return;
     }
 
-    const update = () => {
-      if (selectedText.rect && (selectedText.rect.width > 0 || selectedText.rect.height > 0)) {
-        lastRectRef.current = selectedText.rect as DOMRect;
-      } else {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const rect = selection.getRangeAt(0).getBoundingClientRect();
-          if (rect && (rect.width !== 0 || rect.height !== 0)) {
-            lastRectRef.current = rect;
-          }
-        }
+    const computePosition = () => {
+      let rect: DOMRect | null = null;
+
+      // Primary: query the cloned Range (always has current viewport coords)
+      if (rangeRef.current) {
+        const r = rangeRef.current.getBoundingClientRect();
+        if (r.width !== 0 || r.height !== 0) rect = r;
       }
 
-      const rect = lastRectRef.current;
-      if (!rect) {
-        setPosition(null);
-        return;
+      // Fallback: snapshot rect passed in (e.g. from TipTap coordsAtPos)
+      if (!rect && selectedText.rect && (selectedText.rect.width > 0 || selectedText.rect.height > 0)) {
+        rect = selectedText.rect as DOMRect;
       }
+
+      if (!rect) { setPosition(null); return; }
 
       const padding = 12;
       const minHalfWidth = 150;
@@ -94,15 +140,31 @@ const FloatingAnnotationPopup = ({
       const rawLeft = rect.left + rect.width / 2;
       const left = Math.max(
         padding + minHalfWidth,
-        Math.min(window.innerWidth - padding - minHalfWidth, rawLeft)
+        Math.min(window.innerWidth - padding - minHalfWidth, rawLeft),
       );
 
       setPlacement(nextPlacement);
       setPosition({ top, left });
     };
 
-    const raf = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(raf);
+    let rafId: number;
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(computePosition);
+    };
+
+    scheduleUpdate();
+
+    // Re-anchor on every scroll (capture phase catches nested scrollable panels)
+    // and on resize. The cloned Range gives fresh getBoundingClientRect() each time.
+    window.addEventListener("scroll", scheduleUpdate, { passive: true, capture: true });
+    window.addEventListener("resize", scheduleUpdate, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", scheduleUpdate, { capture: true });
+      window.removeEventListener("resize", scheduleUpdate);
+    };
   }, [selectedText, isExpanded]);
 
   // Focus editor when expanded
@@ -157,6 +219,7 @@ const FloatingAnnotationPopup = ({
 
     setComment("");
     setIsExpanded(false);
+    clearCssHighlight();
     onClose();
   };
 
@@ -217,6 +280,7 @@ const FloatingAnnotationPopup = ({
               size="sm"
               variant="ghost"
               className="gap-2 flex-1 justify-start"
+              onMouseDown={e => e.preventDefault()}
               onClick={() => setIsExpanded(true)}
             >
               <MessageSquarePlus className="h-4 w-4 text-primary" />

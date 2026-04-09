@@ -300,6 +300,181 @@ export const getTextPreview = (content: string | null | undefined, maxLength: nu
 };
 
 /**
+ * Convert a TipTap JSON doc to a markdown string.
+ * Used to normalize legacy chat bubble content that was saved as raw TipTap JSON
+ * before the tiptapJsonToMarkdown fix in ChatStyleEditor.
+ */
+export const tiptapJsonToMarkdown = (json: any): string => {
+  if (!json) return '';
+
+  const inlineToMd = (node: any): string => {
+    if (node.type === 'hardBreak') return '\n';
+    let text = node.text || (node.content ? node.content.map(inlineToMd).join('') : '');
+    for (const mark of (node.marks || [])) {
+      if (mark.type === 'bold') text = `**${text}**`;
+      else if (mark.type === 'italic') text = `*${text}*`;
+      else if (mark.type === 'code') text = `\`${text}\``;
+      else if (mark.type === 'link') text = `[${text}](${mark.attrs?.href || ''})`;
+    }
+    return text;
+  };
+
+  const nodeToMd = (node: any): string => {
+    switch (node.type) {
+      case 'doc':
+        return (node.content || []).map(nodeToMd).join('\n');
+      case 'paragraph':
+        return (node.content || []).map(inlineToMd).join('');
+      case 'heading': {
+        const level = node.attrs?.level || 2;
+        return '#'.repeat(level) + ' ' + (node.content || []).map(inlineToMd).join('');
+      }
+      case 'bulletList':
+        return (node.content || []).map((item: any) =>
+          `• ${(item.content || []).map(nodeToMd).join('')}`
+        ).join('\n');
+      case 'orderedList':
+        return (node.content || []).map((item: any, i: number) =>
+          `${i + 1}. ${(item.content || []).map(nodeToMd).join('')}`
+        ).join('\n');
+      case 'blockquote':
+        return (node.content || []).map(nodeToMd).join('\n')
+          .split('\n').map((l: string) => `> ${l}`).join('\n');
+      case 'codeBlock': {
+        const lang = node.attrs?.language || '';
+        const code = (node.content || []).map((n: any) => n.text || '').join('');
+        return `\`\`\`${lang}\n${code}\n\`\`\``;
+      }
+      case 'executableCodeBlock': {
+        const lang = node.attrs?.language || '';
+        const code = node.attrs?.code || (node.content || []).map((n: any) => n.text || '').join('');
+        return `\`\`\`${lang}\n${code}\n\`\`\``;
+      }
+      case 'hardBreak':
+        return '\n';
+      default:
+        return (node.content || []).map(nodeToMd).join('');
+    }
+  };
+
+  return nodeToMd(json).trim();
+};
+
+/**
+ * Parse inline markdown text into TipTap inline nodes (text with marks).
+ * Handles **bold**, *italic*, `inline code`.
+ */
+const parseInlineMarkdownNodes = (text: string): JSONContent[] => {
+  const nodes: JSONContent[] = [];
+  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`([^`]+)`)/g;
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      nodes.push({ type: 'text', text: text.slice(lastIdx, match.index) });
+    }
+    if (match[1]) {
+      nodes.push({ type: 'text', text: match[2], marks: [{ type: 'bold' }] });
+    } else if (match[3]) {
+      nodes.push({ type: 'text', text: match[4], marks: [{ type: 'italic' }] });
+    } else if (match[5]) {
+      nodes.push({ type: 'text', text: match[6], marks: [{ type: 'code' }] });
+    }
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < text.length) {
+    nodes.push({ type: 'text', text: text.slice(lastIdx) });
+  }
+  return nodes.length > 0 ? nodes : [{ type: 'text', text }];
+};
+
+/**
+ * Convert a markdown string to TipTap JSON using executableCodeBlock nodes.
+ * Use this when initialising LightEditor with markdown content so that
+ * code fences become proper executableCodeBlock nodes (matching the LightEditor schema).
+ */
+export const markdownToTipTapJSON = (md: string): JSONContent => {
+  const emptyDoc: JSONContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+  if (!md || !md.trim()) return emptyDoc;
+
+  const lines = md.split('\n');
+  const blocks: JSONContent[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Fenced code block
+    const codeOpen = line.match(/^```(\w*)$/);
+    if (codeOpen) {
+      const lang = codeOpen[1] || 'plaintext';
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && lines[i] !== '```') {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      blocks.push({
+        type: 'executableCodeBlock',
+        attrs: { language: lang, code: codeLines.join('\n') },
+      });
+      continue;
+    }
+
+    // Heading
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      blocks.push({
+        type: 'heading',
+        attrs: { level: heading[1].length },
+        content: parseInlineMarkdownNodes(heading[2]),
+      });
+      i++;
+      continue;
+    }
+
+    // Blockquote
+    if (line.startsWith('> ')) {
+      blocks.push({
+        type: 'blockquote',
+        content: [{ type: 'paragraph', content: parseInlineMarkdownNodes(line.slice(2)) }],
+      });
+      i++;
+      continue;
+    }
+
+    // Empty line
+    if (!line.trim()) {
+      blocks.push({ type: 'paragraph' });
+      i++;
+      continue;
+    }
+
+    // Regular paragraph
+    blocks.push({ type: 'paragraph', content: parseInlineMarkdownNodes(line) });
+    i++;
+  }
+
+  return { type: 'doc', content: blocks.length > 0 ? blocks : [{ type: 'paragraph' }] };
+};
+
+/**
+ * If a string looks like a TipTap JSON doc, convert it to markdown.
+ * Otherwise return the string unchanged. Safe to call on any content.
+ */
+export const normalizeBubbleContent = (content: string): string => {
+  if (!content || !content.trim().startsWith('{')) return content;
+  try {
+    const parsed = JSON.parse(content.trim());
+    if (parsed?.type === 'doc') {
+      return tiptapJsonToMarkdown(parsed);
+    }
+  } catch { /* not valid JSON */ }
+  return content;
+};
+
+/**
  * Migration helper for batch processing
  * Returns statistics about the migration
  */

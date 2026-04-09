@@ -52,6 +52,8 @@ interface DraggableBlockProps {
   lessonLabel?: string;
   isCollapsed: boolean;
   onToggleCollapse: (id: string) => void;
+  annotationMode?: boolean;
+  onTextSelect?: (type: "paragraph" | "code" | "conversation", bubbleIndex?: number) => void;
 }
 
 const DraggableBlock = ({
@@ -66,6 +68,8 @@ const DraggableBlock = ({
   lessonLabel,
   isCollapsed,
   onToggleCollapse,
+  annotationMode,
+  onTextSelect,
 }: DraggableBlockProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -131,16 +135,25 @@ const DraggableBlock = ({
     return () => onRegisterEditor(block.id, null);
   });
 
+  const kindAccent: Record<string, string> = {
+    text: 'border-l-violet-400',
+    chat: 'border-l-sky-400',
+    checkpoint: 'border-l-emerald-400',
+    takeaway: 'border-l-amber-400',
+    freeform: 'border-l-fuchsia-400',
+  };
+
   return (
     <div
       ref={setRefs}
       style={style}
       className={cn(
-        'group rounded-lg border bg-background transition-shadow duration-150',
-        isDragging && 'opacity-30 shadow-2xl',
+        'group rounded-lg border border-l-[3px] bg-card transition-all duration-150',
+        kindAccent[block.kind],
+        isDragging && 'opacity-20 shadow-2xl scale-[0.98]',
         isFocused || isSelected
-          ? 'border-primary shadow-md ring-1 ring-primary/20'
-          : 'border-border/50 hover:border-border',
+          ? 'border-primary/60 shadow-lg ring-2 ring-primary/20'
+          : 'border-border shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:border-border hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]',
       )}
       onClick={(e) => {
         const target = e.target as HTMLElement | null;
@@ -163,6 +176,7 @@ const DraggableBlock = ({
         onDelete={() => onDelete(block.id)}
         dragHandleProps={{ ...listeners, ...attributes }}
         contentPreview={getContentPreview(block.content)}
+        annotationMode={annotationMode}
       />
 
       {/* Content – hidden when collapsed */}
@@ -175,6 +189,11 @@ const DraggableBlock = ({
               onChange={handleContentChange}
               placeholder="Write your content here…"
               className="min-h-[450px]"
+              annotationMode={annotationMode}
+              onTextSelect={annotationMode && onTextSelect
+                ? (_sel) => onTextSelect("paragraph")
+                : undefined
+              }
             />
           ) : block.kind === 'checkpoint' ? (
             <InlineCheckpointEditor
@@ -191,6 +210,8 @@ const DraggableBlock = ({
               courseType={lessonLabel || "python"}
               showExplanation={false}
               lessonLabel={lessonLabel}
+              annotationMode={annotationMode}
+              onTextSelect={(sel) => onTextSelect?.("conversation", sel.bubbleIndex)}
             />
           )}
         </div>

@@ -3,9 +3,10 @@ import { PostVersion } from "@/hooks/usePostVersions";
 import { computeWordDiff, DiffSegment, normalizeDiffContent } from "@/lib/diffUtils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { isChatTranscript, extractChatSegments, extractExplanation } from "@/lib/chatContent";
+import { normalizeBubbleContent } from "@/lib/tiptapMigration";
 import { Separator } from "@/components/ui/separator";
 
 interface VersionDiffViewerProps {
@@ -42,9 +43,9 @@ const VersionDiffViewer = ({
     // If no old content, show all as "added"
     if (!oldContent) {
       if (isChatTranscript(newContent)) {
-        const bubbles = extractChatSegments(newContent, { allowSingle: true });
-        return { 
-          type: "chat" as const, 
+        const bubbles = extractChatSegments(newContent, { allowSingle: true }).map(b => ({ ...b, content: normalizeBubbleContent(b.content) }));
+        return {
+          type: "chat" as const,
           data: bubbles.map(bubble => ({ bubble, status: "added" as const })),
           isFirstVersion: true,
           explanationDiff,
@@ -111,8 +112,8 @@ const VersionDiffViewer = ({
 
 // Compare chat bubbles and return highlighted version
 function compareChatBubbles(oldContent: string, newContent: string) {
-  const oldBubbles = extractChatSegments(oldContent, { allowSingle: true });
-  const newBubbles = extractChatSegments(newContent, { allowSingle: true });
+  const oldBubbles = extractChatSegments(oldContent, { allowSingle: true }).map(b => ({ ...b, content: normalizeBubbleContent(b.content) }));
+  const newBubbles = extractChatSegments(newContent, { allowSingle: true }).map(b => ({ ...b, content: normalizeBubbleContent(b.content) }));
 
   const result: Array<{
     bubble: any;
@@ -151,15 +152,27 @@ const HighlightToggle = ({
   if (!onToggle) return null;
   
   return (
-    <div className="flex items-center gap-2 mb-4 p-2 bg-muted/30 rounded-lg">
-      <Switch
+    <div className="flex items-center gap-3 mb-4 px-3 py-2.5 bg-muted/20 border border-border/40 rounded-lg">
+      <Checkbox
         id="inline-highlight-toggle"
         checked={showHighlights}
-        onCheckedChange={onToggle}
+        onCheckedChange={(checked) => onToggle(checked === true)}
       />
-      <Label htmlFor="inline-highlight-toggle" className="text-sm cursor-pointer">
+      <Label htmlFor="inline-highlight-toggle" className="text-sm cursor-pointer font-medium">
         Show highlights
       </Label>
+      {showHighlights && (
+        <div className="flex items-center gap-3 ml-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-400/80 border border-green-500/50" />
+            Added
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-400/80 border border-red-500/50" />
+            Removed
+          </span>
+        </div>
+      )}
     </div>
   );
 };

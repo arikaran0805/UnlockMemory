@@ -1,15 +1,25 @@
 /**
- * ChatEditor - Markdown-based TipTap Editor for Chat Bubbles
- * 
- * Used for chat-style content creation in the conversational learning format.
- * Stores content as markdown strings for compatibility with existing parsing.
- * 
- * ROLES: Platform Manager, Career Manager, Course Manager, Content Moderator (assigned only)
+ * ChatEditor - Inline bubble editor, styled identically to LightEditor
+ *
+ * Uses the same outer wrapper + tiptap-light-toolbar CSS classes as LightEditor
+ * so the UI is pixel-perfect match. Backend stays tiptap-markdown for correct
+ * markdown in/out (code blocks as triple-backtick text, not Monaco widgets).
+ *
+ * Enter → save  •  Shift+Enter → newline  •  Escape → cancel
  */
 
-import { forwardRef, useImperativeHandle, useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { useEditor, EditorContent, type Editor } from '@tiptap/react';
+import {
+  forwardRef,
+  useImperativeHandle,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useEditor, EditorContent, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type Editor } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
+import CodeBlock from '@tiptap/extension-code-block';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -17,61 +27,52 @@ import CharacterCount from '@tiptap/extension-character-count';
 import { Markdown } from 'tiptap-markdown';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-  Bold, Italic, Code, List, ListOrdered, Heading2, Quote, Link as LinkIcon, 
-  ChevronDown, Check, X, Eye, EyeOff, Columns
-} from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
-} from '@/components/ui/dropdown-menu';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { MonacoCodeBlock } from '@/components/code-block';
+  Bold,
+  Italic,
+  Code,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Plus,
+  Check,
+  X,
+} from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import '@/styles/tiptap.css';
-
-// Detect OS for keyboard shortcut display
-const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-const modKey = isMac ? '⌘' : 'Ctrl';
 
 const CODE_LANGUAGES = [
   { value: 'python', label: 'Python' },
-  { value: 'sql', label: 'SQL' },
   { value: 'javascript', label: 'JavaScript' },
   { value: 'typescript', label: 'TypeScript' },
+  { value: 'sql', label: 'SQL' },
   { value: 'html', label: 'HTML' },
   { value: 'css', label: 'CSS' },
   { value: 'json', label: 'JSON' },
   { value: 'bash', label: 'Bash/Shell' },
+  { value: 'r', label: 'R' },
+  { value: 'java', label: 'Java' },
+  { value: 'csharp', label: 'C#' },
+  { value: 'cpp', label: 'C++' },
 ];
 
-type ViewMode = 'edit' | 'preview' | 'split';
-
 export interface ChatEditorProps {
-  /** Initial markdown content */
   value: string;
-  /** Change handler - receives markdown string */
   onChange?: (markdown: string) => void;
-  /** Save callback (Enter key) */
   onSave?: (markdown: string) => void;
-  /** Cancel callback (Escape key) */
   onCancel?: () => void;
-  /** Placeholder text */
   placeholder?: string;
-  /** Is this a mentor bubble (affects styling) */
   isMentor?: boolean;
-  /** Code theme for preview */
+  /** Unused — kept for API compat */
   codeTheme?: string;
-  /** Custom class */
   className?: string;
-  /** Auto focus on mount */
   autoFocus?: boolean;
 }
 
@@ -84,33 +85,72 @@ export interface ChatEditorRef {
   clear: () => void;
 }
 
-// Get extensions for chat editor
-const getChatEditorExtensions = (
-  placeholder?: string,
-  onSaveRef?: React.RefObject<((md: string) => void) | undefined>,
-  onCancelRef?: React.RefObject<(() => void) | undefined>,
-  getMarkdownRef?: React.RefObject<((ed: Editor) => string) | undefined>
+/* ------------------------------------------------------------------ */
+/* Code-fence NodeView — renders as raw ``` markers (no styled box)    */
+/* ------------------------------------------------------------------ */
+
+const CodeFenceView = ({ node }: { node: any }) => {
+  const language = (node.attrs as { language?: string }).language || '';
+  return (
+    <NodeViewWrapper>
+      <div className="font-mono text-sm leading-relaxed my-0.5">
+        <div contentEditable={false} className="select-none opacity-60">{`\`\`\`${language}`}</div>
+        <NodeViewContent as="div" style={{ whiteSpace: 'pre-wrap' }} />
+        <div contentEditable={false} className="select-none opacity-60">{'```'}</div>
+      </div>
+    </NodeViewWrapper>
+  );
+};
+
+const FlatCodeBlock = CodeBlock.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(CodeFenceView);
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* Extensions                                                           */
+/* ------------------------------------------------------------------ */
+
+const buildExtensions = (
+  placeholder: string,
+  onSaveRef: React.RefObject<((md: string) => void) | undefined>,
+  onCancelRef: React.RefObject<(() => void) | undefined>,
+  getMarkdownRef: React.RefObject<((ed: Editor) => string) | undefined>,
 ) => {
-  // Custom extension for chat-specific keyboard shortcuts
-  const ChatKeyboardShortcuts = Extension.create({
+  const ChatKeys = Extension.create({
     name: 'chatKeyboardShortcuts',
-    
     addKeyboardShortcuts() {
       return {
-        // Enter saves the message
-        'Enter': ({ editor }) => {
-          // Save the content
-          if (onSaveRef?.current && getMarkdownRef?.current) {
-            const md = getMarkdownRef.current(editor);
-            onSaveRef.current(md);
+        Enter: ({ editor }) => {
+          if (editor.isActive('codeBlock')) {
+            // Mirror ProseMirror's newlineInCode exactly: insertText('\n') + scrollIntoView.
+            // scrollIntoView is what moves the visual cursor to the new line — without it
+            // the transaction applies but the caret stays at the old position.
+            return editor.commands.command(({ tr, dispatch }) => {
+              if (dispatch) dispatch(tr.insertText('\n').scrollIntoView());
+              return true;
+            });
           }
-          return true; // We handled it
+          // Inside a list item: let TipTap handle Enter so it creates the next
+          // numbered/bullet item (or exits the list on an empty item).
+          if (editor.isActive('listItem')) return false;
+          if (onSaveRef.current && getMarkdownRef.current) {
+            onSaveRef.current(getMarkdownRef.current(editor));
+          }
+          return true;
         },
-        // Escape cancels
-        'Escape': () => {
-          if (onCancelRef?.current) {
-            onCancelRef.current();
+        'Shift-Enter': ({ editor }) => {
+          if (editor.isActive('codeBlock')) {
+            return editor.commands.command(({ tr, dispatch }) => {
+              if (dispatch) dispatch(tr.insertText('\n').scrollIntoView());
+              return true;
+            });
           }
+          return false;
+        },
+        Escape: () => {
+          onCancelRef.current?.();
           return true;
         },
       };
@@ -120,389 +160,306 @@ const getChatEditorExtensions = (
   return [
     StarterKit.configure({
       heading: { levels: [2] },
-      codeBlock: {
-        HTMLAttributes: {
-          class: 'tiptap-code-block',
-        },
-      },
+      codeBlock: false, // replaced by FlatCodeBlock (renders raw ``` markers)
     }),
+    FlatCodeBlock,
     Link.configure({
       openOnClick: false,
       HTMLAttributes: { class: 'tiptap-link' },
     }),
-    Placeholder.configure({
-      placeholder: placeholder || 'Type your message...',
-      emptyEditorClass: 'is-editor-empty',
-    }),
+    Placeholder.configure({ placeholder, emptyEditorClass: 'is-editor-empty' }),
     CharacterCount,
     Markdown.configure({
       html: false,
       transformCopiedText: true,
       transformPastedText: true,
     }),
-    ChatKeyboardShortcuts,
+    ChatKeys,
   ];
 };
 
-export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(({
-  value,
-  onChange,
-  onSave,
-  onCancel,
-  placeholder = 'Type your message...',
-  isMentor = false,
-  codeTheme,
-  className,
-  autoFocus = true,
-}, ref) => {
-  // View mode for edit/preview/split
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem('chatEditorViewMode');
-    return (saved === 'edit' || saved === 'preview' || saved === 'split') ? saved : 'edit';
-  });
+/* ------------------------------------------------------------------ */
+/* Component                                                            */
+/* ------------------------------------------------------------------ */
 
-  // Refs to pass callbacks to extensions (avoids recreating extensions on callback changes)
-  const onSaveRef = useRef(onSave);
-  const onCancelRef = useRef(onCancel);
-  
-  // Helper to get markdown from editor
-  const getMarkdownFromEditor = useCallback((ed: Editor): string => {
-    // tiptap-markdown stores getMarkdown on the editor instance via extension
-    const storage = ed.storage as { markdown?: { getMarkdown: () => string } };
-    return storage.markdown?.getMarkdown?.() || ed.getText() || '';
-  }, []);
-  
-  const getMarkdownRef = useRef(getMarkdownFromEditor);
-  
-  // Keep refs updated
-  useEffect(() => {
-    onSaveRef.current = onSave;
-    onCancelRef.current = onCancel;
-    getMarkdownRef.current = getMarkdownFromEditor;
-  }, [onSave, onCancel, getMarkdownFromEditor]);
-
-  // Extensions - use refs so we don't recreate on callback changes
-  const extensions = useMemo(
-    () => getChatEditorExtensions(placeholder, onSaveRef, onCancelRef, getMarkdownRef),
-    [placeholder]
-  );
-
-  // Editor instance
-  const editor = useEditor({
-    extensions,
-    content: value,
-    autofocus: autoFocus ? 'end' : false,
-    onUpdate: ({ editor: ed }) => {
-      const md = getMarkdownFromEditor(ed);
-      onChange?.(md);
+export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
+  (
+    {
+      value,
+      onChange,
+      onSave,
+      onCancel,
+      placeholder = 'Type your message...',
+      isMentor = false,
+      className,
+      autoFocus = true,
     },
-  });
+    ref,
+  ) => {
+    const [codePopoverOpen, setCodePopoverOpen] = useState(false);
+    const [showLinkInput, setShowLinkInput] = useState(false);
+    const [linkUrl, setLinkUrl] = useState('');
 
-  // Sync external value changes
-  useEffect(() => {
-    if (!editor) return;
-    const currentMd = getMarkdownFromEditor(editor);
-    if (value !== currentMd) {
-      editor.commands.setContent(value);
-    }
-  }, [value, editor, getMarkdownFromEditor]);
+    const onSaveRef = useRef(onSave);
+    const onCancelRef = useRef(onCancel);
 
-  // View mode handler
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem('chatEditorViewMode', mode);
-  }, []);
+    const getMarkdownFromEditor = useCallback((ed: Editor): string => {
+      const s = ed.storage as { markdown?: { getMarkdown: () => string } };
+      return s.markdown?.getMarkdown?.() ?? ed.getText() ?? '';
+    }, []);
 
-  // Insert code block as raw markdown text
-  const insertCodeBlock = useCallback((language: string) => {
-    if (!editor) return;
-    // Insert raw markdown code fence so user can easily edit it
-    const codeBlock = `\n\`\`\`${language}\n# Your code here\n\`\`\`\n`;
-    editor.chain().focus().insertContent(codeBlock).run();
-  }, [editor]);
+    const getMarkdownRef = useRef(getMarkdownFromEditor);
 
-  // Insert link
-  const insertLink = useCallback(() => {
-    if (!editor) return;
-    const url = window.prompt('Enter URL:');
-    if (url) {
-      editor.chain().focus().setLink({ href: url }).run();
-    }
-  }, [editor]);
+    useEffect(() => {
+      onSaveRef.current = onSave;
+      onCancelRef.current = onCancel;
+      getMarkdownRef.current = getMarkdownFromEditor;
+    }, [onSave, onCancel, getMarkdownFromEditor]);
 
-  // Expose ref
-  useImperativeHandle(ref, () => ({
-    getEditor: () => editor,
-    getMarkdown: () => editor ? getMarkdownFromEditor(editor) : '',
-    getText: () => editor?.getText() || '',
-    isEmpty: () => editor?.isEmpty ?? true,
-    focus: () => editor?.commands.focus(),
-    clear: () => editor?.commands.clearContent(),
-  }), [editor, getMarkdownFromEditor]);
+    const extensions = useMemo(
+      () => buildExtensions(placeholder, onSaveRef, onCancelRef, getMarkdownRef),
+      [placeholder],
+    );
 
-  // Render markdown preview
-  const renderPreview = useCallback((content: string) => {
-    // Parse code blocks
-    const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
-    const parts: { type: 'text' | 'code'; content: string; language?: string }[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = codeBlockRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: 'text', content: content.slice(lastIndex, match.index) });
-      }
-      parts.push({ type: 'code', content: match[2] || '', language: match[1] || 'text' });
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < content.length) {
-      parts.push({ type: 'text', content: content.slice(lastIndex) });
-    }
-
-    if (parts.length === 0) {
-      parts.push({ type: 'text', content });
-    }
-
-    // Parse inline markdown
-    const parseInline = (text: string): React.ReactNode[] => {
-      const nodes: React.ReactNode[] = [];
-      const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`([^`]+)`)/g;
-      let lastIdx = 0;
-      let m;
-      let key = 0;
-
-      while ((m = regex.exec(text)) !== null) {
-        if (m.index > lastIdx) {
-          nodes.push(<span key={key++}>{text.slice(lastIdx, m.index)}</span>);
-        }
-        if (m[1]) nodes.push(<strong key={key++}>{m[2]}</strong>);
-        else if (m[3]) nodes.push(<em key={key++}>{m[4]}</em>);
-        else if (m[5]) nodes.push(<code key={key++} className="px-1.5 py-0.5 rounded text-xs font-mono bg-muted">{m[6]}</code>);
-        lastIdx = m.index + m[0].length;
-      }
-
-      if (lastIdx < text.length) {
-        nodes.push(<span key={key++}>{text.slice(lastIdx)}</span>);
-      }
-
-      return nodes.length ? nodes : [text];
-    };
-
-    // Parse lines
-    const parseLines = (text: string) => {
-      return text.split('\n').map((line, idx) => {
-        if (line.match(/^##\s+(.+)$/)) {
-          return <h2 key={idx} className="text-base font-bold mt-2 mb-1">{parseInline(line.replace(/^##\s+/, ''))}</h2>;
-        }
-        if (line.match(/^>\s+(.+)$/)) {
-          return <blockquote key={idx} className="border-l-2 border-muted-foreground/30 pl-3 my-1 italic">{parseInline(line.replace(/^>\s+/, ''))}</blockquote>;
-        }
-        if (line.match(/^[•\-]\s+(.+)$/)) {
-          return <div key={idx} className="flex items-start gap-2 ml-1"><span>•</span><span>{parseInline(line.replace(/^[•\-]\s+/, ''))}</span></div>;
-        }
-        if (line.match(/^(\d+)\.\s+(.+)$/)) {
-          const m = line.match(/^(\d+)\.\s+(.+)$/);
-          return m ? <div key={idx} className="flex items-start gap-2 ml-1"><span className="min-w-[1rem]">{m[1]}.</span><span>{parseInline(m[2])}</span></div> : null;
-        }
-        if (line.trim()) {
-          return <span key={idx}>{parseInline(line)}<br /></span>;
-        }
-        return <br key={idx} />;
-      });
-    };
-
-    return parts.map((part, idx) => {
-      if (part.type === 'code') {
-        return (
-          <div key={idx} className="my-2">
-            <MonacoCodeBlock
-              code={part.content}
-              language={part.language}
-              showLanguageLabel
-            />
-          </div>
-        );
-      }
-      return <div key={idx}>{parseLines(part.content)}</div>;
+    const editor = useEditor({
+      extensions,
+      // Do NOT pass `content` here — tiptap-markdown must parse via setContent(),
+      // not via TipTap's core HTML parser. Passing a markdown string directly to
+      // useEditor causes the core HTML parser to run first (before tiptap-markdown
+      // intercepts), which throws on code fence content and crashes the component.
+      autofocus: autoFocus ? 'end' : false,
+      onUpdate: ({ editor: ed }) => {
+        onChange?.(getMarkdownFromEditor(ed));
+      },
     });
-  }, [isMentor, codeTheme]);
 
-  if (!editor) {
-    return <div className={cn('min-h-[100px] animate-pulse bg-muted/30 rounded-lg', className)} />;
-  }
+    // Set content once editor is ready, and re-sync when value changes externally.
+    // editor.commands.setContent() goes through tiptap-markdown's markdown parser,
+    // which correctly converts code fences → codeBlock nodes.
+    useEffect(() => {
+      if (!editor) return;
+      const current = getMarkdownFromEditor(editor);
+      if (value !== current) editor.commands.setContent(value);
+    }, [value, editor, getMarkdownFromEditor]);
 
-  const currentMarkdown = getMarkdownFromEditor(editor);
+    const insertCodeBlock = useCallback(
+      (language: string) => {
+        if (!editor) return;
+        editor
+          .chain()
+          .focus()
+          .insertContent(`\n\`\`\`${language}\n# Your code here\n\`\`\`\n`)
+          .run();
+        setCodePopoverOpen(false);
+      },
+      [editor],
+    );
 
-  // Color classes based on mentor/course (using chat-specific colors that exist in the design system)
-  const colorClasses = {
-    border: isMentor ? 'border-primary/30' : 'border-border',
-    bg: isMentor ? 'bg-primary/5' : 'bg-muted/30',
-    text: isMentor ? 'text-primary-foreground' : 'text-foreground',
-    buttonActive: isMentor ? 'bg-primary/20' : 'bg-primary/10',
-    buttonHover: isMentor ? 'hover:bg-primary/15' : 'hover:bg-muted',
-    previewBg: isMentor ? 'bg-primary/5' : 'bg-muted/20',
-  };
+    const setLink = useCallback(() => {
+      if (!editor) return;
+      if (!linkUrl) {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      } else {
+        const href = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
+        editor.chain().focus().extendMarkRange('link').setLink({ href, target: '_blank', rel: 'noopener noreferrer' }).run();
+      }
+      setLinkUrl('');
+      setShowLinkInput(false);
+    }, [editor, linkUrl]);
 
-  return (
-    <div className={cn('space-y-2', className)}>
-      {/* View mode toggle */}
-      <div className="flex items-center justify-end gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleViewModeChange('edit')}
-          className={cn('h-6 px-2 text-xs gap-1', viewMode === 'edit' && colorClasses.buttonActive, colorClasses.buttonHover)}
-        >
-          <EyeOff className="w-3 h-3" />
-          Edit
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleViewModeChange('split')}
-          className={cn('h-6 px-2 text-xs gap-1', viewMode === 'split' && colorClasses.buttonActive, colorClasses.buttonHover)}
-        >
-          <Columns className="w-3 h-3" />
-          Split
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleViewModeChange('preview')}
-          className={cn('h-6 px-2 text-xs gap-1', viewMode === 'preview' && colorClasses.buttonActive, colorClasses.buttonHover)}
-        >
-          <Eye className="w-3 h-3" />
-          Preview
-        </Button>
-      </div>
+    useImperativeHandle(
+      ref,
+      () => ({
+        getEditor: () => editor,
+        getMarkdown: () => (editor ? getMarkdownFromEditor(editor) : ''),
+        getText: () => editor?.getText() ?? '',
+        isEmpty: () => editor?.isEmpty ?? true,
+        focus: () => editor?.commands.focus(),
+        clear: () => editor?.commands.clearContent(),
+      }),
+      [editor, getMarkdownFromEditor],
+    );
 
-      {/* Editor content */}
-      {viewMode === 'split' ? (
-        <ResizablePanelGroup direction="horizontal" className={cn('min-h-[120px] rounded-lg border', colorClasses.border)}>
-          <ResizablePanel defaultSize={50} minSize={25}>
-            <div className={cn('h-full overflow-auto', colorClasses.bg)}>
-              <EditorContent 
-                editor={editor} 
-                className={cn('tiptap-chat-editor p-2 text-sm leading-relaxed min-h-[100px]', colorClasses.text)}
-              />
-            </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={50} minSize={25}>
-            <div className={cn('h-full overflow-auto p-3 text-sm leading-relaxed', colorClasses.previewBg)}>
-              {currentMarkdown ? renderPreview(currentMarkdown) : <span className="text-muted-foreground italic">Preview...</span>}
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      ) : viewMode === 'preview' ? (
-        <div className={cn('min-h-[100px] border rounded-lg p-3 text-sm leading-relaxed', colorClasses.border, colorClasses.bg)}>
-          {currentMarkdown ? renderPreview(currentMarkdown) : <span className="text-muted-foreground italic">Nothing to preview...</span>}
+    if (!editor) {
+      return <div className={cn('border rounded-lg bg-background animate-pulse', className)} style={{ minHeight: 80 }} />;
+    }
+
+    const currentMarkdown = getMarkdownFromEditor(editor);
+
+    return (
+      <div
+        className={cn(
+          'tiptap-light-editor border border-border rounded-lg overflow-hidden bg-background transition-all',
+          className,
+        )}
+      >
+        {/* Editor area — tiptap-chat-editor enables .tiptap-chat-editor .ProseMirror pre CSS (code block styling) */}
+        <div className="tiptap-chat-editor" style={{ minHeight: 72 }}>
+          <EditorContent editor={editor} />
         </div>
-      ) : (
-        <div className={cn('border rounded-lg overflow-hidden', colorClasses.border, colorClasses.bg)}>
-          <EditorContent 
-            editor={editor} 
-            className={cn('tiptap-chat-editor p-2 text-sm leading-relaxed min-h-[100px]', colorClasses.text)}
-          />
-        </div>
-      )}
 
-      {/* Formatting toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className={cn('h-7 px-2 text-xs gap-1', colorClasses.border, colorClasses.buttonHover)}>
-              <Bold className="w-3 h-3" />
-              Format
-              <ChevronDown className="w-3 h-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleBold().run()} className="cursor-pointer">
-              <Bold className="w-4 h-4 mr-2" />
-              Bold
-              <DropdownMenuShortcut>{modKey}+B</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleItalic().run()} className="cursor-pointer">
-              <Italic className="w-4 h-4 mr-2" />
-              Italic
-              <DropdownMenuShortcut>{modKey}+I</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleCode().run()} className="cursor-pointer">
-              <Code className="w-4 h-4 mr-2" />
-              Inline Code
-              <DropdownMenuShortcut>{modKey}+`</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleBulletList().run()} className="cursor-pointer">
-              <List className="w-4 h-4 mr-2" />
-              Bullet List
-              <DropdownMenuShortcut>{modKey}+⇧+U</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleOrderedList().run()} className="cursor-pointer">
-              <ListOrdered className="w-4 h-4 mr-2" />
-              Numbered List
-              <DropdownMenuShortcut>{modKey}+⇧+O</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className="cursor-pointer">
-              <Heading2 className="w-4 h-4 mr-2" />
-              Heading
-              <DropdownMenuShortcut>{modKey}+⇧+H</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleBlockquote().run()} className="cursor-pointer">
-              <Quote className="w-4 h-4 mr-2" />
-              Blockquote
-              <DropdownMenuShortcut>{modKey}+⇧+Q</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={insertLink} className="cursor-pointer">
-              <LinkIcon className="w-4 h-4 mr-2" />
-              Link
-              <DropdownMenuShortcut>{modKey}+K</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
-                <Code className="w-4 h-4 mr-2" />
-                Code Block
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
+        {/* Toolbar — always visible (opacity forced via inline style) */}
+        <div className="tiptap-light-toolbar" style={{ opacity: 1 }}>
+          <TooltipProvider delayDuration={300}>
+
+            {/* Bold */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="sm"
+                  className={cn('h-7 w-7 p-0', editor.isActive('bold') && 'bg-primary/10 text-primary')}
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                >
+                  <Bold className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Bold (⌘B)</TooltipContent>
+            </Tooltip>
+
+            {/* Italic */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="sm"
+                  className={cn('h-7 w-7 p-0', editor.isActive('italic') && 'bg-primary/10 text-primary')}
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                >
+                  <Italic className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Italic (⌘I)</TooltipContent>
+            </Tooltip>
+
+            {/* Inline Code */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="sm"
+                  className={cn('h-7 w-7 p-0', editor.isActive('code') && 'bg-primary/10 text-primary')}
+                  onClick={() => editor.chain().focus().toggleCode().run()}
+                >
+                  <Code className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Inline Code (⌘`)</TooltipContent>
+            </Tooltip>
+
+            {/* Link */}
+            <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="ghost" size="sm"
+                  className={cn('h-7 w-7 p-0', editor.isActive('link') && 'bg-primary/10 text-primary')}
+                  onClick={() => {
+                    setLinkUrl(editor.getAttributes('link').href || '');
+                    setShowLinkInput(true);
+                  }}
+                >
+                  <LinkIcon className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-2" align="start">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="URL..."
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), setLink())}
+                    className="flex-1 h-8 text-sm"
+                  />
+                  <Button size="sm" className="h-8" onClick={setLink}>
+                    {editor.isActive('link') ? 'Update' : 'Add'}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Bullet list */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="sm"
+                  className={cn('h-7 w-7 p-0', editor.isActive('bulletList') && 'bg-primary/10 text-primary')}
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Bullet List</TooltipContent>
+            </Tooltip>
+
+            {/* Numbered list */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="sm"
+                  className={cn('h-7 w-7 p-0', editor.isActive('orderedList') && 'bg-primary/10 text-primary')}
+                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                >
+                  <ListOrdered className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Numbered List</TooltipContent>
+            </Tooltip>
+
+            {/* Divider */}
+            <div className="w-px h-4 bg-border mx-0.5 flex-shrink-0" />
+
+            {/* + Code block */}
+            <Popover open={codePopoverOpen} onOpenChange={setCodePopoverOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Insert Code Block</TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-64 p-3" align="start" side="top">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5 px-0.5">
+                  Insert Code Block
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
                   {CODE_LANGUAGES.map((lang) => (
-                    <DropdownMenuItem key={lang.value} onClick={() => insertCodeBlock(lang.value)} className="cursor-pointer">
+                    <button key={lang.value}
+                      className="flex items-center justify-center px-2 py-2 text-xs font-medium rounded-lg border border-border/60 bg-muted/30 hover:bg-muted hover:border-border transition-colors truncate"
+                      onClick={() => insertCodeBlock(lang.value)}
+                    >
                       {lang.label}
-                    </DropdownMenuItem>
+                    </button>
                   ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <span className="text-[10px] text-muted-foreground">
-          Enter save • Shift+Enter newline
-        </span>
-      </div>
+                </div>
+              </PopoverContent>
+            </Popover>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-1 justify-end">
-        <Button variant="ghost" size="sm" onClick={onCancel} className={cn('h-7 px-2 text-xs', colorClasses.buttonHover)}>
-          <X className="w-3 h-3 mr-1" />
-          Cancel
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => onSave?.(currentMarkdown)} 
-          className={cn('h-7 px-2 text-xs', colorClasses.buttonActive, colorClasses.buttonHover)}
-        >
-          <Check className="w-3 h-3 mr-1" />
-          Save
-        </Button>
+          </TooltipProvider>
+
+          {/* Cancel / Save pushed to the right */}
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+              onClick={onCancel}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'flex items-center gap-1.5 h-7 px-3 text-xs font-semibold rounded-full shadow-sm transition-all',
+                isMentor
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90',
+              )}
+              onClick={() => onSave?.(currentMarkdown)}
+            >
+              <Check className="h-3 w-3" />
+              Save
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 ChatEditor.displayName = 'ChatEditor';
 

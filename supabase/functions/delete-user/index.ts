@@ -62,6 +62,29 @@ serve(async (req: Request): Promise<Response> => {
       },
     });
 
+    // Fetch user details first so we can use their email to clean up string-based references (like invitations)
+    const { data: userToDelete, error: fetchError } = await adminClient.auth.admin.getUserById(userId);
+    if (fetchError || !userToDelete.user) {
+      throw new Error(`Could not fetch details for user ${userId}`);
+    }
+    const userEmail = userToDelete.user.email;
+
+    if (userEmail) {
+      try {
+        const { error } = await adminClient
+          .from("invitations")
+          .delete()
+          .eq("email", userEmail);
+        if (error) {
+          console.log(`Note: Could not clean invitations for ${userEmail}: ${error.message}`);
+        } else {
+          console.log(`Cleaned up any outstanding invitations for ${userEmail}`);
+        }
+      } catch (e) {
+        console.log(`Note: Invitations table might not exist, skipping`);
+      }
+    }
+
     // Manually clean up all user data before deleting auth user
     // This avoids FK constraint issues
     const tablesToClean = [

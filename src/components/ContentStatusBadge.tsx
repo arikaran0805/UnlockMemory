@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, XCircle, FileEdit, Send } from "lucide-react";
+import { Clock, CheckCircle, XCircle, FileEdit, Send, Archive } from "lucide-react";
 
-export type ContentStatus = "draft" | "pending" | "approved" | "rejected" | "published" | "changes_requested";
+export type ContentStatus = "draft" | "pending" | "approved" | "rejected" | "published" | "changes_requested" | "archived";
 
 interface ContentStatusBadgeProps {
   status: ContentStatus;
@@ -49,6 +49,12 @@ const statusConfig: Record<ContentStatus, {
     variant: "secondary",
     icon: <Send className="h-3 w-3" />,
     className: "bg-orange-500/10 text-orange-600 border-orange-500/30 dark:text-orange-400",
+  },
+  archived: {
+    label: "Archived",
+    variant: "outline",
+    icon: <Archive className="h-3 w-3" />,
+    className: "border-muted-foreground/40 text-muted-foreground",
   },
 };
 

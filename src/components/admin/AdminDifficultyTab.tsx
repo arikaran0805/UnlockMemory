@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Tooltip,
@@ -24,25 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GripVertical, Pencil, Trash2 } from "lucide-react";
-import {
-  DndContext,
-  DragEndEvent,
-  DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { FolderPlus, Pencil, Search, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface DifficultyLevel {
@@ -63,11 +46,12 @@ interface DifficultyLevelWithMeta extends DifficultyLevel {
   lastUpdatedLabel: string;
 }
 
-interface SortableRowProps {
+interface DifficultyRowProps {
   level: DifficultyLevelWithMeta;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
   onEdit: (level: DifficultyLevel) => void;
   onDelete: (level: DifficultyLevel) => void;
-  isDraggingActive: boolean;
 }
 
 export interface AdminDifficultyTabRef {
@@ -81,51 +65,33 @@ const toLevelKey = (name: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-const SortableRow = ({ level, onEdit, onDelete, isDraggingActive }: SortableRowProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: level.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
+const DifficultyRow = ({ level, isSelected, onToggleSelect, onEdit, onDelete }: DifficultyRowProps) => {
   return (
     <TableRow
-      ref={setNodeRef}
-      style={style}
-      className={[
-        "group transition-colors hover:bg-muted/40",
-        isDragging ? "bg-muted/80 shadow-lg ring-1 ring-border" : "",
-        isDraggingActive && !isDragging ? "opacity-90" : "",
-      ].join(" ")}
+      className="cursor-default transition-colors hover:bg-muted/20"
     >
-      <TableCell className="align-top">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={`Reorder ${level.name}`}
-          className="mt-0.5 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-grab active:cursor-grabbing"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+      <TableCell className="w-12">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect(level.id)}
+          aria-label={`Select ${level.name}`}
+          className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+        />
       </TableCell>
       <TableCell className="py-4">
         <div className="space-y-1">
           <div className="font-medium text-foreground">{level.name}</div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>Key: {level.keyLabel}</span>
-            <span>{level.linkedCourseCount} linked {level.linkedCourseCount === 1 ? "course" : "courses"}</span>
-            <span>Last updated {level.lastUpdatedLabel}</span>
-          </div>
+          <div className="text-xs text-muted-foreground">Key: {level.keyLabel}</div>
         </div>
+      </TableCell>
+      <TableCell className="text-center text-sm text-muted-foreground">
+        <Badge variant="outline">
+          {level.linkedCourseCount}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-muted-foreground text-sm">
+        {level.lastUpdatedLabel}
       </TableCell>
       <TableCell className="w-36 text-right align-top">
         <TooltipProvider>
@@ -170,24 +136,15 @@ const AdminDifficultyTab = forwardRef<AdminDifficultyTabRef>((_, ref) => {
   const [levels, setLevels] = useState<DifficultyLevel[]>([]);
   const [courseUsage, setCourseUsage] = useState<CourseLevelUsage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLevel, setEditingLevel] = useState<DifficultyLevel | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DifficultyLevel | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "" });
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
 
   useEffect(() => {
     void fetchLevels();
@@ -214,6 +171,20 @@ const AdminDifficultyTab = forwardRef<AdminDifficultyTabRef>((_, ref) => {
     });
   }, [levels, courseUsage]);
 
+  const filteredLevels = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return levelMeta;
+
+    return levelMeta.filter((level) =>
+      level.name.toLowerCase().includes(query) ||
+      level.keyLabel.toLowerCase().includes(query)
+    );
+  }, [levelMeta, searchQuery]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [searchQuery, levelMeta.length]);
+
   const fetchLevels = async () => {
     setLoading(true);
     try {
@@ -236,49 +207,6 @@ const AdminDifficultyTab = forwardRef<AdminDifficultyTabRef>((_, ref) => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveDragId(String(event.active.id));
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveDragId(null);
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = levels.findIndex((item) => item.id === active.id);
-      const newIndex = levels.findIndex((item) => item.id === over.id);
-      const newLevels = arrayMove(levels, oldIndex, newIndex);
-
-      setLevels(newLevels);
-
-      try {
-        const updates = newLevels.map((level, index) => ({
-          id: level.id,
-          display_order: index + 1,
-        }));
-
-        for (const update of updates) {
-          await supabase
-            .from("difficulty_levels")
-            .update({ display_order: update.display_order })
-            .eq("id", update.id);
-        }
-
-        toast({
-          title: "Difficulty levels reordered",
-          description: "New order saved across the platform.",
-        });
-      } catch (error: any) {
-        toast({
-          title: "Error updating order",
-          description: error.message,
-          variant: "destructive",
-        });
-        void fetchLevels();
-      }
     }
   };
 
@@ -351,6 +279,53 @@ const AdminDifficultyTab = forwardRef<AdminDifficultyTabRef>((_, ref) => {
     }
   };
 
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === filteredLevels.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredLevels.map((level) => level.id)));
+    }
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("difficulty_levels")
+        .delete()
+        .in("id", ids);
+
+      if (error) throw error;
+
+      toast({
+        title: "Difficulty levels deleted successfully",
+        description: `${ids.length} level${ids.length === 1 ? "" : "s"} removed.`,
+      });
+      setSelectedIds(new Set());
+      setBulkDeleteDialogOpen(false);
+      await fetchLevels();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting difficulty levels",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const openEditDialog = (level: DifficultyLevel) => {
     setEditingLevel(level);
     setFormData({ name: level.name });
@@ -371,17 +346,19 @@ const AdminDifficultyTab = forwardRef<AdminDifficultyTabRef>((_, ref) => {
     Array.from({ length: 5 }).map((_, index) => (
       <TableRow key={`skeleton-${index}`}>
         <TableCell className="w-12">
-          <Skeleton className="h-8 w-8 rounded-md" />
+          <Skeleton className="h-4 w-4 rounded-sm" />
         </TableCell>
         <TableCell className="py-4">
           <div className="space-y-2">
             <Skeleton className="h-4 w-40" />
-            <div className="flex gap-2">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-3 w-24" />
-            </div>
+            <Skeleton className="h-3 w-24" />
           </div>
+        </TableCell>
+        <TableCell className="text-center">
+          <Skeleton className="mx-auto h-6 w-10 rounded-full" />
+        </TableCell>
+        <TableCell>
+          <Skeleton className="h-4 w-28" />
         </TableCell>
         <TableCell className="w-36">
           <div className="flex justify-end gap-2">
@@ -404,52 +381,97 @@ const AdminDifficultyTab = forwardRef<AdminDifficultyTabRef>((_, ref) => {
           }
         }}
       >
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border border-border/70 shadow-sm">
+          <CardHeader className="gap-6 border-b border-border/60 pb-6">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search difficulty levels..."
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="h-11 pl-10"
+                />
+              </div>
+
+              {selectedIds.size > 0 ? (
+                <Button
+                  variant="destructive"
+                  className="gap-2 h-11 px-5"
+                  onClick={() => setBulkDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete {selectedIds.size} row{selectedIds.size === 1 ? "" : "s"}
+                </Button>
+              ) : null}
+
+              <div className="ml-auto">
+                <Badge variant="secondary" className="h-11 rounded-full px-4 text-sm font-medium">
+                  {filteredLevels.length} {filteredLevels.length === 1 ? "Level" : "Levels"}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead className="w-36 text-right">Actions</TableHead>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={filteredLevels.length > 0 && selectedIds.size === filteredLevels.length}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < filteredLevels.length;
+                      }}
+                      onChange={handleToggleSelectAll}
+                      aria-label="Select all difficulty levels"
+                      className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                    />
+                  </TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Level</TableHead>
+                  <TableHead className="text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Courses</TableHead>
+                  <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Updated</TableHead>
+                  <TableHead className="w-36 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   renderSkeletonRows()
-                ) : levelMeta.length === 0 ? (
+                ) : filteredLevels.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="py-10 text-center">
-                      <div className="space-y-2">
-                        <p className="font-medium text-foreground">No difficulty levels yet</p>
-                        <p className="text-sm text-muted-foreground">
-                          Add your first level to start organizing course difficulty.
+                    <TableCell colSpan={5} className="py-0">
+                      <div className="flex min-h-[360px] flex-col items-center justify-center px-6 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/20 text-muted-foreground shadow-sm">
+                          <FolderPlus className="h-6 w-6" />
+                        </div>
+                        <h2 className="mt-6 text-2xl font-semibold text-foreground">
+                          {searchQuery ? "No levels match your search" : "No difficulty levels yet"}
+                        </h2>
+                        <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+                          {searchQuery
+                            ? "Try a different keyword or clear the search to browse all difficulty levels."
+                            : "Add your first level to start organizing course difficulty."}
                         </p>
+                        {!searchQuery ? (
+                          <Button className="mt-6 gap-2" onClick={openCreateDialog}>
+                            <FolderPlus className="h-4 w-4" />
+                            Create your first level
+                          </Button>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext
-                      items={levelMeta.map((level) => level.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {levelMeta.map((level) => (
-                        <SortableRow
-                          key={level.id}
-                          level={level}
-                          onEdit={openEditDialog}
-                          onDelete={setDeleteTarget}
-                          isDraggingActive={Boolean(activeDragId)}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
+                  filteredLevels.map((level) => (
+                    <DifficultyRow
+                      key={level.id}
+                      level={level}
+                      isSelected={selectedIds.has(level.id)}
+                      onToggleSelect={handleToggleSelectRow}
+                      onEdit={openEditDialog}
+                      onDelete={setDeleteTarget}
+                    />
+                  ))
                 )}
               </TableBody>
             </Table>
@@ -503,6 +525,28 @@ const AdminDifficultyTab = forwardRef<AdminDifficultyTabRef>((_, ref) => {
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected difficulty levels?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedIds.size} difficulty level{selectedIds.size === 1 ? "" : "s"}.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { FloatingTextToolbar } from "@/components/ui/FloatingTextToolbar";
 import { toast } from "sonner";
 import { ChatMessage, CourseCharacter, MENTOR_CHARACTER, TAKEAWAY_ICONS } from "./types";
 import ChatBubble from "./ChatBubble";
@@ -8,27 +9,19 @@ import { FreeformCanvasData } from "./freeform";
 import { cn } from "@/lib/utils";
 import { extractChatSegments, extractExplanation } from "@/lib/chatContent";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RichTextEditor } from "@/components/tiptap";
-import { Plus, Eye, Edit3, MessageCircle, Trash2, FileText, Code, Send, Image, Link, Bold, Italic, GripVertical, Pencil, ArrowUp, ArrowDown, Terminal, List, ListOrdered, Heading2, Quote, Lightbulb, Undo2, Redo2, EyeOff, Columns, Maximize2, Minimize2, PenTool, MessageSquarePlus, Copy } from "lucide-react";
+import { RichTextEditor, LightEditor, type LightEditorRef } from "@/components/tiptap";
+import ChatConversationView from "./ChatConversationView";
+import { Plus, Eye, Edit3, MessageCircle, Trash2, FileText, Send, GripVertical, Pencil, ArrowUp, ArrowDown, Undo2, Redo2, EyeOff, Columns, MessageSquarePlus, Copy } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { MonacoCodeBlock } from "@/components/code-block";
 import { supabase } from "@/integrations/supabase/client";
-import { renderCourseIcon } from "./utils";
-import { getChatColors } from "./chatColors";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DndContext,
   closestCenter,
@@ -196,7 +189,7 @@ const serializeMessages = (messages: ChatMessage[], explanation: string): string
     const visibleContent = m.content.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
     return visibleContent.length > 0;
   });
-  
+
   // Join messages with double newline, but encode internal newlines first
   const chatPart = nonEmptyMessages.map((m) => {
     // Handle freeform canvas blocks
@@ -215,10 +208,10 @@ const serializeMessages = (messages: ChatMessage[], explanation: string): string
     const encodedContent = m.content.replace(/\n/g, NEWLINE_MARKER);
     return `${m.speaker}: ${encodedContent}`;
   }).join("\n\n");
-  
+
   // Restore internal newlines
   const decodedChatPart = chatPart.replace(new RegExp(NEWLINE_MARKER, "g"), "\n");
-  
+
   if (explanation.trim()) {
     return `${decodedChatPart}\n---\n${explanation.trim()}`;
   }
@@ -234,16 +227,12 @@ interface Course {
 
 interface InsertBetweenButtonProps {
   onInsertMessage: () => void;
-  onInsertTakeaway: () => void;
-  onInsertFreeform: () => void;
   courseCharacterName: string;
   mentorName: string;
 }
 
 const InsertBetweenButton = ({
   onInsertMessage,
-  onInsertTakeaway,
-  onInsertFreeform,
   courseCharacterName,
   mentorName,
 }: InsertBetweenButtonProps) => {
@@ -263,15 +252,6 @@ const InsertBetweenButton = ({
           <DropdownMenuItem onClick={onInsertMessage} className="cursor-pointer">
             <MessageCircle className="w-4 h-4 mr-2" />
             <span>Message</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onInsertTakeaway} className="cursor-pointer">
-            <Lightbulb className="w-4 h-4 mr-2" />
-            <span>Takeaway Block</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onInsertFreeform} className="cursor-pointer">
-            <PenTool className="w-4 h-4 mr-2" />
-            <span>Freeform Canvas</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -302,7 +282,8 @@ interface MessageItemProps {
   hasOpenAnnotations?: boolean;
 }
 
-const SortableMessageItem = ({
+/** Shared rendering logic for a message item — no dnd state here */
+const MessageItemContent = ({
   message,
   character,
   isMentor,
@@ -323,16 +304,17 @@ const SortableMessageItem = ({
   index = 0,
   annotationMode,
   hasOpenAnnotations,
-}: MessageItemProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: message.id });
-
+  // dnd props — undefined when used without DnD
+  nodeRef,
+  dragStyle,
+  dragAttributes,
+  dragListeners,
+}: MessageItemProps & {
+  nodeRef?: (node: HTMLDivElement | null) => void;
+  dragStyle?: React.CSSProperties;
+  dragAttributes?: Record<string, unknown>;
+  dragListeners?: Record<string, unknown>;
+}) => {
   const [showActions, setShowActions] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -342,12 +324,6 @@ const SortableMessageItem = ({
   };
   const handleHoverLeave = () => {
     hideTimerRef.current = setTimeout(() => setShowActions(false), 150);
-  };
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   const isTakeaway = message.type === "takeaway";
@@ -365,8 +341,8 @@ const SortableMessageItem = ({
         variant="ghost"
         size="icon"
         className="h-6 w-6 cursor-grab active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
+        {...(dragAttributes as any)}
+        {...(dragListeners as any)}
       >
         <GripVertical className="w-3 h-3" />
       </Button>
@@ -408,7 +384,7 @@ const SortableMessageItem = ({
       >
         <Copy className="w-3 h-3" />
       </Button>
-      {isTakeaway ? (
+      {isTakeaway && (
         <Button
           variant="ghost"
           size="icon"
@@ -417,16 +393,6 @@ const SortableMessageItem = ({
           title="Convert to message"
         >
           <MessageCircle className="w-3 h-3" />
-        </Button>
-      ) : (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={() => onConvertToTakeaway(message.id)}
-          title="Convert to takeaway"
-        >
-          <Lightbulb className="w-3 h-3" />
         </Button>
       )}
       {/* Annotate bubble button - only in annotation mode */}
@@ -455,20 +421,20 @@ const SortableMessageItem = ({
   // For freeform canvas blocks
   if (isFreeform) {
     return (
-      <div ref={setNodeRef} style={style}>
+      <div ref={nodeRef} style={dragStyle}>
         <FreeformBlock
           message={message}
           isEditing={isEditing}
           isEditMode={isEditMode}
           onEdit={(id, content, freeformData) => onEdit(id, content, undefined, undefined, freeformData)}
-          onStartEdit={annotationMode ? () => {} : onStartEdit}
+          onStartEdit={annotationMode ? () => { } : onStartEdit}
           onEndEdit={onEndEdit}
           onDelete={onDelete}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
           isFirst={isFirst}
           isLast={isLast}
-          dragHandleProps={{ ...attributes, ...listeners }}
+          dragHandleProps={{ ...(dragAttributes as any), ...(dragListeners as any) }}
           annotationMode={annotationMode}
         />
       </div>
@@ -478,13 +444,13 @@ const SortableMessageItem = ({
   // For takeaway blocks, always show action buttons on the right
   if (isTakeaway) {
     return (
-      <div ref={setNodeRef} style={style} className="group relative flex items-start gap-2 mb-4">
+      <div ref={nodeRef} style={dragStyle} className="group relative flex items-start gap-2 mb-4">
         <div className="flex-1 min-w-0">
           <TakeawayBlock
             message={message}
             isEditing={isEditing}
             onEdit={onEdit}
-            onStartEdit={annotationMode ? () => {} : onStartEdit}
+            onStartEdit={annotationMode ? () => { } : onStartEdit}
             onEndEdit={onEndEdit}
             index={index}
             annotationMode={annotationMode}
@@ -500,8 +466,8 @@ const SortableMessageItem = ({
   // so the mouse can move between them without triggering hide (no gap, no layout shift)
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={nodeRef}
+      style={dragStyle}
       className={cn(
         "flex items-end gap-2 mb-4",
         isMentor ? "flex-row-reverse" : "flex-row"
@@ -513,12 +479,16 @@ const SortableMessageItem = ({
         onMouseEnter={handleHoverEnter}
         onMouseLeave={handleHoverLeave}
       >
-        {/* Avatar */}
-        <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-sm cursor-pointer",
-          getChatColors(isMentor).avatar
-        )}>
-          {renderCourseIcon(character.emoji, 18)}
+        {/* Avatar — letter-based to match CourseDetail */}
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold cursor-pointer select-none"
+          style={
+            isMentor
+              ? { backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }
+              : { backgroundColor: "#E8F0EC", color: "#5E7068" }
+          }
+        >
+          {isMentor ? "K" : character.name?.charAt(0)?.toUpperCase() || "U"}
         </div>
 
         {/* ActionButtons — absolute, positioned above avatar, debounce keeps it open as mouse moves to it */}
@@ -544,7 +514,7 @@ const SortableMessageItem = ({
           isMentor={isMentor}
           isEditing={isEditing}
           onEdit={onEdit}
-          onStartEdit={annotationMode ? () => {} : onStartEdit}
+          onStartEdit={annotationMode ? () => { } : onStartEdit}
           onEndEdit={onEndEdit}
           codeTheme={codeTheme}
           hasOpenAnnotations={hasOpenAnnotations}
@@ -555,6 +525,30 @@ const SortableMessageItem = ({
   );
 };
 
+/** Wrapper with dnd-kit sortable behaviour */
+const SortableMessageItem = (props: MessageItemProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.message.id });
+  const dragStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <MessageItemContent
+      {...props}
+      nodeRef={setNodeRef}
+      dragStyle={dragStyle}
+      dragAttributes={attributes as any}
+      dragListeners={listeners as any}
+    />
+  );
+};
+
+/** Wrapper without dnd — used in annotation mode so pointer events aren't captured */
+const PlainMessageItem = (props: MessageItemProps) => (
+  <MessageItemContent {...props} dragStyle={{}} />
+);
+
 // Preview component for the composer - parses and renders markdown
 const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: string }) => {
   // Extract code blocks first
@@ -562,7 +556,7 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
   const parts: { type: 'text' | 'code'; content: string; language?: string }[] = [];
   let lastIndex = 0;
   let match;
-  
+
   while ((match = codeBlockRegex.exec(content)) !== null) {
     if (match.index > lastIndex) {
       parts.push({ type: 'text', content: content.slice(lastIndex, match.index) });
@@ -570,17 +564,17 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
     parts.push({ type: 'code', content: match[2] || '', language: match[1] || 'text' });
     lastIndex = match.index + match[0].length;
   }
-  
+
   if (lastIndex < content.length) {
     parts.push({ type: 'text', content: content.slice(lastIndex) });
   }
-  
+
   // Parse inline markdown for text parts
   const parseInline = (text: string): React.ReactNode[] => {
     const nodes: React.ReactNode[] = [];
     let remaining = text;
     let key = 0;
-    
+
     while (remaining.length > 0) {
       // Bold: **text**
       const boldMatch = remaining.match(/^\*\*(.+?)\*\*/);
@@ -589,7 +583,7 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
         remaining = remaining.slice(boldMatch[0].length);
         continue;
       }
-      
+
       // Italic: *text* or _text_
       const italicMatch = remaining.match(/^(\*|_)(.+?)\1/);
       if (italicMatch) {
@@ -597,7 +591,7 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
         remaining = remaining.slice(italicMatch[0].length);
         continue;
       }
-      
+
       // Inline code: `code`
       const codeMatch = remaining.match(/^`([^`]+)`/);
       if (codeMatch) {
@@ -605,7 +599,7 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
         remaining = remaining.slice(codeMatch[0].length);
         continue;
       }
-      
+
       // Link: [text](url)
       const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
@@ -613,21 +607,21 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
         remaining = remaining.slice(linkMatch[0].length);
         continue;
       }
-      
+
       // Regular character
       nodes.push(remaining[0]);
       remaining = remaining.slice(1);
     }
-    
+
     return nodes;
   };
-  
+
   // Parse line-level markdown
   const parseLines = (text: string): React.ReactNode[] => {
     const lines = text.split('\n');
     const nodes: React.ReactNode[] = [];
     let key = 0;
-    
+
     for (const line of lines) {
       // Heading: ## text
       const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
@@ -637,26 +631,26 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
         nodes.push(<Tag key={key++} className="font-semibold my-1">{parseInline(headingMatch[2])}</Tag>);
         continue;
       }
-      
+
       // Blockquote: > text
       if (line.startsWith('> ')) {
         nodes.push(<blockquote key={key++} className="border-l-2 border-muted-foreground/30 pl-3 italic text-muted-foreground">{parseInline(line.slice(2))}</blockquote>);
         continue;
       }
-      
+
       // Bullet list: - or *
       if (line.match(/^[-*]\s+/)) {
         nodes.push(<li key={key++} className="ml-4 list-disc">{parseInline(line.slice(2))}</li>);
         continue;
       }
-      
+
       // Numbered list: 1.
       const numberedMatch = line.match(/^(\d+)\.\s+(.+)$/);
       if (numberedMatch) {
         nodes.push(<li key={key++} className="ml-4 list-decimal">{parseInline(numberedMatch[2])}</li>);
         continue;
       }
-      
+
       // Regular paragraph
       if (line.trim()) {
         nodes.push(<p key={key++} className="my-0.5">{parseInline(line)}</p>);
@@ -664,18 +658,18 @@ const ComposerPreview = ({ content, codeTheme }: { content: string; codeTheme?: 
         nodes.push(<br key={key++} />);
       }
     }
-    
+
     return nodes;
   };
-  
+
   return (
     <div className="space-y-2">
-      {parts.map((part, idx) => 
+      {parts.map((part, idx) =>
         part.type === 'code' ? (
-          <MonacoCodeBlock 
-            key={idx} 
-            code={part.content} 
-            language={part.language || 'text'} 
+          <MonacoCodeBlock
+            key={idx}
+            code={part.content}
+            language={part.language || 'text'}
             showLanguageLabel
           />
         ) : (
@@ -709,8 +703,9 @@ const ChatStyleEditor = ({
   const [explanation, setExplanation] = useState<string>(() => extractExplanation(value) || "");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [composerEditorValue, setComposerEditorValue] = useState("");
   const [currentSpeaker, setCurrentSpeaker] = useState<"mentor" | "course">("mentor");
-  
+
   // Undo/Redo state
   const [undoStack, setUndoStack] = useState<ChatMessage[][]>([]);
   const [redoStack, setRedoStack] = useState<ChatMessage[][]>([]);
@@ -721,10 +716,8 @@ const ChatStyleEditor = ({
     return value.toLowerCase().replace(/[\s_-]+/g, "");
   }, []);
   const [manualHeight, setManualHeight] = useState<number | null>(null);
-  const [isComposerExpanded, setIsComposerExpanded] = useState(false);
   const [splitViewHeight, setSplitViewHeight] = useState(120); // Custom height for split view
   const splitViewDragRef = useRef<{ startY: number; startHeight: number } | null>(null);
-  const [mentorIcon, setMentorIcon] = useState("👨‍💻");
   const [composerViewMode, setComposerViewMode] = useState<'edit' | 'split' | 'preview'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('chatEditorComposerViewMode');
@@ -739,20 +732,23 @@ const ChatStyleEditor = ({
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length === 2) return parsed;
-        } catch {}
+        } catch { }
       }
     }
     return [50, 50];
   });
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const composerEditorRef = useRef<LightEditorRef>(null);
   const mentorName = "Karan";
 
-  // Auto-scroll message list to bottom whenever messages change
+  // Auto-scroll to bottom only in edit mode (new message was added).
+  // In annotation mode, start at the top so reviewers can read from the beginning.
   useEffect(() => {
+    if (annotationMode) return;
     const el = chatContainerRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+  }, [messages, annotationMode]);
 
   // Handle composer view mode change
   const handleComposerViewModeChange = (newMode: 'edit' | 'split' | 'preview') => {
@@ -766,8 +762,6 @@ const ChatStyleEditor = ({
     localStorage.setItem('chatEditorSplitPanelSizes', JSON.stringify(sizes));
   };
 
-  // Icon options for character selection
-  const CHARACTER_ICONS = ["👨‍💻", "👩‍💻", "🧑‍💻", "👨‍🏫", "👩‍🏫", "🧑‍🏫", "🎓", "📚", "💡", "🤖", "🧠", "⭐"];
 
   // Fetch courses from database
   useEffect(() => {
@@ -776,7 +770,7 @@ const ChatStyleEditor = ({
         .from("courses")
         .select("id, name, slug, icon")
         .order("name");
-      
+
       if (!error && data) {
         setCourses(data);
         // Set first course as default if current selection is not in the list
@@ -901,6 +895,21 @@ const ChatStyleEditor = ({
 
 
   const handleInsertCodeSnippet = (language: string = "python") => {
+    // In default edit mode the composer is a LightEditor (TipTap).
+    // Insert triple-backtick markdown as plain text paragraphs so the bubble
+    // renderer picks it up and renders it as a code block when sent.
+    if (composerViewMode === 'edit') {
+      const editor = composerEditorRef.current?.getEditor();
+      if (editor) {
+        editor.chain().focus().insertContent([
+          { type: 'paragraph', content: [{ type: 'text', text: `\`\`\`${language}` }] },
+          { type: 'paragraph', content: [{ type: 'text', text: '# Your code here' }] },
+          { type: 'paragraph', content: [{ type: 'text', text: '```' }] },
+        ]).run();
+        return;
+      }
+    }
+    // Fallback for split/preview modes — markdown insertion into textarea.
     const codeTemplate = `\`\`\`${language}\n# Your code here\n\n\`\`\``;
     insertAtCursor(codeTemplate, "# Your code here");
   };
@@ -949,11 +958,11 @@ const ChatStyleEditor = ({
       insertAtCursor(`${prefix}${placeholder}${suffix}`, placeholder);
       return;
     }
-    
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const value = textarea.value;
-    
+
     if (start !== end) {
       // Has selection - wrap selected text
       const selectedText = value.substring(start, end);
@@ -981,11 +990,11 @@ const ChatStyleEditor = ({
       insertAtCursor(`${prefix}Item 1\n${prefix}Item 2\n${prefix}Item 3`, "Item 1");
       return;
     }
-    
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const value = textarea.value;
-    
+
     if (start !== end) {
       // Has selection - add prefix to each selected line
       const selectedText = value.substring(start, end);
@@ -999,7 +1008,7 @@ const ChatStyleEditor = ({
       }, 0);
     } else {
       // No selection - insert sample list
-      const sampleList = prefix === "1. " 
+      const sampleList = prefix === "1. "
         ? "1. Item 1\n2. Item 2\n3. Item 3"
         : `${prefix}Item 1\n${prefix}Item 2\n${prefix}Item 3`;
       insertAtCursor(sampleList, "Item 1");
@@ -1012,17 +1021,17 @@ const ChatStyleEditor = ({
       setNewMessage((prev) => prev + (prev ? "\n" : "") + text);
       return;
     }
-    
+
     const start = textarea.selectionStart;
     const value = textarea.value;
     const newText = value.substring(0, start) + (value && start > 0 ? "\n" : "") + text + value.substring(start);
     setNewMessage(newText);
     textarea.focus();
-    
+
     setTimeout(() => {
       textarea.style.height = "auto";
       textarea.style.height = `${Math.min(textarea.scrollHeight, 300)}px`;
-      
+
       if (selectText) {
         const cursorPos = newText.lastIndexOf(selectText);
         if (cursorPos !== -1) {
@@ -1052,26 +1061,106 @@ const ChatStyleEditor = ({
     }
   }, []);
 
+  // Convert TipTap JSON doc → markdown string so all existing renderers
+  // (ChatBubble, version history, comparison pages) work without changes.
+  const tiptapJsonToMarkdown = (json: any): string => {
+    if (!json) return '';
+
+    const inlineToMd = (node: any): string => {
+      if (node.type === 'hardBreak') return '\n';
+      let text = node.text || (node.content ? node.content.map(inlineToMd).join('') : '');
+      for (const mark of (node.marks || [])) {
+        if (mark.type === 'bold') text = `**${text}**`;
+        else if (mark.type === 'italic') text = `*${text}*`;
+        else if (mark.type === 'code') text = `\`${text}\``;
+        else if (mark.type === 'link') text = `[${text}](${mark.attrs?.href || ''})`;
+      }
+      return text;
+    };
+
+    const nodeToMd = (node: any): string => {
+      switch (node.type) {
+        case 'doc':
+          return (node.content || []).map(nodeToMd).join('\n');
+        case 'paragraph':
+          return (node.content || []).map(inlineToMd).join('');
+        case 'heading': {
+          const level = node.attrs?.level || 2;
+          return '#'.repeat(level) + ' ' + (node.content || []).map(inlineToMd).join('');
+        }
+        case 'bulletList':
+          return (node.content || []).map((item: any) =>
+            `• ${(item.content || []).map(nodeToMd).join('')}`
+          ).join('\n');
+        case 'orderedList':
+          return (node.content || []).map((item: any, i: number) =>
+            `${i + 1}. ${(item.content || []).map(nodeToMd).join('')}`
+          ).join('\n');
+        case 'blockquote':
+          return (node.content || []).map(nodeToMd).join('\n')
+            .split('\n').map((l: string) => `> ${l}`).join('\n');
+        case 'codeBlock': {
+          const lang = node.attrs?.language || '';
+          const code = (node.content || []).map((n: any) => n.text || '').join('');
+          return `\`\`\`${lang}\n${code}\n\`\`\``;
+        }
+        case 'executableCodeBlock': {
+          const lang = node.attrs?.language || '';
+          const code = node.attrs?.code || (node.content || []).map((n: any) => n.text || '').join('');
+          return `\`\`\`${lang}\n${code}\n\`\`\``;
+        }
+        case 'hardBreak':
+          return '\n';
+        default:
+          return (node.content || []).map(nodeToMd).join('');
+      }
+    };
+
+    return nodeToMd(json).trim();
+  };
+
   // Reset manual height when message is sent
   const handleAddMessage = useCallback(() => {
-    if (!newMessage.trim()) return;
+    // In default edit mode, content comes from LightEditor — convert TipTap JSON
+    // to markdown so existing renderers (ChatBubble, version pages) work unchanged.
+    // In split/preview modes, content comes from the textarea (already markdown).
+    const isLightEditorMode = composerViewMode === 'edit';
+    const contentToSend = isLightEditorMode
+      ? (() => {
+          const editor = composerEditorRef.current?.getEditor();
+          if (!editor || editor.isEmpty) return null;
+          return tiptapJsonToMarkdown(editor.getJSON()) || null;
+        })()
+      : newMessage.trim() || null;
+
+    if (!contentToSend) return;
 
     saveToUndoStack();
     const speaker = currentSpeaker === "mentor" ? mentorName : courseCharacter.name;
     const newMsg: ChatMessage = {
       id: generateId(),
       speaker,
-      content: newMessage.trim(),
+      content: contentToSend,
       type: "message",
     };
 
-    // Append new message at end (bottom of chat) - builds conversation top to bottom
     setMessages((prev) => [...prev, newMsg]);
-    setNewMessage("");
-    setManualHeight(null); // Reset height after sending
+
+    if (isLightEditorMode) {
+      setComposerEditorValue("");
+      composerEditorRef.current?.clear();
+    } else {
+      setNewMessage("");
+    }
+    setManualHeight(null);
     setCurrentSpeaker((prev) => (prev === "mentor" ? "course" : "mentor"));
-    inputRef.current?.focus();
-  }, [newMessage, currentSpeaker, courseCharacter.name, saveToUndoStack]);
+
+    if (isLightEditorMode) {
+      composerEditorRef.current?.focus();
+    } else {
+      inputRef.current?.focus();
+    }
+  }, [newMessage, composerViewMode, currentSpeaker, courseCharacter.name, saveToUndoStack]);
 
   const handleAddTakeawayWithUndo = useCallback(() => {
     saveToUndoStack();
@@ -1090,84 +1179,84 @@ const ChatStyleEditor = ({
   // Handle formatting shortcuts on main textarea
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const isModKey = isMac ? e.metaKey : e.ctrlKey;
-    
+
     // Enter sends. Shift+Enter inserts a newline.
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleAddMessage();
       return;
     }
-    
+
     // Bold: Ctrl/Cmd + B
     if (isModKey && e.key.toLowerCase() === 'b' && !e.shiftKey) {
       e.preventDefault();
       handleInsertBold();
       return;
     }
-    
+
     // Italic: Ctrl/Cmd + I (without shift)
     if (isModKey && e.key.toLowerCase() === 'i' && !e.shiftKey) {
       e.preventDefault();
       handleInsertItalic();
       return;
     }
-    
+
     // Inline Code: Ctrl/Cmd + `
     if (isModKey && e.key === '`') {
       e.preventDefault();
       handleInsertInlineCode();
       return;
     }
-    
+
     // Bullet List: Ctrl/Cmd + Shift + U
     if (isModKey && e.shiftKey && e.key.toLowerCase() === 'u') {
       e.preventDefault();
       handleInsertBulletList();
       return;
     }
-    
+
     // Numbered List: Ctrl/Cmd + Shift + O
     if (isModKey && e.shiftKey && e.key.toLowerCase() === 'o') {
       e.preventDefault();
       handleInsertNumberedList();
       return;
     }
-    
+
     // Heading: Ctrl/Cmd + Shift + H
     if (isModKey && e.shiftKey && e.key.toLowerCase() === 'h') {
       e.preventDefault();
       handleInsertHeading();
       return;
     }
-    
+
     // Quote: Ctrl/Cmd + Shift + Q
     if (isModKey && e.shiftKey && e.key.toLowerCase() === 'q') {
       e.preventDefault();
       handleInsertBlockquote();
       return;
     }
-    
+
     // Link: Ctrl/Cmd + K
     if (isModKey && e.key.toLowerCase() === 'k' && !e.shiftKey) {
       e.preventDefault();
       handleInsertLink();
       return;
     }
-    
+
     // Code block (Python): Ctrl/Cmd + Shift + C
     if (isModKey && e.shiftKey && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       handleInsertCodeSnippet('python');
       return;
     }
-    
+
     // Takeaway: Ctrl/Cmd + Shift + T
     if (isModKey && e.shiftKey && e.key.toLowerCase() === 't') {
       e.preventDefault();
       handleAddTakeawayWithUndo();
       return;
     }
-    
+
     // Image: Ctrl/Cmd + Shift + I
     if (isModKey && e.shiftKey && e.key.toLowerCase() === 'i') {
       e.preventDefault();
@@ -1202,42 +1291,42 @@ const ChatStyleEditor = ({
         handleUndo();
         return;
       }
-      
+
       // Redo: Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y
       if (isModKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         handleRedo();
         return;
       }
-      
+
       // Takeaway: Ctrl/Cmd + Shift + T
       if (isModKey && e.shiftKey && e.key.toLowerCase() === 't') {
         e.preventDefault();
         handleAddTakeawayWithUndo();
         return;
       }
-      
+
       // Code block (Python): Ctrl/Cmd + Shift + C
       if (isModKey && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         handleInsertCodeSnippet('python');
         return;
       }
-      
+
       // Image: Ctrl/Cmd + Shift + I
       if (isModKey && e.shiftKey && e.key.toLowerCase() === 'i') {
         e.preventDefault();
         handleInsertImage();
         return;
       }
-      
+
       // Link: Ctrl/Cmd + K
       if (isModKey && e.key.toLowerCase() === 'k' && !e.shiftKey) {
         e.preventDefault();
         handleInsertLink();
         return;
       }
-      
+
       // Bold: Ctrl/Cmd + B (focus textarea first)
       if (isModKey && e.key.toLowerCase() === 'b' && !e.shiftKey) {
         e.preventDefault();
@@ -1245,7 +1334,7 @@ const ChatStyleEditor = ({
         handleInsertBold();
         return;
       }
-      
+
       // Italic: Ctrl/Cmd + I (without shift) (focus textarea first)
       if (isModKey && e.key.toLowerCase() === 'i' && !e.shiftKey) {
         e.preventDefault();
@@ -1253,7 +1342,7 @@ const ChatStyleEditor = ({
         handleInsertItalic();
         return;
       }
-      
+
       // Inline Code: Ctrl/Cmd + `
       if (isModKey && e.key === '`') {
         e.preventDefault();
@@ -1261,28 +1350,28 @@ const ChatStyleEditor = ({
         handleInsertInlineCode();
         return;
       }
-      
+
       // Bullet List: Ctrl/Cmd + Shift + U
       if (isModKey && e.shiftKey && e.key.toLowerCase() === 'u') {
         e.preventDefault();
         handleInsertBulletList();
         return;
       }
-      
+
       // Numbered List: Ctrl/Cmd + Shift + O
       if (isModKey && e.shiftKey && e.key.toLowerCase() === 'o') {
         e.preventDefault();
         handleInsertNumberedList();
         return;
       }
-      
+
       // Heading: Ctrl/Cmd + Shift + H
       if (isModKey && e.shiftKey && e.key.toLowerCase() === 'h') {
         e.preventDefault();
         handleInsertHeading();
         return;
       }
-      
+
       // Quote: Ctrl/Cmd + Shift + Q
       if (isModKey && e.shiftKey && e.key.toLowerCase() === 'q') {
         e.preventDefault();
@@ -1303,7 +1392,7 @@ const ChatStyleEditor = ({
     const newMsg: ChatMessage = {
       id: generateId(),
       speaker,
-      content: "New message...",
+      content: "",
       type: "message",
     };
     setMessages((prev) => {
@@ -1316,53 +1405,12 @@ const ChatStyleEditor = ({
     setCurrentSpeaker((prev) => (prev === "mentor" ? "course" : "mentor"));
   };
 
-  // Insert takeaway at a specific position (after given index)
-  // Pass afterIndex = -1 to insert at the very top (before first item)
-  const handleInsertTakeawayAt = (afterIndex: number) => {
-    saveToUndoStack();
-    const newTakeaway: ChatMessage = {
-      id: generateId(),
-      speaker: "TAKEAWAY",
-      content: "Enter your takeaway content here...",
-      type: "takeaway",
-      takeawayTitle: "One-Line Takeaway for Learners",
-      takeawayIcon: "🧠",
-    };
-    setMessages((prev) => {
-      const updated = [...prev];
-      const insertIndex = Math.max(0, Math.min(updated.length, afterIndex + 1));
-      updated.splice(insertIndex, 0, newTakeaway);
-      return updated;
-    });
-    setEditingId(newTakeaway.id);
-  };
-
-  // Insert freeform canvas at a specific position
-  const handleInsertFreeformAt = (afterIndex: number) => {
-    saveToUndoStack();
-    const newFreeform: ChatMessage = {
-      id: generateId(),
-      speaker: "FREEFORM",
-      content: "",
-      type: "freeform",
-      freeformData: undefined,
-    };
-    setMessages((prev) => {
-      const updated = [...prev];
-      const insertIndex = Math.max(0, Math.min(updated.length, afterIndex + 1));
-      updated.splice(insertIndex, 0, newFreeform);
-      return updated;
-    });
-    setEditingId(newFreeform.id);
-  };
-
-
   const handleEditMessage = (id: string, content: string, title?: string, icon?: string, freeformData?: FreeformCanvasData) => {
     saveToUndoStack();
-    
+
     // If editing a regular message to empty content, remove it entirely
     const visibleContent = content.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
-    
+
     setMessages((prev) => {
       return prev
         .map((m) => {
@@ -1455,7 +1503,7 @@ const ChatStyleEditor = ({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       setMessages((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
@@ -1467,10 +1515,7 @@ const ChatStyleEditor = ({
 
   const getCharacterForSpeaker = useCallback((speaker: string): CourseCharacter => {
     if (speaker.toLowerCase() === mentorName.toLowerCase()) {
-      return {
-        ...MENTOR_CHARACTER,
-        emoji: mentorIcon,
-      };
+      return MENTOR_CHARACTER;
     }
     // Find matching course by name
     const matchingCourse = courses.find(
@@ -1485,14 +1530,14 @@ const ChatStyleEditor = ({
       };
     }
     return courseCharacter;
-  }, [courses, courseCharacter, mentorIcon]);
+  }, [courses, courseCharacter]);
 
   const isMentor = (speaker: string) =>
     speaker.toLowerCase() === mentorName.toLowerCase();
 
-  // Handle text selection for annotations
+  // Handle text selection for annotations — only active in annotation mode
   const handleTextSelection = useCallback((bubbleIndex?: number) => {
-    if (!onTextSelect) return;
+    if (!annotationMode || !onTextSelect) return;
 
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
@@ -1501,7 +1546,7 @@ const ChatStyleEditor = ({
     if (!text || text.length < 2) return;
 
     const range = selection.getRangeAt(0);
-    
+
     // Capture the selection rect immediately
     let rect: { top: number; left: number; width: number; height: number; bottom: number } | undefined;
     const domRect = range.getBoundingClientRect();
@@ -1514,7 +1559,7 @@ const ChatStyleEditor = ({
         bottom: domRect.bottom,
       };
     }
-    
+
     onTextSelect({
       start: range.startOffset,
       end: range.endOffset,
@@ -1523,7 +1568,7 @@ const ChatStyleEditor = ({
       bubbleIndex,
       rect,
     });
-  }, [onTextSelect]);
+  }, [annotationMode, onTextSelect]);
 
   // Handle annotating a full bubble
   const handleAnnotateBubble = useCallback((bubbleIndex: number, text: string) => {
@@ -1544,7 +1589,7 @@ const ChatStyleEditor = ({
   return (
     <div className="chat-style-editor rounded-xl border border-border bg-background overflow-hidden shadow-lg flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b border-border">
+      <div className="flex items-center justify-between px-4 py-3 bg-background border-b border-border/60">
         <div className="flex items-center gap-2">
           {lessonLabel ? (
             <span className="text-sm font-medium text-foreground">{lessonLabel}</span>
@@ -1553,28 +1598,56 @@ const ChatStyleEditor = ({
           )}
         </div>
 
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "edit" | "preview")}>
-          <TabsList className="h-8">
-            <TabsTrigger value="edit" className="text-xs px-3 h-7">
-              <Edit3 className="w-3 h-3 mr-1" />
-              Edit
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="text-xs px-3 h-7">
-              <Eye className="w-3 h-3 mr-1" />
-              Preview
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center p-[3px] bg-muted/60 rounded-lg border border-border/50 gap-[2px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
+          {([
+            { value: "edit" as const, icon: Edit3, label: "Edit" },
+            { value: "preview" as const, icon: Eye, label: "Preview" },
+          ]).map(({ value, icon: Icon, label }) => (
+            <button
+              key={value}
+              onClick={() => setMode(value)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150 select-none",
+                mode === value
+                  ? "bg-background text-foreground shadow-sm ring-1 ring-border/30"
+                  : "text-muted-foreground hover:text-foreground/70"
+              )}
+            >
+              <Icon className="w-3 h-3 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Chat container */}
+      {/* In annotation mode: no fixed height — messages expand naturally so the outer
+          canvas scroll handles navigation (avoids nested-scroll ambiguity where the
+          inner 420px scroll container competes with the outer canvas for wheel events,
+          and messages rendered without InsertBetweenButtons pack too tightly to overflow).
+          In edit mode: fixed 420px height keeps the block compact. */}
+      {/* Preview mode — exact CourseDetail rendering */}
+      {mode === "preview" && !annotationMode && (
+        <div className="overflow-y-auto" style={{ height: 420 }}>
+          <ChatConversationView
+            content={serializeMessages(messages, explanation)}
+            courseType={selectedCourse}
+            showHeader={false}
+            className="px-6 py-6"
+            allowSingleSpeaker
+          />
+        </div>
+      )}
+
       <div
         ref={chatContainerRef}
-        className="p-6 bg-gradient-to-b from-background to-muted/20 overflow-y-auto"
-        style={{
-          height: 420,
-          backgroundImage: `radial-gradient(circle at 50% 50%, hsl(var(--muted) / 0.3) 0%, transparent 70%)`,
-        }}
+        className={cn(
+          "bg-[#FAFAFA] dark:bg-background",
+          mode === "preview" && !annotationMode ? "hidden" : "",
+          mode !== "preview" && "p-6",
+          !annotationMode && "overflow-y-auto"
+        )}
+        style={{ ...(annotationMode ? {} : { height: 420 }) }}
         onMouseUp={() => handleTextSelection()}
       >
         {messages.length === 0 ? (
@@ -1584,6 +1657,42 @@ const ChatStyleEditor = ({
             <p className="text-xs mt-1 opacity-70">
               Type as {courseCharacter.name} or {mentorName}
             </p>
+          </div>
+        ) : annotationMode ? (
+          // In annotation mode: no DnD context so pointer events don't get captured,
+          // allowing native scroll to work inside the chat container.
+          <div className="space-y-0">
+            {messages.map((message, index) => {
+              const bubbleHasOpenAnnotations = annotations.some(
+                a => a.bubble_index === index && a.status === "open"
+              );
+              return (
+                <div key={message.id}>
+                  <PlainMessageItem
+                    message={message}
+                    character={getCharacterForSpeaker(message.speaker)}
+                    isMentor={isMentor(message.speaker)}
+                    isEditing={false}
+                    onEdit={handleEditMessage}
+                    onStartEdit={setEditingId}
+                    onEndEdit={() => setEditingId(null)}
+                    onDelete={handleDeleteMessage}
+                    onMoveUp={() => handleMoveMessage(message.id, "up")}
+                    onMoveDown={() => handleMoveMessage(message.id, "down")}
+                    onConvertToTakeaway={handleConvertToTakeaway}
+                    onConvertToMessage={handleConvertToMessage}
+                    onAnnotateBubble={handleAnnotateBubble}
+                    isEditMode={false}
+                    isFirst={index === 0}
+                    isLast={index === messages.length - 1}
+                    codeTheme={codeTheme}
+                    index={index}
+                    annotationMode={true}
+                    hasOpenAnnotations={bubbleHasOpenAnnotations}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
           <DndContext
@@ -1600,185 +1709,133 @@ const ChatStyleEditor = ({
                 {mode === "edit" && messages.length > 0 && (
                   <InsertBetweenButton
                     onInsertMessage={() => handleInsertMessageAt(-1)}
-                    onInsertTakeaway={() => handleInsertTakeawayAt(-1)}
-                    onInsertFreeform={() => handleInsertFreeformAt(-1)}
                     courseCharacterName={courseCharacter.name}
                     mentorName={mentorName}
                   />
                 )}
 
                 {messages.map((message, index) => {
-                   const bubbleHasOpenAnnotations = annotations.some(
+                  const bubbleHasOpenAnnotations = annotations.some(
                     a => a.bubble_index === index && a.status === "open"
                   );
                   return (
-                  <div key={message.id}>
-                    <SortableMessageItem
-                      message={message}
-                      character={getCharacterForSpeaker(message.speaker)}
-                      isMentor={isMentor(message.speaker)}
-                      isEditing={editingId === message.id}
-                      onEdit={handleEditMessage}
-                      onStartEdit={setEditingId}
-                      onEndEdit={() => setEditingId(null)}
-                      onDelete={handleDeleteMessage}
-                      onMoveUp={() => handleMoveMessage(message.id, "up")}
-                      onMoveDown={() => handleMoveMessage(message.id, "down")}
-                      onConvertToTakeaway={handleConvertToTakeaway}
-                      onConvertToMessage={handleConvertToMessage}
-                      onAnnotateBubble={handleAnnotateBubble}
-                      isEditMode={mode === "edit"}
-                      isFirst={index === 0}
-                      isLast={index === messages.length - 1}
-                      codeTheme={codeTheme}
-                      index={index}
-                      annotationMode={annotationMode}
-                      hasOpenAnnotations={bubbleHasOpenAnnotations}
-                    />
-                    {/* Insert between button - show after every bubble in edit mode */}
-                    {mode === "edit" && (
-                      <InsertBetweenButton
-                        onInsertMessage={() => handleInsertMessageAt(index)}
-                        onInsertTakeaway={() => handleInsertTakeawayAt(index)}
-                        onInsertFreeform={() => handleInsertFreeformAt(index)}
-                        courseCharacterName={courseCharacter.name}
-                        mentorName={mentorName}
+                    <div key={message.id}>
+                      <SortableMessageItem
+                        message={message}
+                        character={getCharacterForSpeaker(message.speaker)}
+                        isMentor={isMentor(message.speaker)}
+                        isEditing={editingId === message.id}
+                        onEdit={handleEditMessage}
+                        onStartEdit={setEditingId}
+                        onEndEdit={() => setEditingId(null)}
+                        onDelete={handleDeleteMessage}
+                        onMoveUp={() => handleMoveMessage(message.id, "up")}
+                        onMoveDown={() => handleMoveMessage(message.id, "down")}
+                        onConvertToTakeaway={handleConvertToTakeaway}
+                        onConvertToMessage={handleConvertToMessage}
+                        onAnnotateBubble={handleAnnotateBubble}
+                        isEditMode={mode === "edit"}
+                        isFirst={index === 0}
+                        isLast={index === messages.length - 1}
+                        codeTheme={codeTheme}
+                        index={index}
+                        annotationMode={false}
+                        hasOpenAnnotations={bubbleHasOpenAnnotations}
                       />
-                    )}
-                  </div>
+                      {/* Insert between button - show after every bubble in edit mode */}
+                      {mode === "edit" && (
+                        <InsertBetweenButton
+                          onInsertMessage={() => handleInsertMessageAt(index)}
+                          courseCharacterName={courseCharacter.name}
+                          mentorName={mentorName}
+                        />
+                      )}
+                    </div>
                   );
                 })}
               </div>
             </SortableContext>
           </DndContext>
-        )}
+        )
+        }
       </div>
 
       {/* Input area (only in edit mode and not in annotation mode) */}
       {mode === "edit" && !annotationMode && (
         <div className="border-t border-border bg-muted/30 p-4 flex-shrink-0">
-          {/* Speaker toggle with icon pickers and view mode toggle */}
-          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-muted-foreground">Speaking as:</span>
-              <div className="flex items-center gap-1">
-                {/* Course character toggle */}
-                <div className="flex items-center rounded-full bg-muted p-0.5">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className={cn(
-                          "w-7 h-7 rounded-full flex items-center justify-center transition-all",
-                          currentSpeaker === "course"
-                            ? "bg-slate-200 dark:bg-slate-700 shadow-sm"
-                            : "hover:bg-muted-foreground/10"
-                        )}
-                      >
-                        {renderCourseIcon(courseCharacter.emoji, 16)}
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-popover border border-border shadow-lg z-50">
-                      <div className="p-2 text-xs text-muted-foreground mb-1">Course icon is set in course settings</div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <button
-                    onClick={() => setCurrentSpeaker("course")}
-                    className={cn(
-                      "px-3 py-1 rounded-full text-xs font-medium transition-all",
-                      currentSpeaker === "course"
-                        ? "bg-slate-200 dark:bg-slate-700 shadow-sm text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {courseCharacter.name}
-                  </button>
-                </div>
+          {/* Composer header: speaker toggle + view mode */}
+          <div className="flex items-center justify-between gap-3 mb-3">
+            {/* Speaking as — compact segmented pill */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[11px] font-medium text-muted-foreground/60 whitespace-nowrap shrink-0">
+                Speaking as
+              </span>
+              <div className="flex items-center p-0.5 bg-muted/70 rounded-full border border-border/40 gap-0.5">
+                {/* Course pill */}
+                <button
+                  onClick={() => setCurrentSpeaker("course")}
+                  className={cn(
+                    "flex items-center gap-1.5 pl-1 pr-3 py-0.5 rounded-full text-xs font-medium transition-all duration-150 select-none",
+                    currentSpeaker === "course"
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground/80"
+                  )}
+                >
+                  <span className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors",
+                    currentSpeaker === "course"
+                      ? "bg-slate-200 dark:bg-slate-700 text-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}>
+                    {courseCharacter.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="truncate max-w-[80px]">{courseCharacter.name}</span>
+                </button>
 
-                {/* Mentor toggle */}
-                <div className="flex items-center rounded-full bg-muted p-0.5">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className={cn(
-                          "w-7 h-7 rounded-full flex items-center justify-center transition-all",
-                          currentSpeaker === "mentor"
-                            ? "bg-emerald-500 shadow-sm"
-                            : "hover:bg-muted-foreground/10"
-                        )}
-                      >
-                        <span className="text-sm">{mentorIcon}</span>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-popover border border-border shadow-lg z-50">
-                      <div className="grid grid-cols-4 gap-1 p-2">
-                        {CHARACTER_ICONS.map((icon) => (
-                          <DropdownMenuItem
-                            key={icon}
-                            onClick={() => setMentorIcon(icon)}
-                            className={cn(
-                              "cursor-pointer justify-center text-xl p-2 rounded-lg",
-                              mentorIcon === icon && "bg-emerald-100 dark:bg-emerald-900/50"
-                            )}
-                          >
-                            {icon}
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <button
-                    onClick={() => setCurrentSpeaker("mentor")}
-                    className={cn(
-                      "px-3 py-1 rounded-full text-xs font-medium transition-all",
-                      currentSpeaker === "mentor"
-                        ? "bg-emerald-500 shadow-sm text-white"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {mentorName}
-                  </button>
-                </div>
+                {/* Karan pill */}
+                <button
+                  onClick={() => setCurrentSpeaker("mentor")}
+                  className={cn(
+                    "flex items-center gap-1.5 pl-1 pr-3 py-0.5 rounded-full text-xs font-medium transition-all duration-150 select-none",
+                    currentSpeaker === "mentor"
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground/80"
+                  )}
+                >
+                  <span className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors",
+                    currentSpeaker === "mentor"
+                      ? "bg-emerald-500 text-white"
+                      : "bg-muted text-muted-foreground"
+                  )}>
+                    K
+                  </span>
+                  {mentorName}
+                </button>
               </div>
             </div>
 
-            {/* View mode toggle */}
-            <div className="flex items-center gap-1 flex-wrap justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleComposerViewModeChange('edit')}
-                className={cn(
-                  "h-6 px-2 text-xs gap-1",
-                  composerViewMode === 'edit' && "bg-muted"
-                )}
-              >
-                <EyeOff className="w-3 h-3" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleComposerViewModeChange('split')}
-                className={cn(
-                  "h-6 px-2 text-xs gap-1",
-                  composerViewMode === 'split' && "bg-muted"
-                )}
-              >
-                <Columns className="w-3 h-3" />
-                Split View
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleComposerViewModeChange('preview')}
-                className={cn(
-                  "h-6 px-2 text-xs gap-1",
-                  composerViewMode === 'preview' && "bg-muted"
-                )}
-              >
-                <Eye className="w-3 h-3" />
-                Preview
-              </Button>
+            {/* View mode — segmented control */}
+            <div className="flex items-center p-0.5 bg-muted/70 rounded-lg border border-border/40 gap-0.5 shrink-0">
+              {([
+                { mode: 'edit' as const, icon: EyeOff, label: 'Edit' },
+                { mode: 'split' as const, icon: Columns, label: 'Split' },
+                { mode: 'preview' as const, icon: Eye, label: 'Preview' },
+              ] as const).map(({ mode, icon: Icon, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => handleComposerViewModeChange(mode)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-150 select-none",
+                    composerViewMode === mode
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground/80"
+                  )}
+                >
+                  <Icon className="w-3 h-3 shrink-0" />
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1800,9 +1857,8 @@ const ChatStyleEditor = ({
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyDown={handleInputKeyDown}
                         onMouseUp={handleTextareaMouseUp}
-                        placeholder={`Type a message as ${
-                          currentSpeaker === "mentor" ? mentorName : courseCharacter.name
-                        }...`}
+                        placeholder={`Type a message as ${currentSpeaker === "mentor" ? mentorName : courseCharacter.name
+                          }...`}
                         className="w-full h-full px-4 py-3 pr-10 text-sm font-mono bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60"
                       />
                     </ResizablePanel>
@@ -1830,20 +1886,20 @@ const ChatStyleEditor = ({
                     onMouseDown={(e) => {
                       e.preventDefault();
                       splitViewDragRef.current = { startY: e.clientY, startHeight: splitViewHeight };
-                      
+
                       const handleMouseMove = (moveEvent: MouseEvent) => {
                         if (!splitViewDragRef.current) return;
                         const deltaY = moveEvent.clientY - splitViewDragRef.current.startY;
                         const newHeight = Math.max(80, Math.min(600, splitViewDragRef.current.startHeight + deltaY));
                         setSplitViewHeight(newHeight);
                       };
-                      
+
                       const handleMouseUp = () => {
                         splitViewDragRef.current = null;
                         document.removeEventListener('mousemove', handleMouseMove);
                         document.removeEventListener('mouseup', handleMouseUp);
                       };
-                      
+
                       document.addEventListener('mousemove', handleMouseMove);
                       document.addEventListener('mouseup', handleMouseUp);
                     }}
@@ -1860,7 +1916,7 @@ const ChatStyleEditor = ({
                   </div>
                 </div>
               ) : composerViewMode === 'preview' ? (
-                <div 
+                <div
                   className="w-full px-4 py-3 rounded-2xl border border-border bg-background min-h-[120px] text-sm prose prose-sm dark:prose-invert max-w-none cursor-pointer hover:bg-muted/20 transition-colors"
                   onClick={() => handleComposerViewModeChange('edit')}
                   title="Click to edit"
@@ -1872,160 +1928,102 @@ const ChatStyleEditor = ({
                   )}
                 </div>
               ) : (
-                <>
-                  <div className="relative">
-                    <textarea
-                      ref={inputRef}
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={handleInputKeyDown}
-                      onMouseUp={handleTextareaMouseUp}
-                      placeholder={`Type a message as ${
-                        currentSpeaker === "mentor" ? mentorName : courseCharacter.name
-                      }...`}
-                      className={cn(
-                        "w-full px-4 py-3 pr-10 rounded-2xl border border-border bg-background",
-                        "resize-y text-sm overflow-y-auto transition-all duration-200",
-                        "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
-                        "placeholder:text-muted-foreground/60",
-                        isComposerExpanded ? "min-h-[200px] max-h-[600px]" : "min-h-[80px] max-h-[400px]"
-                      )}
-                      style={manualHeight ? { height: `${manualHeight}px` } : undefined}
-                      rows={isComposerExpanded ? 8 : 3}
-                    />
-                    {/* Expand/collapse button */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsComposerExpanded(!isComposerExpanded)}
-                      className="absolute top-2 right-2 h-6 w-6 opacity-60 hover:opacity-100 text-muted-foreground"
-                      title={isComposerExpanded ? "Collapse" : "Expand"}
-                    >
-                      {isComposerExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                    </Button>
-                  </div>
-                  <div className="absolute bottom-2 left-4 text-[10px] text-muted-foreground/50">
-                    Enter send • {modKey}+B bold • {modKey}+I italic • {modKey}+` code • {modKey}+⇧+U bullets
-                  </div>
-                </>
+                <LightEditor
+                  ref={composerEditorRef}
+                  value={composerEditorValue}
+                  onChange={setComposerEditorValue}
+                  placeholder={`Type a message as ${currentSpeaker === "mentor" ? mentorName : courseCharacter.name}…`}
+                  characterLimit={2000}
+                  showCharCount={false}
+                  minHeight="80px"
+                  onEnterSubmit={handleAddMessage}
+                  extendedToolbar
+                  className="rounded-2xl"
+                  startToolbarActions={
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 disabled:opacity-30"
+                            onClick={handleUndo}
+                            disabled={undoStack.length === 0}
+                          >
+                            <Undo2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Undo ({modKey}+Z)</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 disabled:opacity-30"
+                            onClick={handleRedo}
+                            disabled={redoStack.length === 0}
+                          >
+                            <Redo2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Redo ({modKey}+⇧+Z)</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  }
+                />
               )}
             </div>
-            
-            {/* Insert options dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "h-12 w-12 rounded-full p-0 shadow-md",
-                    "border-border hover:bg-muted",
-                    "transition-all duration-200 hover:scale-105"
-                  )}
-                >
-                  <Plus className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-popover border border-border shadow-lg z-50">
-                {/* Undo/Redo */}
-                <DropdownMenuItem 
-                  onClick={handleUndo} 
-                  disabled={undoStack.length === 0}
-                  className="cursor-pointer"
-                >
-                  <Undo2 className="w-4 h-4 mr-2" />
-                  Undo
-                  <DropdownMenuShortcut>{modKey}+Z</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleRedo} 
-                  disabled={redoStack.length === 0}
-                  className="cursor-pointer"
-                >
-                  <Redo2 className="w-4 h-4 mr-2" />
-                  Redo
-                  <DropdownMenuShortcut>{modKey}+⇧+Z</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer">
-                    <Code className="w-4 h-4 mr-2" />
-                    Code Block
-                    <DropdownMenuShortcut>{modKey}+⇧+C</DropdownMenuShortcut>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="bg-popover border border-border shadow-lg z-50">
-                      {CODE_LANGUAGES.map((lang, index) => (
-                        <DropdownMenuItem
-                          key={lang.value}
-                          onClick={() => handleInsertCodeSnippet(lang.value)}
-                          className="cursor-pointer"
-                        >
-                          {lang.label}
-                          {index === 0 && <DropdownMenuShortcut>{modKey}+⇧+C</DropdownMenuShortcut>}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleAddTakeawayWithUndo} className="cursor-pointer">
-                  <Lightbulb className="w-4 h-4 mr-2" />
-                  Takeaway Block
-                  <DropdownMenuShortcut>{modKey}+⇧+T</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleInsertImage} className="cursor-pointer">
-                  <Image className="w-4 h-4 mr-2" />
-                  Image
-                  <DropdownMenuShortcut>{modKey}+⇧+I</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertLink} className="cursor-pointer">
-                  <Link className="w-4 h-4 mr-2" />
-                  Link
-                  <DropdownMenuShortcut>{modKey}+K</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertBold} className="cursor-pointer">
-                  <Bold className="w-4 h-4 mr-2" />
-                  Bold Text
-                  <DropdownMenuShortcut>{modKey}+B</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertItalic} className="cursor-pointer">
-                  <Italic className="w-4 h-4 mr-2" />
-                  Italic Text
-                  <DropdownMenuShortcut>{modKey}+I</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertInlineCode} className="cursor-pointer">
-                  <Terminal className="w-4 h-4 mr-2" />
-                  Inline Code
-                  <DropdownMenuShortcut>{modKey}+`</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertBulletList} className="cursor-pointer">
-                  <List className="w-4 h-4 mr-2" />
-                  Bullet List
-                  <DropdownMenuShortcut>{modKey}+⇧+U</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertNumberedList} className="cursor-pointer">
-                  <ListOrdered className="w-4 h-4 mr-2" />
-                  Numbered List
-                  <DropdownMenuShortcut>{modKey}+⇧+O</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertHeading} className="cursor-pointer">
-                  <Heading2 className="w-4 h-4 mr-2" />
-                  Heading
-                  <DropdownMenuShortcut>{modKey}+⇧+H</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInsertBlockquote} className="cursor-pointer">
-                  <Quote className="w-4 h-4 mr-2" />
-                  Blockquote
-                  <DropdownMenuShortcut>{modKey}+⇧+Q</DropdownMenuShortcut>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            {/* Insert Code Block — hidden in annotation mode */}
+            {!annotationMode && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-12 w-12 rounded-full p-0",
+                      "text-muted-foreground hover:text-foreground hover:bg-muted",
+                      "border border-border/60 hover:border-border",
+                      "transition-all duration-150"
+                    )}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-popover border border-border shadow-lg z-50 p-2">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-1 pb-2">
+                    Insert Code Block
+                  </p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {CODE_LANGUAGES.map((lang) => (
+                      <button
+                        key={lang.value}
+                        onClick={() => handleInsertCodeSnippet(lang.value)}
+                        className={cn(
+                          "w-full h-8 px-2 rounded-md text-xs font-medium text-center",
+                          "bg-muted/60 hover:bg-primary/10 hover:text-primary",
+                          "border border-border/40 hover:border-primary/30",
+                          "transition-colors duration-100 cursor-pointer truncate"
+                        )}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {/* Send button */}
             <Button
               onClick={handleAddMessage}
-              disabled={!newMessage.trim()}
+              disabled={composerViewMode === 'edit'
+                ? !composerEditorValue.trim()
+                : !newMessage.trim()
+              }
               className={cn(
                 "h-12 w-12 rounded-full p-0 shadow-lg",
                 "bg-[hsl(210,100%,52%)] hover:bg-[hsl(210,100%,45%)]",
@@ -2061,7 +2059,7 @@ const ChatStyleEditor = ({
         ) : (
           <RichTextEditor
             value={explanation}
-            onChange={() => {}}
+            onChange={() => { }}
             readOnly
             annotations={explanationAnnotations}
             isAdmin={isAdmin}
@@ -2075,6 +2073,13 @@ const ChatStyleEditor = ({
           This text will appear below the chat conversation as an explanation section.
         </p>
       </div>}
+
+      {/* Floating formatting toolbar for composer textarea (edit mode only) */}
+      <FloatingTextToolbar
+        targetRef={inputRef}
+        onApplyFormat={(prefix, suffix) => wrapOrInsertFormatting(prefix, suffix, '')}
+        disabled={annotationMode}
+      />
 
       <style>{`
         .chat-style-editor {

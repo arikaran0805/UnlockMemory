@@ -2,10 +2,10 @@ import { useRef, useEffect } from "react";
 import { ChatMessage, CourseCharacter } from "./types";
 import { cn } from "@/lib/utils";
 import { MessageSquare } from "lucide-react";
-import { renderCourseIcon } from "./utils";
 import { MonacoCodeBlock } from "@/components/code-block";
 import { getChatColors } from "./chatColors";
 import { ChatEditor, type ChatEditorRef } from "@/components/tiptap/ChatEditor";
+import { normalizeBubbleContent } from "@/lib/tiptapMigration";
 
 // Check if content contains code blocks
 const hasCodeBlock = (content: string): boolean => {
@@ -58,7 +58,7 @@ const ChatBubble = ({
     const markdownRegex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`([^`]+)`)/g;
     let lastIdx = 0;
     let match;
-    
+
     while ((match = markdownRegex.exec(text)) !== null) {
       if (match.index > lastIdx) {
         segments.push(<span key={`${baseKey}-text-${lastIdx}`} className="whitespace-pre-wrap">{text.slice(lastIdx, match.index)}</span>);
@@ -110,9 +110,9 @@ const ChatBubble = ({
   // Render content with code blocks
   const renderContent = (content: string) => {
     if (!content) return null;
-    
+
     const trimmed = content.trim();
-    
+
     // FIRST: Check for corrupted/partial JSON patterns before any parsing
     // This catches strings like `"doc","content":...` or `{"type":"paragraph"...` fragments
     const corruptedPatterns = [
@@ -123,7 +123,7 @@ const ChatBubble = ({
       '"content":[{',
       '{"type":"',
     ];
-    
+
     // If content looks like JSON fragments but isn't valid parseable JSON, suppress it
     const looksLikeJsonFragment = corruptedPatterns.some(pattern => trimmed.includes(pattern));
     if (looksLikeJsonFragment) {
@@ -149,7 +149,7 @@ const ChatBubble = ({
       // If we get here, it's JSON but not TipTap format - suppress
       return null;
     }
-    
+
     // Check for valid TipTap JSON that starts properly
     if (trimmed.startsWith('{')) {
       try {
@@ -168,17 +168,17 @@ const ChatBubble = ({
         // Not valid JSON, continue with normal rendering
       }
     }
-    
+
     return renderMarkdownContent(content);
   };
-  
+
   // Separate function to render markdown content
   const renderMarkdownContent = (content: string) => {
     let processedContent = content;
-    
+
     // Fix escaped newlines (literal \n) to actual newlines
     processedContent = processedContent.replace(/\\n/g, '\n');
-    
+
     const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
     const parts: { type: string; language?: string; content: string }[] = [];
     let lastIndex = 0;
@@ -194,18 +194,23 @@ const ChatBubble = ({
 
     return parts.map((part, idx) => {
       if (part.type === "code") {
-        return <div key={idx} className="-mx-4 px-0"><MonacoCodeBlock code={part.content} language={part.language} editable showLanguageLabel /></div>;
+        return <div key={idx} className="my-2"><MonacoCodeBlock code={part.content} language={part.language} editable showLanguageLabel /></div>;
       }
       return <span key={idx}>{parseLineMarkdown(part.content, `part-${idx}`)}</span>;
     });
   };
 
+  // Normalize content for the editor: convert TipTap JSON → markdown so ChatEditor
+  // (which uses tiptap-markdown) can parse and render it correctly.
+  const editorValue = normalizeBubbleContent(message.content);
+
   return (
     <div className={cn("mb-3 flex transition-all duration-200", isMentor ? "justify-end" : "justify-start", isDragging && "opacity-50 scale-105")}>
       {/* Bubble - wider when containing code blocks */}
       <div className={cn(
-        "relative px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200",
-        isEditing ? "w-full" : hasCodeBlock(message.content) ? "w-[75%] max-w-[75%] min-w-[360px]" : "max-w-[70%] min-w-[60px]",
+        "relative px-5 py-3.5 rounded-2xl shadow-sm transition-all duration-200 border border-black/[0.04] dark:border-white/[0.06]",
+        isEditing ? "w-full" : hasCodeBlock(message.content) ? "w-[82%] max-w-[82%] min-w-[400px]" : "max-w-[75%] min-w-[80px]",
+        getChatColors(isMentor).bubble,
         getChatColors(isMentor).text,
         isMentor ? "rounded-br-md" : "rounded-bl-md",
         isDragging && "ring-2 ring-primary/50",
@@ -219,20 +224,20 @@ const ChatBubble = ({
         )}
 
         {/* Speaker name */}
-        <div className={cn("text-[10px] font-medium mb-1 opacity-70 flex items-center gap-1", getChatColors(isMentor).speaker)}>
-          {character.name} {renderCourseIcon(character.emoji, 12)}
+        <div className="text-[10px] font-semibold mb-1.5 uppercase tracking-[0.07em] text-[#888888]">
+          {character.name}
         </div>
 
         {/* Content */}
         {isEditing ? (
           <ChatEditor
             ref={chatEditorRef}
-            value={message.content}
+            value={editorValue}
             onSave={handleSave}
             onCancel={onEndEdit}
             isMentor={isMentor}
             codeTheme={codeTheme}
-            placeholder="Type your message..."
+            placeholder={`Type a message as ${character.name}...`}
           />
         ) : (
           <div className="text-sm leading-relaxed">

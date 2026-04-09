@@ -12,7 +12,7 @@ import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { isTipTapJSON } from "@/lib/tiptapMigration";
+import { isTipTapJSON, normalizeBubbleContent } from "@/lib/tiptapMigration";
 import { RichTextRenderer } from "@/components/tiptap/RichTextRenderer";
 
 // Lazy load the freeform canvas viewer to avoid loading fabric.js until needed
@@ -120,7 +120,7 @@ const parseConversation = (content: string, allowSingle?: boolean): ChatMessage[
     return {
       id: `msg-${index}-${s.speaker}`,
       speaker: s.speaker,
-      content: s.content,
+      content: normalizeBubbleContent(s.content),
       type: "message" as const,
     };
   }).filter((m) => m.speaker.trim() && (m.content.trim() || m.type === "freeform"));

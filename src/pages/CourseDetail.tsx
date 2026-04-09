@@ -1243,6 +1243,7 @@ const CourseDetail = () => {
 
   const ctaProps = getPrimaryCTAProps();
   const CtaIcon = ctaProps.icon;
+  const hasPreviewBanner = isPreviewMode && canPreview && course.status !== 'published';
 
   return (
     <CodeEditProvider>
@@ -1266,7 +1267,7 @@ const CourseDetail = () => {
       />
       
       {/* Preview Mode Banner */}
-      {isPreviewMode && canPreview && course?.status !== 'published' && (
+      {hasPreviewBanner && (
         <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-amber-950 py-2 px-4">
           <div className="container mx-auto flex items-center justify-center gap-2 text-sm font-medium">
             <AlertTriangle className="h-4 w-4" />
@@ -1275,7 +1276,7 @@ const CourseDetail = () => {
         </div>
       )}
       
-      <div className={`fixed ${isPreviewMode && canPreview ? 'top-10' : 'top-0'} left-0 right-0 z-[60]`}>
+      <div className={`fixed ${hasPreviewBanner ? 'top-10' : 'top-0'} left-0 right-0 z-[60]`}>
         <AnnouncementBar onVisibilityChange={handleAnnouncementVisibility} />
       </div>
       
@@ -1291,7 +1292,7 @@ const CourseDetail = () => {
 
       {/* Main Layout - standard padding for non-career course */}
       <div className={`w-full transition-[padding-top] duration-200 ease-out ${
-        isPreviewMode && canPreview 
+        hasPreviewBanner
           ? (showAnnouncement ? 'pt-[8.75rem]' : 'pt-[6.5rem]') 
           : isHeaderVisible
             ? (showAnnouncement ? 'pt-[8.75rem]' : 'pt-[6.5rem]') // 140px / 104px (64+40+36 / 64+40)
@@ -1308,6 +1309,7 @@ const CourseDetail = () => {
             courseProgress={courseProgress}
             isPreviewMode={isPreviewMode && (isAdmin || isModerator)}
             canPreview={canPreview}
+            hasPreviewBanner={hasPreviewBanner}
             isHeaderVisible={isHeaderVisible}
             showAnnouncement={showAnnouncement}
             isAuthenticated={!!user}
@@ -1619,21 +1621,21 @@ const CourseDetail = () => {
 
                     {/* TABS */}
                     <Tabs value={activeTab ?? "details"} onValueChange={handleTabChange} className="w-full">
-                      <TabsList className="mb-6 w-full justify-start">
+                      <TabsList className="mb-6 grid w-full auto-cols-fr grid-flow-col">
                         {/* Course Details tab - hidden for free users (guests & free learners) */}
                         {(isPro || isAdmin || isModerator) && (
-                          <TabsTrigger value="details" className="gap-2">
+                          <TabsTrigger value="details" className="w-full gap-2">
                             <Info className="h-4 w-4" />
                             Course Details
                           </TabsTrigger>
                         )}
-                        <TabsTrigger value="lessons" className="gap-2">
+                        <TabsTrigger value="lessons" className="w-full gap-2">
                           <List className="h-4 w-4" />
                           Lessons ({lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length})
                         </TabsTrigger>
                         {/* Certificate Tab - Always visible for Pro users (enrollment checked in content) */}
                         {isPro && (
-                          <TabsTrigger value="certificate" className="gap-2">
+                          <TabsTrigger value="certificate" className="w-full gap-2">
                             {!courseProgress.isCompleted && (
                               <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                             )}
@@ -2076,6 +2078,7 @@ const CourseDetail = () => {
             showAds={shouldShowAdsInCourse}
             isHeaderVisible={isHeaderVisible}
             showAnnouncement={showAnnouncement}
+            hasPreviewBanner={hasPreviewBanner}
             showClarityText={isPro}
           />
         </div>

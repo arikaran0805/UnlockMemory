@@ -90,8 +90,16 @@ const buildBreadcrumbs = (
     return [root, { label: "Posts", path: `${p}/posts` }, { label: "New Post" }];
   if (new RegExp(`^${p}/posts/edit/`).test(pathname))
     return [root, { label: "Posts", path: `${p}/posts` }, { label: "Edit Post" }];
-  if (new RegExp(`^${p}/posts/[^/]+/versions`).test(pathname))
-    return [root, { label: "Posts", path: `${p}/posts` }, { label: "Version History" }];
+  const versionsMatch = pathname.match(new RegExp(`^${p}/posts/([^/]+)/versions`));
+  if (versionsMatch) {
+    const postId = versionsMatch[1];
+    return [
+      root,
+      { label: "Posts", path: `${p}/posts` },
+      { label: "Edit Post", path: `${p}/posts/edit/${postId}` },
+      { label: "Version History" },
+    ];
+  }
   if (new RegExp(`^${p}/posts/`).test(pathname))
     return [root, { label: "Posts", path: `${p}/posts` }, { label: "Edit Post" }];
 

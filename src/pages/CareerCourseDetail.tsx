@@ -1833,12 +1833,12 @@ const CareerCourseDetail = () => {
 
                   {/* TABS */}
                   <Tabs value={activeTab ?? "details"} onValueChange={handleTabChange} className="w-full">
-                    <TabsList className="mb-6 w-full justify-start">
-                      <TabsTrigger value="details" className="gap-2">
+                    <TabsList className="mb-6 grid w-full auto-cols-fr grid-flow-col">
+                      <TabsTrigger value="details" className="w-full gap-2">
                         <Info className="h-4 w-4" />
                         Course Details
                       </TabsTrigger>
-                      <TabsTrigger value="lessons" className="gap-2">
+                      <TabsTrigger value="lessons" className="w-full gap-2">
                         <List className="h-4 w-4" />
                         Lessons ({lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length})
                       </TabsTrigger>
@@ -1848,7 +1848,7 @@ const CareerCourseDetail = () => {
                             {isMobile ? (
                               <Link
                                 to={`/courses/${course.id}/notes`}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                className="inline-flex w-full items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                               >
                                 <StickyNote className="h-4 w-4" />
                                 Notes
@@ -1860,10 +1860,10 @@ const CareerCourseDetail = () => {
                                   e.preventDefault();
                                   openNotesTab({
                                     lessonId: selectedPost?.id,
-                                    entityType: selectedPost ? 'lesson' : undefined,
-                                  });
-                                }}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                  entityType: selectedPost ? 'lesson' : undefined,
+                                });
+                              }}
+                                className="inline-flex w-full items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                               >
                                 <StickyNote className="h-4 w-4" />
                                 Notes
@@ -1881,7 +1881,7 @@ const CareerCourseDetail = () => {
                       
                       {/* Certificate Tab */}
                       {isPro && (
-                        <TabsTrigger value="certificate" className="gap-2">
+                        <TabsTrigger value="certificate" className="w-full gap-2">
                           {!courseProgress.isCompleted && (
                             <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                           )}

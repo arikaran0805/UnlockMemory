@@ -182,6 +182,12 @@ All colors MUST be HSL.
   }
 }
 
+/* CSS Custom Highlight API — persists annotation selection highlight when popup editor is focused */
+::highlight(annotation-pending) {
+  background-color: hsl(var(--primary) / 0.22);
+  color: inherit;
+}
+
 @layer components {
   /* Standardized vertical spacing for all admin/moderator pages */
   .admin-section-spacing-top {

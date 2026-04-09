@@ -29,7 +29,7 @@ const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRen
   }, [content]);
 
   const firstChatBlockId = useMemo(
-    () => blocks.find((block) => block.kind === "chat")?.id ?? null,
+    () => blocks.find((block) => ["chat", "takeaway", "freeform"].includes(block.kind))?.id ?? null,
     [blocks]
   );
 

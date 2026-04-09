@@ -14,6 +14,7 @@ import { useRoleScope } from "@/hooks/useRoleScope";
 import { usePostVersions, PostVersion } from "@/hooks/usePostVersions";
 import { usePostAnnotations } from "@/hooks/usePostAnnotations";
 import { useAutoSaveDraft } from "@/hooks/useAutoSaveDraft";
+import { useAutoSavePreference } from "@/hooks/useAutoSavePreference";
 import { useAdminSidebar } from "@/contexts/AdminSidebarContext";
 import { sanitizeHtml } from "@/lib/sanitize";
 
@@ -25,7 +26,7 @@ import { AnnotationPanel, FloatingAnnotationPopup } from "@/components/annotatio
 import AdminEditBanner from "@/components/AdminEditBanner";
 import SideBySideComparison from "@/components/SideBySideComparison";
 import VersionDiffViewer from "@/components/VersionDiffViewer";
-import { Save, X, FileText, Send, AlertCircle, Eye, Loader2, Check, Highlighter, Settings, Layers, MessageSquare, Clock } from "lucide-react";
+import { Save, X, FileText, Send, AlertCircle, Eye, Loader2, Check, Highlighter, Settings, Layers, MessageSquare, Clock, type LucideIcon } from "lucide-react";
 import { AssetsSidebar } from "@/components/assets/AssetsSidebar";
 import { useMediaLibrary } from "@/hooks/useMediaLibrary";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -181,8 +182,10 @@ const AdminPostEditor = () => {
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   const [canvasBlockList, setCanvasBlockList] = useState<{ id: string; name: string; kind: BlockKind }[]>([]);
   const previousContentRef = useRef<string>("");
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const { autoSaveEnabled } = useAutoSavePreference();
   const [readTimeOverride, setReadTimeOverride] = useState<number | null>(null);
+  // Status of the version currently loaded into the editor via the history panel
+  const [selectedVersionStatus, setSelectedVersionStatus] = useState<string | null>(null);
 
   // Version and annotation hooks
   const { versions, loading: versionsLoading, metadata, saveVersionAsDraft, saveVersionOnPublish, publishVersion, restoreVersion } = usePostVersions(id);
@@ -209,6 +212,8 @@ const AdminPostEditor = () => {
   useEffect(() => {
     if (annotationMode) {
       collapseSidebar();
+    } else {
+      setSelectedText(null);
     }
   }, [annotationMode, collapseSidebar]);
   const { loadDraft, clearDraft, status: autoSaveStatus } = useAutoSaveDraft(draftKey, formData.content, autoSaveEnabled);
@@ -700,6 +705,7 @@ const AdminPostEditor = () => {
 
       // Clear auto-saved draft on successful save
       clearDraft();
+      setSelectedVersionStatus(null);
 
       toast({
         title: "Success",
@@ -871,7 +877,7 @@ const AdminPostEditor = () => {
   // Handle text selection for annotations (admin only)
   // Handle text selection for annotations (admin and moderators)
   const handleTextSelection = useCallback((type: "paragraph" | "code" | "conversation" = "paragraph", bubbleIndex?: number) => {
-    // Admins and moderators can annotate anything
+    if (!annotationMode) return;
     if (!isAdmin && !isModerator) return;
 
     const selection = window.getSelection();
@@ -886,13 +892,14 @@ const AdminPostEditor = () => {
         bubbleIndex,
       });
     }
-  }, [isAdmin, isModerator]);
+  }, [annotationMode, isAdmin, isModerator]);
 
   // Handle version actions
   const handleRestoreVersion = async (version: any) => {
     const restoredContent = await restoreVersion(version);
     if (restoredContent) {
       setFormData(prev => ({ ...prev, content: restoredContent }));
+      setSelectedVersionStatus(version.status ?? null);
       toast({
         title: "Version Restored",
         description: `Restored to version ${version.version_number}`,
@@ -1071,9 +1078,11 @@ const AdminPostEditor = () => {
                     <h1 className="text-3xl font-bold text-foreground">
                       {id ? "Edit Post" : "Create New Post"}
                     </h1>
-                    {formData.status && formData.status !== "draft" && (
+                    {selectedVersionStatus !== null ? (
+                      <ContentStatusBadge status={selectedVersionStatus as ContentStatus} />
+                    ) : formData.status && formData.status !== "draft" ? (
                       <ContentStatusBadge status={formData.status as ContentStatus} />
-                    )}
+                    ) : null}
                     {autoSaveStatus === 'saving' && (
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground animate-pulse ml-1">
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1240,6 +1249,8 @@ const AdminPostEditor = () => {
               }}
               className="flex-1 min-h-0"
               lessonLabel={categories.find(c => c.id === formData.category_id)?.name}
+              annotationMode={annotationMode}
+              onTextSelect={handleTextSelection}
             />
           </TabsContent>
         </Tabs>
@@ -1249,54 +1260,53 @@ const AdminPostEditor = () => {
       <div className={`flex-shrink-0 flex ${!isEditorTab ? "sticky top-[52px] self-start h-[calc(100vh-116px)]" : ""}`}>
         {/* Vertical Tab Strip - Settings + Assets + Review */}
         <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
-          <button
-            onClick={() => setOpenSidebar(openSidebar === 'settings' ? null : 'settings')}
-            className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'settings' ? 'bg-muted' : 'hover:bg-muted'}`}
-          >
-            <Settings className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-              Settings
-            </span>
-          </button>
-          <button
-            onClick={() => setOpenSidebar(openSidebar === 'assets' ? null : 'assets')}
-            className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'assets' ? 'bg-muted' : 'hover:bg-muted'}`}
-          >
-            <Layers className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-              Assets
-            </span>
-          </button>
-          {id && (
-            <button
-              onClick={() => setOpenSidebar(openSidebar === 'review' ? null : 'review')}
-              className={`flex flex-col items-center justify-start gap-1 py-3 px-1 transition-colors cursor-pointer ${openSidebar === 'review' ? 'bg-muted' : 'hover:bg-muted'}`}
-            >
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <span className="text-[10px] font-medium text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
-                Review
-              </span>
-            </button>
-          )}
+          {([
+            { key: 'settings', icon: Settings, label: 'Settings' },
+            { key: 'assets', icon: Layers, label: 'Assets' },
+            ...(id ? [{ key: 'review', icon: MessageSquare, label: 'Review' }] : []),
+          ] as { key: string; icon: LucideIcon; label: string }[]).map(({ key, icon: Icon, label }) => {
+            const isActive = openSidebar === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setOpenSidebar(isActive ? null : key as any)}
+                className={`relative flex flex-col items-center justify-start gap-1 py-3 px-2 transition-colors cursor-pointer ${isActive
+                    ? 'bg-primary/8 text-primary'
+                    : 'hover:bg-muted text-muted-foreground'
+                  }`}
+              >
+                {/* Left accent bar */}
+                {isActive && (
+                  <span className="absolute left-0 inset-y-0 w-0.5 bg-primary rounded-r-full" />
+                )}
+                <Icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-[10px] font-medium [writing-mode:vertical-lr] rotate-180 select-none ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Sidebar Content */}
         <Card className={`flex flex-col rounded-l-none border-l-0 ${isEditorTab ? 'min-h-0' : ''} ${rightSidebarOpen ? 'w-72' : 'w-0 overflow-hidden border-0 p-0'}`}>
-          <div className={`p-4 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
+          {/* Panel header — always just the title row */}
+          <div className={`px-4 py-3 border-b flex-shrink-0 ${!rightSidebarOpen ? 'hidden' : ''}`}>
             {openSidebar === 'review' ? (
-              <div className="flex items-center gap-2 mb-3">
-                <MessageSquare className="h-4 w-4 text-primary" />
+              <div className="flex items-center">
                 <h3 className="font-semibold text-sm whitespace-nowrap">Review Panel</h3>
               </div>
             ) : (
-              <div className="flex items-center gap-2 mb-3">
-                <Settings className="h-4 w-4 text-primary" />
+              <div className="flex items-center">
                 <h3 className="font-semibold text-sm whitespace-nowrap">Post Settings</h3>
               </div>
             )}
-            {/* Review Panel Controls */}
-            {openSidebar === 'review' && (
-              <div className="space-y-3">
+          </div>
+
+          {/* Review Panel content */}
+          {openSidebar === 'review' && (
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-4 space-y-3">
                 {(isAdmin || isModerator) && (
                   <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
                     <div className="flex items-center gap-2">
@@ -1317,6 +1327,7 @@ const AdminPostEditor = () => {
                     isAdmin={canPublishDirectly}
                     currentContent={formData.content}
                     liveContent={postDbContent}
+                    postStatus={formData.status}
                     onRestore={handleRestoreVersion}
                     onPublish={handlePublishVersion}
                     onPreview={handlePreviewVersion}
@@ -1340,122 +1351,122 @@ const AdminPostEditor = () => {
                   />
                 </div>
               </div>
-            )}
-            {/* Action Buttons */}
-          </div>
+            </ScrollArea>
+          )}
 
           <ScrollArea className={`flex-1 min-h-0 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
-            <div className="p-4 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Status</Label>
-                <div className="h-9 px-3 rounded-md border bg-muted/20 flex items-center">
+            <div className="p-4 space-y-3">
+
+              {/* Status */}
+              <div className="rounded-xl border border-border/70 overflow-hidden">
+                <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</span>
+                </div>
+                <div className="px-3 py-2.5 flex items-center justify-between bg-card">
                   {shouldShowStatusBadge ? (
                     <ContentStatusBadge status={formData.status as ContentStatus} />
                   ) : (
-                    <span className="text-sm text-muted-foreground">No status yet</span>
+                    <span className="text-sm text-muted-foreground italic">Not set</span>
                   )}
                 </div>
               </div>
 
-              {/* Auto Save toggle */}
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border bg-muted/30">
-                <div className="flex items-center gap-2">
-                  <Save className={`h-3.5 w-3.5 ${autoSaveEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div>
-                    <Label className="text-sm font-medium leading-none">Auto Save</Label>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {autoSaveEnabled
-                        ? autoSaveStatus === 'saving' ? 'Saving…' : autoSaveStatus === 'saved' ? 'Saved' : 'On'
-                        : 'Off'}
-                    </p>
+              {/* Read Time */}
+              <div className="rounded-xl border border-border/70 overflow-hidden">
+                <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Read Time</span>
+                </div>
+                <div className="px-3 py-2.5 bg-card">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground leading-none">
+                          {estimatedReadTime} <span className="text-xs font-normal text-muted-foreground">min</span>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {readTimeOverride === null ? 'Auto-calculated' : 'Manually set'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={estimatedReadTime}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val >= 1 && val <= 120) setReadTimeOverride(val);
+                        }}
+                        className="h-7 text-xs w-14 text-center"
+                        aria-label="Estimated read time in minutes"
+                      />
+                      {readTimeOverride !== null && (
+                        <button
+                          type="button"
+                          onClick={() => setReadTimeOverride(null)}
+                          className="text-[10px] text-primary hover:underline font-medium"
+                        >
+                          Auto
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <Switch
-                  checked={autoSaveEnabled}
-                  onCheckedChange={setAutoSaveEnabled}
-                  className="scale-90"
-                />
               </div>
 
-              {/* Estimated Read Time */}
-              <div className="flex items-start justify-between gap-3 pt-1">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Label className="text-sm font-medium leading-none">Read Time</Label>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                    {readTimeOverride === null ? "Auto-calculated from content" : "Manually adjusted"}
-                  </p>
+              {/* Tags */}
+              <div className="rounded-xl border border-border/70 overflow-hidden">
+                <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tags</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={120}
-                    value={estimatedReadTime}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val) && val >= 1 && val <= 120) {
-                        setReadTimeOverride(val);
-                      }
-                    }}
-                    className="h-8 text-xs w-16 text-center"
-                    aria-label="Estimated read time in minutes"
-                  />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">min read</span>
-                  {readTimeOverride !== null && (
-                    <button
-                      type="button"
-                      onClick={() => setReadTimeOverride(null)}
-                      className="text-[10px] text-primary hover:underline"
-                    >
-                      Auto
-                    </button>
+                <div className="px-3 py-2.5 space-y-2.5 bg-card">
+                  <div className="flex gap-2">
+                    <Input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                      placeholder="Add a tag..."
+                      className="h-8 text-xs"
+                    />
+                    <Button type="button" onClick={handleAddTag} size="sm" className="h-8 px-3 text-xs shrink-0">
+                      Add
+                    </Button>
+                  </div>
+                  {selectedTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedTags.map((tag) => (
+                        <Badge key={tag.id} variant="secondary" className="gap-1 px-2 py-1 text-[11px] font-medium rounded-full">
+                          {tag.name}
+                          <X
+                            className="h-2.5 w-2.5 cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={() => handleRemoveTag(tag.id)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {selectedTags.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground/60">No tags added yet</p>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Tags</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-                    placeholder="Add a tag..."
-                    className="h-8 text-xs"
-                  />
-                  <Button type="button" onClick={handleAddTag} size="sm" className="h-8 px-2 text-xs">
-                    Add
-                  </Button>
-                </div>
-                {selectedTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {selectedTags.map((tag) => (
-                      <Badge key={tag.id} variant="secondary" className="gap-1 px-2 py-0.5 text-[10px] font-medium">
-                        {tag.name}
-                        <X
-                          className="h-2.5 w-2.5 cursor-pointer opacity-70 hover:opacity-100"
-                          onClick={() => handleRemoveTag(tag.id)}
-                        />
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           </ScrollArea>
 
           {/* ── Action CTAs (pinned footer) ── */}
-          <div className={`p-3 border-t flex-shrink-0 space-y-2 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
+          <div className={`px-4 py-3 border-t border-border/60 bg-muted/20 flex-shrink-0 space-y-2 ${!rightSidebarOpen || openSidebar === 'review' ? 'hidden' : ''}`}>
             {canPublishDirectly && (
               <Button
                 onClick={handlePublishWithPreview}
                 disabled={loading}
-                className="w-full h-8 text-xs gap-1.5"
+                className="w-full h-9 text-sm gap-2 font-semibold"
               >
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
                 Publish
               </Button>
             )}
@@ -1463,9 +1474,9 @@ const AdminPostEditor = () => {
               <Button
                 onClick={() => handleSubmit("submit_for_review")}
                 disabled={loading}
-                className="w-full h-8 text-xs gap-1.5"
+                className="w-full h-9 text-sm gap-2 font-semibold"
               >
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Submit for Approval
               </Button>
             )}
@@ -1474,15 +1485,15 @@ const AdminPostEditor = () => {
                 onClick={() => setShowVersioningNoteDialog(true)}
                 disabled={loading || savingDraftVersion}
                 variant="outline"
-                className="flex-1 h-8 text-xs gap-1.5"
+                className="flex-1 h-9 text-sm gap-1.5"
               >
                 {savingDraftVersion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                {savingDraftVersion ? "Saving..." : "Save Draft"}
+                {savingDraftVersion ? 'Saving…' : 'Save Draft'}
               </Button>
               <Button
                 onClick={() => navigate('/admin/posts')}
                 variant="ghost"
-                className="h-8 text-xs px-3"
+                className="h-9 text-sm px-3 text-muted-foreground"
               >
                 Cancel
               </Button>

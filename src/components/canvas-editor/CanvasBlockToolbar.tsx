@@ -8,13 +8,47 @@
 import { useRef } from 'react';
 import {
   GripVertical, Copy, Trash2, ChevronDown, ChevronRight,
-  FileText, MessageCircle, CheckCircle2,
+  FileText, MessageCircle, CheckCircle2, Lightbulb, PenTool,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+/** Per-kind visual identity — icon, colors, label */
+const KIND_CONFIG = {
+  text: {
+    Icon: FileText,
+    iconColor: 'text-violet-500',
+    iconBg: 'bg-violet-100 dark:bg-violet-950/50',
+    label: 'text',
+  },
+  chat: {
+    Icon: MessageCircle,
+    iconColor: 'text-sky-500',
+    iconBg: 'bg-sky-100 dark:bg-sky-950/50',
+    label: 'chat',
+  },
+  checkpoint: {
+    Icon: CheckCircle2,
+    iconColor: 'text-emerald-500',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-950/50',
+    label: 'checkpoint',
+  },
+  takeaway: {
+    Icon: Lightbulb,
+    iconColor: 'text-amber-500',
+    iconBg: 'bg-amber-100 dark:bg-amber-950/50',
+    label: 'takeaway',
+  },
+  freeform: {
+    Icon: PenTool,
+    iconColor: 'text-fuchsia-500',
+    iconBg: 'bg-fuchsia-100 dark:bg-fuchsia-950/50',
+    label: 'freeform',
+  },
+} as const;
+
 interface CanvasBlockToolbarProps {
-  kind: 'text' | 'chat' | 'checkpoint';
+  kind: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform';
   name: string;
   onNameChange: (name: string) => void;
   isCollapsed: boolean;
@@ -23,6 +57,7 @@ interface CanvasBlockToolbarProps {
   onDelete: () => void;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
   contentPreview?: string;
+  annotationMode?: boolean;
 }
 
 const CanvasBlockToolbar = ({
@@ -35,23 +70,27 @@ const CanvasBlockToolbar = ({
   onDelete,
   dragHandleProps,
   contentPreview,
+  annotationMode,
 }: CanvasBlockToolbarProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const KindIcon = kind === 'text' ? FileText : kind === 'checkpoint' ? CheckCircle2 : MessageCircle;
-  const kindLabel = kind === 'text' ? 'text' : kind === 'checkpoint' ? 'checkpoint' : 'chat';
+  const config = KIND_CONFIG[kind];
+  const { Icon } = config;
 
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 px-3 py-2 border-b border-border/50 bg-muted/30 rounded-t-lg min-w-0 cursor-pointer select-none',
+        'flex items-center gap-2 px-3 py-2.5',
+        'border-b border-border/50 bg-card',
+        'rounded-t-lg cursor-pointer select-none',
+        'transition-colors duration-150 hover:bg-muted/25',
         isCollapsed && 'rounded-lg border-b-0',
       )}
       onClick={onToggleCollapse}
     >
-      {/* Chevron */}
+      {/* Chevron — proper hover zone */}
       <button
         onClick={e => { e.stopPropagation(); onToggleCollapse(); }}
-        className="flex-shrink-0 flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground transition-colors rounded"
+        className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-100"
         title={isCollapsed ? 'Expand block' : 'Collapse block'}
       >
         {isCollapsed
@@ -59,13 +98,15 @@ const CanvasBlockToolbar = ({
           : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
-      {/* Kind icon */}
-      <KindIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+      {/* Kind icon — colored badge */}
+      <div className={cn('flex-shrink-0 w-5 h-5 rounded flex items-center justify-center', config.iconBg)}>
+        <Icon className={cn('h-3 w-3', config.iconColor)} />
+      </div>
 
       {/* Name — editable when expanded, plain text when collapsed */}
       {isCollapsed ? (
-        <span className="text-xs font-mono text-foreground/70 flex-shrink-0">
-          {name || `${kindLabel}_block`}
+        <span className="text-[11.5px] font-mono font-semibold text-foreground/72 flex-shrink-0 tracking-tight">
+          {name || `${config.label}_block`}
         </span>
       ) : (
         <input
@@ -73,60 +114,64 @@ const CanvasBlockToolbar = ({
           value={name}
           onChange={e => onNameChange(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && inputRef.current?.blur()}
-          placeholder={`${kindLabel}_block`}
+          placeholder={`${config.label}_block`}
           spellCheck={false}
           className={cn(
-            'flex-shrink-0 w-36 text-xs font-mono bg-transparent border-none outline-none',
-            'text-foreground/80 placeholder:text-muted-foreground/50',
-            'hover:bg-muted/50 focus:bg-muted focus:ring-1 focus:ring-primary/30',
-            'rounded px-1 py-0.5 transition-colors',
+            'flex-shrink-0 w-40 text-[11.5px] font-mono font-semibold tracking-tight',
+            'bg-transparent border-none outline-none',
+            'text-foreground/80 placeholder:text-muted-foreground/40',
+            'hover:bg-muted/50 focus:bg-muted/60 focus:ring-1 focus:ring-primary/25',
+            'rounded px-1.5 py-0.5 transition-colors duration-100',
           )}
           onClick={e => e.stopPropagation()}
         />
       )}
 
-      {/* Middle — flex-1 always, shows preview when collapsed */}
+      {/* Middle spacer — shows content preview when collapsed */}
       <div className="flex-1 min-w-0 overflow-hidden">
         {isCollapsed && contentPreview && (
-          <span className="text-xs text-muted-foreground/50 truncate block">
+          <span className="text-[11.5px] text-muted-foreground/55 truncate block leading-none">
             — {contentPreview}
           </span>
         )}
       </div>
 
-      {/* Actions — always on the far right, stop propagation so they don't trigger expand */}
-      <div
-        className="flex items-center gap-0.5 flex-shrink-0"
-        onClick={e => e.stopPropagation()}
-      >
+      {/* Actions — fade in on group-hover; hidden entirely in annotation mode */}
+      {!annotationMode && (
         <div
-          {...dragHandleProps}
-          className="flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors rounded"
-          title="Drag to reorder"
+          className="flex items-center gap-0.5 flex-shrink-0"
+          onClick={e => e.stopPropagation()}
         >
-          <GripVertical className="h-4 w-4" />
+          {/* Drag handle — visible only on hover to reduce visual noise */}
+          <div
+            {...dragHandleProps}
+            className="flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted rounded transition-all duration-150 opacity-0 group-hover:opacity-100"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground/50 hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all duration-150"
+            onClick={onDuplicate}
+            title="Duplicate block"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-150"
+            onClick={onDelete}
+            title="Delete block"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-muted-foreground hover:text-foreground"
-          onClick={onDuplicate}
-          title="Duplicate block"
-        >
-          <Copy className="h-3.5 w-3.5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={onDelete}
-          title="Delete block"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+      )}
     </div>
   );
 };

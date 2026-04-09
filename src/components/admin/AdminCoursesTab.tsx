@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleScope } from "@/hooks/useRoleScope";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -15,25 +15,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Plus, 
-  Eye, 
-  Pencil, 
-  Trash2, 
-  Info,
-  FileText,
+import { cn } from "@/lib/utils";
+import {
+  Eye,
+  Pencil,
+  Trash2,
   Send,
   Shield,
   UserCog,
   User,
-  BookOpen
+  BookOpen,
+  Star,
 } from "lucide-react";
 import { ContentStatusBadge, ContentStatus } from "@/components/ContentStatusBadge";
 
@@ -67,34 +60,206 @@ interface CategoryStats {
   };
 }
 
+/** Per-level visual config */
+const LEVEL_CONFIG: Record<string, { band: string; badge: string }> = {
+  beginner: {
+    band: 'from-emerald-500 to-emerald-400',
+    badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
+  },
+  intermediate: {
+    band: 'from-sky-500 to-sky-400',
+    badge: 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400',
+  },
+  advanced: {
+    band: 'from-violet-500 to-violet-400',
+    badge: 'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-400',
+  },
+};
+
+const DEFAULT_LEVEL_CONFIG = {
+  band: 'from-slate-400 to-slate-300',
+  badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+};
+
+function getLevelConfig(level: string | null) {
+  if (!level) return DEFAULT_LEVEL_CONFIG;
+  return LEVEL_CONFIG[level.toLowerCase()] ?? DEFAULT_LEVEL_CONFIG;
+}
+
+// ─── Course Card ────────────────────────────────────────────────────────────
+
+interface CourseCardProps {
+  category: Category;
+  postCount: number;
+  isAdmin: boolean;
+  authorDisplay: { name: string; role: string } | null;
+  canDirectDelete: boolean;
+  canRequestDelete: boolean;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onRequestDelete: () => void;
+}
+
+const CourseCard = ({
+  category,
+  postCount,
+  isAdmin,
+  authorDisplay,
+  canDirectDelete,
+  canRequestDelete,
+  onView,
+  onEdit,
+  onDelete,
+  onRequestDelete,
+}: CourseCardProps) => {
+  const cfg = getLevelConfig(category.level);
+  const initial = category.name.charAt(0).toUpperCase();
+
+  return (
+    <div className="group rounded-xl border border-border overflow-hidden bg-card shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)] transition-all duration-200 flex flex-col">
+
+      {/* Colored band — h-12, level badge left, Featured+Status right */}
+      <div className={cn('relative h-12 bg-gradient-to-r flex-shrink-0 flex items-center px-3 gap-2', cfg.band)}>
+        {/* Large watermark initial — gives each card unique visual identity */}
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-5xl font-black text-white/10 select-none leading-none pointer-events-none">
+          {initial}
+        </span>
+
+        {/* Level badge — left, white pill */}
+        <span className="relative z-10 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/25 text-white border border-white/20 flex-shrink-0">
+          {category.level ?? 'General'}
+        </span>
+
+        {/* Right side — status + featured */}
+        <div className="ml-auto flex items-center gap-1.5 z-10">
+          {!isAdmin && (
+            <ContentStatusBadge status={category.status as ContentStatus} />
+          )}
+          {category.featured && (
+            <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5 border border-white/25">
+              <Star className="h-2.5 w-2.5 fill-white text-white" />
+              <span className="text-[10.5px] font-semibold text-white tracking-wide">Featured</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Body — fixed min-height keeps all cards the same height */}
+      <div className="px-4 pt-3 pb-3 flex flex-col gap-1.5 min-h-[100px]">
+        {/* Course name */}
+        <h3 className="text-[14px] font-semibold text-foreground leading-snug line-clamp-2">
+          {category.name}
+        </h3>
+
+        {/* Slug */}
+        <p className="text-[11px] font-mono text-muted-foreground/55 truncate">
+          /{category.slug}
+        </p>
+
+        {/* Post count */}
+        <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
+          <BookOpen className="h-3 w-3 flex-shrink-0" />
+          <span>{postCount} {postCount === 1 ? 'post' : 'posts'}</span>
+        </div>
+
+        {/* Author row — pushed to bottom, takes up reserved space even when absent */}
+        <div className="mt-auto pt-1 min-h-[20px] flex items-center">
+          {authorDisplay && (
+            <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground min-w-0">
+              <div className="w-4 h-4 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                {authorDisplay.role === "admin"
+                  ? <Shield className="h-2.5 w-2.5" />
+                  : authorDisplay.role === "moderator" || authorDisplay.role === "super_moderator"
+                  ? <UserCog className="h-2.5 w-2.5" />
+                  : <User className="h-2.5 w-2.5" />
+                }
+              </div>
+              <span className="truncate">{authorDisplay.name}</span>
+              {(authorDisplay.role === "admin") && (
+                <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/15">
+                  Admin
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Action footer — always visible, not faded */}
+      <div className="flex items-center justify-between px-3 py-2 border-t border-border/50 bg-muted/20 flex-shrink-0">
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            onClick={onView}
+            title="Preview"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            onClick={onEdit}
+            title="Edit"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {canDirectDelete ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            onClick={onDelete}
+            title="Delete"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        ) : canRequestDelete ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-orange-500/70 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors"
+            onClick={onRequestDelete}
+            title="Request deletion"
+          >
+            <Send className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
 const AdminCoursesTab = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStats>({});
   const [users, setUsers] = useState<Map<string, UserWithRole>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [previewCategory, setPreviewCategory] = useState<Category | null>(null);
   const [deleteRequestCategory, setDeleteRequestCategory] = useState<Category | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { role, courseIds, careerIds, loading: scopeLoading } = useRoleScope();
+  const { role, courseIds, loading: scopeLoading } = useRoleScope();
+  const { userId } = useAuth();
 
   const isAdmin = role === "admin";
   const isSuperMod = role === "super_moderator";
   const isSeniorMod = role === "senior_moderator";
   const isModerator = role === "moderator";
 
-  // Roles that can create courses
-  const canCreateCourse = isAdmin || isSuperMod;
-  // Roles that can directly delete (not just request)
   const canDirectDelete = (courseId: string) =>
     isAdmin || (isSuperMod && courseIds.includes(courseId));
 
   useEffect(() => {
-    if (!scopeLoading) {
-      fetchCategories();
-    }
+    if (!scopeLoading) fetchCategories();
   }, [scopeLoading, role]);
 
   const fetchCategories = async () => {
@@ -104,12 +269,10 @@ const AdminCoursesTab = () => {
         .select("*")
         .order("name", { ascending: true });
 
-      // Scope filter for non-admin roles
       if (!isAdmin) {
         if (courseIds.length > 0) {
           query = query.in("id", courseIds);
         } else {
-          // No assigned courses — return empty
           setCategories([]);
           setLoading(false);
           return;
@@ -117,23 +280,18 @@ const AdminCoursesTab = () => {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
       setCategories((data as Category[]) || []);
-      
+
       if (data && data.length > 0) {
         await fetchCategoryStats(data.map(c => c.id));
-        
-        // Collect all unique user IDs (authors and assignees)
+
         const userIds = new Set<string>();
         data.forEach(c => {
           if (c.author_id) userIds.add(c.author_id);
           if (c.assigned_to) userIds.add(c.assigned_to);
         });
-        
-        if (userIds.size > 0) {
-          await fetchUsers(Array.from(userIds));
-        }
+        if (userIds.size > 0) await fetchUsers(Array.from(userIds));
       }
     } catch (error: any) {
       toast({ title: "Error fetching courses", description: error.message, variant: "destructive" });
@@ -155,15 +313,10 @@ const AdminCoursesTab = () => {
         .in("user_id", userIds);
 
       const userMap = new Map<string, UserWithRole>();
-      
       profiles?.forEach(profile => {
         const userRole = roles?.find(r => r.user_id === profile.id);
-        userMap.set(profile.id, {
-          profile,
-          role: userRole?.role || "user"
-        });
+        userMap.set(profile.id, { profile, role: userRole?.role || "user" });
       });
-
       setUsers(userMap);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -173,9 +326,7 @@ const AdminCoursesTab = () => {
   const fetchCategoryStats = async (categoryIds: string[]) => {
     try {
       const statsMap: CategoryStats = {};
-      categoryIds.forEach(id => {
-        statsMap[id] = { postCount: 0 };
-      });
+      categoryIds.forEach(id => { statsMap[id] = { postCount: 0 }; });
 
       const { data: postsData } = await supabase
         .from("posts")
@@ -189,7 +340,6 @@ const AdminCoursesTab = () => {
           }
         });
       }
-
       setCategoryStats(statsMap);
     } catch (error) {
       console.error("Error fetching category stats:", error);
@@ -197,7 +347,6 @@ const AdminCoursesTab = () => {
   };
 
   const handleDelete = async (id: string) => {
-    // Scope guard: super_mod can only delete courses in their career scope
     if (isSuperMod && !courseIds.includes(id)) {
       toast({ title: "You can only delete courses in your assigned career", variant: "destructive" });
       return;
@@ -216,7 +365,6 @@ const AdminCoursesTab = () => {
   const handleDeleteRequest = async () => {
     if (!deleteRequestCategory || !userId) return;
     setIsSubmitting(true);
-
     try {
       const { error } = await supabase
         .from("delete_requests")
@@ -225,11 +373,9 @@ const AdminCoursesTab = () => {
           content_id: deleteRequestCategory.id,
           content_title: deleteRequestCategory.name,
           requested_by: userId,
-          reason: deleteReason || null
+          reason: deleteReason || null,
         });
-
       if (error) throw error;
-
       toast({ title: "Delete request submitted", description: "An admin will review your request" });
       setDeleteRequestCategory(null);
       setDeleteReason("");
@@ -240,51 +386,18 @@ const AdminCoursesTab = () => {
     }
   };
 
-  const getUserDisplay = (userId: string | null) => {
-    if (!userId) return null;
-    const user = users.get(userId);
+  const getUserDisplay = (uid: string | null) => {
+    if (!uid) return null;
+    const user = users.get(uid);
     if (!user) return { name: "Unknown", role: "user" };
     return {
       name: user.profile.full_name || user.profile.email.split("@")[0],
-      role: user.role
+      role: user.role,
     };
   };
 
-  const getRoleBadge = (role: string) => {
-    if (role === "admin") {
-      return (
-        <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1 ml-1">
-          <Shield className="h-3 w-3" />
-          Admin
-        </Badge>
-      );
-    }
-    if (role === "moderator") {
-      return (
-        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs gap-1 ml-1">
-          <UserCog className="h-3 w-3" />
-          Mod
-        </Badge>
-      );
-    }
-    return null;
-  };
-
-  const getLevelBadge = (level: string | null) => {
-    if (!level) return <span className="text-muted-foreground text-sm">-</span>;
-    
-    const colors: Record<string, string> = {
-      beginner: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-      intermediate: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-      advanced: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-    };
-    
-    return (
-      <Badge className={colors[level.toLowerCase()] || "bg-muted text-muted-foreground"}>
-        {level}
-      </Badge>
-    );
-  };
+  const editCoursePath = (id: string) =>
+    isSuperMod ? `/super-moderator/courses/${id}` : `/admin/courses/${id}`;
 
   if (loading || scopeLoading) {
     return (
@@ -294,260 +407,72 @@ const AdminCoursesTab = () => {
     );
   }
 
-  // Determine correct "new course" path based on role prefix
-  const newCoursePath = isSuperMod
-    ? "/super-moderator/courses/new"
-    : "/admin/courses/new";
-
-  const editCoursePath = (id: string) =>
-    isSuperMod ? `/super-moderator/courses/${id}` : `/admin/courses/${id}`;
+  if (categories.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+          <BookOpen className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <p className="text-[15px] font-medium text-foreground">No courses yet</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isAdmin ? "Create your first course to get started." : "No courses have been assigned to you yet."}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <TooltipProvider>
-      <div className="space-y-4">
-        {canCreateCourse && (
-          <div className="flex justify-end">
-            <Button onClick={() => navigate(newCoursePath)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Course
-            </Button>
-          </div>
-        )}
-
-        {categories.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>{isAdmin ? "No courses found" : "No courses assigned to you yet"}</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category) => {
-              const author = getUserDisplay(category.author_id);
-              const assignee = getUserDisplay(category.assigned_to);
-              
-              return (
-                <Card key={category.id} className="group hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg truncate">{category.name}</h3>
-                        <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                          /{category.slug}
-                        </code>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => setPreviewCategory(category)}
-                            >
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>View details</TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </div>
-                    
-                    {/* Status Badge - for non-admin roles */}
-                    {!isAdmin && (
-                      <div className="mt-2">
-                        <ContentStatusBadge status={category.status as ContentStatus} />
-                      </div>
-                    )}
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    {/* Level and Posts */}
-                    <div className="flex items-center justify-between">
-                      {getLevelBadge(category.level)}
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <BookOpen className="h-4 w-4" />
-                        <span>{categoryStats[category.id]?.postCount || 0} posts</span>
-                      </div>
-                    </div>
-
-                    {/* Ownership Info */}
-                    <div className="space-y-2 p-3 bg-muted/30 rounded-lg text-sm">
-                      {author && (
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            Created by
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium truncate max-w-[100px]">{author.name}</span>
-                            {getRoleBadge(author.role)}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {assignee && (
-                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <UserCog className="h-3 w-3" />
-                            Assigned to
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium truncate max-w-[100px]">{assignee.name}</span>
-                            {getRoleBadge(assignee.role)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => window.open(`/course/${category.slug}?preview=true`, "_blank")}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Preview</TooltipContent>
-                        </Tooltip>
-                        
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => navigate(editCoursePath(category.id))}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit</TooltipContent>
-                        </Tooltip>
-                      </div>
-
-                      {canDirectDelete(category.id) ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleDelete(category.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Delete</TooltipContent>
-                        </Tooltip>
-                      ) : isSeniorMod || isModerator ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-orange-500 hover:text-orange-600"
-                              onClick={() => setDeleteRequestCategory(category)}
-                            >
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Request Delete</TooltipContent>
-                        </Tooltip>
-                      ) : null}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Info Dialog */}
-        <Dialog open={!!previewCategory} onOpenChange={() => setPreviewCategory(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{previewCategory?.name}</DialogTitle>
-              <DialogDescription>Course Details</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Slug:</span>
-                  <p className="font-mono mt-1">{previewCategory?.slug}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Level:</span>
-                  <p className="mt-1">{previewCategory?.level || "-"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Status:</span>
-                  <p className="mt-1">{previewCategory?.status}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Posts:</span>
-                  <p className="mt-1">{previewCategory ? categoryStats[previewCategory.id]?.postCount || 0 : 0}</p>
-                </div>
-              </div>
-              {previewCategory?.description && (
-                <div>
-                  <span className="text-muted-foreground text-sm">Description:</span>
-                  <div 
-                    className="mt-1 text-sm prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: previewCategory.description }}
-                  />
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Request Dialog */}
-        <Dialog open={!!deleteRequestCategory} onOpenChange={() => setDeleteRequestCategory(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Request Course Deletion</DialogTitle>
-              <DialogDescription>
-                Request to delete: {deleteRequestCategory?.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Reason for deletion (optional)</label>
-                <Textarea
-                  placeholder="Explain why this course should be deleted..."
-                  value={deleteReason}
-                  onChange={(e) => setDeleteReason(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setDeleteRequestCategory(null)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDeleteRequest}
-                disabled={isSubmitting}
-                className="gap-2"
-              >
-                <Send className="h-4 w-4" />
-                Submit Request
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {categories.map((category) => (
+          <CourseCard
+            key={category.id}
+            category={category}
+            postCount={categoryStats[category.id]?.postCount ?? 0}
+            isAdmin={isAdmin}
+            authorDisplay={getUserDisplay(category.author_id)}
+            canDirectDelete={canDirectDelete(category.id)}
+            canRequestDelete={isSeniorMod || isModerator}
+            onView={() => window.open(`/course/${category.slug}?preview=true`, "_blank")}
+            onEdit={() => navigate(editCoursePath(category.id))}
+            onDelete={() => handleDelete(category.id)}
+            onRequestDelete={() => setDeleteRequestCategory(category)}
+          />
+        ))}
       </div>
-    </TooltipProvider>
+
+      {/* Delete Request Dialog */}
+      <Dialog open={!!deleteRequestCategory} onOpenChange={() => setDeleteRequestCategory(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Course Deletion</DialogTitle>
+            <DialogDescription>
+              Request to delete: {deleteRequestCategory?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Reason for deletion (optional)</label>
+              <Textarea
+                placeholder="Explain why this course should be deleted..."
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteRequestCategory(null)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteRequest} disabled={isSubmitting} className="gap-2">
+              <Send className="h-4 w-4" />
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

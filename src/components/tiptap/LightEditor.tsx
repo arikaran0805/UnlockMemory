@@ -13,7 +13,7 @@ import { useEditor, EditorContent, type JSONContent, type Editor } from '@tiptap
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bold, Italic, Code, Link as LinkIcon } from 'lucide-react';
+import { Bold, Italic, Code, Link as LinkIcon, List, ListOrdered, Heading2, Quote, Image as ImageIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getLightEditorExtensions, CHARACTER_LIMITS } from './editorConfig';
@@ -42,6 +42,22 @@ export interface LightEditorProps {
   autoFocus?: boolean;
   /** Minimum height */
   minHeight?: string;
+  /**
+   * When set, pressing Enter (without Shift/Meta/Ctrl) fires this callback
+   * and prevents the default newline. Shift+Enter still inserts a newline.
+   * Useful for chat-style "Enter to send" inputs.
+   */
+  onEnterSubmit?: () => void;
+  /**
+   * Show extended toolbar buttons: bullet list, numbered list, heading, blockquote, image.
+   * Off by default — only pass true in chat composer, not in annotation popup.
+   */
+  extendedToolbar?: boolean;
+  /**
+   * Extra buttons rendered at the very start of the toolbar (before Bold).
+   * Use this to inject custom actions (e.g. Undo/Redo) without modifying LightEditor internals.
+   */
+  startToolbarActions?: React.ReactNode;
 }
 
 export interface LightEditorRef {
@@ -64,9 +80,15 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
   disabled = false,
   autoFocus = false,
   minHeight = '80px',
+  onEnterSubmit,
+  extendedToolbar = false,
+  startToolbarActions,
 }, ref) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  // Keep a stable ref to the submit callback to avoid stale closures in TipTap's editorProps
+  const onEnterSubmitRef = useRef(onEnterSubmit);
+  useEffect(() => { onEnterSubmitRef.current = onEnterSubmit; }, [onEnterSubmit]);
 
   // Autosave for drafts
   const autosave = useEditorAutosave({
@@ -76,8 +98,8 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
   });
 
   // Extensions
-  const extensions = useMemo(() => 
-    getLightEditorExtensions({ placeholder, characterLimit }), 
+  const extensions = useMemo(() =>
+    getLightEditorExtensions({ placeholder, characterLimit }),
     [placeholder, characterLimit]
   );
 
@@ -85,16 +107,16 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
   const initialContent = useMemo(() => {
     // If the parent passes a non-empty value, always use it (don't load draft)
     const parsedValue = parseContent(value);
-    const isValueEmpty = !value || 
+    const isValueEmpty = !value ||
       (typeof value === 'string' && value.trim() === '') ||
       (typeof value === 'object' && JSON.stringify(value) === JSON.stringify({ type: 'doc', content: [] }));
-    
+
     // Only load draft if draftKey is set AND parent value is empty
     if (draftKey && isValueEmpty) {
       const draft = autosave.loadDraft();
       if (draft) return draft;
     }
-    
+
     return parsedValue;
   }, []);
 
@@ -107,6 +129,29 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
     content: initialContent,
     editable: !disabled,
     autofocus: autoFocus,
+    editorProps: {
+      handleKeyDown: (view, event) => {
+        // Enter without Shift/Meta/Ctrl → call submit handler (chat-style send)
+        if (
+          onEnterSubmitRef.current &&
+          event.key === 'Enter' &&
+          !event.shiftKey &&
+          !event.metaKey &&
+          !event.ctrlKey
+        ) {
+          // Don't intercept Enter inside a list item — TipTap must handle it
+          // so it creates the next bullet/numbered item (or exits the list on empty).
+          const { $from } = view.state.selection;
+          for (let d = $from.depth; d > 0; d--) {
+            if ($from.node(d).type.name === 'listItem') return false;
+          }
+          event.preventDefault();
+          onEnterSubmitRef.current();
+          return true;
+        }
+        return false;
+      },
+    },
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
       const serialized = serializeContent(json);
@@ -127,24 +172,24 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
   // Sync external value - only when change is from parent (not from typing)
   useEffect(() => {
     if (!editor) return;
-    
+
     // Get the serialized incoming value
     const incomingValue = typeof value === 'string' ? value : JSON.stringify(value);
-    
+
     // Skip if this is the same content we just sent to parent (prevents feedback loop)
     if (incomingValue === lastSentContentRef.current) {
       return;
     }
-    
+
     const newContent = parseContent(value);
     const current = JSON.stringify(editor.getJSON());
     const incoming = JSON.stringify(newContent);
-    
+
     // Check if parent is explicitly passing empty value
-    const isValueEmpty = !value || 
+    const isValueEmpty = !value ||
       (typeof value === 'string' && value.trim() === '') ||
       (typeof value === 'object' && JSON.stringify(value) === JSON.stringify({ type: 'doc', content: [] }));
-    
+
     if (isValueEmpty && current !== incoming) {
       // Parent is resetting to empty - clear editor AND draft
       lastSentContentRef.current = ''; // Reset the ref too
@@ -193,7 +238,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
   }
 
   return (
-    <div 
+    <div
       className={cn(
         'tiptap-light-editor border border-border rounded-lg overflow-hidden bg-background transition-all',
         disabled && 'opacity-60 cursor-not-allowed',
@@ -208,6 +253,12 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
       {/* Light toolbar - appears on focus/hover */}
       <div className="tiptap-light-toolbar">
         <TooltipProvider delayDuration={300}>
+          {startToolbarActions && (
+            <>
+              {startToolbarActions}
+              <div className="w-px h-4 bg-border mx-0.5 flex-shrink-0" />
+            </>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -287,6 +338,96 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
               </div>
             </PopoverContent>
           </Popover>
+
+          {/* Extended toolbar — only in chat composer */}
+          {extendedToolbar && (
+            <>
+              <div className="w-px h-4 bg-border mx-0.5 flex-shrink-0" />
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn('h-7 w-7 p-0', editor.isActive('bulletList') && 'bg-primary/10 text-primary')}
+                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                    disabled={disabled}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Bullet List</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn('h-7 w-7 p-0', editor.isActive('orderedList') && 'bg-primary/10 text-primary')}
+                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                    disabled={disabled}
+                  >
+                    <ListOrdered className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Numbered List</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn('h-7 w-7 p-0', editor.isActive('heading', { level: 2 }) && 'bg-primary/10 text-primary')}
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                    disabled={disabled}
+                  >
+                    <Heading2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Heading</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn('h-7 w-7 p-0', editor.isActive('blockquote') && 'bg-primary/10 text-primary')}
+                    onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                    disabled={disabled}
+                  >
+                    <Quote className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Blockquote</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => {
+                      const url = window.prompt('Image URL');
+                      if (url) editor.chain().focus().setImage({ src: url }).run();
+                    }}
+                    disabled={disabled}
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Image</TooltipContent>
+              </Tooltip>
+            </>
+          )}
         </TooltipProvider>
 
         {/* Character count */}

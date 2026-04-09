@@ -2,7 +2,7 @@
  * Canvas Editor Types
  */
 
-export type BlockKind = 'text' | 'chat' | 'checkpoint';
+export type BlockKind = 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform';
 
 export interface CheckpointOption {
   id: string;

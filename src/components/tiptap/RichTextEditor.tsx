@@ -11,13 +11,14 @@
 
 import { useCallback, useEffect, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { useEditor, EditorContent, type JSONContent, type Editor } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import { cn } from '@/lib/utils';
 import { FullEditorToolbar } from './FullEditorToolbar';
 import { parseContent, serializeContent, tipTapJSONToHTML } from '@/lib/tiptapMigration';
 import { getFullEditorExtensions } from './editorConfig';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Columns } from 'lucide-react';
+import { Eye, EyeOff, Columns, Bold, Italic, Code } from 'lucide-react';
 import AnnotationTooltip, { type AnnotationData } from './AnnotationMark/AnnotationTooltip';
 import '@/styles/tiptap.css';
 
@@ -278,6 +279,55 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           onDelete={onAnnotationDelete}
           onAnnotationClick={onAnnotationClick}
         />
+      )}
+
+      {/* Floating format toolbar — only in edit mode, not annotation mode */}
+      {!annotationMode && !readOnly && viewMode === 'edit' && (
+        <BubbleMenu
+          editor={editor}
+          tippyOptions={{ duration: 100, placement: 'top' }}
+          className="flex items-center gap-0.5 bg-popover border border-border rounded-lg shadow-lg p-1"
+        >
+          <button
+            title="Bold"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={cn(
+              'flex items-center justify-center w-7 h-7 rounded-md transition-colors',
+              editor.isActive('bold')
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <Bold className="h-3.5 w-3.5" />
+          </button>
+          <button
+            title="Italic"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={cn(
+              'flex items-center justify-center w-7 h-7 rounded-md transition-colors',
+              editor.isActive('italic')
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <Italic className="h-3.5 w-3.5" />
+          </button>
+          <button
+            title="Inline Code"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            className={cn(
+              'flex items-center justify-center w-7 h-7 rounded-md transition-colors',
+              editor.isActive('code')
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <Code className="h-3.5 w-3.5" />
+          </button>
+        </BubbleMenu>
       )}
 
       {/* View mode toggle */}

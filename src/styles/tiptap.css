@@ -43,7 +43,7 @@
   min-height: 60px;
 }
 
-/* Code blocks in chat editor - styled like the rest */
+/* Code blocks in chat editor - editable inline */
 .tiptap-chat-editor .ProseMirror pre {
   background: hsl(142 20% 95%);
   color: hsl(142 30% 25%);
@@ -52,11 +52,20 @@
   padding: 0.75rem;
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace;
   font-size: 0.8rem;
-  line-height: 1.5;
+  line-height: 1.6;
   overflow-x: auto;
   margin: 0.5em 0;
   white-space: pre-wrap;
   word-break: break-word;
+  cursor: text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Ring when cursor is inside the code block */
+.tiptap-chat-editor .ProseMirror:focus-within pre:focus-within {
+  border-color: hsl(142 35% 58%);
+  box-shadow: 0 0 0 2px hsl(142 35% 58% / 0.18);
+  outline: none;
 }
 
 .tiptap-chat-editor .ProseMirror pre code {
@@ -447,6 +456,8 @@
 
 .tiptap-editor .ProseMirror ul,
 .tiptap-editor .ProseMirror ol,
+.tiptap-light-editor .ProseMirror ul,
+.tiptap-light-editor .ProseMirror ol,
 .tiptap-content ul,
 .tiptap-content ol {
   padding-left: 1.5em;
@@ -454,16 +465,19 @@
 }
 
 .tiptap-editor .ProseMirror ul,
+.tiptap-light-editor .ProseMirror ul,
 .tiptap-content ul {
   list-style-type: disc;
 }
 
 .tiptap-editor .ProseMirror ol,
+.tiptap-light-editor .ProseMirror ol,
 .tiptap-content ol {
   list-style-type: decimal;
 }
 
 .tiptap-editor .ProseMirror li,
+.tiptap-light-editor .ProseMirror li,
 .tiptap-content li {
   margin: 0.25em 0;
 }
@@ -473,6 +487,7 @@
    ============================================ */
 
 .tiptap-editor .ProseMirror blockquote,
+.tiptap-light-editor .ProseMirror blockquote,
 .tiptap-content blockquote,
 .tiptap-blockquote {
   border-left: 3px solid hsl(var(--primary));

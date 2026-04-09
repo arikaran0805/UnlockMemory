@@ -11,7 +11,6 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -32,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { History, RotateCcw, Upload, Eye, CheckCircle, GitCompare, Shield, User, AlertTriangle, ArrowLeftRight, ExternalLink, Bookmark, Pencil, X } from "lucide-react";
+import { History, RotateCcw, CheckCircle, GitCompare, Shield, User, AlertTriangle, ArrowLeftRight, ExternalLink, Bookmark, Pencil, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { VersioningNoteType } from "@/components/VersioningNoteDialog";
@@ -46,6 +45,9 @@ interface VersionHistoryPanelProps {
   isAdmin: boolean;
   currentContent?: string;
   liveContent?: string;
+  /** The post's actual DB status — used to prevent draft posts from being
+   *  mis-labelled as "Live" by the content-matching fallback. */
+  postStatus?: string;
   onRestore: (version: PostVersion) => void;
   onPublish: (version: PostVersion) => void;
   onPreview: (version: PostVersion) => void;
@@ -66,15 +68,16 @@ const VersionHistoryPanel = ({
   isAdmin,
   currentContent,
   liveContent,
+  postStatus,
   onRestore,
   onPublish,
-  onPreview,
   onUpdateNote,
   showVersionNotes = true,
 }: VersionHistoryPanelProps) => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [selectedVersion, setSelectedVersion] = useState<PostVersion | null>(null);
+  // ID of the version the user explicitly clicked; null = auto-follow latest
+  const [userClickedVersionId, setUserClickedVersionId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [diffDialogOpen, setDiffDialogOpen] = useState(false);
@@ -99,7 +102,9 @@ const VersionHistoryPanel = ({
 
     // Fallback: if nothing is marked published but we know the live post content,
     // infer the live version by matching content.
-    if (ids.size === 0 && liveContent) {
+    // Only run when the post is actually published — draft posts share the same
+    // DB content as their v1, which would wrongly label the draft as "Live".
+    if (ids.size === 0 && liveContent && postStatus === "published") {
       const inferred = versions.find((v) => v.content === liveContent);
       if (inferred) ids.add(inferred.id);
     }
@@ -113,24 +118,33 @@ const VersionHistoryPanel = ({
     const published = versions.filter(
       (v) => publishedVersionIds.has(v.id) && !isBookmarked(v.id)
     );
+    const archived = versions.filter(
+      (v) => v.status === "archived" && !publishedVersionIds.has(v.id) && !isBookmarked(v.id)
+    );
     const unpublished = versions.filter(
-      (v) => !publishedVersionIds.has(v.id) && !isBookmarked(v.id)
+      (v) =>
+        !publishedVersionIds.has(v.id) &&
+        v.status !== "archived" &&
+        !isBookmarked(v.id)
     );
 
-    return { bookmarked, published, unpublished };
+    return { bookmarked, published, archived, unpublished };
   }, [versions, isBookmarked, publishedVersionIds]);
 
-  // Set most recent version as selected by default when versions load
-  useEffect(() => {
-    if (versions.length > 0 && !selectedVersion) {
-      setSelectedVersion(versions[0]); // versions are sorted by version_number desc
+  // Derive selectedVersion: follow latest automatically; respect explicit user selection.
+  const selectedVersion = useMemo(() => {
+    if (userClickedVersionId) {
+      return versions.find(v => v.id === userClickedVersionId) ?? versions[0] ?? null;
     }
-  }, [versions, selectedVersion]);
+    return versions[0] ?? null;
+  }, [userClickedVersionId, versions]);
 
-  const handlePublishClick = (version: PostVersion) => {
-    setSelectedVersion(version);
-    setPublishDialogOpen(true);
-  };
+  // When a new version is saved (versions[0] changes), reset to auto-follow latest.
+  const latestVersionId = versions[0]?.id;
+  useEffect(() => {
+    setUserClickedVersionId(null);
+  }, [latestVersionId]);
+
 
   const handleConfirmPublish = () => {
     if (selectedVersion) {
@@ -155,7 +169,7 @@ const VersionHistoryPanel = ({
   };
 
   const handleEditNoteClick = (version: PostVersion) => {
-    setSelectedVersion(version);
+    setUserClickedVersionId(version.id);
     setEditNoteType(getVersionNoteType(version));
     setEditNoteSummary(getVersionNoteSummary(version) || "");
     setEditNoteDialogOpen(true);
@@ -241,7 +255,7 @@ const VersionHistoryPanel = ({
           isSelected ? "bg-primary/10" : "hover:bg-muted/50"
         }`}
         onClick={() => {
-          setSelectedVersion(version);
+          setUserClickedVersionId(version.id);
           onRestore(version); // Load this version into the editor
           setHistoryOpen(false);
         }}
@@ -348,18 +362,20 @@ const VersionHistoryPanel = ({
               >
                 <GitCompare className="h-3.5 w-3.5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRevertClick(version);
-                }}
-                title="Revert to this version"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </Button>
+              {version.status !== "published" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRevertClick(version);
+                  }}
+                  title="Revert to this version"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -498,6 +514,24 @@ const VersionHistoryPanel = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Archived Section */}
+                  {groupedVersions.archived.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-2 px-3">
+                        Archived
+                      </h3>
+                      <div className="space-y-0.5">
+                        {groupedVersions.archived.map((version) => (
+                          <VersionListItem
+                            key={version.id}
+                            version={version}
+                            isSelected={selectedVersion?.id === version.id}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -594,8 +628,7 @@ const VersionHistoryPanel = ({
               <Select
                 value={selectedVersion?.id || ""}
                 onValueChange={(value) => {
-                  const version = versions.find(v => v.id === value);
-                  setSelectedVersion(version || null);
+                  setUserClickedVersionId(value || null);
                 }}
               >
                 <SelectTrigger className="w-full">

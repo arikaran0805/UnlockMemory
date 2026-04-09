@@ -4,8 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Globe, Clock, Languages, Moon } from "lucide-react";
+import { Globe, Clock, Languages, Moon, Save } from "lucide-react";
 import { useDarkMode } from "@/hooks/useDarkMode";
+import { useAutoSavePreference } from "@/hooks/useAutoSavePreference";
 
 interface GeneralSettingsProps {
   siteName: string;
@@ -49,6 +50,7 @@ const GeneralSettings = ({
   readOnly = false,
 }: GeneralSettingsProps) => {
   const { isDark, toggle } = useDarkMode();
+  const { autoSaveEnabled, setAutoSaveEnabled } = useAutoSavePreference();
 
   return (
     <div className="space-y-6">
@@ -183,6 +185,37 @@ const GeneralSettings = ({
               checked={isDark}
               onCheckedChange={toggle}
               aria-label="Toggle dark mode"
+            />
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
+          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
+            <Save className="h-5 w-5 text-[#1E4D3A]" />
+            Editor Preferences
+          </CardTitle>
+          <CardDescription className="text-[#1E1E1E]/50">
+            Customize your post editor experience
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="auto-save-toggle" className="text-[#1E1E1E] font-medium cursor-pointer">
+                Auto Save
+              </Label>
+              <p className="text-xs text-[#1E1E1E]/40">
+                Automatically save drafts while editing posts
+              </p>
+            </div>
+            <Switch
+              id="auto-save-toggle"
+              checked={autoSaveEnabled}
+              onCheckedChange={setAutoSaveEnabled}
+              disabled={readOnly}
+              aria-label="Toggle auto save"
             />
           </div>
         </CardContent>

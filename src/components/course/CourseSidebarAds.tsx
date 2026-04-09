@@ -12,6 +12,7 @@ interface CourseSidebarAdsProps {
   showAds?: boolean;
   isHeaderVisible: boolean;
   showAnnouncement: boolean;
+  hasPreviewBanner?: boolean;
   className?: string;
   /**
    * Pro user viewing a non-career course - show clarity text near ads
@@ -28,13 +29,18 @@ export const CourseSidebarAds = ({
   showAds = true,
   isHeaderVisible,
   showAnnouncement,
+  hasPreviewBanner = false,
   className = "",
   showClarityText = false,
 }: CourseSidebarAdsProps) => {
   // Calculate sticky position
-  const stickyTopClass = isHeaderVisible
-    ? (showAnnouncement ? 'top-[8.75rem]' : 'top-[6.5rem]')
-    : (showAnnouncement ? 'top-[4.75rem]' : 'top-10');
+  const stickyTopClass = hasPreviewBanner
+    ? isHeaderVisible
+      ? (showAnnouncement ? 'top-[10.5rem]' : 'top-[8.5rem]')
+      : (showAnnouncement ? 'top-[7.25rem]' : 'top-20')
+    : isHeaderVisible
+      ? (showAnnouncement ? 'top-[8.75rem]' : 'top-[6.5rem]')
+      : (showAnnouncement ? 'top-[4.75rem]' : 'top-10');
 
   return (
     <aside className={cn("hidden xl:block w-[300px] flex-shrink-0", className)}>

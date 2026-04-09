@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import {
   Layers, Upload, Check, Image as ImageIcon,
   FileText, MessageCircle, CheckCircle2, GripVertical, Maximize2, Minimize2, Trash2, Pencil,
-  Loader2, AlertCircle,
+  Loader2, AlertCircle, Lightbulb, PenTool,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +13,7 @@ export interface AssetItem {
   type: 'image' | 'icon' | 'svg' | 'block';
   url: string;
   name: string;
-  blockKind?: 'text' | 'chat' | 'checkpoint';
+  blockKind?: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform';
   author?: string;
   authorUrl?: string;
   source?: string;
@@ -22,7 +22,7 @@ export interface AssetItem {
 interface CanvasBlockEntry {
   id: string;
   name: string;
-  kind: 'text' | 'chat' | 'checkpoint';
+  kind: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform';
 }
 
 interface MediaLibraryState {
@@ -119,18 +119,20 @@ export function AssetsSidebar({
       {isOpen && (
         <>
           {/* Header */}
-          <div className="p-4 border-b flex-shrink-0 space-y-3">
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">Assets</h3>
+          <div className="px-4 py-3 border-b flex-shrink-0">
+            <div className="flex items-center">
+              <h3 className="font-semibold text-sm whitespace-nowrap">Assets</h3>
               {editorType && (
                 <span className="ml-auto text-[10px] text-muted-foreground capitalize bg-muted px-1.5 py-0.5 rounded">
                   {editorType}
                 </span>
               )}
             </div>
-            {/* Expand CTA for blocks tab */}
-            {isCanvas && activeTab === 'blocks' ? (
+          </div>
+
+          {/* Expand CTA for blocks tab */}
+          {isCanvas && activeTab === 'blocks' ? (
+            <div className="p-3 flex-shrink-0">
               <button
                 onClick={onExpandToggle}
                 className={cn(
@@ -152,8 +154,8 @@ export function AssetsSidebar({
                   </>
                 )}
               </button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {/* Tabs */}
           <Tabs
@@ -398,6 +400,50 @@ export function AssetsSidebar({
                     <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
                   </div>
 
+                  {/* Takeaway Block */}
+                  <div
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('block-kind', 'takeaway');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() =>
+                      onInsert?.({ type: 'block', url: '', name: 'Takeaway Block', blockKind: 'takeaway' })
+                    }
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                      <Lightbulb className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">Takeaway Block</p>
+                      <p className="text-[11px] text-muted-foreground">Highlight a key learner insight</p>
+                    </div>
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                  </div>
+
+                  {/* Freeform Canvas */}
+                  <div
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('block-kind', 'freeform');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() =>
+                      onInsert?.({ type: 'block', url: '', name: 'Freeform Canvas', blockKind: 'freeform' })
+                    }
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                      <PenTool className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">Freeform Canvas</p>
+                      <p className="text-[11px] text-muted-foreground">Sketchable visual canvas</p>
+                    </div>
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                  </div>
+
                   <div className="pt-3 border-t">
                     <p className="text-[11px] text-muted-foreground/70">
                       You can also double-click anywhere on the canvas to add a block inline.
@@ -420,6 +466,10 @@ export function AssetsSidebar({
                               <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
                             ) : b.kind === 'checkpoint' ? (
                               <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            ) : b.kind === 'takeaway' ? (
+                              <Lightbulb className="h-3.5 w-3.5 text-muted-foreground" />
+                            ) : b.kind === 'freeform' ? (
+                              <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
                             ) : (
                               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                             )}
@@ -454,11 +504,15 @@ export function AssetsSidebar({
                                 setRenamingBlockId(b.id);
                                 setRenameValue(
                                   b.name || (
-                                    b.kind === 'chat'
-                                      ? 'Chat Block'
-                                      : b.kind === 'checkpoint'
-                                        ? 'Checkpoint Block'
-                                        : 'Text Block'
+                                  b.kind === 'chat'
+                                    ? 'Chat Block'
+                                    : b.kind === 'checkpoint'
+                                      ? 'Checkpoint Block'
+                                      : b.kind === 'takeaway'
+                                        ? 'Takeaway Block'
+                                        : b.kind === 'freeform'
+                                          ? 'Freeform Canvas'
+                                      : 'Text Block'
                                   )
                                 );
                                 setTimeout(() => renameInputRef.current?.select(), 0);
@@ -472,38 +526,49 @@ export function AssetsSidebar({
                                     ? 'Chat Block'
                                     : b.kind === 'checkpoint'
                                       ? 'Checkpoint Block'
+                                      : b.kind === 'takeaway'
+                                        ? 'Takeaway Block'
+                                        : b.kind === 'freeform'
+                                          ? 'Freeform Canvas'
                                       : 'Text Block'
                                 )}
                               </span>
                             </button>
                           )}
                           {renamingBlockId !== b.id && (
-                            <button
-                              onClick={() => {
-                                setRenamingBlockId(b.id);
-                                setRenameValue(
-                                  b.name || (
+                            <div className="flex flex-shrink-0 items-center gap-1 rounded-xl border border-primary/10 bg-muted/80 px-1 py-0.5 shadow-sm opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto">
+                              <button
+                                onClick={() => {
+                                  setRenamingBlockId(b.id);
+                                  setRenameValue(
+                                    b.name || (
                                     b.kind === 'chat'
                                       ? 'Chat Block'
                                       : b.kind === 'checkpoint'
                                         ? 'Checkpoint Block'
+                                        : b.kind === 'takeaway'
+                                          ? 'Takeaway Block'
+                                          : b.kind === 'freeform'
+                                            ? 'Freeform Canvas'
                                         : 'Text Block'
-                                  )
-                                );
-                                setTimeout(() => renameInputRef.current?.select(), 0);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-0.5 rounded hover:bg-primary/10"
-                              title="Rename block"
-                            >
-                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                            </button>
+                                    )
+                                  );
+                                  setTimeout(() => renameInputRef.current?.select(), 0);
+                                }}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-background/70"
+                                title="Rename block"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                              <button
+                                onClick={() => onDeleteBlock?.(b.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-destructive/12"
+                                title="Delete block"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </button>
+                            </div>
                           )}
-                          <button
-                            onClick={() => onDeleteBlock?.(b.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-0.5 rounded hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </button>
                         </div>
                       ))}
                     </div>

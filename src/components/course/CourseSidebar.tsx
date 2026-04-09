@@ -64,6 +64,7 @@ interface CourseSidebarProps {
   courseProgress: CourseProgressData;
   isPreviewMode: boolean;
   canPreview: boolean;
+  hasPreviewBanner?: boolean;
   isHeaderVisible: boolean;
   showAnnouncement: boolean;
   isAuthenticated: boolean;
@@ -93,6 +94,7 @@ export const CourseSidebar = memo(({
   courseProgress,
   isPreviewMode,
   canPreview,
+  hasPreviewBanner = false,
   isHeaderVisible,
   showAnnouncement,
   isAuthenticated,
@@ -178,8 +180,10 @@ export const CourseSidebar = memo(({
   // Calculate sticky top position based on header visibility and context
   // Career Board: Primary (64px) + CareerScopedHeader (48px) + Announcement (36px)
   // Standard: Primary (64px) + Secondary (40px) + Announcement (36px)
-  const stickyTopClass = isPreviewMode && canPreview
-    ? (showAnnouncement ? 'top-[10.5rem]' : 'top-[8.5rem]')
+  const stickyTopClass = isPreviewMode && canPreview && hasPreviewBanner
+    ? isHeaderVisible
+      ? (showAnnouncement ? 'top-[10.5rem]' : 'top-[8.5rem]')
+      : (showAnnouncement ? 'top-[7.25rem]' : 'top-20')
     : isCareerBoard
       ? isHeaderVisible
         ? (showAnnouncement ? 'top-[9.25rem]' : 'top-28') // 148px / 112px
@@ -191,8 +195,10 @@ export const CourseSidebar = memo(({
   const noResults = searchQuery && filteredLessons.length === 0;
 
   // Calculate matching height offset for sidebar content
-  const heightOffset = isPreviewMode && canPreview
-    ? (showAnnouncement ? '10.5rem' : '8.5rem')
+  const heightOffset = isPreviewMode && canPreview && hasPreviewBanner
+    ? isHeaderVisible
+      ? (showAnnouncement ? '10.5rem' : '8.5rem')
+      : (showAnnouncement ? '7.25rem' : '5rem')
     : isCareerBoard
       ? isHeaderVisible
         ? (showAnnouncement ? '9.25rem' : '7rem')

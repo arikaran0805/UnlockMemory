@@ -8,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-import { Plus, Pencil, Trash2, Tag, Search, FolderPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Search, FolderPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import UMLoader from "@/components/UMLoader";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,8 @@ interface Tag {
   post_count?: number;
 }
 
+const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
+
 const AdminTags = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,7 +41,11 @@ const AdminTags = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -48,6 +55,11 @@ const AdminTags = () => {
     checkAdminAccess();
     fetchTags();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds(new Set());
+  }, [searchQuery, rowsPerPage]);
 
   const checkAdminAccess = async () => {
     try {
@@ -227,9 +239,62 @@ const AdminTags = () => {
     }
   };
 
+  const handleToggleSelectAll = () => {
+    if (paginatedTags.length > 0 && paginatedTags.every((tag) => selectedIds.has(tag.id))) {
+      setSelectedIds(new Set());
+      return;
+    }
+
+    setSelectedIds(new Set(paginatedTags.map((tag) => tag.id)));
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from("tags")
+        .delete()
+        .in("id", ids);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${ids.length} tag${ids.length > 1 ? "s" : ""} deleted successfully`,
+      });
+
+      setBulkDeleteDialogOpen(false);
+      setSelectedIds(new Set());
+      fetchTags();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredTags = tags.filter(tag =>
     tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tag.slug.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredTags.length / rowsPerPage));
+  const paginatedTags = filteredTags.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
   );
 
   if (loading) {
@@ -266,25 +331,53 @@ const AdminTags = () => {
       <div className="space-y-6">
         <Card className="border border-border/70 shadow-sm">
           <CardHeader className="gap-6 border-b border-border/60 pb-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="relative w-full md:w-[68%]">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search tags..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-11 pl-10"
-                />
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative w-full md:w-[68%]">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search tags..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-11 pl-10"
+                  />
+                </div>
+                {selectedIds.size > 0 ? (
+                  <Button
+                    variant="destructive"
+                    className="h-11 gap-2 md:shrink-0"
+                    onClick={() => setBulkDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete {selectedIds.size} {selectedIds.size === 1 ? "tag" : "tags"}
+                  </Button>
+                ) : null}
+                <div className="md:ml-auto">
+                  <Badge variant="secondary" className="h-11 rounded-full px-4 text-sm font-medium">
+                    {filteredTags.length} {filteredTags.length === 1 ? "Tag" : "Tags"}
+                  </Badge>
+                </div>
               </div>
-              <Badge variant="secondary" className="h-11 rounded-full px-4 text-sm font-medium">
-                {filteredTags.length} {filteredTags.length === 1 ? "Tag" : "Tags"}
-              </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-6">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={paginatedTags.length > 0 && paginatedTags.every((tag) => selectedIds.has(tag.id))}
+                      ref={(el) => {
+                        if (el) {
+                          const selectedCount = paginatedTags.filter((tag) => selectedIds.has(tag.id)).length;
+                          el.indeterminate = selectedCount > 0 && selectedCount < paginatedTags.length;
+                        }
+                      }}
+                      onChange={handleToggleSelectAll}
+                      className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                    />
+                  </TableHead>
                   <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Name</TableHead>
                   <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Slug</TableHead>
                   <TableHead className="text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">Posts</TableHead>
@@ -295,7 +388,7 @@ const AdminTags = () => {
               <TableBody>
                 {filteredTags.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-0">
+                    <TableCell colSpan={6} className="py-0">
                       <div className="flex min-h-[360px] flex-col items-center justify-center px-6 text-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/20 text-muted-foreground shadow-sm">
                           <Tag className="h-6 w-6" />
@@ -318,11 +411,19 @@ const AdminTags = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTags.map((tag) => (
+                  paginatedTags.map((tag) => (
                     <TableRow
                       key={tag.id}
                       className="cursor-default transition-colors hover:bg-muted/20"
                     >
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(tag.id)}
+                          onChange={() => handleToggleSelectRow(tag.id)}
+                          className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <Badge variant="secondary" className="bg-primary/10 text-primary">
                           {tag.name}
@@ -378,6 +479,53 @@ const AdminTags = () => {
                 )}
               </TableBody>
             </Table>
+
+            <div className="flex flex-col gap-3 border-t border-border/60 pt-4 mt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span>Rows per page</span>
+                <Select value={String(rowsPerPage)} onValueChange={(value) => setRowsPerPage(Number(value))}>
+                  <SelectTrigger className="h-9 w-[92px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROWS_PER_PAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={String(option)}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground sm:justify-end">
+                <span>
+                  {filteredTags.length === 0
+                    ? "0 records"
+                    : `${(currentPage - 1) * rowsPerPage + 1}-${Math.min(currentPage * rowsPerPage, filteredTags.length)} of ${filteredTags.length} records`}
+                </span>
+                <span>{`Page ${currentPage} of ${totalPages}`}</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -453,6 +601,24 @@ const AdminTags = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected tags?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete {selectedIds.size} selected tag{selectedIds.size !== 1 ? "s" : ""} and remove them from all posts.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

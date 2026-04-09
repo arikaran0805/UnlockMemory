@@ -8,7 +8,6 @@ import { usePostVersions, PostVersion } from "@/hooks/usePostVersions";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,9 +26,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  ArrowLeft, 
-  History, 
+import {
+  History,
   RotateCcw, 
   Upload, 
   Eye, 
@@ -47,7 +45,7 @@ import VersionDiffViewer from "@/components/VersionDiffViewer";
 import SideBySideComparison from "@/components/SideBySideComparison";
 import ContentRenderer from "@/components/ContentRenderer";
 import { ChatConversationView } from "@/components/chat-editor";
-import { isChatTranscript, extractExplanation } from "@/lib/chatContent";
+import { isChatTranscript } from "@/lib/chatContent";
 
 const AdminPostVersions = () => {
   const { id } = useParams();
@@ -197,30 +195,13 @@ const AdminPostVersions = () => {
       <div className="flex flex-col gap-0">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(`/admin/posts/edit/${id}`)}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Editor
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Version History
-              </h1>
-              <p className="text-muted-foreground">
-                {post?.title}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Version History</h1>
+            <p className="text-sm text-muted-foreground/60 mt-1">Track and compare changes across versions</p>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-sm">
-              {versions.length} version{versions.length !== 1 ? "s" : ""}
-            </Badge>
-          </div>
+          <Badge variant="secondary" className="text-sm w-fit">
+            {versions.length} version{versions.length !== 1 ? "s" : ""}
+          </Badge>
         </div>
 
         <div className="admin-section-spacing-top" />
@@ -246,334 +227,360 @@ const AdminPostVersions = () => {
           {/* Version List View */}
           <TabsContent value="list" className="mt-6">
             {versionsLoading ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i} className="p-4 animate-pulse">
-                    <div className="h-4 bg-muted rounded w-1/3 mb-2" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                  </Card>
+                  <div key={i} className="h-36 rounded-xl bg-muted/40 animate-pulse" />
                 ))}
               </div>
             ) : versions.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No versions saved yet</p>
-                <p className="text-sm">Versions are created when you save or publish</p>
+              <div className="text-center py-16 text-muted-foreground border border-dashed border-border/50 rounded-xl">
+                <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No versions saved yet</p>
+                <p className="text-sm mt-1 opacity-70">Versions are created when you save or publish</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {versions.map((version, index) => (
-                  <Card
-                    key={version.id}
-                    className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-                      selectedVersion?.id === version.id ? "ring-2 ring-primary" : ""
-                    } ${version.status === "published" ? "border-green-500/50 bg-green-50/50 dark:bg-green-900/10" : ""}`}
-                    onClick={() => setSelectedVersion(version)}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-lg">v{version.version_number}</span>
-                        {getRoleBadge(version.editor_role)}
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {versions.map((version) => {
+                  const isSelected = selectedVersion?.id === version.id;
+                  const isLive = version.status === "published";
+                  const isArchived = version.status === "archived";
+                  const authorName =
+                    version.editor_profile?.full_name ||
+                    version.editor_profile?.email?.split("@")[0] ||
+                    "Unknown";
+                  const initials = authorName.slice(0, 2).toUpperCase();
+
+                  return (
+                    <div
+                      key={version.id}
+                      onClick={() => setSelectedVersion(version)}
+                      className={[
+                        "group relative rounded-xl border bg-card p-4 cursor-pointer transition-all duration-150",
+                        "hover:shadow-md hover:border-border",
+                        isSelected ? "ring-2 ring-primary border-primary/30 shadow-sm" : "border-border/60",
+                        isLive ? "bg-green-50/40 dark:bg-green-900/10" : "",
+                      ].join(" ")}
+                    >
+                      {/* Top row: version number + status badge */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-bold tracking-tight text-foreground">
+                            v{version.version_number}
+                          </span>
+                          {getRoleBadge(version.editor_role)}
+                        </div>
+                        {isLive && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-full px-2 py-0.5">
+                            <CheckCircle className="h-3 w-3" />
+                            Live
+                          </span>
+                        )}
+                        {isArchived && (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 border border-border/40 rounded-full px-2 py-0.5">
+                            Archived
+                          </span>
+                        )}
                       </div>
-                      {version.status === "published" && (
-                        <Badge className="bg-green-600 text-white">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Live
-                        </Badge>
-                      )}
-                      {version.status === "archived" && (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          Archived
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="text-xs text-muted-foreground mb-3">
-                      <div>{version.editor_profile?.full_name || version.editor_profile?.email || "Unknown"}</div>
-                      <div>{format(new Date(version.created_at), "MMM d, yyyy 'at' h:mm a")}</div>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedVersion(version);
-                          setViewMode("preview");
-                        }}
-                        className="gap-1"
-                      >
-                        <Eye className="h-3 w-3" />
-                        View
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRestore(version);
-                        }}
-                        className="gap-1"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        Restore
-                      </Button>
-                      {isAdmin && version.status !== "published" && (
+
+                      {/* Author + date */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
+                          {initials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{authorName}</p>
+                          <p className="text-[11px] text-muted-foreground/70">
+                            {format(new Date(version.created_at), "MMM d, yyyy · h:mm a")}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1.5">
                         <Button
-                          variant="default"
+                          variant="outline"
                           size="sm"
+                          className="h-7 px-2.5 text-xs gap-1 flex-1"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedVersion(version);
-                            setPublishDialogOpen(true);
+                            setViewMode("preview");
                           }}
-                          className="gap-1"
                         >
-                          <Upload className="h-3 w-3" />
-                          Publish
+                          <Eye className="h-3 w-3" />
+                          View
                         </Button>
-                      )}
+                        {!isLive && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2.5 text-xs gap-1 flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRestore(version);
+                            }}
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Restore
+                          </Button>
+                        )}
+                        {isAdmin && !isLive && (
+                          <Button
+                            size="sm"
+                            className="h-7 px-2.5 text-xs gap-1 flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVersion(version);
+                              setPublishDialogOpen(true);
+                            }}
+                          >
+                            <Upload className="h-3 w-3" />
+                            Publish
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
 
           {/* Compare View */}
           <TabsContent value="compare" className="mt-6">
-            <Card className={`p-6 transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-50 rounded-none overflow-auto" : ""}`}>
-              {/* Fullscreen Toggle */}
-              <div className="flex justify-end mb-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="gap-2"
-                >
-                  {isFullscreen ? (
-                    <>
-                      <Minimize2 className="h-4 w-4" />
-                      Exit Fullscreen
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 className="h-4 w-4" />
-                      Fullscreen
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Version Selectors */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex-1">
-                  <label className="text-sm font-medium mb-2 block">From (Older)</label>
+            <div className={`transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-50 bg-background overflow-auto p-6" : ""}`}>
+              {/* Unified Control Bar */}
+              <div className="flex items-center gap-2 mb-6 p-2.5 bg-muted/20 border border-border/50 rounded-xl">
+                {/* From dropdown */}
+                <div className="flex-1 min-w-0">
                   <Select
                     value={compareVersion?.id || "none"}
                     onValueChange={(value) => {
-                      if (value === "none") {
-                        setCompareVersion(null);
-                      } else {
-                        setCompareVersion(versions.find(v => v.id === value) || null);
-                      }
+                      setCompareVersion(value === "none" ? null : versions.find(v => v.id === value) || null);
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select version" />
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="From version" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Select a version</SelectItem>
+                      <SelectItem value="none">From version</SelectItem>
                       {versions.map(v => (
                         <SelectItem key={v.id} value={v.id}>
-                          <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-2">
                             <span>v{v.version_number}</span>
                             {v.editor_role === "admin" && <Shield className="h-3 w-3 text-primary" />}
                             {v.status === "published" && <CheckCircle className="h-3 w-3 text-green-500" />}
-                          </div>
+                            {v.status === "archived" && <span className="text-xs text-muted-foreground">(archived)</span>}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <ArrowLeftRight className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-6" />
-                
-                <div className="flex-1">
-                  <label className="text-sm font-medium mb-2 block">To (Newer)</label>
+
+                {/* Swap button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-full hover:bg-primary/10"
+                  onClick={() => {
+                    const tmp = compareVersion;
+                    setCompareVersion(selectedVersion);
+                    setSelectedVersion(tmp);
+                  }}
+                  title="Swap versions"
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                </Button>
+
+                {/* To dropdown */}
+                <div className="flex-1 min-w-0">
                   <Select
                     value={selectedVersion?.id || "none"}
                     onValueChange={(value) => {
-                      if (value === "none") {
-                        setSelectedVersion(null);
-                      } else {
-                        setSelectedVersion(versions.find(v => v.id === value) || null);
-                      }
+                      setSelectedVersion(value === "none" ? null : versions.find(v => v.id === value) || null);
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select version" />
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="To version" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Select a version</SelectItem>
+                      <SelectItem value="none">To version</SelectItem>
                       {versions.map(v => (
                         <SelectItem key={v.id} value={v.id}>
-                          <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-2">
                             <span>v{v.version_number}</span>
                             {v.editor_role === "admin" && <Shield className="h-3 w-3 text-primary" />}
                             {v.status === "published" && <CheckCircle className="h-3 w-3 text-green-500" />}
-                          </div>
+                            {v.status === "archived" && <span className="text-xs text-muted-foreground">(archived)</span>}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Separator */}
+                <div className="h-8 w-px bg-border/60 mx-1 shrink-0" />
+
+                {/* Diff mode toggle */}
+                <div className="flex items-center bg-muted/60 rounded-lg p-0.5 shrink-0">
+                  <button
+                    onClick={() => setDiffViewMode("side-by-side")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      diffViewMode === "side-by-side"
+                        ? "bg-background shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Side by Side
+                  </button>
+                  <button
+                    onClick={() => setDiffViewMode("inline")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      diffViewMode === "inline"
+                        ? "bg-background shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Inline
+                  </button>
+                </div>
+
+                {/* Fullscreen */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
               </div>
 
-              {/* Diff View Toggle */}
-              <Tabs value={diffViewMode} onValueChange={(v) => setDiffViewMode(v as any)} className="mb-4">
-                <TabsList className="grid w-full max-w-[300px] grid-cols-2">
-                  <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
-                  <TabsTrigger value="inline">Inline Diff</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              {/* Diff Content */}
-              <ScrollArea className={isFullscreen ? "h-[calc(100vh-280px)]" : "h-[500px]"}>
-                {selectedVersion && compareVersion ? (
-                  diffViewMode === "side-by-side" ? (
-                    <SideBySideComparison
-                      oldVersion={compareVersion}
-                      newVersion={selectedVersion}
-                    />
-                  ) : (
-                    <VersionDiffViewer
-                      currentVersion={selectedVersion}
-                      compareVersion={compareVersion}
-                      currentContent={post?.content}
-                    />
-                  )
+              {/* Diff Content — no outer ScrollArea; inner components handle scrolling */}
+              {selectedVersion && compareVersion ? (
+                diffViewMode === "side-by-side" ? (
+                  <SideBySideComparison
+                    oldVersion={compareVersion}
+                    newVersion={selectedVersion}
+                  />
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <GitCompare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Select two versions to compare</p>
-                  </div>
-                )}
-              </ScrollArea>
-            </Card>
+                  <VersionDiffViewer
+                    currentVersion={selectedVersion}
+                    compareVersion={compareVersion}
+                    currentContent={post?.content}
+                  />
+                )
+              ) : (
+                <div className="text-center py-16 text-muted-foreground border border-dashed border-border/50 rounded-xl">
+                  <GitCompare className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                  <p className="font-medium">Select two versions to compare</p>
+                  <p className="text-sm mt-1 opacity-70">Use the dropdowns above to choose versions</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           {/* Preview View */}
           <TabsContent value="preview" className="mt-6">
             {selectedVersion ? (
-              <Card className={`p-6 transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-50 rounded-none overflow-auto" : ""}`}>
-                {/* Fullscreen Toggle */}
-                <div className="flex justify-end mb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="gap-2"
-                  >
-                    {isFullscreen ? (
-                      <>
-                        <Minimize2 className="h-4 w-4" />
-                        Exit Fullscreen
-                      </>
-                    ) : (
-                      <>
-                        <Maximize2 className="h-4 w-4" />
-                        Fullscreen
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-lg">v{selectedVersion.version_number}</span>
+              <div className={`transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-50 bg-background overflow-auto" : ""}`}>
+                {/* Preview toolbar */}
+                <div className="flex items-center justify-between mb-4 px-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sm font-semibold text-foreground">v{selectedVersion.version_number}</span>
                     {getRoleBadge(selectedVersion.editor_role)}
                     {selectedVersion.status === "published" && (
-                      <Badge className="bg-green-600 text-white">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Published
-                      </Badge>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-full px-2 py-0.5">
+                        <CheckCircle className="h-3 w-3" />
+                        Live
+                      </span>
                     )}
                     {selectedVersion.status === "archived" && (
-                      <Badge variant="outline" className="text-muted-foreground">
+                      <span className="text-xs text-muted-foreground bg-muted/60 border border-border/40 rounded-full px-2 py-0.5">
                         Archived
-                      </Badge>
+                      </span>
                     )}
+                    <span className="text-xs text-muted-foreground/60">
+                      by {selectedVersion.editor_profile?.full_name || selectedVersion.editor_profile?.email?.split("@")[0]} ·{" "}
+                      {format(new Date(selectedVersion.created_at), "MMM d, yyyy · h:mm a")}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-8 gap-1.5 text-xs"
                       onClick={() => handleRestore(selectedVersion)}
                     >
-                      <RotateCcw className="h-4 w-4 mr-2" />
+                      <RotateCcw className="h-3.5 w-3.5" />
                       Restore
                     </Button>
                     {isAdmin && selectedVersion.status !== "published" && (
                       <Button
                         size="sm"
+                        className="h-8 gap-1.5 text-xs"
                         onClick={() => setPublishDialogOpen(true)}
                       >
-                        <Upload className="h-4 w-4 mr-2" />
+                        <Upload className="h-3.5 w-3.5" />
                         Publish
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setIsFullscreen(!isFullscreen)}
+                      title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                    >
+                      {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
-                
-                <div className="text-sm text-muted-foreground mb-4">
-                  <p>
-                    By {selectedVersion.editor_profile?.full_name || selectedVersion.editor_profile?.email} 
-                    on {format(new Date(selectedVersion.created_at), "MMMM d, yyyy 'at' h:mm a")}
-                  </p>
+
+                {/* Content panel */}
+                <div className={`border border-border/50 rounded-xl bg-card shadow-sm overflow-hidden ${isFullscreen ? "h-[calc(100vh-80px)]" : ""}`}>
+                  <ScrollArea className={isFullscreen ? "h-full" : ""}>
+                    <div className="px-8 py-8 max-w-3xl mx-auto">
+                      {(() => {
+                        const content = selectedVersion.content;
+                        const isChat = isChatTranscript(content);
+
+                        if (isChat) {
+                          const parts = content.split(/\n---\n/);
+                          const chatContent = parts[0];
+                          const richTextContent = parts.length > 1 ? parts.slice(1).join("\n---\n") : null;
+                          return (
+                            <div className="space-y-8">
+                              {chatContent && (
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">Chat</p>
+                                  <ChatConversationView content={chatContent} />
+                                </div>
+                              )}
+                              {richTextContent && (
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">Explanation</p>
+                                  <ContentRenderer htmlContent={richTextContent} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return <ContentRenderer htmlContent={content} />;
+                      })()}
+                    </div>
+                  </ScrollArea>
                 </div>
-                
-                <ScrollArea className={isFullscreen ? "h-[calc(100vh-220px)]" : ""}>
-                  <div className="border rounded-lg p-6 bg-background">
-                    {/* Render full post content - chat + rich text */}
-                    {(() => {
-                      const content = selectedVersion.content;
-                      const isChat = isChatTranscript(content);
-                      
-                      if (isChat) {
-                        // Split content at --- separator for chat vs explanation
-                        const parts = content.split(/\n---\n/);
-                        const chatContent = parts[0];
-                        const richTextContent = parts.length > 1 ? parts.slice(1).join("\n---\n") : null;
-                        
-                        return (
-                          <div className="space-y-8">
-                            {chatContent && (
-                              <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-4">Chat Content</h3>
-                                <ChatConversationView content={chatContent} />
-                              </div>
-                            )}
-                            {richTextContent && (
-                              <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-4">Explanation</h3>
-                                <ContentRenderer htmlContent={richTextContent} />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                      
-                      return <ContentRenderer htmlContent={content} />;
-                    })()}
-                  </div>
-                </ScrollArea>
-              </Card>
+              </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Select a version to preview</p>
+              <div className="text-center py-16 text-muted-foreground border border-dashed border-border/50 rounded-xl">
+                <Eye className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">Select a version to preview</p>
+                <p className="text-sm mt-1 opacity-70">Click any version in the All Versions tab</p>
               </div>
             )}
           </TabsContent>

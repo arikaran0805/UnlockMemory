@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { InlineCheckpointData, CheckpointOption } from '../types';
+import { FloatingTextToolbar } from '@/components/ui/FloatingTextToolbar';
 
 interface InlineCheckpointEditorProps {
   data: InlineCheckpointData;
@@ -40,6 +41,31 @@ const renderQuestionPreview = (data: InlineCheckpointData) => {
 
 const InlineCheckpointEditor = ({ data, onChange }: InlineCheckpointEditorProps) => {
   const [previewMode, setPreviewMode] = useState(false);
+  const questionRef = useRef<HTMLTextAreaElement>(null);
+  const explanationRef = useRef<HTMLTextAreaElement>(null);
+
+  const applyFormat = useCallback((
+    ref: React.RefObject<HTMLTextAreaElement>,
+    currentValue: string,
+    setter: (v: string) => void,
+    prefix: string,
+    suffix: string,
+  ) => {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = currentValue.slice(start, end);
+    const replacement = selected ? `${prefix}${selected}${suffix}` : `${prefix}${suffix}`;
+    const newValue = currentValue.slice(0, start) + replacement + currentValue.slice(end);
+    setter(newValue);
+    // Restore cursor after React re-render
+    const newCursor = selected ? start + replacement.length : start + prefix.length;
+    requestAnimationFrame(() => {
+      el.setSelectionRange(newCursor, newCursor);
+      el.focus();
+    });
+  }, []);
 
   const update = (partial: Partial<InlineCheckpointData>) =>
     onChange({ ...data, ...partial });
@@ -123,42 +149,39 @@ const InlineCheckpointEditor = ({ data, onChange }: InlineCheckpointEditorProps)
           <Label htmlFor="cp-question" className="text-xs">
             Question
           </Label>
-          <div className="inline-flex items-center rounded-lg border border-border bg-muted/30 p-1">
-            <button
-              type="button"
-              onClick={() => update({ questionType: 'text' })}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors',
-                (data.questionType ?? 'text') === 'text'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Text
-            </button>
-            <button
-              type="button"
-              onClick={() => update({ questionType: 'code' })}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors',
-                data.questionType === 'code'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Code
-            </button>
-          </div>
-        </div>
-
-        {data.questionType === 'code' ? (
-          <div className="space-y-2">
-            <div className="flex justify-end">
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center rounded-lg border border-border bg-muted/30 p-1">
+              <button
+                type="button"
+                onClick={() => update({ questionType: 'text' })}
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors',
+                  (data.questionType ?? 'text') === 'text'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Text
+              </button>
+              <button
+                type="button"
+                onClick={() => update({ questionType: 'code' })}
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors',
+                  data.questionType === 'code'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Code
+              </button>
+            </div>
+            {data.questionType === 'code' && (
               <Select
                 value={data.questionLanguage || 'python'}
                 onValueChange={(value) => update({ questionLanguage: value })}
               >
-                <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectTrigger className="h-8 w-[120px] text-xs">
                   <SelectValue placeholder="Language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -169,8 +192,14 @@ const InlineCheckpointEditor = ({ data, onChange }: InlineCheckpointEditorProps)
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            )}
+          </div>
+        </div>
+
+        {data.questionType === 'code' ? (
+          <div className="space-y-2">
             <Textarea
+              ref={questionRef}
               id="cp-question"
               value={data.question}
               onChange={(e) => update({ question: e.target.value })}
@@ -181,6 +210,7 @@ const InlineCheckpointEditor = ({ data, onChange }: InlineCheckpointEditorProps)
           </div>
         ) : (
           <Textarea
+            ref={questionRef}
             id="cp-question"
             value={data.question}
             onChange={(e) => update({ question: e.target.value })}
@@ -248,6 +278,7 @@ const InlineCheckpointEditor = ({ data, onChange }: InlineCheckpointEditorProps)
           Explanation <span className="text-muted-foreground font-normal">(optional)</span>
         </Label>
         <Textarea
+          ref={explanationRef}
           id="cp-explanation"
           value={data.explanation}
           onChange={(e) => update({ explanation: e.target.value })}
@@ -280,6 +311,20 @@ const InlineCheckpointEditor = ({ data, onChange }: InlineCheckpointEditorProps)
           />
         </div>
       </div>
+
+      {/* Floating formatting toolbars for text fields */}
+      <FloatingTextToolbar
+        targetRef={questionRef}
+        onApplyFormat={(prefix, suffix) =>
+          applyFormat(questionRef, data.question, (v) => update({ question: v }), prefix, suffix)
+        }
+      />
+      <FloatingTextToolbar
+        targetRef={explanationRef}
+        onApplyFormat={(prefix, suffix) =>
+          applyFormat(explanationRef, data.explanation, (v) => update({ explanation: v }), prefix, suffix)
+        }
+      />
     </div>
   );
 };
