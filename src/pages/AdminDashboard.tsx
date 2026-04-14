@@ -414,8 +414,8 @@ const AdminDashboard = () => {
       {/* Header */}
       <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-[28px] font-semibold" style={{ color: "var(--color-text-primary)" }}>Platform Manager</h1>
-          <p className="text-[15px] mt-0.5" style={{ color: "var(--color-text-secondary)", lineHeight: 1.65 }}>Full platform control across learners, content, and system operations</p>
+          <h1 className="text-3xl font-bold text-foreground">Platform Manager</h1>
+          <p className="text-muted-foreground">Full platform control across learners, content, and system operations</p>
         </div>
         <div className="flex items-center gap-3 shrink-0 mt-1">
           {lastUpdated && (
@@ -451,63 +451,63 @@ const AdminDashboard = () => {
             </>
           ) : (
             <>
-              {/* Primary KPI — Total Learners (largest emphasis) */}
-              <div className="card-premium p-5 px-6 admin-clickable-card"
-                style={{ borderTop: "2px solid rgba(15,110,86,0.40)" }}>
+              <div className="card-premium rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+                style={{ borderLeft: "2px solid rgba(79,175,122,0.6)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[13px] font-medium" style={{ color: "var(--color-text-tertiary)", letterSpacing: "0.02em" }}>Total Learners</p>
-                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(15,110,86,0.10)" }}>
-                    <Users className="h-4 w-4" style={{ color: "#0F6E56" }} />
+                  <p className="text-sm font-medium text-muted-foreground">Total Learners</p>
+                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(79,175,122,0.15)" }}>
+                    <Users className="h-4 w-4" style={{ color: "#4FAF7A" }} />
                   </span>
                 </div>
-                <p className="text-[32px] font-bold leading-none mb-1" style={{ color: "var(--color-text-primary)" }}>{stats.totalUsers.current.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-foreground">{stats.totalUsers.current.toLocaleString()}</p>
                 <KpiTrendIndicator data={stats.totalUsers} type="learners" />
               </div>
 
-              {/* Primary KPI — Active Learners (second emphasis) */}
-              <div className="card-premium p-5 px-6 admin-clickable-card"
-                style={{ borderTop: "2px solid rgba(47,164,169,0.40)" }}>
+              <div className="card-premium rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+                style={{ borderLeft: "2px solid rgba(47,164,169,0.6)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[13px] font-medium" style={{ color: "var(--color-text-tertiary)", letterSpacing: "0.02em" }}>Active Learners (7d)</p>
-                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(47,164,169,0.10)" }}>
+                  <p className="text-sm font-medium text-muted-foreground">Active Learners (7d)</p>
+                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(47,164,169,0.15)" }}>
                     <Activity className="h-4 w-4" style={{ color: "#2FA4A9" }} />
                   </span>
                 </div>
-                <p className="text-[32px] font-bold leading-none mb-1" style={{ color: "var(--color-text-primary)" }}>{stats.activeUsers.current.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-foreground">{stats.activeUsers.current.toLocaleString()}</p>
                 <KpiTrendIndicator data={stats.activeUsers} type="active" />
               </div>
 
-              {/* Secondary KPIs */}
-              <div className="card-premium p-5 admin-clickable-card">
+              <div className="card-premium rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+                style={{ borderLeft: "2px solid rgba(138,111,209,0.6)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[13px] font-medium" style={{ color: "var(--color-text-tertiary)", letterSpacing: "0.02em" }}>Total Careers</p>
-                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(138,111,209,0.10)" }}>
+                  <p className="text-sm font-medium text-muted-foreground">Total Careers</p>
+                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(138,111,209,0.15)" }}>
                     <Briefcase className="h-4 w-4" style={{ color: "#8A6FD1" }} />
                   </span>
                 </div>
-                <p className="text-[28px] font-bold leading-none mb-1" style={{ color: "var(--color-text-primary)" }}>{stats.totalCareers.current.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-foreground">{stats.totalCareers.current.toLocaleString()}</p>
                 <KpiTrendIndicator data={stats.totalCareers} type="posts" />
               </div>
 
-              <div className="card-premium p-5 admin-clickable-card">
+              <div className="card-premium rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+                style={{ borderLeft: "2px solid rgba(212,161,47,0.6)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[13px] font-medium" style={{ color: "var(--color-text-tertiary)", letterSpacing: "0.02em" }}>Pending Approvals</p>
-                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(212,161,47,0.10)" }}>
+                  <p className="text-sm font-medium text-muted-foreground">Pending Approvals</p>
+                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(212,161,47,0.15)" }}>
                     <ClipboardCheck className="h-4 w-4" style={{ color: "#D4A12F" }} />
                   </span>
                 </div>
-                <p className="text-[28px] font-bold leading-none mb-1" style={{ color: "var(--color-text-primary)" }}>{stats.pendingApprovals.current}</p>
+                <p className="text-3xl font-bold text-foreground">{stats.pendingApprovals.current}</p>
                 <KpiTrendIndicator data={stats.pendingApprovals} type="approvals" invertColors />
               </div>
 
-              <div className="card-premium p-5 admin-clickable-card">
+              <div className="card-premium rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+                style={{ borderLeft: "2px solid rgba(214,90,79,0.6)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[13px] font-medium" style={{ color: "var(--color-text-tertiary)", letterSpacing: "0.02em" }}>Reported Content</p>
-                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(214,90,79,0.10)" }}>
+                  <p className="text-sm font-medium text-muted-foreground">Reported Content</p>
+                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(214,90,79,0.15)" }}>
                     <Flag className="h-4 w-4" style={{ color: "#D65A4F" }} />
                   </span>
                 </div>
-                <p className="text-[28px] font-bold leading-none mb-1" style={{ color: "var(--color-text-primary)" }}>{stats.reportedContent.current}</p>
+                <p className="text-3xl font-bold text-foreground">{stats.reportedContent.current}</p>
                 <KpiTrendIndicator data={stats.reportedContent} type="reported" invertColors />
               </div>
             </>
@@ -523,19 +523,19 @@ const AdminDashboard = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Needs Attention Panel */}
-            <div className="card-premium p-6 lg:col-span-1">
+            <div className="card-premium rounded-2xl p-7 lg:col-span-1">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(212,161,47,0.12)" }}>
+                  <span className="p-1.5 rounded-lg" style={{ background: "rgba(212,161,47,0.15)" }}>
                     <AlertCircle className="h-4 w-4" style={{ color: "#D4A12F" }} />
                   </span>
-                  <h2 className="text-[18px] font-medium" style={{ color: "var(--color-text-primary)" }}>Needs Attention</h2>
+                  <h2 className="font-semibold text-foreground">Needs Attention</h2>
                 </div>
                 {totalCriticalAlerts > 0 && (
                   <Badge variant="destructive">{totalCriticalAlerts}</Badge>
                 )}
               </div>
-              <p className="text-[13px] mb-4 ml-8" style={{ color: "var(--color-text-tertiary)" }}>Critical items requiring review</p>
+              <p className="text-sm text-muted-foreground mb-4 ml-8">Critical items requiring review</p>
               <div className="flex flex-col gap-4">
                 <Link to="/admin/approvals" className="block w-full">
                   <div className="flex items-center justify-between px-4 py-4 rounded-xl border border-border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary hover:bg-primary/[0.06] cursor-pointer">
@@ -582,9 +582,9 @@ const AdminDashboard = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className="card-premium p-6 lg:col-span-2">
-              <h2 className="text-[18px] font-medium mb-1" style={{ color: "var(--color-text-primary)" }}>Quick Actions</h2>
-              <p className="text-[13px] mb-4" style={{ color: "var(--color-text-tertiary)" }}>Admin-only platform controls</p>
+            <div className="card-premium rounded-2xl p-7 lg:col-span-2">
+              <h2 className="font-semibold text-foreground mb-1">Quick Actions</h2>
+              <p className="text-sm text-muted-foreground mb-4">Admin-only platform controls</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <Link to="/admin/users">
                   <div className="w-full py-4 flex flex-col items-center gap-2 rounded-xl border border-border bg-background text-foreground font-medium cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary hover:bg-primary/[0.06]">
@@ -643,15 +643,15 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
             {/* Left: Analytics Snapshot */}
-            <div className="card-premium p-6">
+            <div className="card-premium rounded-2xl p-6">
               <div className="mb-5">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-[18px] font-medium" style={{ color: "var(--color-text-primary)" }}>Analytics Snapshot</h2>
-                  <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-md" style={{ background: "rgba(15,110,86,0.10)", color: "#0F6E56" }}>
+                  <h2 className="font-semibold text-foreground">Analytics Snapshot</h2>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                     live
                   </span>
                 </div>
-                <p className="text-[13px] mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>Derived insights across platform health, quality, and moderation</p>
+                <p className="text-sm text-muted-foreground mt-0.5">Derived insights across platform health, quality, and moderation</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -770,12 +770,12 @@ const AdminDashboard = () => {
             </div>
 
             {/* Right: Activity Log */}
-            <div className="card-premium p-6 flex flex-col">
+            <div className="card-premium rounded-2xl p-6 flex flex-col">
               {/* Sticky header */}
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h2 className="text-[18px] font-medium mb-0.5" style={{ color: "var(--color-text-primary)" }}>Activity Log</h2>
-                  <p className="text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>Today's actions across all roles</p>
+                  <h2 className="font-semibold text-foreground mb-1">Activity Log</h2>
+                  <p className="text-sm text-muted-foreground">Today's actions across all roles</p>
                 </div>
                 <Link to="/admin/activity-log" className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-0.5">
                   View all →

@@ -503,8 +503,8 @@ const AdminUsersRoles = () => {
         {/* Page header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-semibold" style={{ color: "var(--color-text-primary)" }}>Users & Roles</h1>
-            <p className="text-[15px] mt-0.5" style={{ color: "var(--color-text-secondary)", lineHeight: 1.65 }}>
+            <h1 className="text-3xl font-bold text-foreground">Users & Roles</h1>
+            <p className="text-muted-foreground">
               Manage user accounts, assign roles, and control platform access
             </p>
           </div>
@@ -809,20 +809,11 @@ const AdminUsersRoles = () => {
         <div className="mt-3" />
 
         {/* Table */}
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{
-            border: "1px solid rgba(15,110,86,0.10)",
-            boxShadow: "0 2px 8px rgba(15,110,86,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-          }}
-        >
+        <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow
-                className="hover:bg-transparent"
-                style={{ background: "#F4F7F3", borderBottom: "1px solid rgba(15,110,86,0.10)" }}
-              >
-                <TableHead className="w-10 pl-4" style={{ height: "44px" }}>
+              <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th:not(:last-child)]:border-r">
+                <TableHead className="w-10 h-9 pl-4">
                   <input
                     type="checkbox"
                     checked={paginatedUsers.length > 0 && selectedUserIds.size === paginatedUsers.length}
@@ -837,42 +828,27 @@ const AdminUsersRoles = () => {
                   />
                 </TableHead>
                 {visibleColumns.user && (
-                  <TableHead
-                    className="text-[12px] font-medium uppercase"
-                    style={{ color: "#8A9490", letterSpacing: "0.06em", padding: "12px 16px" }}
-                  >
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">
                     User
                   </TableHead>
                 )}
                 {visibleColumns.email && (
-                  <TableHead
-                    className="text-[12px] font-medium uppercase"
-                    style={{ color: "#8A9490", letterSpacing: "0.06em", padding: "12px 16px" }}
-                  >
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">
                     Email
                   </TableHead>
                 )}
                 {visibleColumns.role && (
-                  <TableHead
-                    className="text-[12px] font-medium uppercase"
-                    style={{ color: "#8A9490", letterSpacing: "0.06em", padding: "12px 16px" }}
-                  >
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">
                     Role
                   </TableHead>
                 )}
                 {visibleColumns.joined && (
-                  <TableHead
-                    className="text-[12px] font-medium uppercase"
-                    style={{ color: "#8A9490", letterSpacing: "0.06em", padding: "12px 16px" }}
-                  >
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">
                     Joined
                   </TableHead>
                 )}
                 {visibleColumns.actions && (
-                  <TableHead
-                    className="text-[12px] font-medium uppercase"
-                    style={{ color: "#8A9490", letterSpacing: "0.06em", padding: "12px 16px" }}
-                  >
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground h-9">
                     Actions
                   </TableHead>
                 )}
@@ -898,21 +874,8 @@ const AdminUsersRoles = () => {
                 paginatedUsers.map((user) => (
                   <TableRow
                     key={user.id}
-                    className="transition-colors duration-[120ms]"
-                    style={selectedUserIds.has(user.id)
-                      ? { background: "rgba(15,110,86,0.06)", borderLeft: "2.5px solid #0F6E56" }
-                      : undefined
-                    }
-                    onMouseEnter={(e) => {
-                      if (!selectedUserIds.has(user.id)) {
-                        e.currentTarget.style.background = "#E2EBE0";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!selectedUserIds.has(user.id)) {
-                        e.currentTarget.style.background = "";
-                      }
-                    }}
+                    className={`hover:bg-muted/30 transition-colors [&>td:not(:last-child)]:border-r ${selectedUserIds.has(user.id) ? "bg-primary/5 hover:bg-primary/10" : ""
+                      }`}
                   >
                     <TableCell className="w-10 pl-4 py-3">
                       <input
@@ -1218,28 +1181,15 @@ const AdminUsersRoles = () => {
 
 function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: number; accent?: boolean }) {
   return (
-    <div
-      className="flex items-center gap-3 p-4 rounded-xl"
-      style={{
-        background: "#FFFFFF",
-        border: "1px solid rgba(15,110,86,0.10)",
-        boxShadow: "0 2px 8px rgba(15,110,86,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-      }}
-    >
-      <div
-        className="rounded-lg p-2 shrink-0"
-        style={accent
-          ? { background: "rgba(15,110,86,0.10)", color: "#0F6E56" }
-          : { background: "rgba(15,110,86,0.06)", color: "#8A9490" }
-        }
-      >
-        {icon}
-      </div>
-      <div>
-        <p className="text-[13px] font-medium" style={{ color: "#8A9490", letterSpacing: "0.02em" }}>{label}</p>
-        <p className="text-[22px] font-bold leading-tight" style={{ color: "#1A1916" }}>{value}</p>
-      </div>
-    </div>
+    <Card>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={`rounded-md p-2 ${accent ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{icon}</div>
+        <div>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-xl font-bold">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

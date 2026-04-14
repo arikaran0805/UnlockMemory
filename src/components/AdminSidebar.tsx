@@ -37,12 +37,12 @@ const C = {
 } as const;
 
 // ─── Role-aware active-state tokens ──────────────────────────────────────────
-// Left-border + subtle tint pattern (Stripe/Linear style — no solid fill).
-const ROLE_ACTIVE: Record<string, { bg: string; tint: string; text: string; icon: string }> = {
-  admin:            { bg: "#0F6E56", tint: "rgba(15,110,86,0.10)",  text: "#0F6E56", icon: "#0F6E56" },
-  super_moderator:  { bg: "#1A7A62", tint: "rgba(26,122,98,0.10)",  text: "#1A7A62", icon: "#1A7A62" },
-  senior_moderator: { bg: "#268770", tint: "rgba(38,135,112,0.10)", text: "#268770", icon: "#268770" },
-  moderator:        { bg: "#33947E", tint: "rgba(51,148,126,0.10)", text: "#33947E", icon: "#33947E" },
+// All within the same teal-green family — stronger = higher authority.
+const ROLE_ACTIVE: Record<string, { bg: string; text: string; icon: string }> = {
+  admin:            { bg: "#0F6E56", text: "#FFFFFF", icon: "#FFFFFF" }, // 100% — vibrant teal
+  super_moderator:  { bg: "#1A7A62", text: "#FFFFFF", icon: "#FFFFFF" }, //  95% of admin
+  senior_moderator: { bg: "#268770", text: "#FFFFFF", icon: "#FFFFFF" }, //  90% of admin
+  moderator:        { bg: "#33947E", text: "#FFFFFF", icon: "#FFFFFF" }, //  85% of admin
 };
 const FALLBACK_ACTIVE = ROLE_ACTIVE.admin;
 
@@ -175,25 +175,20 @@ const AdminSidebar = ({
       <div
         onClick={onClick}
         className={cn(
-          "group relative flex items-center rounded-lg cursor-pointer select-none",
-          "transition-all duration-150",
+          "group relative flex items-center rounded-xl cursor-pointer select-none",
+          "transition-colors duration-150",
           isOpen
-            ? "gap-3 px-3 py-[10px]"
-            : "justify-center w-10 mx-auto py-[10px]",
+            ? "gap-3 px-3 py-[11px]"
+            : "justify-center w-10 mx-auto py-[11px]",
           active ? "" : "admin-nav-hover",
         )}
-        style={active ? {
-          backgroundColor: A.tint,
-          borderLeft: isOpen ? `2.5px solid ${A.bg}` : undefined,
-          paddingLeft: isOpen ? "10px" : undefined,
-        } : undefined}
+        style={active ? { backgroundColor: A.bg } : undefined}
       >
         {/* Icon */}
         <Icon
-          className="shrink-0 h-[17px] w-[17px]"
+          className="shrink-0 h-5 w-5"
           style={{
             color: active ? A.icon : danger ? C.danger : C.textMuted,
-            opacity: active ? 1 : danger ? 1 : 0.55,
           }}
         />
 
@@ -211,7 +206,7 @@ const AdminSidebar = ({
         {isOpen && badge && badge > 0 && (
           <span
             className="ml-auto text-[10px] font-semibold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none"
-            style={{ backgroundColor: A.bg, color: "#FFFFFF" }}
+            style={{ backgroundColor: A.bg, color: A.text }}
           >
             {badge > 99 ? "99+" : badge}
           </span>
@@ -241,7 +236,7 @@ const AdminSidebar = ({
             {badge && badge > 0 && (
               <span
                 className="text-[10px] rounded-full px-1.5 py-0.5 leading-none"
-                style={{ backgroundColor: A.bg, color: "#FFFFFF" }}
+                style={{ backgroundColor: A.bg, color: A.text }}
               >
                 {badge}
               </span>
@@ -279,14 +274,14 @@ const AdminSidebar = ({
         <button
           onClick={openGlobalCommandSearch}
           className={cn(
-            "group relative flex items-center w-full rounded-lg cursor-pointer",
-            "transition-all duration-150 admin-nav-hover",
+            "group relative flex items-center w-full rounded-xl cursor-pointer",
+            "transition-colors duration-150 admin-nav-hover",
             isOpen
-              ? "gap-3 px-3 py-[10px]"
-              : "justify-center w-10 mx-auto py-[10px]",
+              ? "gap-3 px-3 py-[11px]"
+              : "justify-center w-10 mx-auto py-[11px]",
           )}
         >
-          <Search className="h-[17px] w-[17px] shrink-0" style={{ color: C.textMuted, opacity: 0.55 }} />
+          <Search className="h-5 w-5 shrink-0" style={{ color: C.textMuted }} />
           {isOpen && (
             <span className="text-sm font-medium" style={{ color: C.textPrimary }}>
               Search
@@ -313,10 +308,10 @@ const AdminSidebar = ({
 
             {/* Section header */}
             {isOpen ? (
-              <div className="px-3 mb-1 mt-4">
+              <div className="px-3 mb-1 mt-1">
                 <span
-                  className="text-[11px] font-medium uppercase"
-                  style={{ color: C.textMuted, letterSpacing: "0.08em" }}
+                  className="text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: C.textMuted }}
                 >
                   {section.title}
                 </span>
