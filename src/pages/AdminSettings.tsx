@@ -24,13 +24,13 @@ const AdminSettings = () => {
   const { toast } = useToast();
   const { isAdmin, isSeniorModerator, userId, isLoading: roleLoading } = useUserRole();
 
-  // Active section
+  // Active section — derived directly from URL so any navigation (including from
+  // child components like IntegrationsSettings) immediately switches the view.
   const requestedSection = searchParams.get("section");
-  const initialSection =
-    requestedSection === "branding"
+  const activeSection: SettingsSection =
+    !requestedSection || requestedSection === "branding"
       ? "general"
-      : ((requestedSection as SettingsSection) || "general");
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+      : (requestedSection as SettingsSection);
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -74,9 +74,9 @@ const AdminSettings = () => {
     }
   }, [notificationPrefs]);
 
+  // Clean up legacy /branding URL → redirect to /general
   useEffect(() => {
     if (requestedSection === "branding") {
-      setActiveSection("general");
       setSearchParams({ section: "general" });
     }
   }, [requestedSection, setSearchParams]);
@@ -125,7 +125,6 @@ const AdminSettings = () => {
   };
 
   const handleSectionChange = (section: SettingsSection) => {
-    setActiveSection(section);
     setSearchParams({ section });
   };
 
