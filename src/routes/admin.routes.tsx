@@ -42,6 +42,9 @@ import AdminPromoCodes from "@/pages/AdminPromoCodes";
 import AdminPromoCodeEditor from "@/pages/admin/AdminPromoCodeEditor";
 import AdminAnnouncementBars from "@/pages/AdminAnnouncementBars";
 import AdminAnnouncementBarEditor from "@/pages/admin/AdminAnnouncementBarEditor";
+import AdminApiKeys from "@/pages/admin/AdminApiKeys";
+import AdminWebhooks from "@/pages/admin/AdminWebhooks";
+import AdminDevLogs from "@/pages/admin/AdminDevLogs";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -109,6 +112,12 @@ const AdminRoutes = () => {
           <Route path="announcement-bars/new" element={<AdminAnnouncementBarEditor />} />
           <Route path="announcement-bars/:id" element={<AdminAnnouncementBarEditor />} />
           <Route path="settings" element={<AdminSettings />} />
+
+          {/* Developer Platform */}
+          <Route path="developers/api-keys" element={<AdminApiKeys />} />
+          <Route path="developers/webhooks" element={<AdminWebhooks />} />
+          <Route path="developers/logs"     element={<AdminDevLogs />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AdminLayout>

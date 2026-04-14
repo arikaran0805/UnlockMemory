@@ -26,6 +26,9 @@ import {
   Ticket,
   Network,
   Megaphone,
+  Key,
+  Webhook,
+  ScrollText,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
@@ -65,6 +68,16 @@ const contentSection: SidebarSection = {
 };
 
 
+// Section 4b: Developers (API Keys, Webhooks, Logs)
+const developersSection: SidebarSection = {
+  title: "Developers",
+  items: [
+    { icon: Key,        label: "API Keys",  path: "/admin/developers/api-keys" },
+    { icon: Webhook,    label: "Webhooks",  path: "/admin/developers/webhooks" },
+    { icon: ScrollText, label: "Logs",      path: "/admin/developers/logs" },
+  ],
+};
+
 // Section 5: Logs
 const logsSection: SidebarSection = {
   title: "Logs",
@@ -92,6 +105,7 @@ export const adminSidebarConfig: Omit<SidebarConfig, "roleLabel" | "roleColor"> 
     overviewSection,
     workflowSection,
     contentSection,
+    developersSection,
     logsSection,
     systemSection,
   ],
