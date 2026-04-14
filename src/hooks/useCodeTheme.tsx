@@ -16,8 +16,8 @@ export const CODE_THEMES = [
 export type CodeTheme = typeof CODE_THEMES[number]["value"];
 
 export const useCodeTheme = () => {
-  // Default to "vscode" theme (pure white background with VS Code colors)
-  const [theme, setTheme] = useState<CodeTheme>("vscode");
+  // Default to "tomorrow" — matches the DB column default (code_theme DEFAULT 'tomorrow')
+  const [theme, setTheme] = useState<CodeTheme>("tomorrow");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

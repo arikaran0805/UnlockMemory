@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Globe, Clock, Moon, Save } from "lucide-react";
+import { Globe, Moon, Save } from "lucide-react";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { useAutoSavePreference } from "@/hooks/useAutoSavePreference";
 import { CODE_THEMES } from "@/hooks/useCodeTheme";
@@ -18,28 +18,6 @@ interface GeneralSettingsProps {
   setCodeTheme: (value: string) => void;
   readOnly?: boolean;
 }
-
-const timezones = [
-  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "Europe/London", label: "London (GMT)" },
-  { value: "Europe/Paris", label: "Paris (CET)" },
-  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
-  { value: "Australia/Sydney", label: "Sydney (AEDT)" },
-];
-
-const languages = [
-  { value: "en", label: "English" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "zh", label: "Chinese" },
-  { value: "ja", label: "Japanese" },
-];
 
 const AdminCard = ({ children }: { children: React.ReactNode }) => (
   <div
@@ -163,45 +141,6 @@ const GeneralSettings = ({
               disabled={readOnly}
               className="admin-input"
             />
-          </div>
-        </div>
-      </AdminCard>
-
-      {/* Regional Settings */}
-      <AdminCard>
-        <AdminCardHeader icon={Clock} title="Regional Settings" description="Timezone and language preferences" />
-        <div className="p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <AdminLabel>Timezone</AdminLabel>
-              <Select defaultValue="UTC" disabled={readOnly}>
-                <SelectTrigger className="admin-input">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {timezones.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <AdminLabel>Language</AdminLabel>
-              <Select defaultValue="en" disabled={readOnly}>
-                <SelectTrigger className="admin-input">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {languages.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </div>
       </AdminCard>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -67,25 +69,45 @@ All colors MUST be HSL.
     --sidebar-ring: 142 70% 45%;
 
     /* ── Admin UI palette (light) ─────────────────────────────────────────── */
-    --admin-bg:            #EFF3EE;
-    --admin-bg-hover:      #E2EAE1;
-    --admin-text:          #1A3A2A;
-    --admin-muted:         #6B8F71;
-    --admin-border:        #D4DDD3;
-    --admin-popup-bg:      #EFF3EE;
-    --admin-popup-muted:   #6B8F71;
-    --admin-popup-div:     #D4DDD3;
+    --admin-bg:            #E7EEE5;
+    --admin-bg-hover:      #E2EBE0;
+    --admin-text:          #1A1916;
+    --admin-muted:         #8A9490;
+    --admin-border:        rgba(15,110,86,0.10);
+    --admin-popup-bg:      #FFFFFF;
+    --admin-popup-muted:   #8A9490;
+    --admin-popup-div:     rgba(15,110,86,0.10);
     --admin-tooltip-bg:    #1A3A2A;
-    --admin-card:          #ffffff;
-    --admin-card-header:   #FAFBF9;
-    --admin-card-border:   #E8EBE7;
-    --admin-header-bg:     #ffffff;
-    --admin-header-border: #E2EAE1;
-    --admin-page-bg:       #f7faf7;
-    --admin-input-border:  #E8EBE7;
-    --admin-focus-border:  #1E4D3A;
-    --admin-label:         #1E1E1E;
-    --admin-label-muted:   rgba(30,30,30,0.40);
+    --admin-card:          #FFFFFF;
+    --admin-card-header:   #F4F7F3;
+    --admin-card-border:   rgba(15,110,86,0.10);
+    --admin-header-bg:     #FFFFFF;
+    --admin-header-border: rgba(15,110,86,0.10);
+    --admin-page-bg:       #EFF3EE;
+    --admin-input-border:  rgba(15,110,86,0.18);
+    --admin-focus-border:  #0F6E56;
+    --admin-label:         #4A5250;
+    --admin-label-muted:   #8A9490;
+
+    /* ── Spec design tokens (light mode) ─────────────────────────────────── */
+    --color-bg-base:        #EFF3EE;
+    --color-bg-sidebar:     #E7EEE5;
+    --color-bg-card:        #FFFFFF;
+    --color-bg-hover:       #E2EBE0;
+    --color-bg-subtle:      #F4F7F3;
+    --color-border-soft:    rgba(15,110,86,0.10);
+    --color-border-medium:  rgba(15,110,86,0.18);
+    --color-border-strong:  rgba(15,110,86,0.28);
+    --color-accent:         #0F6E56;
+    --color-accent-hover:   #0C5C47;
+    --color-accent-muted:   rgba(15,110,86,0.10);
+    --color-text-primary:   #1A1916;
+    --color-text-secondary: #4A5250;
+    --color-text-tertiary:  #8A9490;
+    --color-text-accent:    #0F6E56;
+    --color-shadow-card:    0 2px 8px rgba(15,110,86,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --color-shadow-raised:  0 8px 24px rgba(15,110,86,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    --color-shadow-focus:   0 0 0 3px rgba(15,110,86,0.18);
   }
 
   .dark {
@@ -169,6 +191,9 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Premium dashboard background */
@@ -237,45 +262,22 @@ All colors MUST be HSL.
     @apply h-12 flex-shrink-0;
   }
 
-  /* Premium card styling — overrides shadcn Card defaults */
+  /* Premium card styling — clean Stripe-style, no glassmorphism */
   .card-premium {
     @apply relative;
-    overflow: visible !important;
-    background: rgba(255, 255, 255, 0.92) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.6) !important;
-    border-radius: 24px !important;
-    box-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.04),
-      0 8px 24px rgba(0, 0, 0, 0.06) !important;
-    transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .card-premium::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 50%;
-    bottom: 50%;
-    background: radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-    border-radius: 24px;
-  }
-
-  .card-premium > * {
-    position: relative;
-    z-index: 1;
+    overflow: hidden;
+    background: #FFFFFF;
+    border: 1px solid rgba(15,110,86,0.10);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(15,110,86,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    transition: all 200ms ease;
   }
 
   .card-premium:hover {
-    background: rgba(255, 255, 255, 0.96) !important;
-    box-shadow: 
-      0 6px 16px rgba(0, 0, 0, 0.08),
-      0 12px 32px rgba(0, 0, 0, 0.10) !important;
-    transform: translateY(-4px) scale(1.01);
+    background: #FFFFFF;
+    box-shadow: 0 8px 24px rgba(15,110,86,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    transform: translateY(-2px);
+    border-color: rgba(15,110,86,0.18);
   }
 
   .card-premium:active {
@@ -315,22 +317,15 @@ All colors MUST be HSL.
   }
 
   .dark .card-premium {
-    background: rgba(20, 30, 24, 0.85) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow:
-      0 2px 8px rgba(0, 0, 0, 0.2),
-      0 8px 24px rgba(0, 0, 0, 0.15) !important;
-  }
-
-  .dark .card-premium::before {
-    background: radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+    background: var(--admin-card) !important;
+    border: 1px solid var(--admin-card-border) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15) !important;
   }
 
   .dark .card-premium:hover {
-    background: rgba(20, 30, 24, 0.92) !important;
-    box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.3),
-      0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    background: var(--admin-card) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2) !important;
+    border-color: rgba(255,255,255,0.12) !important;
   }
 
   /* Premium sidebar styling */
@@ -982,9 +977,12 @@ All colors MUST be HSL.
   50%      { transform: translateY(-14px); }
 }
 
-/* ── Admin dark mode — utility classes ─────────────────────────────────── */
+/* ── Admin utility classes ──────────────────────────────────────────────── */
 
-/* Nav hover — uses CSS var so it responds to dark mode */
+/* Nav hover — smooth 180ms, responds to dark mode */
+.admin-nav-hover {
+  transition: background-color 180ms ease, color 180ms ease;
+}
 .admin-nav-hover:hover { background-color: var(--admin-bg-hover); }
 
 /* Admin main area dark background */
@@ -1008,19 +1006,27 @@ All colors MUST be HSL.
 .admin-input {
   border-color: var(--admin-input-border);
   color: var(--admin-label);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 .admin-input::placeholder { color: var(--admin-label-muted); }
-.admin-input:focus { border-color: var(--admin-focus-border); }
+.admin-input:hover { border-color: var(--color-border-strong); }
+.admin-input:focus {
+  border-color: var(--admin-focus-border);
+  box-shadow: var(--color-shadow-focus);
+  outline: none;
+}
 
-/* Dark mode overrides */
+/* Dark mode input overrides */
 .dark .admin-input {
   background-color: #111E16 !important;
   border-color: var(--admin-input-border) !important;
   color: var(--admin-text) !important;
 }
 .dark .admin-input::placeholder { color: var(--admin-muted) !important; }
+.dark .admin-input:hover { border-color: rgba(255,255,255,0.18) !important; }
 .dark .admin-input:focus {
   border-color: var(--admin-focus-border) !important;
+  box-shadow: 0 0 0 3px rgba(49,168,112,0.18) !important;
 }
 
 /* Settings card container dark */
@@ -1036,4 +1042,46 @@ All colors MUST be HSL.
 /* Admin page main background in dark */
 .dark body {
   background-color: hsl(var(--background));
+}
+
+/* ── Custom scrollbars (admin panel) ────────────────────────────────────── */
+.admin-scroll::-webkit-scrollbar,
+aside::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.admin-scroll::-webkit-scrollbar-track,
+aside::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-scroll::-webkit-scrollbar-thumb,
+aside::-webkit-scrollbar-thumb {
+  background: rgba(15,110,86,0.25);
+  border-radius: 3px;
+}
+.admin-scroll::-webkit-scrollbar-thumb:hover,
+aside::-webkit-scrollbar-thumb:hover {
+  background: rgba(15,110,86,0.40);
+}
+
+/* ── Global admin interaction polish ────────────────────────────────────── */
+/* All interactive elements get smooth transitions */
+button, a, [role="button"] {
+  transition: all 180ms ease;
+}
+/* Focus rings via box-shadow only — no default outline on non-inputs */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: var(--color-shadow-focus);
+}
+/* Clickable cards: pointer + hover lift */
+.admin-clickable-card {
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.admin-clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--color-shadow-raised);
+  border-color: rgba(15,110,86,0.18);
 }
