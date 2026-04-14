@@ -1,12 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Globe, Clock, Languages, Moon, Save } from "lucide-react";
+import { Globe, Clock, Moon, Save } from "lucide-react";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { useAutoSavePreference } from "@/hooks/useAutoSavePreference";
+import { CODE_THEMES } from "@/hooks/useCodeTheme";
 
 interface GeneralSettingsProps {
   siteName: string;
@@ -15,6 +14,8 @@ interface GeneralSettingsProps {
   setSiteDescription: (value: string) => void;
   siteUrl: string;
   setSiteUrl: (value: string) => void;
+  codeTheme: string;
+  setCodeTheme: (value: string) => void;
   readOnly?: boolean;
 }
 
@@ -40,6 +41,63 @@ const languages = [
   { value: "ja", label: "Japanese" },
 ];
 
+const AdminCard = ({ children }: { children: React.ReactNode }) => (
+  <div
+    className="rounded-2xl overflow-hidden shadow-sm"
+    style={{
+      backgroundColor: "var(--admin-card)",
+      border: "1px solid var(--admin-card-border)",
+    }}
+  >
+    {children}
+  </div>
+);
+
+const AdminCardHeader = ({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) => (
+  <div
+    className="px-6 py-4"
+    style={{
+      backgroundColor: "var(--admin-card-header)",
+      borderBottom: "1px solid var(--admin-card-border)",
+    }}
+  >
+    <div
+      className="flex items-center gap-2 text-base font-semibold"
+      style={{ color: "var(--admin-text)" }}
+    >
+      <Icon className="h-5 w-5" style={{ color: "var(--admin-muted)" }} />
+      {title}
+    </div>
+    <p className="text-sm mt-0.5" style={{ color: "var(--admin-muted)" }}>
+      {description}
+    </p>
+  </div>
+);
+
+const AdminLabel = ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => (
+  <label
+    htmlFor={htmlFor}
+    className="text-sm font-medium"
+    style={{ color: "var(--admin-label)" }}
+  >
+    {children}
+  </label>
+);
+
+const AdminHint = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-xs" style={{ color: "var(--admin-label-muted)" }}>
+    {children}
+  </p>
+);
+
 const GeneralSettings = ({
   siteName,
   setSiteName,
@@ -47,6 +105,8 @@ const GeneralSettings = ({
   setSiteDescription,
   siteUrl,
   setSiteUrl,
+  codeTheme,
+  setCodeTheme,
   readOnly = false,
 }: GeneralSettingsProps) => {
   const { isDark, toggle } = useDarkMode();
@@ -55,37 +115,32 @@ const GeneralSettings = ({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-[#0F2A1D]">General Settings</h2>
-        <p className="text-sm text-[#1E1E1E]/60 mt-1">
+        <h2 className="text-2xl font-semibold" style={{ color: "var(--admin-text)" }}>
+          General Settings
+        </h2>
+        <p className="text-sm mt-1" style={{ color: "var(--admin-muted)" }}>
           Configure your site's basic information
         </p>
       </div>
 
-      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
-          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
-            <Globe className="h-5 w-5 text-[#1E4D3A]" />
-            Site Information
-          </CardTitle>
-          <CardDescription className="text-[#1E1E1E]/50">
-            Basic details about your platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-5">
+      {/* Site Information */}
+      <AdminCard>
+        <AdminCardHeader icon={Globe} title="Site Information" description="Basic details about your platform" />
+        <div className="p-6 space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="siteName" className="text-[#1E1E1E]">Site Name</Label>
+            <AdminLabel htmlFor="siteName">Site Name</AdminLabel>
             <Input
               id="siteName"
               value={siteName}
               onChange={(e) => setSiteName(e.target.value)}
               placeholder="UnlockMemory"
               disabled={readOnly}
-              className="border-[#E8EBE7] focus:border-[#1E4D3A] focus:ring-[#1E4D3A]/20"
+              className="admin-input"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="siteDescription" className="text-[#1E1E1E]">Site Description</Label>
+            <AdminLabel htmlFor="siteDescription">Site Description</AdminLabel>
             <Textarea
               id="siteDescription"
               value={siteDescription}
@@ -93,43 +148,34 @@ const GeneralSettings = ({
               placeholder="A brief description of your platform..."
               rows={3}
               disabled={readOnly}
-              className="border-[#E8EBE7] focus:border-[#1E4D3A] focus:ring-[#1E4D3A]/20 resize-none"
+              className="admin-input resize-none"
             />
-            <p className="text-xs text-[#1E1E1E]/40">
-              This description appears in search results and social shares
-            </p>
+            <AdminHint>This description appears in search results and social shares</AdminHint>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="siteUrl" className="text-[#1E1E1E]">Site URL</Label>
+            <AdminLabel htmlFor="siteUrl">Site URL</AdminLabel>
             <Input
               id="siteUrl"
               value={siteUrl}
               onChange={(e) => setSiteUrl(e.target.value)}
               placeholder="https://unlockmemory.com"
               disabled={readOnly}
-              className="border-[#E8EBE7] focus:border-[#1E4D3A] focus:ring-[#1E4D3A]/20"
+              className="admin-input"
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </AdminCard>
 
-      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
-          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
-            <Clock className="h-5 w-5 text-[#1E4D3A]" />
-            Regional Settings
-          </CardTitle>
-          <CardDescription className="text-[#1E1E1E]/50">
-            Timezone and language preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-5">
+      {/* Regional Settings */}
+      <AdminCard>
+        <AdminCardHeader icon={Clock} title="Regional Settings" description="Timezone and language preferences" />
+        <div className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-[#1E1E1E]">Timezone</Label>
+              <AdminLabel>Timezone</AdminLabel>
               <Select defaultValue="UTC" disabled={readOnly}>
-                <SelectTrigger className="border-[#E8EBE7] focus:ring-[#1E4D3A]/20">
+                <SelectTrigger className="admin-input">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -141,11 +187,10 @@ const GeneralSettings = ({
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label className="text-[#1E1E1E]">Language</Label>
+              <AdminLabel>Language</AdminLabel>
               <Select defaultValue="en" disabled={readOnly}>
-                <SelectTrigger className="border-[#E8EBE7] focus:ring-[#1E4D3A]/20">
+                <SelectTrigger className="admin-input">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,27 +203,23 @@ const GeneralSettings = ({
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
-      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
-          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
-            <Moon className="h-5 w-5 text-[#1E4D3A]" />
-            Appearance
-          </CardTitle>
-          <CardDescription className="text-[#1E1E1E]/50">
-            Customize the admin interface appearance
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
+        </div>
+      </AdminCard>
+
+      {/* Appearance */}
+      <AdminCard>
+        <AdminCardHeader icon={Moon} title="Appearance" description="Customize the admin interface appearance" />
+        <div className="p-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label htmlFor="dark-mode-toggle" className="text-[#1E1E1E] font-medium cursor-pointer">
+              <label
+                htmlFor="dark-mode-toggle"
+                className="text-sm font-medium cursor-pointer"
+                style={{ color: "var(--admin-label)" }}
+              >
                 Dark Mode
-              </Label>
-              <p className="text-xs text-[#1E1E1E]/40">
-                Switch between light and dark appearance for the admin experience
-              </p>
+              </label>
+              <AdminHint>Switch between light and dark appearance for the admin experience</AdminHint>
             </div>
             <Switch
               id="dark-mode-toggle"
@@ -187,28 +228,23 @@ const GeneralSettings = ({
               aria-label="Toggle dark mode"
             />
           </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
-          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
-            <Save className="h-5 w-5 text-[#1E4D3A]" />
-            Editor Preferences
-          </CardTitle>
-          <CardDescription className="text-[#1E1E1E]/50">
-            Customize your post editor experience
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
+        </div>
+      </AdminCard>
+
+      {/* Editor Preferences */}
+      <AdminCard>
+        <AdminCardHeader icon={Save} title="Editor Preferences" description="Customize your post editor experience" />
+        <div className="p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label htmlFor="auto-save-toggle" className="text-[#1E1E1E] font-medium cursor-pointer">
+              <label
+                htmlFor="auto-save-toggle"
+                className="text-sm font-medium cursor-pointer"
+                style={{ color: "var(--admin-label)" }}
+              >
                 Auto Save
-              </Label>
-              <p className="text-xs text-[#1E1E1E]/40">
-                Automatically save drafts while editing posts
-              </p>
+              </label>
+              <AdminHint>Automatically save drafts while editing posts</AdminHint>
             </div>
             <Switch
               id="auto-save-toggle"
@@ -218,8 +254,25 @@ const GeneralSettings = ({
               aria-label="Toggle auto save"
             />
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="space-y-2">
+            <AdminLabel>Code Theme</AdminLabel>
+            <Select value={codeTheme} onValueChange={setCodeTheme} disabled={readOnly}>
+              <SelectTrigger className="admin-input max-w-xs">
+                <SelectValue placeholder="Select a theme" />
+              </SelectTrigger>
+              <SelectContent>
+                {CODE_THEMES.map((theme) => (
+                  <SelectItem key={theme.value} value={theme.value}>
+                    {theme.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <AdminHint>This theme will be used for all code blocks across the site</AdminHint>
+          </div>
+        </div>
+      </AdminCard>
     </div>
   );
 };

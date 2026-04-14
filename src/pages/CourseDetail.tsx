@@ -166,7 +166,6 @@ const CourseDetail = () => {
   const slug = decodeURIComponent((params.slug ?? "").split("?")[0]).trim();
   const [searchParams, setSearchParams] = useSearchParams();
   const lessonSlug = searchParams.get("lesson");
-  const tabParam = searchParams.get("tab"); // Persist active tab in URL
   const isPreviewMode = searchParams.get("preview") === "true";
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
@@ -204,8 +203,6 @@ const CourseDetail = () => {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [restartModalOpen, setRestartModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string | null>(null); // Defer until we know user context
-  const [defaultTabResolved, setDefaultTabResolved] = useState(false);
   const [shareOpenPostId, setShareOpenPostId] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
   // NOTE: Career-scoped courses now use /career-board/:careerId/course/:slug routes
@@ -238,7 +235,7 @@ const CourseDetail = () => {
   // Handle navigation to lesson from external tabs (Deep Notes, etc.)
   const handleExternalLessonNavigation = useCallback((lessonSlug: string) => {
     console.log('[CourseDetail] External navigation to lesson:', lessonSlug);
-    setSearchParams({ lesson: lessonSlug, tab: "lessons" }, { replace: true });
+    setSearchParams({ lesson: lessonSlug }, { replace: true });
     // Scroll to top smoothly when navigating to a lesson
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [setSearchParams]);
@@ -295,7 +292,6 @@ const CourseDetail = () => {
         // Redirect to first lesson without showing Course Detail Page
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set("lesson", firstPost.slug);
-        nextParams.set("tab", "lessons");
         setSearchParams(nextParams, { replace: true });
       }
     }
@@ -309,136 +305,8 @@ const CourseDetail = () => {
     }
   }, [user, course, markAsInternal]);
 
-  /**
-   * ROLE-AWARE, PROGRESS-AWARE DEFAULT TAB SELECTION
-   * 
-   * This logic runs ONCE per page load and determines the initial tab based on:
-   * 1. User Role (Admin/Moderator vs Learner)
-   * 2. Course Progress (0%, 1-99%, 100%)
-   * 
-   * Entry source does NOT affect tab selection - only role and progress matter.
-   * 
-   * IMPORTANT: We must wait for posts to be loaded to calculate accurate progress.
-   * The courseProgress memo depends on posts.length for percentage calculation.
-   */
-  useEffect(() => {
-    // Skip if already resolved
-    if (defaultTabResolved) return;
-    
-    // Still loading essential data - wait for ALL required data
-    // CRITICAL: Must wait for courseStatsLoading to know enrollment status for Pro users
-    if (loading || roleLoading || userStateLoading || courseStatsLoading) return;
-    
-    // CRITICAL: Wait for posts to be loaded before making progress-based decisions
-    // courseProgress.percentage depends on posts.length being > 0
-    // Without this, percentage will be 0 and wrong tab will be selected
-    const postsLoaded = posts.length > 0;
 
-    // Priority 1: If a lesson is already selected via URL, go to lessons tab
-    // (Lesson reading always lives in the Lessons context)
-    if (lessonSlug) {
-      setActiveTab("lessons");
-      setDefaultTabResolved(true);
-      return;
-    }
 
-    // Priority 2: If tab is specified in URL, use it (for persistence across refresh / manual selection)
-    // This ensures we don't override the user's manual tab selection
-    if (tabParam && ["details", "lessons", "certificate"].includes(tabParam)) {
-      // Only honor certificate tab if it's actually available
-      if (tabParam === "certificate") {
-        // Need posts loaded to check completion status
-        if (!postsLoaded) return;
-        const certificateTabAvailable = isPro && courseStats.isEnrolled && courseProgress.isCompleted;
-        if (!certificateTabAvailable) {
-          // Fall back to lessons tab if certificate not available
-          setActiveTab("lessons");
-          setDefaultTabResolved(true);
-          return;
-        }
-      }
-      setActiveTab(tabParam);
-      setDefaultTabResolved(true);
-      return;
-    }
-
-    // Priority 3: Admin / Moderator → ALWAYS Course Details (ignore progress)
-    // Admins and moderators are managing content, not learning it
-    // Can resolve immediately - no need to wait for posts
-    if (isAdmin || isModerator) {
-      setActiveTab("details");
-      setDefaultTabResolved(true);
-      return;
-    }
-
-    // For learner progress-based selection, we MUST wait for posts to be loaded
-    if (!postsLoaded) {
-      // Temporarily show details while loading, but don't mark as resolved
-      if (!activeTab) {
-        setActiveTab("details");
-      }
-      return; // Wait for posts to load before making final decision
-    }
-
-    // Priority 4: LEARNER progress-based tab selection
-    // Calculate progress percentage for learners
-    const progressPercentage = courseProgress.percentage;
-
-    // 100% completion → Certificate tab (if available for Pro enrolled users)
-    if (progressPercentage === 100 && courseProgress.isCompleted) {
-      // For Pro users who are enrolled, show Certificate tab
-      if (isPro && courseStats.isEnrolled) {
-        setActiveTab("certificate");
-        setDefaultTabResolved(true);
-        return;
-      }
-      // Non-Pro users or not enrolled with 100% completion → Lessons tab (fallback)
-      setActiveTab("lessons");
-      setDefaultTabResolved(true);
-      return;
-    }
-
-    // 1-99% progress → Lessons tab (resume learning instantly)
-    if (progressPercentage > 0 && progressPercentage < 100) {
-      setActiveTab("lessons");
-      setDefaultTabResolved(true);
-      return;
-    }
-
-    // 0% progress → Course Details tab for staff/Pro, Lessons tab for free users
-    if (isPro || isAdmin || isModerator) {
-      setActiveTab("details");
-    } else {
-      setActiveTab("lessons");
-    }
-    setDefaultTabResolved(true);
-  }, [
-    defaultTabResolved,
-    loading,
-    roleLoading,
-    userStateLoading,
-    courseStatsLoading,
-    isAdmin,
-    isModerator,
-    lessonSlug,
-    tabParam,
-    courseStats.isEnrolled,
-    courseProgress.hasStarted,
-    courseProgress.isCompleted,
-    courseProgress.percentage,
-    isLearner,
-    isPro,
-    posts.length, // CRITICAL: re-run when posts load
-    activeTab,
-  ]);
-
-  // Persist active tab to URL when it changes
-  const handleTabChange = useCallback((newTab: string) => {
-    setActiveTab(newTab);
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("tab", newTab);
-    setSearchParams(nextParams, { replace: true });
-  }, [searchParams, setSearchParams]);
 
   // Get first uncompleted post for "Continue Learning"
   const getNextPost = useCallback(() => {
@@ -800,16 +668,10 @@ const CourseDetail = () => {
       setExpandedLessons(new Set([post.lesson_id]));
     }
 
-    // Ensure the Lessons tab is active and persists across refresh
-    setActiveTab("lessons");
-    setDefaultTabResolved(true);
-
-    fetchPostContent(post);
-
-    // Preserve existing query params (preview, etc.) and keep tab in sync
+    // Preserve existing query params (preview, etc.)
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("tab", "lessons");
     nextParams.set("lesson", post.slug);
+    nextParams.delete("tab"); // Cleanup legacy tab params
     setSearchParams(nextParams);
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1329,16 +1191,9 @@ const CourseDetail = () => {
                 return;
               }
 
-              const desiredTab = courseProgress.percentage > 0
-                ? "lessons"
-                : "details";
-
-              setActiveTab(desiredTab);
-              setDefaultTabResolved(true);
-
               const nextSearch = new URLSearchParams(searchParams);
               nextSearch.delete("lesson");
-              nextSearch.set("tab", desiredTab);
+              nextSearch.delete("tab");
               setSearchParams(nextSearch, { replace: true });
             }}
           />
@@ -1619,448 +1474,154 @@ const CourseDetail = () => {
                       )}
                     </div>
 
-                    {/* TABS */}
-                    <Tabs value={activeTab ?? "details"} onValueChange={handleTabChange} className="w-full">
-                      <TabsList className="mb-6 grid w-full auto-cols-fr grid-flow-col">
-                        {/* Course Details tab - hidden for free users (guests & free learners) */}
-                        {(isPro || isAdmin || isModerator) && (
-                          <TabsTrigger value="details" className="w-full gap-2">
-                            <Info className="h-4 w-4" />
-                            Course Details
-                          </TabsTrigger>
-                        )}
-                        <TabsTrigger value="lessons" className="w-full gap-2">
-                          <List className="h-4 w-4" />
-                          Lessons ({lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length})
-                        </TabsTrigger>
-                        {/* Certificate Tab - Always visible for Pro users (enrollment checked in content) */}
-                        {isPro && (
-                          <TabsTrigger value="certificate" className="w-full gap-2">
-                            {!courseProgress.isCompleted && (
-                              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                            )}
-                            <Award className="h-4 w-4" />
-                            Certificate
-                          </TabsTrigger>
-                        )}
-                      </TabsList>
+                    {/* Lessons List (Curriculum) - rendered directly since tabs were removed */}
+                    <div className="mt-8">
 
-                      {/* Course Details Tab */}
-                      <TabsContent value="details">
-                        <div className="space-y-8">
-                          {/* Description */}
-                          {course.description && (
-                            <div>
-                              <h3 className="text-xl font-semibold mb-4">About This Course</h3>
-                              <div className="mx-auto w-full max-w-[720px]">
-                                <ContentRenderer
-                                  htmlContent={course.description}
-                                  courseType={course?.slug?.toLowerCase()}
-                                  variant="article"
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Review Preview - Social proof */}
-                          {courseReviews.length > 0 && (
-                            <ReviewPreviewCard
-                              reviews={courseReviews}
-                              averageRating={courseStats.averageRating}
-                            />
-                          )}
-
-                          {/* Action Reinforcement Card - mirrors Primary CTA */}
-                          {posts.length > 0 && (() => {
-                            const cardContent = getActionCardContent();
-                            const CardIcon = cardContent.icon;
-                            
-                            return (
-                              <div 
-                                id="action-reinforcement-card" 
-                                className="p-5 bg-primary/5 rounded-xl border border-primary/10 transition-all duration-300"
-                              >
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                                  {/* Left: Icon + Content */}
-                                  <div className="flex items-start gap-4 flex-1">
-                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                      <Target className="h-5 w-5 text-primary" />
-                                    </div>
-                                    <div className="flex flex-col gap-0.5">
-                                      <h3 className="font-semibold text-foreground text-lg leading-tight">
-                                        {cardContent.title}
-                                      </h3>
-                                      <p className="text-sm text-muted-foreground">
-                                        {cardContent.message}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  {/* Right: CTA */}
-                                  <div className="flex flex-col items-center gap-1.5 sm:ml-auto">
-                                    <Button 
-                                      onClick={ctaProps.onClick}
-                                      disabled={posts.length === 0 || enrolling}
-                                      className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-5 h-10 font-medium shadow-sm"
-                                    >
-                                      <CardIcon className="h-4 w-4 mr-2" />
-                                      {enrolling ? "Processing..." : cardContent.buttonLabel}
-                                    </Button>
-                                    <span className="text-xs text-muted-foreground hidden sm:block text-center">
-                                      {(() => {
-                                        // Moderator/Admin context
-                                        if (isAdmin || isModerator) {
-                                          const draftCount = posts.filter(p => p.status === 'draft').length;
-                                          return draftCount > 0 
-                                            ? `${posts.length} lesson${posts.length !== 1 ? 's' : ''} • ${draftCount} draft${draftCount !== 1 ? 's' : ''} pending`
-                                            : `${posts.length} lesson${posts.length !== 1 ? 's' : ''} ready`;
-                                        }
-                                        // Learner with progress - find next incomplete lesson
-                                        if (courseProgress.hasStarted) {
-                                          const nextLesson = orderedPosts.find(p => !isLessonCompleted(p.id));
-                                          if (nextLesson) {
-                                            return `Resume from ${nextLesson.title}`;
-                                          }
-                                        }
-                                        // New learner
-                                        return "Start your learning journey";
-                                      })()}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })()}
+                      {lessons.length === 0 ? (
+                        <div className="text-center py-16 bg-muted/30 rounded-xl">
+                          <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                          <p className="text-muted-foreground">No lessons available yet</p>
+                          <p className="text-sm text-muted-foreground mt-1">Check back soon for new content!</p>
                         </div>
-                      </TabsContent>
-
-                      {/* Lessons Tab */}
-                      <TabsContent value="lessons">
-                        {(isPro || isAdmin || isModerator) && (
-                          <div className="mb-6">
-                            <h3 className="text-xl font-semibold mb-1">Course Curriculum</h3>
-                            <p className="text-muted-foreground text-sm">
-                              {lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length} lessons • {posts.length} posts
-                            </p>
-                          </div>
-                        )}
-
-                        {lessons.length === 0 ? (
-                          <div className="text-center py-16 bg-muted/30 rounded-xl">
-                            <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                            <p className="text-muted-foreground">No lessons available yet</p>
-                            <p className="text-sm text-muted-foreground mt-1">Check back soon for new content!</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {lessons
-                              .filter(lesson => (isPreviewMode && (isAdmin || isModerator)) || lesson.is_published)
-                              .map((lesson, lessonIndex) => {
-                                const lessonPosts = getPostsForLesson(lesson.id);
-                                const lessonProgress = getLessonProgress(lesson.id);
-                                
-                                return (
-                                  <Card key={lesson.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                                    <div className="bg-muted/30 px-4 py-3 flex items-center justify-between">
-                                      <div className="flex items-center gap-3">
-                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                                          lessonProgress.isComplete 
-                                            ? 'bg-primary text-primary-foreground' 
-                                            : 'bg-muted text-muted-foreground'
-                                        }`}>
-                                          {lessonProgress.isComplete ? <CheckCircle className="h-4 w-4" /> : lessonIndex + 1}
-                                        </div>
-                                        <div>
-                                          <h4 className="font-semibold">{lesson.title}</h4>
-                                          {lesson.description && (
-                                            <p className="text-xs text-muted-foreground">{lesson.description}</p>
-                                          )}
-                                        </div>
-                                        {!lesson.is_published && (
-                                          <Badge variant="secondary" className="text-xs">Draft</Badge>
+                      ) : (
+                        <div className="space-y-3">
+                          {lessons
+                            .filter(lesson => (isPreviewMode && (isAdmin || isModerator)) || lesson.is_published)
+                            .map((lesson, lessonIndex) => {
+                              const lessonPosts = getPostsForLesson(lesson.id);
+                              const lessonProgress = getLessonProgress(lesson.id);
+                              
+                              return (
+                                <Card key={lesson.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                                  <div className="bg-muted/30 px-4 py-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                                        lessonProgress.isComplete 
+                                          ? 'bg-primary text-primary-foreground' 
+                                          : 'bg-muted text-muted-foreground'
+                                      }`}>
+                                        {lessonProgress.isComplete ? <CheckCircle className="h-4 w-4" /> : lessonIndex + 1}
+                                      </div>
+                                      <div>
+                                        <h4 className="font-semibold">{lesson.title}</h4>
+                                        {lesson.description && (
+                                          <p className="text-xs text-muted-foreground">{lesson.description}</p>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-3">
-                                        {lessonProgress.totalPosts > 0 && (
-                                          <div className="flex items-center gap-2">
-                                            <Progress value={lessonProgress.percentage} className="w-16 h-1.5" />
-                                        <span className="text-xs text-muted-foreground">
-                                              {lessonProgress.completedPosts} of {lessonProgress.totalPosts} posts completed
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
+                                      {!lesson.is_published && (
+                                        <Badge variant="secondary" className="text-xs">Draft</Badge>
+                                      )}
                                     </div>
-                                    
-                                    {lessonPosts.length > 0 ? (
-                                      <div className="divide-y">
-                                        {lessonPosts.map((post) => {
-                                          const isCompleted = isLessonCompleted(post.id);
-                                          
-                                          const isActive = selectedPost?.id === post.id;
-                                          
-                                          return (
-                                            <div 
-                                              key={post.id}
-                                              className={cn(
-                                                "relative flex items-center justify-between hover:bg-muted/30 cursor-pointer transition-colors group",
-                                                isActive && "bg-primary/5",
-                                                shareOpenPostId === post.id && !isActive && "bg-muted/40"
+                                    <div className="flex items-center gap-3">
+                                      {lessonProgress.totalPosts > 0 && (
+                                        <div className="flex items-center gap-2">
+                                          <Progress value={lessonProgress.percentage} className="w-16 h-1.5" />
+                                          <span className="text-xs text-muted-foreground">
+                                            {lessonProgress.completedPosts} of {lessonProgress.totalPosts} posts completed
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {lessonPosts.length > 0 ? (
+                                    <div className="divide-y">
+                                      {lessonPosts.map((post) => {
+                                        const isCompleted = isLessonCompleted(post.id);
+                                        
+                                        const isActive = selectedPost?.id === post.id;
+                                        
+                                        return (
+                                          <div 
+                                            key={post.id}
+                                            className={cn(
+                                              "relative flex items-center justify-between hover:bg-muted/30 cursor-pointer transition-colors group",
+                                              isActive && "bg-primary/5",
+                                              shareOpenPostId === post.id && !isActive && "bg-muted/40"
+                                            )}
+                                            onClick={() => handleLessonClick(post)}
+                                          >
+                                            {/* Accent bar - active or share open */}
+                                            {(isActive || shareOpenPostId === post.id) && (
+                                              <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-r" />
+                                            )}
+                                            
+                                            <div className="px-4 py-3 flex items-center gap-3 flex-1">
+                                              {isCompleted ? (
+                                                <CheckCircle className="h-4 w-4 text-primary" />
+                                              ) : (
+                                                <Circle className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                                               )}
-                                              onClick={() => handleLessonClick(post)}
-                                            >
-                                              {/* Accent bar - active or share open */}
-                                              {(isActive || shareOpenPostId === post.id) && (
-                                                <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-r" />
+                                              <span className={`text-sm ${isActive ? "font-medium" : ""}`}>{post.title}</span>
+                                              {post.post_type && post.post_type !== 'content' && (
+                                                <Badge variant="secondary" className="text-[10px]">
+                                                  {post.post_type}
+                                                </Badge>
                                               )}
-                                              
-                                              <div className="px-4 py-3 flex items-center gap-3 flex-1">
-                                                {isCompleted ? (
-                                                  <CheckCircle className="h-4 w-4 text-primary" />
-                                                ) : (
-                                                  <Circle className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                                )}
-                                                <span className={`text-sm ${isActive ? "font-medium" : ""}`}>{post.title}</span>
-                                                {post.post_type && post.post_type !== 'content' && (
-                                                  <Badge variant="secondary" className="text-[10px]">
-                                                    {post.post_type}
-                                                  </Badge>
-                                                )}
-                                              </div>
-                                              <div className="flex items-center gap-2 pr-4">
-                                                {/* Estimated Time - always visible */}
-                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                  <Clock className="h-3 w-3" />
-                                                  ~{formatReadingTime(post.content)}
-                                                </span>
-                                                
-                                                {/* Copy Link - visible on hover */}
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <button
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigator.clipboard.writeText(`${window.location.origin}/courses/${post.slug}`);
-                                                        setCopiedPostId(post.id);
-                                                        toast({ title: "Link copied!" });
-                                                        setTimeout(() => setCopiedPostId(null), 2000);
-                                                      }}
-                                                      className={`p-1 rounded text-muted-foreground hover:text-foreground transition-opacity ${
-                                                        shareOpenPostId === post.id || copiedPostId === post.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                                      }`}
-                                                    >
-                                                      <Link2 className="h-3.5 w-3.5" />
-                                                    </button>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent side="top" className="text-xs">
-                                                    {copiedPostId === post.id ? "Copied" : "Copy link"}
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                                
-                                                {/* Share - visible on hover */}
-                                                <LessonShareMenu
-                                                  postId={post.id}
-                                                  postTitle={post.title}
-                                                  postSlug={post.slug}
-                                                  sectionName={lesson.title}
-                                                  side="right"
-                                                  vertical
-                                                  onOpenChange={(isOpen) =>
-                                                    setShareOpenPostId((prev) =>
-                                                      isOpen ? post.id : prev === post.id ? null : prev
-                                                    )
-                                                  }
-                                                />
-                                                
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                              </div>
                                             </div>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <div className="px-4 py-6 text-center bg-muted/20">
-                                        <Lock className="h-5 w-5 mx-auto mb-2 text-muted-foreground/50" />
-                                        <p className="text-sm text-muted-foreground">Content coming soon</p>
-                                      </div>
-                                    )}
-                                  </Card>
-                                );
-                            })}
-                          </div>
-                        )}
-                      </TabsContent>
-
-                      {/* Certificate Tab - Pro users only */}
-                      {isPro && (
-                        <TabsContent value="certificate">
-                          {!courseStats.isEnrolled ? (
-                            /* Not enrolled state */
-                            <div className="flex flex-col items-center justify-center py-16 text-center">
-                              <div className="w-14 h-14 rounded-full bg-muted/80 flex items-center justify-center mb-4">
-                                <Award className="h-7 w-7 text-muted-foreground" />
-                              </div>
-                              <h3 className="text-lg font-semibold mb-2">Enroll to Unlock Certificate</h3>
-                              <p className="text-sm text-muted-foreground max-w-sm">
-                                Start this course to track your progress and earn a certificate upon completion.
-                              </p>
-                            </div>
-                          ) : (
-                          <div className="space-y-6 relative">
-                            {/* Locked State Overlay - shown when course is not complete */}
-                            {!courseProgress.isCompleted && (
-                              <div className="absolute inset-0 z-10 flex items-center justify-center">
-                                {/* Blurred background effect */}
-                                <div className="absolute inset-0 bg-background/60 backdrop-blur-sm rounded-lg" />
-                                
-                                {/* Lock overlay content */}
-                                <div className="relative z-20 flex flex-col items-center gap-4 text-center p-8 max-w-sm">
-                                  {/* Lock Icon */}
-                                  <div className="w-14 h-14 rounded-full bg-muted/80 flex items-center justify-center">
-                                    <Lock className="h-7 w-7 text-muted-foreground" />
-                                  </div>
-                                  
-                                  {/* Progress Bar */}
-                                  <div className="w-48">
-                                    <Progress 
-                                      value={courseProgress.percentage} 
-                                      className="h-2 bg-muted" 
-                                    />
-                                  </div>
-                                  
-                                  {/* Supporting Text */}
-                                  <p className="text-sm text-muted-foreground">
-                                    {courseProgress.percentage === 0 
-                                      ? "Start the course to unlock your certificate"
-                                      : `You're ${courseProgress.percentage}% there — keep going`
-                                    }
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Certificate Card - shown blurred when locked, normal when unlocked */}
-                            <div className={cn(
-                              "flex flex-col lg:flex-row gap-6 lg:gap-8 items-center",
-                              !courseProgress.isCompleted && "pointer-events-none select-none"
-                            )}>
-                              {/* Certificate Preview */}
-                              <div className="w-full max-w-md aspect-[1.4/1] rounded-lg border-4 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                                {/* Decorative border */}
-                                <div className="absolute inset-3 border-2 border-primary/30 rounded pointer-events-none" />
-                                
-                                {/* Award icon */}
-                                <div className="mb-3">
-                                  <Award className="h-12 w-12 text-primary" />
-                                </div>
-                                
-                                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
-                                  Certificate of Completion
-                                </p>
-                                
-                                <p className="text-sm text-muted-foreground mb-1">
-                                  This is to certify that
-                                </p>
-                                
-                                <p className="text-lg font-bold text-foreground mb-2 line-clamp-1">
-                                  {user?.user_metadata?.full_name || 'Learner'}
-                                </p>
-                                
-                                <p className="text-xs text-muted-foreground mb-1">
-                                  has successfully completed
-                                </p>
-                                
-                                <p className="text-sm font-semibold text-primary line-clamp-2 mb-3">
-                                  {course.name}
-                                </p>
-                                
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                                </p>
-                              </div>
-
-                              {/* Actions - only interactive when unlocked */}
-                              <div className="flex flex-col gap-4 flex-1">
-                                <div>
-                                  <h3 className="text-xl font-semibold mb-1">🎉 Your Certificate is Ready!</h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    Congratulations on completing this course! Download your certificate or share your achievement.
-                                  </p>
-                                </div>
-
-                                <div className="flex flex-col gap-3">
-                                  {/* Share actions */}
-                                  <Button 
-                                    variant="outline" 
-                                    onClick={() => {
-                                      const text = encodeURIComponent(
-                                        `I just completed "${course.name}"! 🎉\n\nExcited to share my new skills and knowledge. #Learning #Achievement`
-                                      );
-                                      const url = encodeURIComponent(window.location.href);
-                                      window.open(
-                                        `https://www.linkedin.com/sharing/share-offsite/?url=${url}&summary=${text}`,
-                                        '_blank',
-                                        'width=600,height=400'
-                                      );
-                                    }}
-                                    className="w-full sm:w-auto"
-                                    size="lg"
-                                    disabled={!courseProgress.isCompleted}
-                                  >
-                                    <Linkedin className="h-4 w-4 mr-2" />
-                                    Share on LinkedIn
-                                  </Button>
-                                  
-                                  <Button 
-                                    variant="outline" 
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(window.location.href);
-                                      toast({
-                                        title: "Link copied!",
-                                        description: "Share your achievement with others.",
-                                      });
-                                    }}
-                                    className="w-full sm:w-auto"
-                                    size="lg"
-                                    disabled={!courseProgress.isCompleted}
-                                  >
-                                    <Copy className="h-4 w-4 mr-2" />
-                                    Copy Link
-                                  </Button>
-                                  
-                                  {/* Review CTA */}
-                                  {!courseStats.userReview && courseProgress.isCompleted && (
-                                    <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border text-center">
-                                      <p className="text-sm text-muted-foreground mb-3">
-                                        💬 Your feedback helps improve this course for others
-                                      </p>
-                                      <CourseReviewDialog
-                                        reviews={courseReviews}
-                                        averageRating={courseStats.averageRating}
-                                        reviewCount={courseStats.reviewCount}
-                                        userReview={courseStats.userReview}
-                                        isEnrolled={courseStats.isEnrolled}
-                                        isAuthenticated={!!user}
-                                        onSubmitReview={submitReview}
-                                        onDeleteReview={deleteReview}
-                                      >
-                                        <Button variant="outline" size="sm">
-                                          <Star className="h-4 w-4 mr-2" />
-                                          Leave a Review
-                                        </Button>
-                                      </CourseReviewDialog>
+                                            <div className="flex items-center gap-2 pr-4">
+                                              {/* Estimated Time - always visible */}
+                                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <Clock className="h-3 w-3" />
+                                                ~{formatReadingTime(post.content)}
+                                              </span>
+                                              
+                                              {/* Copy Link - visible on hover */}
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      navigator.clipboard.writeText(`${window.location.origin}/courses/${post.slug}`);
+                                                      setCopiedPostId(post.id);
+                                                      toast({ title: "Link copied!" });
+                                                      setTimeout(() => setCopiedPostId(null), 2000);
+                                                    }}
+                                                    className={`p-1 rounded text-muted-foreground hover:text-foreground transition-opacity ${
+                                                      shareOpenPostId === post.id || copiedPostId === post.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                                    }`}
+                                                  >
+                                                    <Link2 className="h-3.5 w-3.5" />
+                                                  </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="text-xs">
+                                                  {copiedPostId === post.id ? "Copied" : "Copy link"}
+                                                </TooltipContent>
+                                              </Tooltip>
+                                              
+                                              {/* Share - visible on hover */}
+                                              <LessonShareMenu
+                                                postId={post.id}
+                                                postTitle={post.title}
+                                                postSlug={post.slug}
+                                                sectionName={lesson.title}
+                                                side="right"
+                                                vertical
+                                                onOpenChange={(isOpen) =>
+                                                  setShareOpenPostId((prev) =>
+                                                    isOpen ? post.id : prev === post.id ? null : prev
+                                                  )
+                                                }
+                                              />
+                                              
+                                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className="px-4 py-6 text-center bg-muted/20">
+                                      <Lock className="h-5 w-5 mx-auto mb-2 text-muted-foreground/50" />
+                                      <p className="text-sm text-muted-foreground">Content coming soon</p>
                                     </div>
                                   )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          )}
-                        </TabsContent>
+                                </Card>
+                              );
+                            })}
+                        </div>
                       )}
-
-                      {/* Notes now opens in a separate tab */}
-                    </Tabs>
+                    </div>
                   </>
                 )}
               </CardContent>

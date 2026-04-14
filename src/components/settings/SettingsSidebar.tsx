@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import {
   Settings,
-  Palette,
   Mail,
   Bell,
   Search,
@@ -11,21 +10,19 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export type SettingsSection = 
-  | "general" 
-  | "branding" 
-  | "email" 
-  | "notifications" 
-  | "seo" 
-  | "security" 
-  | "integrations" 
+export type SettingsSection =
+  | "general"
+  | "email"
+  | "notifications"
+  | "seo"
+  | "security"
+  | "integrations"
   | "advanced";
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
   isAdmin: boolean;
-  isSeniorModerator?: boolean;
 }
 
 const settingsItems: {
@@ -38,19 +35,18 @@ const settingsItems: {
   tooltip?: string;
 }[] = [
   { id: "general", label: "General", icon: Settings, seniorModeratorAllowed: true },
-  { id: "branding", label: "Branding", icon: Palette, seniorModeratorAllowed: true },
   { id: "email", label: "Email", icon: Mail, adminOnly: true },
   { id: "notifications", label: "Notifications", icon: Bell, seniorModeratorAllowed: true },
   { id: "seo", label: "SEO", icon: Search, seniorModeratorAllowed: true },
   { id: "security", label: "Security", icon: Shield, adminOnly: true },
   { id: "integrations", label: "Integrations", icon: Plug, adminOnly: true },
-  { 
-    id: "advanced", 
-    label: "Advanced", 
-    icon: Cog, 
-    adminOnly: true, 
+  {
+    id: "advanced",
+    label: "Advanced",
+    icon: Cog,
+    adminOnly: true,
     isAdvanced: true,
-    tooltip: "Advanced system-level settings"
+    tooltip: "Advanced system-level settings",
   },
 ];
 
@@ -58,7 +54,6 @@ const SettingsSidebar = ({
   activeSection,
   onSectionChange,
   isAdmin,
-  isSeniorModerator = false,
 }: SettingsSidebarProps) => {
   const filteredItems = settingsItems.filter((item) => {
     if (item.adminOnly && !isAdmin) return false;
@@ -69,7 +64,7 @@ const SettingsSidebar = ({
   const mainItems = filteredItems.filter((item) => !item.isAdvanced);
   const advancedItems = filteredItems.filter((item) => item.isAdvanced);
 
-  const renderItem = (item: typeof settingsItems[0]) => {
+  const renderItem = (item: (typeof settingsItems)[0]) => {
     const isActive = activeSection === item.id;
     const Icon = item.icon;
 
@@ -77,21 +72,19 @@ const SettingsSidebar = ({
       <button
         onClick={() => onSectionChange(item.id)}
         className={cn(
-          "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 relative group",
+          "w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150 relative",
+          !isActive && "admin-nav-hover",
+        )}
+        style={
           isActive
-            ? "text-[#0F2A1D] bg-white shadow-sm"
-            : "text-[#1E1E1E]/70 hover:text-[#0F2A1D] hover:bg-white/50",
-          item.isAdvanced && !isActive && "text-[#1E1E1E]/50"
-        )}
+            ? { backgroundColor: "#0F6E56", color: "#ffffff" }
+            : { color: item.isAdvanced ? "var(--admin-muted)" : "var(--admin-text)" }
+        }
       >
-        {/* Active indicator line */}
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#0F2A1D] rounded-r-full" />
-        )}
-        <Icon className={cn(
-          "h-[18px] w-[18px] shrink-0 transition-colors",
-          isActive ? "text-[#0F2A1D]" : "text-[#1E1E1E]/40 group-hover:text-[#1E1E1E]/70"
-        )} />
+        <Icon
+          className="h-[17px] w-[17px] shrink-0"
+          style={{ color: isActive ? "#ffffff" : "var(--admin-muted)" }}
+        />
         <span>{item.label}</span>
       </button>
     );
@@ -100,7 +93,11 @@ const SettingsSidebar = ({
       return (
         <Tooltip key={item.id}>
           <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent side="right" className="bg-[#0F2A1D] text-white">
+          <TooltipContent
+            side="right"
+            style={{ backgroundColor: "var(--admin-tooltip-bg)" }}
+            className="text-white"
+          >
             {item.tooltip}
           </TooltipContent>
         </Tooltip>
@@ -111,26 +108,41 @@ const SettingsSidebar = ({
   };
 
   return (
-    <aside className="w-56 shrink-0 bg-[#FAFBF9] border-r border-[#E8EBE7] h-full flex flex-col">
+    <aside
+      className="w-56 shrink-0 h-full flex flex-col"
+      style={{
+        backgroundColor: "var(--admin-bg)",
+        borderRight: "1px solid var(--admin-border)",
+      }}
+    >
       {/* Header */}
-      <div className="p-5 border-b border-[#E8EBE7]">
-        <h2 className="text-lg font-semibold text-[#0F2A1D] flex items-center gap-2">
-          <Settings className="h-5 w-5 text-[#1E4D3A]" />
+      <div
+        className="p-5"
+        style={{ borderBottom: "1px solid var(--admin-border)" }}
+      >
+        <h2
+          className="text-sm font-semibold flex items-center gap-2"
+          style={{ color: "var(--admin-text)" }}
+        >
+          <Settings className="h-4 w-4" style={{ color: "var(--admin-muted)" }} />
           Settings
         </h2>
-        <p className="text-xs text-[#1E1E1E]/50 mt-1">
+        <p className="text-xs mt-1" style={{ color: "var(--admin-muted)" }}>
           {isAdmin ? "Full access" : "Limited access"}
         </p>
       </div>
 
       {/* Main navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
         {mainItems.map(renderItem)}
       </nav>
 
-      {/* Advanced section - pinned at bottom */}
+      {/* Advanced section */}
       {advancedItems.length > 0 && (
-        <div className="p-3 border-t border-[#E8EBE7] mt-auto">
+        <div
+          className="p-2"
+          style={{ borderTop: "1px solid var(--admin-border)" }}
+        >
           {advancedItems.map(renderItem)}
         </div>
       )}

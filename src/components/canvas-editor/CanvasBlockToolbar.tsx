@@ -8,7 +8,7 @@
 import { useRef } from 'react';
 import {
   GripVertical, Copy, Trash2, ChevronDown, ChevronRight,
-  FileText, MessageCircle, CheckCircle2, Lightbulb, PenTool,
+  FileText, MessageCircle, CheckCircle2, Lightbulb, PenTool, Image as ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,38 +17,44 @@ import { cn } from '@/lib/utils';
 const KIND_CONFIG = {
   text: {
     Icon: FileText,
-    iconColor: 'text-violet-500',
-    iconBg: 'bg-violet-100 dark:bg-violet-950/50',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10 dark:bg-primary/15',
     label: 'text',
   },
   chat: {
     Icon: MessageCircle,
-    iconColor: 'text-sky-500',
-    iconBg: 'bg-sky-100 dark:bg-sky-950/50',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10 dark:bg-primary/15',
     label: 'chat',
   },
   checkpoint: {
     Icon: CheckCircle2,
-    iconColor: 'text-emerald-500',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-950/50',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10 dark:bg-primary/15',
     label: 'checkpoint',
   },
   takeaway: {
     Icon: Lightbulb,
-    iconColor: 'text-amber-500',
-    iconBg: 'bg-amber-100 dark:bg-amber-950/50',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10 dark:bg-primary/15',
     label: 'takeaway',
   },
   freeform: {
     Icon: PenTool,
-    iconColor: 'text-fuchsia-500',
-    iconBg: 'bg-fuchsia-100 dark:bg-fuchsia-950/50',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10 dark:bg-primary/15',
     label: 'freeform',
+  },
+  media: {
+    Icon: ImageIcon,
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10 dark:bg-primary/15',
+    label: 'media',
   },
 } as const;
 
 interface CanvasBlockToolbarProps {
-  kind: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform';
+  kind: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform' | 'media';
   name: string;
   onNameChange: (name: string) => void;
   isCollapsed: boolean;
@@ -80,10 +86,10 @@ const CanvasBlockToolbar = ({
     <div
       className={cn(
         'flex items-center gap-2 px-3 py-2.5',
-        'border-b border-border/50 bg-card',
-        'rounded-t-lg cursor-pointer select-none',
-        'transition-colors duration-150 hover:bg-muted/25',
-        isCollapsed && 'rounded-lg border-b-0',
+        'border-b border-border/40 bg-muted/[0.03]',
+        'rounded-t-xl cursor-pointer select-none',
+        'transition-colors duration-150 hover:bg-muted/[0.07]',
+        isCollapsed && 'rounded-xl border-b-0',
       )}
       onClick={onToggleCollapse}
     >
@@ -99,13 +105,13 @@ const CanvasBlockToolbar = ({
       </button>
 
       {/* Kind icon — colored badge */}
-      <div className={cn('flex-shrink-0 w-5 h-5 rounded flex items-center justify-center', config.iconBg)}>
+      <div className={cn('flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center', config.iconBg)}>
         <Icon className={cn('h-3 w-3', config.iconColor)} />
       </div>
 
       {/* Name — editable when expanded, plain text when collapsed */}
       {isCollapsed ? (
-        <span className="text-[11.5px] font-mono font-semibold text-foreground/72 flex-shrink-0 tracking-tight">
+        <span className="text-[11.5px] font-mono font-semibold text-foreground/80 flex-shrink-0 tracking-tight">
           {name || `${config.label}_block`}
         </span>
       ) : (
@@ -130,7 +136,7 @@ const CanvasBlockToolbar = ({
       {/* Middle spacer — shows content preview when collapsed */}
       <div className="flex-1 min-w-0 overflow-hidden">
         {isCollapsed && contentPreview && (
-          <span className="text-[11.5px] text-muted-foreground/55 truncate block leading-none">
+          <span className="text-[11.5px] text-muted-foreground/60 truncate block leading-none">
             — {contentPreview}
           </span>
         )}

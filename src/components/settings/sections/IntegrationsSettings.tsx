@@ -1,11 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { Plug, Webhook, Key, ExternalLink, Check, X, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { SettingsCard, SettingsCardHeader, SettingsLabel, SettingsHint, SettingsTitle } from "../SettingsCard";
 
 const IntegrationsSettings = () => {
   const navigate = useNavigate();
@@ -20,149 +18,94 @@ const IntegrationsSettings = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-[#0F2A1D]">Integrations</h2>
-        <p className="text-sm text-[#1E1E1E]/60 mt-1">
-          Connect external services and manage API access
-        </p>
-      </div>
+      <SettingsTitle title="Integrations" description="Connect external services and manage API access" />
 
-      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
-          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
-            <Plug className="h-5 w-5 text-[#1E4D3A]" />
-            Connected Services
-          </CardTitle>
-          <CardDescription className="text-[#1E1E1E]/50">
-            Third-party services connected to your platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0 divide-y divide-[#E8EBE7]">
-          {connectedServices.map((service) => (
-            <div key={service.name} className="flex items-center justify-between p-4 hover:bg-[#FAFBF9] transition-colors">
+      {/* Connected Services */}
+      <SettingsCard>
+        <SettingsCardHeader icon={Plug} title="Connected Services" description="Third-party services connected to your platform" />
+        <div>
+          {connectedServices.map((service, i) => (
+            <div
+              key={service.name}
+              className="flex items-center justify-between p-4 admin-nav-hover transition-colors"
+              style={{ borderBottom: i < connectedServices.length - 1 ? "1px solid var(--admin-card-border)" : undefined }}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#FAFBF9] border border-[#E8EBE7] flex items-center justify-center text-xl">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                  style={{ backgroundColor: "var(--admin-card-header)", border: "1px solid var(--admin-card-border)" }}>
                   {service.icon}
                 </div>
                 <div>
-                  <span className="font-medium text-[#1E1E1E]">{service.name}</span>
+                  <span className="font-medium text-sm" style={{ color: "var(--admin-label)" }}>{service.name}</span>
                   <div className="flex items-center gap-1 mt-0.5">
                     {service.status === "connected" ? (
-                      <>
-                        <Check className="h-3 w-3 text-green-600" />
-                        <span className="text-xs text-green-600">Connected</span>
-                      </>
+                      <><Check className="h-3 w-3 text-green-500" /><span className="text-xs text-green-500">Connected</span></>
                     ) : (
-                      <>
-                        <X className="h-3 w-3 text-[#1E1E1E]/40" />
-                        <span className="text-xs text-[#1E1E1E]/40">Not connected</span>
-                      </>
+                      <><X className="h-3 w-3" style={{ color: "var(--admin-muted)" }} /><span className="text-xs" style={{ color: "var(--admin-muted)" }}>Not connected</span></>
                     )}
                   </div>
                 </div>
               </div>
-              <Button
-                variant={service.status === "connected" ? "outline" : "default"}
-                size="sm"
-                className={service.status === "connected" 
-                  ? "border-[#E8EBE7] text-[#1E1E1E]" 
-                  : "bg-[#0F2A1D] hover:bg-[#1E4D3A] text-white"
-                }
-              >
+              <Button variant={service.status === "connected" ? "outline" : "default"} size="sm"
+                className={service.status === "connected" ? "admin-input border text-sm" : "bg-[#0F6E56] hover:bg-[#0a5a45] text-white text-sm"}>
                 {service.status === "connected" ? "Configure" : "Connect"}
               </Button>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsCard>
 
-      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
-          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
-            <Webhook className="h-5 w-5 text-[#1E4D3A]" />
-            Webhooks
-          </CardTitle>
-          <CardDescription className="text-[#1E1E1E]/50">
-            Send real-time notifications to external services
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="text-center py-8 border border-dashed border-[#E8EBE7] rounded-xl bg-[#FAFBF9]">
-            <Webhook className="h-10 w-10 mx-auto text-[#1E1E1E]/20 mb-3" />
-            <p className="text-sm text-[#1E1E1E]/60 mb-4">No webhooks configured</p>
-            <Button
-              variant="outline"
-              className="border-[#E8EBE7] text-[#0F2A1D]"
-            >
-              Add Webhook
-            </Button>
+      {/* Webhooks */}
+      <SettingsCard>
+        <SettingsCardHeader icon={Webhook} title="Webhooks" description="Send real-time notifications to external services" />
+        <div className="p-6">
+          <div className="text-center py-8 border-2 border-dashed rounded-xl"
+            style={{ borderColor: "var(--admin-card-border)", backgroundColor: "var(--admin-card-header)" }}>
+            <Webhook className="h-10 w-10 mx-auto mb-3" style={{ color: "var(--admin-muted)" }} />
+            <p className="text-sm mb-4" style={{ color: "var(--admin-muted)" }}>No webhooks configured</p>
+            <Button variant="outline" className="admin-input border">Add Webhook</Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsCard>
 
-      <Card className="border-[#E8EBE7] shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-[#FAFBF9] border-b border-[#E8EBE7]">
-          <CardTitle className="flex items-center gap-2 text-[#0F2A1D]">
-            <Key className="h-5 w-5 text-[#1E4D3A]" />
-            API Keys
-          </CardTitle>
-          <CardDescription className="text-[#1E1E1E]/50">
-            Manage API access for external applications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
+      {/* API Keys */}
+      <SettingsCard>
+        <SettingsCardHeader icon={Key} title="API Keys" description="Manage API access for external applications" />
+        <div className="p-6 space-y-4">
           <div className="space-y-2">
-            <Label className="text-[#1E1E1E]">Public API Key</Label>
+            <SettingsLabel>Public API Key</SettingsLabel>
             <div className="flex gap-2">
               <div className="flex-1 relative">
-                <Input
-                  value={showApiKey ? "pk_live_a1b2c3d4e5f6g7h8i9j0" : "pk_live_••••••••••••••••••••"}
-                  readOnly
-                  className="font-mono text-sm bg-[#FAFBF9] border-[#E8EBE7] pr-10"
-                />
-                <button
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1E1E1E]/40 hover:text-[#1E1E1E]/60"
-                >
+                <Input value={showApiKey ? "pk_live_a1b2c3d4e5f6g7h8i9j0" : "pk_live_••••••••••••••••••••"}
+                  readOnly className="font-mono text-sm admin-input pr-10" />
+                <button onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: "var(--admin-muted)" }}>
                   {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <Button variant="outline" size="sm" className="border-[#E8EBE7]">
-                Copy
-              </Button>
+              <Button variant="outline" size="sm" className="admin-input border">Copy</Button>
             </div>
-            <p className="text-xs text-[#1E1E1E]/40">Use this key for client-side API calls</p>
+            <SettingsHint>Use this key for client-side API calls</SettingsHint>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[#1E1E1E]">Secret API Key</Label>
+            <SettingsLabel>Secret API Key</SettingsLabel>
             <div className="flex gap-2">
-              <Input
-                value="sk_live_••••••••••••••••••••"
-                readOnly
-                className="font-mono text-sm bg-[#FAFBF9] border-[#E8EBE7]"
-              />
-              <Button variant="outline" size="sm" className="border-[#E8EBE7]">
-                Reveal
-              </Button>
+              <Input value="sk_live_••••••••••••••••••••" readOnly className="font-mono text-sm admin-input" />
+              <Button variant="outline" size="sm" className="admin-input border">Reveal</Button>
             </div>
-            <p className="text-xs text-[#C9A24D]">
-              ⚠️ Never expose this key in client-side code
-            </p>
+            <p className="text-xs text-amber-500">⚠️ Never expose this key in client-side code</p>
           </div>
 
           <div className="pt-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/admin/api")}
-              className="border-[#E8EBE7] text-[#0F2A1D]"
-            >
+            <Button variant="outline" onClick={() => navigate("/admin/api")} className="admin-input border">
               <ExternalLink className="h-4 w-4 mr-2" />
               Manage All API Keys
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsCard>
     </div>
   );
 };

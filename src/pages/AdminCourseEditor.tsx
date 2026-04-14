@@ -11,8 +11,7 @@ import { useAdminSidebar } from "@/contexts/AdminSidebarContext";
 
 import { AdminEditorSkeleton } from "@/components/admin/AdminEditorSkeleton";
 import { ContentStatusBadge, ContentStatus } from "@/components/ContentStatusBadge";
-import VersionHistoryPanel from "@/components/VersionHistoryPanel";
-import { AnnotationPanel, FloatingAnnotationPopup } from "@/components/annotations";
+import { FloatingAnnotationPopup } from "@/components/annotations";
 import { VersioningNoteDialog, VersioningNoteType } from "@/components/VersioningNoteDialog";
 import { CoursePrerequisiteEditor } from "@/components/course/CoursePrerequisiteEditor";
 import { Button } from "@/components/ui/button";
@@ -24,8 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Upload, X, Image, icons, Save, Send, User, UserCog, Shield, Users, Settings, FileText, MessageCircle, Highlighter, BookOpen, MessageSquare } from "lucide-react";
-import { AssetsSidebar } from "@/components/assets/AssetsSidebar";
+import { Upload, X, Image, icons, Save, Send, User, UserCog, Shield, Users, Settings, FileText, Highlighter, BookOpen, Clock } from "lucide-react";
+
 import LessonManager from "@/components/LessonManager";
 import { CanvasEditor, type CanvasEditorRef } from "@/components/canvas-editor";
 
@@ -64,7 +63,7 @@ const AdminCourseEditor = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [difficultyLevels, setDifficultyLevels] = useState<{ id: string; name: string }[]>([]);
-  const [assignableUsers, setAssignableUsers] = useState<UserWithRole[]>([]);
+
   const [authorInfo, setAuthorInfo] = useState<UserWithRole | null>(null);
   const [assigneeInfo, setAssigneeInfo] = useState<UserWithRole | null>(null);
   const canvasEditorRef = useRef<CanvasEditorRef>(null);
@@ -92,7 +91,10 @@ const AdminCourseEditor = () => {
   const [originalAuthorId, setOriginalAuthorId] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>("");
   const [didSyncLatestVersion, setDidSyncLatestVersion] = useState(false);
-  const [openSidebar, setOpenSidebar] = useState<'settings' | 'assets' | 'review' | null>('settings');
+  const [openSidebar] = useState<'settings'>('settings');
+  const [calculatedLearningHours, setCalculatedLearningHours] = useState<number | null>(null);
+  const [learningHoursOverride, setLearningHoursOverride] = useState<number | null>(null);
+  const [assignedModerators, setAssignedModerators] = useState<{ id: string; full_name: string | null; email: string; role: string }[]>([]);
   const [annotationMode, setAnnotationMode] = useState(false);
   const [showVersioningNoteDialog, setShowVersioningNoteDialog] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -105,6 +107,58 @@ const AdminCourseEditor = () => {
     rect?: { top: number; left: number; width: number; height: number; bottom: number };
   } | null>(null);
   const previousContentRef = useRef<string>("");
+
+  // Auto-calculate learning hours from posts linked to this course
+  useEffect(() => {
+    if (!id) return;
+    const fetchPostLearningHours = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("posts")
+          .select("content")
+          .eq("category_id", id)
+          .not("content", "is", null);
+        if (error) throw error;
+        // Sum word counts across all posts, 200 WPM, convert minutes → hours
+        const totalMinutes = (data || []).reduce((acc, post) => {
+          const text = (post.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+          const wordCount = text ? text.split(" ").length : 0;
+          return acc + Math.max(1, Math.ceil(wordCount / 200));
+        }, 0);
+        const hours = Math.round((totalMinutes / 60) * 10) / 10; // 1 decimal place
+        setCalculatedLearningHours(hours);
+      } catch (err) {
+        // silently ignore
+      }
+    };
+    fetchPostLearningHours();
+  }, [id]);
+
+  const displayLearningHours = learningHoursOverride ?? calculatedLearningHours ?? formData.learning_hours;
+
+  // Fetch team-assigned moderators for this course from course_assignments
+  useEffect(() => {
+    if (!id) return;
+    const fetchAssignedModerators = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('course_assignments')
+          .select('user_id, role, profiles!course_assignments_user_id_fkey(id, full_name, email)')
+          .eq('course_id', id);
+        if (error) throw error;
+        const mods = (data || []).map((row: any) => ({
+          id: row.profiles?.id || row.user_id,
+          full_name: row.profiles?.full_name || null,
+          email: row.profiles?.email || '',
+          role: row.role,
+        }));
+        setAssignedModerators(mods);
+      } catch {
+        // silently ignore
+      }
+    };
+    fetchAssignedModerators();
+  }, [id]);
   
   // Collapse sidebar when editing a course (has id) or when annotation mode is activated
   useEffect(() => {
@@ -141,10 +195,7 @@ const AdminCourseEditor = () => {
       const loadData = async () => {
         const promises: Promise<void>[] = [fetchDifficultyLevels()];
         
-        if (isAdmin) {
-          promises.push(fetchAssignableUsers());
-        }
-        
+
         if (id) {
           promises.push(fetchCategory());
         }
@@ -193,39 +244,6 @@ const AdminCourseEditor = () => {
     }
   };
 
-  const fetchAssignableUsers = async () => {
-    try {
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .in("role", ["admin", "moderator"]);
-
-      if (rolesError) throw rolesError;
-
-      if (rolesData && rolesData.length > 0) {
-        const userIds = rolesData.map(r => r.user_id);
-        
-        const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .in("id", userIds);
-
-        if (profilesError) throw profilesError;
-
-        const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => {
-          const roleInfo = rolesData.find(r => r.user_id === profile.id);
-          return {
-            ...profile,
-            role: roleInfo?.role || "user"
-          };
-        });
-
-        setAssignableUsers(usersWithRoles);
-      }
-    } catch (error: any) {
-      console.error("Error fetching assignable users:", error);
-    }
-  };
 
   const fetchUserInfo = async (userId: string): Promise<UserWithRole | null> => {
     try {
@@ -363,7 +381,7 @@ const AdminCourseEditor = () => {
         level: formData.level,
         featured_image: formData.featured_image || null,
         icon: formData.icon,
-        learning_hours: formData.learning_hours,
+        learning_hours: displayLearningHours,
         status,
         author_id: originalAuthorId || session.user.id,
         original_price: formData.original_price || null,
@@ -586,7 +604,7 @@ const AdminCourseEditor = () => {
 
   return (
     <>
-      <div className="flex gap-4 h-[calc(100vh-4rem)] overflow-y-auto overflow-x-hidden">
+      <div className="flex gap-4">
         {/* Main Content Area */}
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Main Tabs */}
@@ -616,10 +634,7 @@ const AdminCourseEditor = () => {
                   <FileText className="h-4 w-4" />
                   Lessons
                 </TabsTrigger>
-                <TabsTrigger value="description" className="gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  Description
-                </TabsTrigger>
+
               </TabsList>
             </div>
 
@@ -739,376 +754,356 @@ const AdminCourseEditor = () => {
               )}
             </TabsContent>
 
-            {/* Description Tab */}
-            <TabsContent value="description" className="mt-4 flex-1 min-h-0 flex flex-col">
-              <CanvasEditor
-                ref={canvasEditorRef}
-                value={formData.description}
-                onChange={(value) => setFormData({ ...formData, description: value })}
-                className="flex-1 min-h-0"
-                lessonLabel={formData.name}
-              />
-            </TabsContent>
+
           </Tabs>
         </div>
 
         {/* Right Sidebar */}
-        <div className="flex-shrink-0 flex">
+        <div className="flex-shrink-0 flex sticky top-[52px] self-start h-[calc(100vh-116px)]">
           {/* Sidebar Content */}
-          <Card className="flex flex-col min-h-0 w-72">
-            <div className="p-4 border-b flex-shrink-0">
-              {openSidebar === 'review' ? (
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-sm whitespace-nowrap">Review Panel</h3>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 mb-3">
-                  <Settings className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-sm whitespace-nowrap">Course Settings</h3>
-                </div>
-              )}
-              {/* Review Panel Controls */}
-              {openSidebar === 'review' && (
-                <div className="space-y-3">
-                  {(isAdmin || isModerator) && (
-                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <Highlighter className={`h-4 w-4 ${annotationMode ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <span className="text-xs font-medium">Annotate</span>
-                      </div>
-                      <Switch
-                        checked={annotationMode}
-                        onCheckedChange={setAnnotationMode}
-                        className="scale-75"
-                      />
-                    </div>
-                  )}
-                  <div className="[&>*]:w-full">
-                    <VersionHistoryPanel
-                      versions={versions as any}
-                      loading={versionsLoading}
-                      isAdmin={isAdmin}
-                      currentContent={formData.description}
-                      liveContent={originalContent}
-                      onRestore={handleRestoreVersion}
-                      onPublish={handlePublishVersion}
-                      onPreview={() => {
-                        toast({ title: "Preview", description: "Version preview coming soon" });
-                      }}
-                      onUpdateNote={updateVersionNote}
-                    />
-                  </div>
-                  <div className="[&>*]:w-full">
-                    <AnnotationPanel
-                      annotations={annotations as any}
-                      loading={annotationsLoading}
-                      isAdmin={isAdmin}
-                      isModerator={isModerator}
-                      userId={userId}
-                      onAddAnnotation={handleAddAnnotation}
-                      onUpdateStatus={updateAnnotationStatus}
-                      onDelete={deleteAnnotation}
-                      onAddReply={createReply}
-                      onDeleteReply={deleteReply}
-                      selectedText={selectedText}
-                      onClearSelection={() => setSelectedText(null)}
-                    />
-                  </div>
-                </div>
-              )}
-              {/* Action Buttons */}
-              {openSidebar !== 'review' && <div className="space-y-2">
-                {canPublishDirectly ? (
-                  <>
-                    <Button onClick={(e) => handleSubmit(e, false)} className="w-full">
-                      <Save className="mr-2 h-4 w-4" />
-                      {id ? "Update Course" : "Create Course"}
-                    </Button>
-                    {id && (
-                      <Button
-                        onClick={() => setShowVersioningNoteDialog(true)}
-                        disabled={loading}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Save className="mr-2 h-4 w-4" />
-                        Save as Draft
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Button onClick={(e) => handleSubmit(e, false)} variant="outline" className="w-full">
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Draft
-                    </Button>
-                    {showSubmitForApproval && (
-                      <Button onClick={(e) => handleSubmit(e, true)} className="w-full">
-                        <Send className="mr-2 h-4 w-4" />
-                        Submit for Approval
-                      </Button>
-                    )}
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/admin/courses")}
-                  className="w-full"
-                >
-                  Cancel
-                </Button>
-              </div>}
+          <Card className="flex flex-col w-72 min-h-0">
+            {/* Panel header */}
+            <div className="px-4 py-3 border-b flex-shrink-0">
+              <div className="flex items-center">
+                <h3 className="font-semibold text-sm whitespace-nowrap">Course Settings</h3>
+              </div>
             </div>
 
-            <ScrollArea className={`flex-1 min-h-0 ${openSidebar === 'review' ? 'hidden' : ''}`}>
-              <div className="p-4 space-y-4">
-                {/* Ownership & Assignment Card - Admin Only */}
-                {isAdmin && id && (
-                  <div className="space-y-4 pb-4 border-b">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      Ownership & Assignment
-                    </Label>
-                    {/* Created By */}
-                    {authorInfo && (
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          Created by
-                        </Label>
-                        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
-                          <span className="text-sm font-medium">
-                            {authorInfo.full_name || authorInfo.email.split("@")[0]}
-                          </span>
-                          {getRoleBadge(authorInfo.role)}
-                        </div>
-                      </div>
-                    )}
+            {/* Settings Panel content */}
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-4 space-y-3">
 
-                    {/* Assign To */}
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                        <UserCog className="h-3 w-3" />
-                        Assign to
-                      </Label>
-                      <Select
-                        value={formData.assigned_to || "none"}
-                        onValueChange={(value) => setFormData({ ...formData, assigned_to: value === "none" ? "" : value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select user to assign" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Not assigned</SelectItem>
-                          {assignableUsers.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              <div className="flex items-center gap-2">
-                                <span>{user.full_name || user.email.split("@")[0]}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({user.role})
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        Assigned users can edit this course
-                      </p>
-                    </div>
+                {/* Status */}
+                <div className="rounded-xl border border-border/70 overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</span>
                   </div>
-                )}
-
-                {/* Show ownership info for moderators (read-only) */}
-                {!isAdmin && id && (authorInfo || assigneeInfo) && (
-                  <div className="space-y-3 pb-4 border-b">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      Ownership Info
-                    </Label>
-                    {authorInfo && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Created by:</span>
-                        <div className="flex items-center gap-2">
-                          <span>{authorInfo.full_name || authorInfo.email.split("@")[0]}</span>
-                          {getRoleBadge(authorInfo.role)}
-                        </div>
-                      </div>
-                    )}
-                    {assigneeInfo && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Assigned to:</span>
-                        <div className="flex items-center gap-2">
-                          <span>{assigneeInfo.full_name || assigneeInfo.email.split("@")[0]}</span>
-                          {getRoleBadge(assigneeInfo.role)}
-                        </div>
-                      </div>
+                  <div className="px-3 py-2.5 flex items-center justify-between bg-card">
+                    {formData.status && formData.status !== 'draft' ? (
+                      <ContentStatusBadge status={formData.status as ContentStatus} />
+                    ) : (
+                      <span className="text-sm text-muted-foreground italic">Not set</span>
                     )}
                   </div>
-                )}
+                </div>
 
-                {/* Status - Only show to admins */}
-                {canPublishDirectly && (
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
+                {/* Difficulty Level */}
+                <div className="rounded-xl border border-border/70 overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Difficulty Level</span>
+                  </div>
+                  <div className="px-3 py-2.5 bg-card">
                     <Select
-                      value={formData.status}
-                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                      value={formData.level}
+                      onValueChange={(value) => setFormData({ ...formData, level: value })}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select level" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="pending">Pending Approval</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        {difficultyLevels.map((level) => (
+                          <SelectItem key={level.id} value={level.name}>
+                            {level.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="level">Difficulty Level</Label>
-                  <Select
-                    value={formData.level}
-                    onValueChange={(value) => setFormData({ ...formData, level: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {difficultyLevels.map((level) => (
-                        <SelectItem key={level.id} value={level.name}>
-                          {level.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="learning_hours">Learning Hours</Label>
-                  <Input
-                    id="learning_hours"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    placeholder="e.g. 10"
-                    value={formData.learning_hours}
-                    onChange={(e) => setFormData({ ...formData, learning_hours: parseFloat(e.target.value) || 0 })}
-                  />
-                  <p className="text-xs text-muted-foreground">Estimated hours to complete</p>
-                </div>
-
-                {/* Prerequisites Editor */}
-                <CoursePrerequisiteEditor
-                  courseId={id}
-                  prerequisites={coursePrerequisites}
-                  onChange={setCoursePrerequisites}
-                />
-
-                <div className="space-y-2">
-                  <Label>Course Icon</Label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {courseIcons.map((iconName) => {
-                      const IconComponent = icons[iconName as keyof typeof icons];
-                      return (
-                        <Button
-                          key={iconName}
-                          type="button"
-                          variant={formData.icon === iconName ? "default" : "outline"}
-                          size="icon"
-                          className="h-10 w-10"
-                          onClick={() => setFormData({ ...formData, icon: iconName })}
-                        >
-                          {IconComponent && <IconComponent className="h-5 w-5" />}
-                        </Button>
-                      );
-                    })}
+                {/* Learning Hours */}
+                <div className="rounded-xl border border-border/70 overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Learning Hours</span>
+                  </div>
+                  <div className="px-3 py-2.5 bg-card">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground leading-none">
+                            {displayLearningHours} <span className="text-xs font-normal text-muted-foreground">hrs</span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {learningHoursOverride !== null ? 'Manually set' : 'Auto-calculated'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          id="learning_hours"
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={displayLearningHours}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val >= 0) setLearningHoursOverride(val);
+                          }}
+                          className="h-7 text-xs w-14 text-center"
+                          aria-label="Learning hours"
+                        />
+                        {learningHoursOverride !== null && (
+                          <button
+                            type="button"
+                            onClick={() => setLearningHoursOverride(null)}
+                            className="text-[10px] text-primary hover:underline font-medium"
+                          >
+                            Auto
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {isAdmin && (
-                  <div className="flex items-center justify-between space-x-2">
-                    <Label htmlFor="featured" className="cursor-pointer">
-                      Featured Course
-                    </Label>
-                    <Switch
-                      id="featured"
-                      checked={formData.featured}
-                      onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                {/* Ownership & Assignment - Admin Only */}
+                {isAdmin && id && (
+                  <div className="rounded-xl border border-border/70 overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ownership</span>
+                    </div>
+                    <div className="px-3 py-2.5 space-y-3 bg-card">
+                      {/* Created by */}
+                      {authorInfo && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Created by</p>
+                          <div className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                            <span className="text-xs font-medium">
+                              {authorInfo.full_name || authorInfo.email.split("@")[0]}
+                            </span>
+                            {getRoleBadge(authorInfo.role)}
+                          </div>
+                        </div>
+                      )}
+                      {/* Assigned team moderators (read-only from course_assignments) */}
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Team Assignment</p>
+                        {assignedModerators.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {assignedModerators.map((mod) => (
+                              <div key={mod.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                                <span className="text-xs font-medium">
+                                  {mod.full_name || mod.email.split('@')[0]}
+                                </span>
+                                {getRoleBadge(mod.role)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-muted/20 border border-dashed border-border/60">
+                            <span className="text-[11px] text-muted-foreground italic">No team moderators assigned</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground">Manage via Team Ownership page</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ownership info for moderators (read-only) */}
+                {!isAdmin && id && (authorInfo || assigneeInfo) && (
+                  <div className="rounded-xl border border-border/70 overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ownership</span>
+                    </div>
+                    <div className="px-3 py-2.5 space-y-2 bg-card">
+                      {authorInfo && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Created by</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium">{authorInfo.full_name || authorInfo.email.split("@")[0]}</span>
+                            {getRoleBadge(authorInfo.role)}
+                          </div>
+                        </div>
+                      )}
+                      {assigneeInfo && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Assigned to</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium">{assigneeInfo.full_name || assigneeInfo.email.split("@")[0]}</span>
+                            {getRoleBadge(assigneeInfo.role)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Prerequisites */}
+                <div className="rounded-xl border border-border/70 overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prerequisites</span>
+                  </div>
+                  <div className="px-3 py-2.5 bg-card">
+                    <CoursePrerequisiteEditor
+                      courseId={id}
+                      prerequisites={coursePrerequisites}
+                      onChange={setCoursePrerequisites}
                     />
+                  </div>
+                </div>
+
+                {/* Course Icon */}
+                <div className="rounded-xl border border-border/70 overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Course Icon</span>
+                  </div>
+                  <div className="px-3 py-2.5 bg-card">
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {courseIcons.map((iconName) => {
+                        const IconComponent = icons[iconName as keyof typeof icons];
+                        return (
+                          <Button
+                            key={iconName}
+                            type="button"
+                            variant={formData.icon === iconName ? "default" : "outline"}
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => setFormData({ ...formData, icon: iconName })}
+                          >
+                            {IconComponent && <IconComponent className="h-4 w-4" />}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Featured Toggle - Admin Only */}
+                {isAdmin && (
+                  <div className="rounded-xl border border-border/70 overflow-hidden">
+                    <div className="px-3 py-2.5 bg-card flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium">Featured Course</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Pinned on the homepage</p>
+                      </div>
+                      <Switch
+                        id="featured"
+                        checked={formData.featured}
+                        onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                        className="scale-90"
+                      />
+                    </div>
                   </div>
                 )}
 
                 {/* Featured Image */}
-                <div className="space-y-2 pt-4 border-t">
-                  <Label>Featured Image</Label>
-                  {formData.featured_image ? (
-                    <div className="relative">
-                      <img
-                        src={formData.featured_image}
-                        alt="Featured"
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
+                <div className="rounded-xl border border-border/70 overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/40 border-b border-border/50">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Featured Image</span>
+                  </div>
+                  <div className="px-3 py-2.5 space-y-2 bg-card">
+                    {formData.featured_image ? (
+                      <div className="relative">
+                        <img
+                          src={formData.featured_image}
+                          alt="Featured"
+                          className="w-full h-28 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1.5 right-1.5 h-6 w-6"
+                          onClick={removeImage}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div
+                        className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Image className="h-7 w-7 mx-auto text-muted-foreground/50" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Click to upload</p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    {formData.featured_image && (
                       <Button
                         type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-6 w-6"
-                        onClick={removeImage}
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-8 text-xs"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
                       >
-                        <X className="h-3 w-3" />
+                        <Upload className="mr-1.5 h-3 w-3" />
+                        {uploading ? "Uploading..." : "Change Image"}
                       </Button>
-                    </div>
-                  ) : (
-                    <div
-                      className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Image className="h-8 w-8 mx-auto text-muted-foreground/50" />
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Click to upload
-                      </p>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  {formData.featured_image && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      <Upload className="mr-2 h-3 w-3" />
-                      {uploading ? "Uploading..." : "Change Image"}
-                    </Button>
-                  )}
+                    )}
+                  </div>
                 </div>
+
               </div>
             </ScrollArea>
+
+            {/* ── Action CTAs (pinned footer) ── */}
+            <div className="px-4 py-3 border-t border-border/60 bg-muted/20 flex-shrink-0 space-y-2">
+              {canPublishDirectly && (
+                <Button
+                  onClick={(e) => handleSubmit(e, false)}
+                  disabled={loading}
+                  className="w-full h-9 text-sm gap-2 font-semibold"
+                >
+                  <Save className="h-4 w-4" />
+                  {id ? 'Update Course' : 'Create Course'}
+                </Button>
+              )}
+              {showSubmitForApproval && (
+                <Button
+                  onClick={(e) => handleSubmit(e, true)}
+                  disabled={loading}
+                  className="w-full h-9 text-sm gap-2 font-semibold"
+                >
+                  <Send className="h-4 w-4" />
+                  Submit for Approval
+                </Button>
+              )}
+              <div className="flex gap-2">
+                {id && canPublishDirectly && (
+                  <Button
+                    onClick={() => setShowVersioningNoteDialog(true)}
+                    disabled={loading}
+                    variant="outline"
+                    className="flex-1 h-9 text-sm gap-1.5"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    Save Draft
+                  </Button>
+                )}
+                {!canPublishDirectly && (
+                  <Button
+                    onClick={(e) => handleSubmit(e, false)}
+                    disabled={loading}
+                    variant="outline"
+                    className="flex-1 h-9 text-sm gap-1.5"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    Save Draft
+                  </Button>
+                )}
+                <Button
+                  onClick={() => navigate(`${basePath}/courses`)}
+                  variant="ghost"
+                  className="h-9 text-sm px-3 text-muted-foreground"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
           </Card>
 
-          {/* Assets Sidebar */}
-          <AssetsSidebar
-            isOpen={openSidebar === 'assets'}
-            editorType="canvas"
-            onInsert={(asset) => {
-              navigator.clipboard.writeText(asset.url);
-              toast({ title: "URL copied", description: "Paste it into the editor." });
-            }}
-          />
         </div>
       </div>
 

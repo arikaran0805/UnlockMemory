@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  ArrowLeft, Save, X, BookOpen, Sparkles, MousePointerClick,
+  Save, X, BookOpen, Sparkles, MousePointerClick,
   GripVertical, Trash2, Settings, Palette, ChevronRight, ChevronLeft, Search,
   Target, TrendingUp, Zap, Move, Send
 } from "lucide-react";
@@ -837,11 +837,7 @@ const AdminCareerEditor = () => {
         {/* Header with Tabs inline */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/careers")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex flex-col">
+<div className="flex flex-col">
               <h1 className="text-3xl font-bold text-foreground">{careerName || "New Career"}</h1>
               <p className="text-muted-foreground leading-tight">
                 Configure career tracks, skills, and course mappings

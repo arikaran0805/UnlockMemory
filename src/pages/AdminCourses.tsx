@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Plus, Edit, Trash2, Star, Eye, BookOpen } from "lucide-react";
 import UMLoader from "@/components/UMLoader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Category {
   id: string;
@@ -69,15 +79,25 @@ const CourseCard = ({
   onToggleFeatured,
 }: CourseCardProps) => {
   const cfg = getLevelConfig(category.level);
+  const initial = category.name.trim()[0]?.toUpperCase() ?? '?';
 
   return (
-    <div className="group rounded-xl border border-border overflow-hidden bg-card shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.10)] transition-all duration-200 flex flex-col">
+    <div className="group rounded-xl border border-border/70 overflow-hidden bg-card hover:border-border transition-all duration-200 flex flex-col hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
 
-      {/* Colored level band */}
-      <div className={cn('relative h-14 bg-gradient-to-r flex-shrink-0', cfg.band)}>
-        {/* Subtle texture overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.15),transparent_60%)]" />
-
+      {/* Gradient band — carries level identity + initial letter */}
+      <div className={cn('relative h-[72px] bg-gradient-to-br flex-shrink-0 overflow-hidden', cfg.band)}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.18),transparent_65%)]" />
+        {/* Large initial — decorative, bottom-right */}
+        <span className="absolute -bottom-2 -right-1 text-[64px] font-black text-white/[0.12] leading-none select-none pointer-events-none">
+          {initial}
+        </span>
+        {/* Level badge — top-left */}
+        <div className="absolute top-3 left-3">
+          <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-sm text-white border border-white/20 tracking-wide">
+            {category.level ?? 'General'}
+          </span>
+        </div>
+        {/* Featured star — top-right */}
         {category.featured && (
           <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5 border border-white/25">
             <Star className="h-2.5 w-2.5 fill-white text-white" />
@@ -86,44 +106,51 @@ const CourseCard = ({
         )}
       </div>
 
-      {/* Body */}
-      <div className="px-4 pt-3 pb-2 flex-1">
-        <h3 className="text-[15px] font-semibold text-foreground leading-snug line-clamp-2">
-          {category.name}
-        </h3>
+      {/* Body — 2 columns separated by a vertical divider */}
+      <div className="flex-1 flex divide-x divide-border/50">
 
-        {/* Level badge + post count */}
-        <div className="flex items-center gap-2 mt-2">
-          <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full', cfg.badge)}>
-            {category.level ?? 'General'}
+        {/* LEFT: name + slug */}
+        <div className="flex-1 min-w-0 px-4 py-3.5 flex flex-col gap-1.5">
+          <h3 className="text-[14.5px] font-semibold text-foreground leading-snug line-clamp-2">
+            {category.name}
+          </h3>
+          <p className="text-[10.5px] font-mono text-muted-foreground/50 truncate">
+            /{category.slug}
+          </p>
+          {category.description && (
+            <p className="text-[11.5px] text-muted-foreground/60 line-clamp-2 leading-relaxed mt-0.5">
+              {category.description}
+            </p>
+          )}
+        </div>
+
+        {/* RIGHT: stats */}
+        <div className="w-[88px] flex-shrink-0 flex flex-col items-center justify-center gap-1 py-3.5 bg-muted/[0.03]">
+          <span className="text-[22px] font-bold text-foreground/80 tabular-nums leading-none">
+            {postCount}
           </span>
-          <span className="text-muted-foreground/40 text-[11px]">•</span>
-          <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
-            <BookOpen className="h-3 w-3 flex-shrink-0" />
-            <span>{postCount} {postCount === 1 ? 'post' : 'posts'}</span>
+          <div className="flex items-center gap-1 text-muted-foreground/50">
+            <BookOpen className="h-3 w-3" />
+            <span className="text-[10.5px]">{postCount === 1 ? 'post' : 'posts'}</span>
           </div>
         </div>
 
-        {/* Slug */}
-        <p className="text-[11px] font-mono text-muted-foreground/55 mt-1.5 truncate">
-          /{category.slug}
-        </p>
       </div>
 
       {/* Action footer */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-border/50 bg-muted/20 flex-shrink-0">
+      <div className="flex items-center justify-between px-3.5 py-2 border-t border-border/40 bg-muted/[0.04] flex-shrink-0">
         <button
           onClick={onToggleFeatured}
           className={cn(
-            'flex items-center gap-1 text-[12px] font-medium transition-colors duration-150 rounded px-1 py-0.5',
+            'flex items-center gap-1 text-[11.5px] font-medium transition-colors duration-150 rounded-md px-1.5 py-1',
             category.featured
-              ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300'
-              : 'text-muted-foreground hover:text-foreground',
+              ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400'
+              : 'text-muted-foreground/60 hover:text-foreground',
           )}
           title={category.featured ? 'Unmark as featured' : 'Mark as featured'}
         >
           <Star className={cn('h-3.5 w-3.5', category.featured && 'fill-current')} />
-          <span>{category.featured ? 'Featured' : 'Mark featured'}</span>
+          <span className="hidden sm:inline">{category.featured ? 'Featured' : 'Feature'}</span>
         </button>
 
         <div className="flex items-center gap-0.5">
@@ -166,6 +193,8 @@ const AdminCourses = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStats>({});
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<Category | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -239,12 +268,19 @@ const AdminCourses = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this course?")) return;
+  const handleDeleteClick = (category: Category) => {
+    setCourseToDelete(category);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!courseToDelete) return;
     try {
-      const { error } = await supabase.from("courses").delete().eq("id", id);
+      const { error } = await supabase.from("courses").delete().eq("id", courseToDelete.id);
       if (error) throw error;
       toast({ title: "Course deleted successfully" });
+      setDeleteDialogOpen(false);
+      setCourseToDelete(null);
       fetchCategories();
     } catch (error: any) {
       toast({ title: "Error deleting course", description: error.message, variant: "destructive" });
@@ -311,12 +347,37 @@ const AdminCourses = () => {
               postCount={categoryStats[category.id]?.postCount ?? 0}
               onView={() => window.open(`/course/${category.slug}`, "_blank")}
               onEdit={() => navigate(`/admin/courses/${category.id}`)}
-              onDelete={() => handleDelete(category.id)}
+              onDelete={() => handleDeleteClick(category)}
               onToggleFeatured={() => toggleFeatured(category.id, category.featured)}
             />
           ))}
         </div>
       )}
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this course?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <span className="font-semibold text-foreground">"{courseToDelete?.name}"</span> and all its associated data. This action cannot be undone.
+              {courseToDelete && (categoryStats[courseToDelete.id]?.postCount ?? 0) > 0 && (
+                <span className="block mt-2 font-semibold text-destructive">
+                  This course has {categoryStats[courseToDelete.id].postCount} linked post{categoryStats[courseToDelete.id].postCount !== 1 ? 's' : ''}.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete Course
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

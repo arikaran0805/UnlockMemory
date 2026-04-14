@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -127,18 +127,13 @@ export default function AdminPracticeSkillEditor() {
 
   return (
     <div className="flex flex-col gap-0">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/practice/skills")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            {isEditing ? "Edit Practice Skill" : "Create Practice Skill"}
-          </h1>
-          <p className="text-muted-foreground">
-            {isEditing ? "Update skill details" : "Add a new skill category"}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {isEditing ? "Edit Practice Skill" : "Create Practice Skill"}
+        </h1>
+        <p className="text-muted-foreground">
+          {isEditing ? "Update skill details" : "Add a new skill category"}
+        </p>
       </div>
 
       <div className="admin-section-spacing-top" />

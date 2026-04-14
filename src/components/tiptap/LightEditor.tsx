@@ -13,7 +13,7 @@ import { useEditor, EditorContent, type JSONContent, type Editor } from '@tiptap
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bold, Italic, Code, Link as LinkIcon, List, ListOrdered, Heading2, Quote, Image as ImageIcon } from 'lucide-react';
+import { Bold, Italic, Code, Link as LinkIcon, List, ListOrdered, Heading2, Quote } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getLightEditorExtensions, CHARACTER_LIMITS } from './editorConfig';
@@ -265,7 +265,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={cn('h-7 w-7 p-0', editor.isActive('bold') && 'bg-primary/10 text-primary')}
+                className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('bold') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                 onClick={() => editor.chain().focus().toggleBold().run()}
                 disabled={disabled}
               >
@@ -281,7 +281,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={cn('h-7 w-7 p-0', editor.isActive('italic') && 'bg-primary/10 text-primary')}
+                className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('italic') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                 onClick={() => editor.chain().focus().toggleItalic().run()}
                 disabled={disabled}
               >
@@ -297,7 +297,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={cn('h-7 w-7 p-0', editor.isActive('code') && 'bg-primary/10 text-primary')}
+                className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('code') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                 onClick={() => editor.chain().focus().toggleCode().run()}
                 disabled={disabled}
               >
@@ -313,7 +313,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={cn('h-7 w-7 p-0', editor.isActive('link') && 'bg-primary/10 text-primary')}
+                className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('link') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                 onClick={() => {
                   setLinkUrl(editor.getAttributes('link').href || '');
                   setShowLinkInput(true);
@@ -350,7 +350,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className={cn('h-7 w-7 p-0', editor.isActive('bulletList') && 'bg-primary/10 text-primary')}
+                    className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('bulletList') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
                     disabled={disabled}
                   >
@@ -366,7 +366,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className={cn('h-7 w-7 p-0', editor.isActive('orderedList') && 'bg-primary/10 text-primary')}
+                    className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('orderedList') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
                     disabled={disabled}
                   >
@@ -382,7 +382,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className={cn('h-7 w-7 p-0', editor.isActive('heading', { level: 2 }) && 'bg-primary/10 text-primary')}
+                    className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('heading', { level: 2 }) ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                     disabled={disabled}
                   >
@@ -398,7 +398,7 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className={cn('h-7 w-7 p-0', editor.isActive('blockquote') && 'bg-primary/10 text-primary')}
+                    className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('blockquote') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                     onClick={() => editor.chain().focus().toggleBlockquote().run()}
                     disabled={disabled}
                   >
@@ -408,24 +408,6 @@ export const LightEditor = forwardRef<LightEditorRef, LightEditorProps>(({
                 <TooltipContent>Blockquote</TooltipContent>
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => {
-                      const url = window.prompt('Image URL');
-                      if (url) editor.chain().focus().setImage({ src: url }).run();
-                    }}
-                    disabled={disabled}
-                  >
-                    <ImageIcon className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Image</TooltipContent>
-              </Tooltip>
             </>
           )}
         </TooltipProvider>

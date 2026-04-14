@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, ArrowLeft, BookOpen, AlertCircle, Eye, Code2, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, BookOpen, AlertCircle, Eye, Code2, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import UMLoader from "@/components/UMLoader";
@@ -348,18 +348,13 @@ export default function AdminPracticeProblems() {
   return (
     <div className="flex flex-col gap-0">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/practice/skills")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {skill?.name || "Loading..."} Problems
-            </h1>
-            <p className="text-muted-foreground">
-              Manage problems organized by lessons and sub-topics
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {skill?.name || "Loading..."} Problems
+          </h1>
+          <p className="text-muted-foreground">
+            Manage problems organized by lessons and sub-topics
+          </p>
         </div>
         <Button onClick={() => setShowTypeSelect(true)} className="gap-2">
           <Plus className="h-4 w-4" />

@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  ArrowLeft, Save, Loader2, Plus, X, Check, AlertCircle,
+  Save, Loader2, Plus, X, Check, AlertCircle, Lock,
   Settings, FileText, Lightbulb, Trash2, Bug, ShieldCheck,
   MessageSquare, Eye, EyeOff,
 } from "lucide-react";
@@ -271,18 +271,13 @@ export default function AdminFixErrorEditor() {
     <div className="flex flex-col gap-0">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {isEditing ? "Edit" : "Create"} Fix the Error
-            </h1>
-            <p className="text-muted-foreground">
-              {skill?.name} &gt; {isEditing ? "Edit" : "New Problem"}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {isEditing ? "Edit" : "Create"} Fix the Error
+          </h1>
+          <p className="text-muted-foreground">
+            {skill?.name} &gt; {isEditing ? "Edit" : "New Problem"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {isEditing && isAdmin && (
@@ -378,56 +373,38 @@ export default function AdminFixErrorEditor() {
                     )} />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="language" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Language</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            {LANGUAGES.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="status" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="published" disabled={!canPublish}>
-                              Published {!canPublish && "(incomplete)"}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
+                  <FormField control={form.control} name="language" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Language</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {LANGUAGES.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="display_order" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Display Order</FormLabel>
-                        <FormControl><Input {...field} type="number" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="is_premium" render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                          <FormLabel>Premium</FormLabel>
-                          <FormDescription>Premium access only</FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )} />
-                  </div>
+                  <FormField control={form.control} name="display_order" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Display Order</FormLabel>
+                      <FormControl><Input {...field} type="number" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="is_premium" render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <div>
+                        <FormLabel>Premium Problem</FormLabel>
+                        <FormDescription>Only accessible to premium users</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )} />
                 </CardContent>
               </Card>
 
@@ -829,27 +806,41 @@ export default function AdminFixErrorEditor() {
           </Tabs>
 
           {/* Sticky Footer */}
-          <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur border-t -mx-6 px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {!canPublish && (
-                <>
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <span>Complete title, description, buggy code & correct code to publish</span>
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {(createMutation.isPending || updateMutation.isPending) ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {isEditing ? "Save Changes" : "Create Problem"}
-              </Button>
+          <div className="sticky bottom-0 bg-background border-t pt-4 pb-4 z-10">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                {[
+                  { label: "Title", done: !!form.watch("title")?.trim() },
+                  { label: "Description", done: !!description?.trim() },
+                  { label: "Buggy code", done: !!buggyCode?.trim() },
+                  { label: "Correct code", done: !!correctCode?.trim() },
+                ].map(({ label, done }) => (
+                  <span key={label} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${done ? "bg-primary/8 border-primary/20 text-primary" : "bg-muted border-border text-muted-foreground"}`}>
+                    {done ? <Check className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button type="button" variant="outline" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
+                  Cancel
+                </Button>
+                <FormField control={form.control} name="status" render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published" disabled={!canPublish}>
+                        {!canPublish ? <span className="flex items-center gap-1.5 text-muted-foreground"><Lock className="h-3 w-3" /> Published</span> : "Published"}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )} />
+                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="gap-2">
+                  {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {isEditing ? "Save Changes" : "Create Problem"}
+                </Button>
+              </div>
             </div>
           </div>
         </form>

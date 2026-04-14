@@ -43,6 +43,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { format, formatDistanceToNow } from "date-fns";
 import UMLoader from "@/components/UMLoader";
@@ -187,6 +197,9 @@ const AdminPosts = () => {
   const [deleteRequestPost, setDeleteRequestPost] = useState<Post | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
@@ -393,14 +406,18 @@ const AdminPosts = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
+  const handleDeleteClick = (post: Post) => {
+    setPostToDelete(post);
+    setDeleteDialogOpen(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!postToDelete) return;
     try {
       const { error } = await supabase
         .from("posts")
         .delete()
-        .eq("id", id);
+        .eq("id", postToDelete.id);
 
       if (error) throw error;
 
@@ -409,6 +426,8 @@ const AdminPosts = () => {
         description: "Post deleted successfully",
       });
 
+      setDeleteDialogOpen(false);
+      setPostToDelete(null);
       if (currentUserId) {
         fetchPosts(currentUserId, moderatorOnly);
       }
@@ -550,28 +569,7 @@ const AdminPosts = () => {
     if (ids.length === 0) return;
 
     if (!moderatorOnly) {
-      if (!confirm(`Are you sure you want to delete ${ids.length} post${ids.length > 1 ? "s" : ""}?`)) return;
-
-      try {
-        const { error } = await supabase.from("posts").delete().in("id", ids);
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: `${ids.length} post${ids.length > 1 ? "s" : ""} deleted successfully`,
-        });
-
-        setSelectedIds(new Set());
-        if (currentUserId) {
-          fetchPosts(currentUserId, moderatorOnly);
-        }
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      setBulkDeleteDialogOpen(true);
       return;
     }
 
@@ -1063,7 +1061,7 @@ const AdminPosts = () => {
                           icon: Trash2,
                           className: "text-destructive hover:bg-destructive/10 hover:text-destructive",
                           iconClassName: "text-destructive",
-                          onClick: () => handleDelete(post.id),
+                          onClick: () => handleDeleteClick(post),
                         }
                       : {
                           key: "request-delete",
@@ -1244,7 +1242,67 @@ const AdminPosts = () => {
         </CardContent>
       </Card>
 
-      {/* Delete Request Dialog */}
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-semibold text-foreground">"{postToDelete?.title}"</span>.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete Post
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} {selectedIds.size === 1 ? "post" : "posts"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-semibold text-foreground">{selectedIds.size} selected post{selectedIds.size !== 1 ? "s" : ""}</span>.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const ids = Array.from(selectedIds);
+                try {
+                  const { error } = await supabase.from("posts").delete().in("id", ids);
+                  if (error) throw error;
+                  toast({
+                    title: "Success",
+                    description: `${ids.length} post${ids.length > 1 ? "s" : ""} deleted successfully`,
+                  });
+                  setBulkDeleteDialogOpen(false);
+                  setSelectedIds(new Set());
+                  if (currentUserId) fetchPosts(currentUserId, moderatorOnly);
+                } catch (error: any) {
+                  toast({ title: "Error", description: error.message, variant: "destructive" });
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete Posts
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Delete Request Dialog (moderator flow) */}
       <Dialog open={!!deleteRequestPost} onOpenChange={() => setDeleteRequestPost(null)}>
         <DialogContent>
           <DialogHeader>

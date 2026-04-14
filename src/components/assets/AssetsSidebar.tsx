@@ -13,7 +13,7 @@ export interface AssetItem {
   type: 'image' | 'icon' | 'svg' | 'block';
   url: string;
   name: string;
-  blockKind?: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform';
+  blockKind?: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform' | 'media';
   author?: string;
   authorUrl?: string;
   source?: string;
@@ -22,7 +22,7 @@ export interface AssetItem {
 interface CanvasBlockEntry {
   id: string;
   name: string;
-  kind: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform';
+  kind: 'text' | 'chat' | 'checkpoint' | 'takeaway' | 'freeform' | 'media';
 }
 
 interface MediaLibraryState {
@@ -53,7 +53,7 @@ export function AssetsSidebar({
   mediaLibrary,
 }: AssetsSidebarProps) {
   const isCanvas = editorType === 'canvas';
-  const [activeTab, setActiveTab] = useState<'blocks' | 'media'>(
+  const [activeTab, setActiveTab] = useState<'blocks' | 'canvas' | 'media'>(
     isCanvas ? 'blocks' : 'media'
   );
 
@@ -130,8 +130,8 @@ export function AssetsSidebar({
             </div>
           </div>
 
-          {/* Expand CTA for blocks tab */}
-          {isCanvas && activeTab === 'blocks' ? (
+          {/* Expand CTA for blocks/canvas tabs */}
+          {isCanvas && (activeTab === 'blocks' || activeTab === 'canvas') ? (
             <div className="p-3 flex-shrink-0">
               <button
                 onClick={onExpandToggle}
@@ -170,9 +170,9 @@ export function AssetsSidebar({
                     <FileText className="h-3.5 w-3.5" />
                     Blocks
                   </TabsTrigger>
-                  <TabsTrigger value="media" className="text-xs gap-1.5">
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    Media
+                  <TabsTrigger value="canvas" className="text-xs gap-1.5">
+                    <Layers className="h-3.5 w-3.5" />
+                    Canvas
                   </TabsTrigger>
                 </TabsList>
               ) : (
@@ -336,7 +336,7 @@ export function AssetsSidebar({
 
                   {/* Chat Block */}
                   <div
-                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/40 cursor-grab hover:border-primary/30 hover:bg-muted/70 transition-colors select-none"
                     draggable
                     onDragStart={e => {
                       e.dataTransfer.setData('block-kind', 'chat');
@@ -346,19 +346,19 @@ export function AssetsSidebar({
                       onInsert?.({ type: 'block', url: '', name: 'Chat Block', blockKind: 'chat' })
                     }
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                      <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                      <MessageCircle className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium">Chat Block</p>
                       <p className="text-[11px] text-muted-foreground">Conversation-style content</p>
                     </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                    <GripVertical className="h-4 w-4 text-primary/30 group-hover:text-primary/60 transition-colors flex-shrink-0" />
                   </div>
 
                   {/* Text Block */}
                   <div
-                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/40 cursor-grab hover:border-primary/30 hover:bg-muted/70 transition-colors select-none"
                     draggable
                     onDragStart={e => {
                       e.dataTransfer.setData('block-kind', 'text');
@@ -368,19 +368,19 @@ export function AssetsSidebar({
                       onInsert?.({ type: 'block', url: '', name: 'Text Block', blockKind: 'text' })
                     }
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium">Text Block</p>
                       <p className="text-[11px] text-muted-foreground">Rich-text content</p>
                     </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                    <GripVertical className="h-4 w-4 text-primary/30 group-hover:text-primary/60 transition-colors flex-shrink-0" />
                   </div>
 
                   {/* Checkpoint Block */}
                   <div
-                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/40 cursor-grab hover:border-primary/30 hover:bg-muted/70 transition-colors select-none"
                     draggable
                     onDragStart={e => {
                       e.dataTransfer.setData('block-kind', 'checkpoint');
@@ -390,19 +390,19 @@ export function AssetsSidebar({
                       onInsert?.({ type: 'block', url: '', name: 'Checkpoint Block', blockKind: 'checkpoint' })
                     }
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium">Checkpoint Block</p>
                       <p className="text-[11px] text-muted-foreground">Knowledge-check content</p>
                     </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                    <GripVertical className="h-4 w-4 text-primary/30 group-hover:text-primary/60 transition-colors flex-shrink-0" />
                   </div>
 
                   {/* Takeaway Block */}
                   <div
-                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/40 cursor-grab hover:border-primary/30 hover:bg-muted/70 transition-colors select-none"
                     draggable
                     onDragStart={e => {
                       e.dataTransfer.setData('block-kind', 'takeaway');
@@ -412,19 +412,19 @@ export function AssetsSidebar({
                       onInsert?.({ type: 'block', url: '', name: 'Takeaway Block', blockKind: 'takeaway' })
                     }
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                      <Lightbulb className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                      <Lightbulb className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium">Takeaway Block</p>
                       <p className="text-[11px] text-muted-foreground">Highlight a key learner insight</p>
                     </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                    <GripVertical className="h-4 w-4 text-primary/30 group-hover:text-primary/60 transition-colors flex-shrink-0" />
                   </div>
 
                   {/* Freeform Canvas */}
                   <div
-                    className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-background cursor-grab hover:border-primary hover:bg-primary/5 transition-colors select-none"
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/40 cursor-grab hover:border-primary/30 hover:bg-muted/70 transition-colors select-none"
                     draggable
                     onDragStart={e => {
                       e.dataTransfer.setData('block-kind', 'freeform');
@@ -434,14 +434,36 @@ export function AssetsSidebar({
                       onInsert?.({ type: 'block', url: '', name: 'Freeform Canvas', blockKind: 'freeform' })
                     }
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                      <PenTool className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                      <PenTool className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium">Freeform Canvas</p>
                       <p className="text-[11px] text-muted-foreground">Sketchable visual canvas</p>
                     </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+                    <GripVertical className="h-4 w-4 text-primary/30 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                  </div>
+
+                  {/* Media Block */}
+                  <div
+                    className="group flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/40 cursor-grab hover:border-primary/30 hover:bg-muted/70 transition-colors select-none"
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('block-kind', 'media');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() =>
+                      onInsert?.({ type: 'block', url: '', name: 'Media Block', blockKind: 'media' })
+                    }
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">Media Block</p>
+                      <p className="text-[11px] text-muted-foreground">Images via upload or URL</p>
+                    </div>
+                    <GripVertical className="h-4 w-4 text-primary/30 group-hover:text-primary/60 transition-colors flex-shrink-0" />
                   </div>
 
                   <div className="pt-3 border-t">
@@ -451,11 +473,25 @@ export function AssetsSidebar({
                   </div>
                 </div>
 
-                {/* Scrollable: On canvas block list */}
-                {canvasBlocks.length > 0 && (
-                  <div className="flex-1 min-h-0 flex flex-col border-t mx-3">
-                    <p className="text-[11px] font-medium text-muted-foreground py-2 flex-shrink-0">On canvas</p>
-                    <div className="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-1 pb-3 co-scrollbar-green">
+              </div>
+            )}
+
+            {/* ── Canvas Tab — On canvas block list ── */}
+            {activeTab === 'canvas' && (
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-3">
+                  {canvasBlocks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3">
+                        <Layers className="h-5 w-5 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-[11px] font-medium text-foreground/60">No blocks yet</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Add blocks from the Blocks tab
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
                       {canvasBlocks.map((b) => (
                         <div
                           key={b.id}
@@ -463,15 +499,17 @@ export function AssetsSidebar({
                         >
                           <div className="flex-shrink-0 w-6 h-6 rounded bg-muted flex items-center justify-center">
                             {b.kind === 'chat' ? (
-                              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                              <MessageCircle className="h-3.5 w-3.5 text-primary" />
                             ) : b.kind === 'checkpoint' ? (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                              <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                             ) : b.kind === 'takeaway' ? (
-                              <Lightbulb className="h-3.5 w-3.5 text-muted-foreground" />
+                              <Lightbulb className="h-3.5 w-3.5 text-primary" />
                             ) : b.kind === 'freeform' ? (
-                              <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
+                              <PenTool className="h-3.5 w-3.5 text-primary" />
+                            ) : b.kind === 'media' ? (
+                              <ImageIcon className="h-3.5 w-3.5 text-primary" />
                             ) : (
-                              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                              <FileText className="h-3.5 w-3.5 text-primary" />
                             )}
                           </div>
                           {renamingBlockId === b.id ? (
@@ -504,15 +542,12 @@ export function AssetsSidebar({
                                 setRenamingBlockId(b.id);
                                 setRenameValue(
                                   b.name || (
-                                  b.kind === 'chat'
-                                    ? 'Chat Block'
-                                    : b.kind === 'checkpoint'
-                                      ? 'Checkpoint Block'
-                                      : b.kind === 'takeaway'
-                                        ? 'Takeaway Block'
-                                        : b.kind === 'freeform'
-                                          ? 'Freeform Canvas'
-                                      : 'Text Block'
+                                    b.kind === 'chat' ? 'Chat Block'
+                                    : b.kind === 'checkpoint' ? 'Checkpoint Block'
+                                    : b.kind === 'takeaway' ? 'Takeaway Block'
+                                    : b.kind === 'freeform' ? 'Freeform Canvas'
+                                    : b.kind === 'media' ? 'Media Block'
+                                    : 'Text Block'
                                   )
                                 );
                                 setTimeout(() => renameInputRef.current?.select(), 0);
@@ -522,15 +557,12 @@ export function AssetsSidebar({
                             >
                               <span className="text-xs truncate text-foreground block">
                                 {b.name || (
-                                  b.kind === 'chat'
-                                    ? 'Chat Block'
-                                    : b.kind === 'checkpoint'
-                                      ? 'Checkpoint Block'
-                                      : b.kind === 'takeaway'
-                                        ? 'Takeaway Block'
-                                        : b.kind === 'freeform'
-                                          ? 'Freeform Canvas'
-                                      : 'Text Block'
+                                  b.kind === 'chat' ? 'Chat Block'
+                                  : b.kind === 'checkpoint' ? 'Checkpoint Block'
+                                  : b.kind === 'takeaway' ? 'Takeaway Block'
+                                  : b.kind === 'freeform' ? 'Freeform Canvas'
+                                  : b.kind === 'media' ? 'Media Block'
+                                  : 'Text Block'
                                 )}
                               </span>
                             </button>
@@ -542,15 +574,12 @@ export function AssetsSidebar({
                                   setRenamingBlockId(b.id);
                                   setRenameValue(
                                     b.name || (
-                                    b.kind === 'chat'
-                                      ? 'Chat Block'
-                                      : b.kind === 'checkpoint'
-                                        ? 'Checkpoint Block'
-                                        : b.kind === 'takeaway'
-                                          ? 'Takeaway Block'
-                                          : b.kind === 'freeform'
-                                            ? 'Freeform Canvas'
-                                        : 'Text Block'
+                                      b.kind === 'chat' ? 'Chat Block'
+                                      : b.kind === 'checkpoint' ? 'Checkpoint Block'
+                                      : b.kind === 'takeaway' ? 'Takeaway Block'
+                                      : b.kind === 'freeform' ? 'Freeform Canvas'
+                                      : b.kind === 'media' ? 'Media Block'
+                                      : 'Text Block'
                                     )
                                   );
                                   setTimeout(() => renameInputRef.current?.select(), 0);
@@ -572,9 +601,9 @@ export function AssetsSidebar({
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </ScrollArea>
             )}
           </Tabs>
         </>

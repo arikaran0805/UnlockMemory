@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,6 @@ import {
   SettingsSidebar,
   SettingsSection,
   GeneralSettings,
-  BrandingSettings,
   EmailSettings,
   NotificationsSettings,
   SEOSettings,
@@ -26,7 +25,11 @@ const AdminSettings = () => {
   const { isAdmin, isSeniorModerator, userId, isLoading: roleLoading } = useUserRole();
 
   // Active section
-  const initialSection = (searchParams.get("section") as SettingsSection) || "general";
+  const requestedSection = searchParams.get("section");
+  const initialSection =
+    requestedSection === "branding"
+      ? "general"
+      : ((requestedSection as SettingsSection) || "general");
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
 
   // Loading states
@@ -39,10 +42,6 @@ const AdminSettings = () => {
   const [siteName, setSiteName] = useState("UnlockMemory");
   const [siteDescription, setSiteDescription] = useState("");
   const [siteUrl, setSiteUrl] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [faviconUrl, setFaviconUrl] = useState("");
-  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [requireEmailVerification, setRequireEmailVerification] = useState(false);
@@ -74,6 +73,13 @@ const AdminSettings = () => {
       setAllNotificationsEnabled(allEnabled);
     }
   }, [notificationPrefs]);
+
+  useEffect(() => {
+    if (requestedSection === "branding") {
+      setActiveSection("general");
+      setSearchParams({ section: "general" });
+    }
+  }, [requestedSection, setSearchParams]);
 
   const checkAccess = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -109,8 +115,6 @@ const AdminSettings = () => {
       setSiteName(data.site_name || "UnlockMemory");
       setSiteDescription(data.site_description || "");
       setSiteUrl(data.site_url || "");
-      setLogoUrl(data.logo_url || "");
-      setFaviconUrl(data.favicon_url || "");
       setMetaTitle(data.meta_title || "");
       setMetaDescription(data.meta_description || "");
       setOgImage(data.og_image || "");
@@ -125,56 +129,6 @@ const AdminSettings = () => {
     setSearchParams({ section });
   };
 
-  const handleLogoUpload = async (file: File) => {
-    setUploadingLogo(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `logo-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("site-assets")
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("site-assets")
-        .getPublicUrl(fileName);
-
-      setLogoUrl(publicUrl);
-      setHasChanges(true);
-      toast({ title: "Logo uploaded successfully" });
-    } catch (error: any) {
-      toast({ title: "Error uploading logo", description: error.message, variant: "destructive" });
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
-  const handleFaviconUpload = async (file: File) => {
-    setUploadingFavicon(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `favicon-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("site-assets")
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("site-assets")
-        .getPublicUrl(fileName);
-
-      setFaviconUrl(publicUrl);
-      setHasChanges(true);
-      toast({ title: "Favicon uploaded successfully" });
-    } catch (error: any) {
-      toast({ title: "Error uploading favicon", description: error.message, variant: "destructive" });
-    } finally {
-      setUploadingFavicon(false);
-    }
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -182,8 +136,6 @@ const AdminSettings = () => {
         site_name: siteName,
         site_description: siteDescription,
         site_url: siteUrl,
-        logo_url: logoUrl,
-        favicon_url: faviconUrl,
         meta_title: metaTitle,
         meta_description: metaDescription,
         og_image: ogImage,
@@ -285,26 +237,11 @@ const AdminSettings = () => {
             setSiteDescription={(v) => { setSiteDescription(v); setHasChanges(true); }}
             siteUrl={siteUrl}
             setSiteUrl={(v) => { setSiteUrl(v); setHasChanges(true); }}
+            codeTheme={codeTheme}
+            setCodeTheme={(v) => { setCodeTheme(v); setHasChanges(true); }}
             readOnly={isReadOnly}
           />
         );
-      case "branding":
-        return (
-           <BrandingSettings
-             logoUrl={logoUrl}
-             setLogoUrl={(v) => { setLogoUrl(v); setHasChanges(true); }}
-             siteName={siteName}
-             onLogoUpload={handleLogoUpload}
-             uploadingLogo={uploadingLogo}
-             readOnly={isReadOnly}
-             codeTheme={codeTheme}
-             setCodeTheme={(v) => { setCodeTheme(v); setHasChanges(true); }}
-             faviconUrl={faviconUrl}
-             onFaviconUpload={handleFaviconUpload}
-             uploadingFavicon={uploadingFavicon}
-             setFaviconUrl={(v) => { setFaviconUrl(v); setHasChanges(true); }}
-           />
-         );
       case "email":
         return (
           <EmailSettings
@@ -362,25 +299,37 @@ const AdminSettings = () => {
   return (
     <div className="flex flex-col gap-0">
       <div className="space-y-6">
-      <div className="flex h-[calc(100vh-10rem)] bg-white rounded-2xl border border-[#E8EBE7] overflow-hidden shadow-sm">
+      <div
+        className="flex h-[calc(100vh-10rem)] rounded-2xl overflow-hidden"
+        style={{
+          backgroundColor: "var(--admin-card)",
+          border: "1px solid var(--admin-card-border)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 4px 20px rgba(0,0,0,0.06)",
+        }}
+      >
       {/* Settings Sidebar */}
       <SettingsSidebar
         activeSection={activeSection}
         onSectionChange={handleSectionChange}
         isAdmin={isAdmin}
-        isSeniorModerator={isSeniorModerator}
       />
 
       {/* Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header with Save */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-[#E8EBE7] bg-white">
+        <div
+          className="flex items-center justify-between px-8 py-4"
+          style={{
+            backgroundColor: "var(--admin-header-bg)",
+            borderBottom: "1px solid var(--admin-border)",
+          }}
+        >
           <div />
           {hasChanges && isAdmin && (
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-[#0F2A1D] hover:bg-[#1E4D3A] text-white"
+              className="bg-[#0F6E56] hover:bg-[#0a5a45] text-white"
             >
               {saving ? (
                 <>
@@ -399,7 +348,7 @@ const AdminSettings = () => {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-3xl">
+          <div className="w-full">
             {renderContent()}
           </div>
         </div>

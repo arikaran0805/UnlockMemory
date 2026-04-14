@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Twitter, Facebook, Instagram, Linkedin, Youtube, Github, ArrowRight } from "lucide-react";
+import { Twitter, Facebook, Instagram, Linkedin, Youtube, Github, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { trackSocialMediaClick } from "@/lib/socialAnalytics";
 
@@ -10,12 +10,7 @@ const Footer = () => {
   const [siteDescription, setSiteDescription] = useState("Learn through visuals that stick.");
   const [footerCategories, setFooterCategories] = useState<any[]>([]);
   const [socialLinks, setSocialLinks] = useState({
-    twitter: "",
-    facebook: "",
-    instagram: "",
-    linkedin: "",
-    youtube: "",
-    github: "",
+    twitter: "", facebook: "", instagram: "", linkedin: "", youtube: "", github: "",
   });
 
   useEffect(() => {
@@ -50,52 +45,50 @@ const Footer = () => {
       .from("courses")
       .select("name, slug")
       .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (!error && data) {
-      setFooterCategories(data);
-    }
+      .limit(6);
+    if (!error && data) setFooterCategories(data);
   };
 
   const socialEntries = [
-    { key: "twitter", url: socialLinks.twitter, Icon: Twitter },
-    { key: "facebook", url: socialLinks.facebook, Icon: Facebook },
+    { key: "twitter",   url: socialLinks.twitter,   Icon: Twitter   },
+    { key: "facebook",  url: socialLinks.facebook,  Icon: Facebook  },
     { key: "instagram", url: socialLinks.instagram, Icon: Instagram },
-    { key: "linkedin", url: socialLinks.linkedin, Icon: Linkedin },
-    { key: "youtube", url: socialLinks.youtube, Icon: Youtube },
-    { key: "github", url: socialLinks.github, Icon: Github },
+    { key: "linkedin",  url: socialLinks.linkedin,  Icon: Linkedin  },
+    { key: "youtube",   url: socialLinks.youtube,   Icon: Youtube   },
+    { key: "github",    url: socialLinks.github,    Icon: Github    },
   ].filter(e => e.url);
 
   return (
-    <footer className="relative border-t border-border/40 bg-muted/30">
-      {/* Main Footer */}
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-12 pt-16 pb-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-y-12 gap-x-8">
+    <footer className="border-t border-border/50 bg-background">
 
-          {/* Brand Column */}
-          <div className="sm:col-span-2 lg:col-span-4 space-y-5">
+      {/* ── Main grid ───────────────────────────────────────────────────────── */}
+      <div className="container mx-auto px-6 lg:px-12 pt-16 pb-14">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-y-12 gap-x-10">
+
+          {/* Brand */}
+          <div className="space-y-5">
             <Link
               to="/"
-              className="inline-flex items-center gap-2.5 group transition-transform duration-200 ease-out hover:scale-[1.03]"
+              className="inline-flex items-center gap-2.5 group transition-transform duration-200 hover:scale-[1.02]"
             >
               {logoUrl ? (
-                <img src={logoUrl} alt={siteName} className="h-9 w-auto" />
+                <img src={logoUrl} alt={siteName} className="h-8 w-auto" />
               ) : (
-                <img src="/unlockMemory_icon.svg" alt={siteName} className="h-9 w-auto" />
+                <img src="/unlockMemory_icon.svg" alt={siteName} className="h-8 w-auto" />
               )}
-              <span className="text-lg tracking-[0.01em] text-foreground">
+              <span className="text-[15px] tracking-[-0.01em] text-foreground/90 group-hover:text-foreground transition-colors">
                 <span className="font-medium">Unlock</span>
-                <span className="font-semibold">Memory</span>
+                <span className="font-bold">Memory</span>
               </span>
             </Link>
 
-            <p className="text-sm leading-relaxed text-muted-foreground/70 max-w-[280px]">
+            <p className="text-[13.5px] leading-relaxed text-muted-foreground/70 max-w-[260px]">
               {siteDescription}
             </p>
 
-            {/* Social Links */}
+            {/* Social icons */}
             {socialEntries.length > 0 && (
-              <div className="flex items-center gap-1.5 pt-1">
+              <div className="flex items-center gap-1 pt-1">
                 {socialEntries.map(({ key, url, Icon }) => (
                   <a
                     key={key}
@@ -103,49 +96,58 @@ const Footer = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackSocialMediaClick(key)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-primary hover:bg-primary/8 transition-all duration-200"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/8 transition-all duration-150"
+                    title={key}
                   >
-                    <Icon className="h-[15px] w-[15px]" strokeWidth={1.6} />
+                    <Icon className="h-[14px] w-[14px]" strokeWidth={1.7} />
                   </a>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Courses Column */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
+          {/* Courses */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/45 mb-5">
               Courses
-            </h4>
-            <ul className="space-y-2.5">
+            </p>
+            <ul className="space-y-3">
               {footerCategories.map((cat) => (
                 <li key={cat.slug}>
                   <Link
                     to={`/course/${cat.slug}`}
-                    className="text-[14px] text-foreground/75 hover:text-primary transition-all duration-200 hover:translate-x-0.5 inline-block"
+                    className="text-[13.5px] text-foreground/65 hover:text-primary transition-colors duration-150"
                   >
                     {cat.name}
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  to="/courses"
+                  className="inline-flex items-center gap-1 text-[13px] font-medium text-primary/80 hover:text-primary transition-colors duration-150 mt-1"
+                >
+                  View all <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Company Column */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
+          {/* Company */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/45 mb-5">
               Company
-            </h4>
-            <ul className="space-y-2.5">
+            </p>
+            <ul className="space-y-3">
               {[
-                { to: "/about", label: "About" },
-                { to: "/contact", label: "Contact" },
+                { to: "/about",   label: "About Us"    },
+                { to: "/contact", label: "Contact"     },
                 { to: "/courses", label: "All Courses" },
               ].map(link => (
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="text-[14px] text-foreground/75 hover:text-primary transition-all duration-200 hover:translate-x-0.5 inline-block"
+                    className="text-[13.5px] text-foreground/65 hover:text-primary transition-colors duration-150"
                   >
                     {link.label}
                   </Link>
@@ -154,20 +156,20 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Legal Column */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
+          {/* Legal */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/45 mb-5">
               Legal
-            </h4>
-            <ul className="space-y-2.5">
+            </p>
+            <ul className="space-y-3">
               {[
-                { to: "/privacy", label: "Privacy Policy" },
-                { to: "/terms", label: "Terms of Service" },
+                { to: "/privacy", label: "Privacy Policy"   },
+                { to: "/terms",   label: "Terms of Service" },
               ].map(link => (
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="text-[14px] text-foreground/75 hover:text-primary transition-all duration-200 hover:translate-x-0.5 inline-block"
+                    className="text-[13.5px] text-foreground/65 hover:text-primary transition-colors duration-150"
                   >
                     {link.label}
                   </Link>
@@ -176,35 +178,21 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Newsletter / CTA Column */}
-          <div className="sm:col-span-2 lg:col-span-2">
-            <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 mb-4">
-              Stay Updated
-            </h4>
-            <p className="text-[13px] leading-relaxed text-muted-foreground/60 mb-4">
-              Get notified about new courses, features, and learning tips.
-            </p>
-            <Link to="/contact">
-              <button className="group inline-flex items-center gap-2 text-[13px] font-medium text-foreground/80 px-4 py-2 rounded-lg border border-border/60 hover:border-primary/40 hover:text-primary hover:bg-primary/4 transition-all duration-200">
-                Subscribe
-                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={1.8} />
-              </button>
-            </Link>
-          </div>
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="border-t border-border/30">
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-12 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-[12px] text-muted-foreground/50">
-            © {new Date().getFullYear()} {siteName}. All rights reserved.
+      {/* ── Bottom bar ──────────────────────────────────────────────────────── */}
+      <div className="border-t border-border/40">
+        <div className="container mx-auto px-6 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-[12px] text-muted-foreground/45">
+            © {new Date().getFullYear()} UnlockMemory. All rights reserved.
           </p>
-          <p className="text-[12px] text-muted-foreground/40">
+          <p className="text-[12px] text-muted-foreground/35">
             Crafted with passion for learning
           </p>
         </div>
       </div>
+
     </footer>
   );
 };

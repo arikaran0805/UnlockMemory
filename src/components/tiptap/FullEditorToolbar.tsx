@@ -110,7 +110,12 @@ export function FullEditorToolbar({ editor, className }: FullEditorToolbarProps)
       <div className="tiptap-toolbar-group">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 text-xs">
+            <Button variant="ghost" size="sm" className={cn(
+              'h-8 px-2 gap-1 text-xs transition-colors',
+              editor.isActive('heading')
+                ? 'bg-primary/15 text-primary hover:bg-primary/20'
+                : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary',
+            )}>
               <Heading1 className="w-4 h-4" />
               <span className="hidden sm:inline">Heading</span>
             </Button>
@@ -188,7 +193,7 @@ export function FullEditorToolbar({ editor, className }: FullEditorToolbarProps)
             <Button
               variant="ghost"
               size="sm"
-              className={cn('h-8 w-8 p-0', editor.isActive('table') && 'bg-primary/10 text-primary')}
+              className={cn('h-8 w-8 p-0 transition-colors', editor.isActive('table') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
               title="Table"
             >
               <TableIcon className="w-4 h-4" />
@@ -235,7 +240,7 @@ export function FullEditorToolbar({ editor, className }: FullEditorToolbarProps)
             <Button
               variant="ghost"
               size="sm"
-              className={cn('h-8 w-8 p-0', editor.isActive('link') && 'bg-primary/10 text-primary')}
+              className={cn('h-8 w-8 p-0 transition-colors', editor.isActive('link') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
               onClick={() => {
                 setLinkUrl(editor.getAttributes('link').href || '');
                 setShowLinkInput(true);
@@ -276,7 +281,7 @@ export function FullEditorToolbar({ editor, className }: FullEditorToolbarProps)
 
         <Popover open={showImageInput} onOpenChange={setShowImageInput}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Insert Image">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 transition-colors text-muted-foreground hover:bg-primary/[0.08] hover:text-primary" title="Insert Image">
               <ImageIcon className="w-4 h-4" />
             </Button>
           </PopoverTrigger>
@@ -320,18 +325,27 @@ export function FullEditorToolbar({ editor, className }: FullEditorToolbarProps)
       {/* Keyboard shortcuts */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1 text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all"
+          >
             <Keyboard className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Shortcuts</span>
+            <span className="hidden sm:inline font-medium">Shortcuts</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-3" align="end">
-          <div className="space-y-1">
-            <h4 className="font-medium text-sm mb-2">Keyboard Shortcuts</h4>
+        <PopoverContent className="w-72 p-0 overflow-hidden shadow-xl" align="end">
+          <div className="px-4 py-3 border-b border-border bg-muted/40">
+            <div className="flex items-center gap-2">
+              <Keyboard className="w-3.5 h-3.5 text-primary" />
+              <h4 className="font-semibold text-sm">Keyboard Shortcuts</h4>
+            </div>
+          </div>
+          <div className="p-3 space-y-0.5 max-h-72 overflow-y-auto">
             {KEYBOARD_SHORTCUTS.full.map((s) => (
-              <div key={s.action} className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">{s.action}</span>
-                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">{s.keys}</kbd>
+              <div key={s.action} className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors">
+                <span className="text-xs text-muted-foreground">{s.action}</span>
+                <kbd className="px-2 py-0.5 bg-muted border border-border/60 rounded-md text-[10px] font-mono text-foreground shadow-sm">{s.keys}</kbd>
               </div>
             ))}
           </div>
@@ -357,9 +371,11 @@ function ToolbarButton({ onClick, isActive, disabled, title, children }: {
       disabled={disabled}
       title={title}
       className={cn(
-        'h-8 w-8 p-0',
-        isActive && 'bg-primary/10 text-primary',
-        disabled && 'opacity-50 cursor-not-allowed'
+        'h-8 w-8 p-0 transition-colors',
+        isActive
+          ? 'bg-primary/15 text-primary hover:bg-primary/20'
+          : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary',
+        disabled && 'opacity-40 cursor-not-allowed',
       )}
     >
       {children}

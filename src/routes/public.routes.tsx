@@ -1,6 +1,7 @@
 import { Route, Navigate } from "react-router-dom";
 
 // Public Pages
+import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import Pricing from "@/pages/Pricing";
 import Plan from "@/pages/Plan";
@@ -40,7 +41,8 @@ import MyDoubts from "@/pages/MyDoubts";
  * Returns an array of Route elements to be spread in the main router
  */
 export const publicRoutes = [
-  <Route key="home" path="/" element={<Index />} />,
+  <Route key="home" path="/" element={<Landing />} />,
+  <Route key="landing" path="/landing" element={<Landing />} />,
   <Route key="pricing" path="/pricing" element={<Pricing />} />,
   <Route key="plan" path="/plan" element={<Plan />} />,
   <Route key="careers" path="/careers" element={<Careers />} />,

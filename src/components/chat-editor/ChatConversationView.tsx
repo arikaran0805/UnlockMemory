@@ -646,27 +646,33 @@ const ChatConversationView = ({
 
             const dynamicStyle = getDynamicStyles(dynamicColors, isMentorBubble);
 
-            // Tighten spacing when adjacent messages are from the same speaker
+            // Run grouping: iMessage-style — avatar on last bubble, speaker label on first
             const prevMessage = index > 0 ? messages[index - 1] : null;
-            const isSameSpeakerAsPrev =
-              prevMessage?.type === "message" &&
-              prevMessage.speaker.toLowerCase() === message.speaker.toLowerCase();
+            const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+            const isFirstInRun =
+              !prevMessage ||
+              prevMessage.type !== "message" ||
+              prevMessage.speaker.toLowerCase() !== message.speaker.toLowerCase();
+            const isLastInRun =
+              !nextMessage ||
+              nextMessage.type !== "message" ||
+              nextMessage.speaker.toLowerCase() !== message.speaker.toLowerCase();
 
             return (
               <div
                 key={message.id}
                 className={cn(
                   "relative flex items-end gap-2 animate-in fade-in-0 slide-in-from-bottom-2",
-                  isSameSpeakerAsPrev ? "mb-2.5 mt-0" : "mb-7",
+                  isLastInRun ? "mb-7" : "mb-2.5 mt-0",
                   isMentorBubble ? "flex-row-reverse" : "flex-row"
                 )}
                 style={{ animationDelay: `${index * 100}ms`, animationFillMode: "backwards" }}
               >
-                {/* Avatar — hidden for consecutive same-speaker messages to reduce visual noise */}
+                {/* Avatar — only on the LAST bubble of a consecutive run (iMessage pattern) */}
                 <div
                   className={cn(
                     "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors",
-                    isSameSpeakerAsPrev ? "opacity-0 pointer-events-none" : "opacity-55",
+                    isLastInRun ? "opacity-55" : "opacity-0 pointer-events-none",
                   )}
                   style={
                     isMentorBubble
@@ -696,8 +702,8 @@ const ChatConversationView = ({
                     ...(dynamicStyle ? dynamicStyle.textStyle : undefined),
                   }}
                 >
-                  {/* Speaker label — only on first in a run */}
-                  {!isSameSpeakerAsPrev && (
+                  {/* Speaker label — only on first bubble in a run */}
+                  {isFirstInRun && (
                     <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#888888]">
                       {character.name}
                     </div>

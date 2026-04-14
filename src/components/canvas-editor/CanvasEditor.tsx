@@ -258,10 +258,23 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     }, [canvasData, updateAndNotify]);
 
     // ── Double-click / double-tap → context menu ──────────────────────────────
+    // Clamp position so the popup stays inside the canvas container (not off-screen)
+    const clampMenuPosition = (clientX: number, clientY: number) => {
+      const MENU_W = 196; // min-w-[180px] + 16px padding safety
+      const MENU_H = 260; // 6 items × ~36px + header ~28px
+      const container = scrollContainerRef.current;
+      if (!container) return { x: clientX, y: clientY };
+      const rect = container.getBoundingClientRect();
+      const x = Math.min(Math.max(clientX, rect.left + 8), rect.right - MENU_W - 8);
+      const y = Math.min(Math.max(clientY, rect.top + 8), rect.bottom - MENU_H - 8);
+      return { x, y };
+    };
+
     const handleDoubleClick = useCallback((e: React.MouseEvent) => {
       if (annotationMode) return;
       if ((e.target as HTMLElement).closest('.canvas-block')) return;
-      setContextMenu({ x: e.clientX, y: e.clientY, canvasX: 0, canvasY: 0 });
+      const { x, y } = clampMenuPosition(e.clientX, e.clientY);
+      setContextMenu({ x, y, canvasX: 0, canvasY: 0 });
     }, [annotationMode]);
 
     const handleTouchEnd = useCallback((e: React.TouchEvent) => {
@@ -272,7 +285,8 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       if (last && now - last.time < 300 &&
           Math.abs(touch.clientX - last.x) < 30 &&
           Math.abs(touch.clientY - last.y) < 30) {
-        setContextMenu({ x: touch.clientX, y: touch.clientY, canvasX: 0, canvasY: 0 });
+        const { x, y } = clampMenuPosition(touch.clientX, touch.clientY);
+        setContextMenu({ x, y, canvasX: 0, canvasY: 0 });
         lastTapRef.current = null;
         return;
       }
@@ -344,7 +358,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
             className={cn(
               'relative overflow-y-auto overflow-x-hidden rounded-xl border transition-colors',
               'flex-1 min-h-[300px]',
-              isDragOver ? 'border-primary/50 bg-primary/5' : 'border-border bg-slate-50/50 dark:bg-muted/10',
+              isDragOver ? 'border-primary/40 bg-primary/[0.03]' : 'border-border/60 bg-slate-50/60 dark:bg-muted/10',
             )}
             onDoubleClick={handleDoubleClick}
             onTouchEnd={handleTouchEnd}
@@ -362,7 +376,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
             />
 
             {/* Sortable block list */}
-            <div className="relative flex flex-col gap-4 p-[60px]">
+            <div className="relative flex flex-col gap-3 p-10">
               <SortableContext
                 items={canvasData.blocks.map(b => b.id)}
                 strategy={verticalListSortingStrategy}
@@ -399,27 +413,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                             >
                               <MessageSquare className="h-3 w-3" />
                               Chat
-                            </button>
-                            <button
-                              onClick={() => addBlockInternal('checkpoint', index - 1)}
-                              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                              Checkpoint
-                            </button>
-                            <button
-                              onClick={() => addBlockInternal('takeaway', index - 1)}
-                              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
-                            >
-                              <Lightbulb className="h-3 w-3" />
-                              Takeaway
-                            </button>
-                            <button
-                              onClick={() => addBlockInternal('freeform', index - 1)}
-                              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
-                            >
-                              <PenTool className="h-3 w-3" />
-                              Freeform
                             </button>
                             <div className="h-px flex-1 w-8 bg-primary/40" />
                           </div>
@@ -482,27 +475,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                           <MessageSquare className="h-3 w-3" />
                           Chat
                         </button>
-                        <button
-                          onClick={() => addBlockInternal('checkpoint', canvasData.blocks.length - 1)}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          Checkpoint
-                        </button>
-                        <button
-                          onClick={() => addBlockInternal('takeaway', canvasData.blocks.length - 1)}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
-                        >
-                          <Lightbulb className="h-3 w-3" />
-                          Takeaway
-                        </button>
-                        <button
-                          onClick={() => addBlockInternal('freeform', canvasData.blocks.length - 1)}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-background border border-primary/40 text-xs text-primary hover:bg-primary/10 transition-colors shadow-sm"
-                        >
-                          <PenTool className="h-3 w-3" />
-                          Freeform
-                        </button>
                         <div className="h-px w-8 bg-primary/40" />
                       </div>
                     )}
@@ -525,21 +497,18 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
           {/* Drag overlay – ghost of the block being sorted */}
           <DragOverlay>
             {activeDragBlock && (() => {
-              const overlayConfig: Record<string, { accent: string; iconBg: string; iconColor: string; Icon: typeof FileText }> = {
-                text: { accent: 'border-l-violet-400', iconBg: 'bg-violet-100', iconColor: 'text-violet-500', Icon: FileText },
-                chat: { accent: 'border-l-sky-400', iconBg: 'bg-sky-100', iconColor: 'text-sky-500', Icon: MessageSquare },
-                checkpoint: { accent: 'border-l-emerald-400', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-500', Icon: CheckCircle2 },
-                takeaway: { accent: 'border-l-amber-400', iconBg: 'bg-amber-100', iconColor: 'text-amber-500', Icon: Lightbulb },
-                freeform: { accent: 'border-l-fuchsia-400', iconBg: 'bg-fuchsia-100', iconColor: 'text-fuchsia-500', Icon: PenTool },
+              const overlayConfig: Record<string, { Icon: typeof FileText }> = {
+                text: { Icon: FileText },
+                chat: { Icon: MessageSquare },
+                checkpoint: { Icon: CheckCircle2 },
+                takeaway: { Icon: Lightbulb },
+                freeform: { Icon: PenTool },
               };
               const c = overlayConfig[activeDragBlock.kind];
               return (
-                <div className={cn(
-                  'rounded-lg border border-l-[3px] bg-card/95 shadow-2xl px-4 py-3 opacity-90 flex items-center gap-2.5',
-                  c.accent,
-                )}>
-                  <div className={cn('w-5 h-5 rounded flex items-center justify-center flex-shrink-0', c.iconBg)}>
-                    <c.Icon className={cn('h-3 w-3', c.iconColor)} />
+                <div className="rounded-xl border border-l-[3px] border-primary/50 border-l-primary/70 bg-white dark:bg-card px-4 py-3 opacity-95 flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 bg-primary/10">
+                    <c.Icon className="h-3 w-3 text-primary" />
                   </div>
                   <span className="text-[11.5px] font-mono font-semibold text-foreground/80 tracking-tight">
                     {activeDragBlock.name || `${activeDragBlock.kind}_block`}

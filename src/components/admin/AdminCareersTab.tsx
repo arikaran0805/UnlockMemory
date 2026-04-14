@@ -2,10 +2,18 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, BookOpen } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Pencil, Trash2, BookOpen, Target } from "lucide-react";
 import * as Icons from "lucide-react";
 
 interface Career {
@@ -50,6 +58,8 @@ const AdminCareersTab = () => {
   const [careerSkills, setCareerSkills] = useState<Record<string, CareerSkill[]>>({});
   const [careerCourses, setCareerCourses] = useState<Record<string, CareerCourse[]>>({});
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [careerToDelete, setCareerToDelete] = useState<Career | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -103,106 +113,127 @@ const AdminCareersTab = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this career?")) return;
+  const handleDeleteClick = (career: Career) => {
+    setCareerToDelete(career);
+    setDeleteDialogOpen(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!careerToDelete) return;
     try {
-      const { error } = await supabase.from("careers").delete().eq("id", id);
+      const { error } = await supabase.from("careers").delete().eq("id", careerToDelete.id);
       if (error) throw error;
       toast({ title: "Career deleted successfully" });
+      setDeleteDialogOpen(false);
+      setCareerToDelete(null);
       fetchData();
     } catch (error: any) {
       toast({ title: "Error deleting career", description: error.message, variant: "destructive" });
     }
   };
 
-  const getIcon = (iconName: string) => {
+  const getIcon = (iconName: string, size = "h-9 w-9") => {
     const IconComponent = (Icons as any)[iconName];
-    return IconComponent ? <IconComponent className="h-5 w-5" /> : <Icons.Briefcase className="h-5 w-5" />;
+    return IconComponent ? <IconComponent className={size} /> : <Icons.Briefcase className={size} />;
   };
 
   if (loading) return <div>Loading...</div>;
 
   return (
     <div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {careers.map((career) => (
-          <Card key={career.id}>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${career.color}`}>
-                    {getIcon(career.icon)}
-                  </div>
-                  <div>
-                    <span className="block">{career.name}</span>
-                    <span className="text-xs text-muted-foreground font-normal">/{career.slug}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/careers/${career.id}`)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(career.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {career.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">{career.description}</p>
-              )}
-              
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Skills:</p>
-                <div className="flex flex-wrap gap-1">
-                  {careerSkills[career.id]?.slice(0, 5).map((skill) => (
-                    <Badge key={skill.id} variant="secondary" className="text-xs">
-                      {skill.skill_name} ({skill.weight}%)
-                    </Badge>
-                  ))}
-                  {(careerSkills[career.id]?.length || 0) > 5 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{(careerSkills[career.id]?.length || 0) - 5} more
-                    </Badge>
-                  )}
-                </div>
+          <div
+            key={career.id}
+            className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm group"
+          >
+            {/* ── Color band ── */}
+            <div className={`relative h-24 flex items-center justify-center overflow-hidden ${career.color}`}>
+              {/* Edit / Delete — fade in on hover */}
+              <div className="absolute top-3 right-3 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <button
+                  onClick={() => navigate(`/admin/careers/${career.id}?name=${encodeURIComponent(career.name)}`)}
+                  className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-black/10 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5 opacity-60" />
+                </button>
+                <button
+                  onClick={() => handleDeleteClick(career)}
+                  className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-black/10 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-destructive opacity-70" />
+                </button>
               </div>
 
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Courses & Skill Contributions:</p>
-                <div className="space-y-2">
-                  {careerCourses[career.id]?.slice(0, 3).map((cc) => {
-                    const totalContribution = cc.skill_contributions?.reduce((sum, s) => sum + s.contribution, 0) || 0;
-                    const avgContribution = cc.skill_contributions?.length ? Math.round(totalContribution / cc.skill_contributions.length) : 0;
-                    return (
-                      <div key={cc.id} className="flex items-center justify-between gap-2">
-                        <Badge variant="outline" className="text-xs flex-shrink-0">
-                          <BookOpen className="h-3 w-3 mr-1" />
-                          {cc.course?.name}
-                        </Badge>
-                        {cc.skill_contributions?.length > 0 ? (
-                          <span className="text-xs text-muted-foreground">
-                            {cc.skill_contributions.length} skills · avg {avgContribution}%
-                          </span>
-                        ) : (
-                          <span className="text-xs text-amber-500">No skills mapped</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {(careerCourses[career.id]?.length || 0) > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{(careerCourses[career.id]?.length || 0) - 3} more courses
-                    </Badge>
-                  )}
+              {/* Large icon */}
+              <div className="opacity-80">
+                {getIcon(career.icon)}
+              </div>
+            </div>
+
+            {/* ── Card body ── */}
+            <div className="p-5">
+              {/* Name + slug */}
+              <div className="mb-3">
+                <h3 className="font-semibold text-base text-foreground leading-tight">{career.name}</h3>
+                <span className="text-xs text-muted-foreground">/{career.slug}</span>
+              </div>
+
+              {/* Description */}
+              {career.description ? (
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                  {career.description}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground/50 italic mb-4">No description</p>
+              )}
+
+              {/* ── Stats row ── */}
+              <div className="flex items-center gap-5 pt-3 border-t border-border">
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">
+                      {careerCourses[career.id]?.length || 0}
+                    </span>{" "}
+                    Courses
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">
+                      {careerSkills[career.id]?.length || 0}
+                    </span>{" "}
+                    Skills
+                  </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this career?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-semibold text-foreground">"{careerToDelete?.name}"</span>{" "}
+              and all its associated skills and course mappings. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete Career
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

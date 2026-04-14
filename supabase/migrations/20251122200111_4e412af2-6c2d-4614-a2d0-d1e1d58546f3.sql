@@ -1,7 +1,7 @@
 -- Create site_settings table
 CREATE TABLE public.site_settings (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  site_name TEXT NOT NULL DEFAULT 'BlogHub',
+  site_name TEXT NOT NULL DEFAULT 'UnlockMemory',
   site_description TEXT,
   site_url TEXT,
   logo_url TEXT,
@@ -46,9 +46,8 @@ BEFORE UPDATE ON public.site_settings
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at();
 
--- Insert default settings
 INSERT INTO public.site_settings (site_name, site_description, site_url)
-VALUES ('BlogHub', 'Inspiring stories and ideas for curious minds', '');
+VALUES ('UnlockMemory', 'Learn through visuals that stick.', '');
 
 -- Create storage bucket for site assets
 INSERT INTO storage.buckets (id, name, public)

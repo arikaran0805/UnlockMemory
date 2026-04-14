@@ -306,7 +306,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm"
-                  className={cn('h-7 w-7 p-0', editor.isActive('bold') && 'bg-primary/10 text-primary')}
+                  className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('bold') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                   onClick={() => editor.chain().focus().toggleBold().run()}
                 >
                   <Bold className="h-3.5 w-3.5" />
@@ -319,7 +319,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm"
-                  className={cn('h-7 w-7 p-0', editor.isActive('italic') && 'bg-primary/10 text-primary')}
+                  className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('italic') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                   onClick={() => editor.chain().focus().toggleItalic().run()}
                 >
                   <Italic className="h-3.5 w-3.5" />
@@ -332,7 +332,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm"
-                  className={cn('h-7 w-7 p-0', editor.isActive('code') && 'bg-primary/10 text-primary')}
+                  className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('code') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                   onClick={() => editor.chain().focus().toggleCode().run()}
                 >
                   <Code className="h-3.5 w-3.5" />
@@ -345,7 +345,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
             <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
               <PopoverTrigger asChild>
                 <Button type="button" variant="ghost" size="sm"
-                  className={cn('h-7 w-7 p-0', editor.isActive('link') && 'bg-primary/10 text-primary')}
+                  className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('link') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                   onClick={() => {
                     setLinkUrl(editor.getAttributes('link').href || '');
                     setShowLinkInput(true);
@@ -374,7 +374,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm"
-                  className={cn('h-7 w-7 p-0', editor.isActive('bulletList') && 'bg-primary/10 text-primary')}
+                  className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('bulletList') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                   onClick={() => editor.chain().focus().toggleBulletList().run()}
                 >
                   <List className="h-3.5 w-3.5" />
@@ -387,7 +387,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm"
-                  className={cn('h-7 w-7 p-0', editor.isActive('orderedList') && 'bg-primary/10 text-primary')}
+                  className={cn('h-7 w-7 p-0 transition-colors', editor.isActive('orderedList') ? 'bg-primary/15 text-primary hover:bg-primary/20' : 'text-muted-foreground hover:bg-primary/[0.08] hover:text-primary')}
                   onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 >
                   <ListOrdered className="h-3.5 w-3.5" />
@@ -405,7 +405,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
                 <TooltipTrigger asChild>
                   <PopoverTrigger asChild>
                     <Button type="button" variant="ghost" size="sm"
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                      className="h-7 w-7 p-0 transition-colors text-muted-foreground hover:bg-primary/[0.08] hover:text-primary"
                     >
                       <Plus className="h-3.5 w-3.5" />
                     </Button>

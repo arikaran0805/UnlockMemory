@@ -11,13 +11,6 @@ import Editor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
   Copy, Check, Play, Loader2, X, Pencil,
   ChevronUp, ChevronDown 
 } from 'lucide-react';
@@ -26,24 +19,6 @@ import { useCodeEdit } from '@/contexts/CodeEditContext';
 
 // Supported languages for execution
 const EXECUTABLE_LANGUAGES = ['python', 'javascript', 'typescript'];
-
-// All available languages
-const LANGUAGES = [
-  { value: 'python', label: 'Python' },
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'typescript', label: 'TypeScript' },
-  { value: 'sql', label: 'SQL' },
-  { value: 'bash', label: 'Bash' },
-  { value: 'html', label: 'HTML' },
-  { value: 'css', label: 'CSS' },
-  { value: 'json', label: 'JSON' },
-  { value: 'java', label: 'Java' },
-  { value: 'go', label: 'Go' },
-  { value: 'rust', label: 'Rust' },
-  { value: 'c', label: 'C' },
-  { value: 'cpp', label: 'C++' },
-  { value: 'plaintext', label: 'Plain Text' },
-];
 
 // Monaco language mapping
 const MONACO_LANGUAGE_MAP: Record<string, string> = {
@@ -147,10 +122,6 @@ const ExecutableCodeBlockView = ({
     updateAttributes({ code: newCode });
   }, [updateAttributes]);
 
-  const handleLanguageChange = useCallback((newLang: string) => {
-    updateAttributes({ language: newLang });
-  }, [updateAttributes]);
-
   const handleEditToggle = () => {
     if (!isEditMode) {
       // Enter edit mode
@@ -230,15 +201,16 @@ const ExecutableCodeBlockView = ({
   };
 
   return (
-    <NodeViewWrapper className="executable-code-block-wrapper my-2" data-type="executableCodeBlock">
-      <div className="group relative w-full">
+    <NodeViewWrapper className="executable-code-block-wrapper my-4" data-type="executableCodeBlock">
+      {/* px-4 insets horizontally without overflowing — mx-4 on a w-full block adds 32px total width */}
+      <div className="group relative w-full px-4">
         {/* Close button - floating top-right corner, only in edit mode */}
         {isEditable && (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => deleteNode()}
-            className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 rounded-full bg-background border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute -top-1.5 right-2.5 z-10 h-5 w-5 rounded-full bg-background border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 opacity-0 group-hover:opacity-100 transition-opacity"
             title="Remove code block"
           >
             <X className="w-2.5 h-2.5" />
@@ -249,25 +221,10 @@ const ExecutableCodeBlockView = ({
         <div className="rounded-xl border border-border/40 bg-[#FAFAFA] overflow-hidden">
           {/* Header row */}
           <div className="flex items-center justify-between px-4 pt-3 pb-1">
-            {/* Language selector/label */}
-            {isEditable ? (
-              <Select value={language} onValueChange={handleLanguageChange}>
-                <SelectTrigger className="h-5 w-auto gap-0.5 px-0 text-[11px] uppercase tracking-wider font-medium text-muted-foreground/70 border-none bg-transparent shadow-none focus:ring-0 hover:text-foreground">
-                  <SelectValue placeholder="Language" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map(lang => (
-                    <SelectItem key={lang.value} value={lang.value} className="text-xs">
-                      {lang.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground/70">
-                {language}
-              </span>
-            )}
+            {/* Language label — static, no dropdown */}
+            <span className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground/70">
+              {language}
+            </span>
 
             {/* Action buttons */}
             <div className="flex items-center gap-0.5">

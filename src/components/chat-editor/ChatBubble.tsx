@@ -25,6 +25,7 @@ interface ChatBubbleProps {
   codeTheme?: string;
   hasOpenAnnotations?: boolean;
   annotationMode?: boolean;
+  showSpeakerName?: boolean;
 }
 
 const ChatBubble = ({
@@ -38,6 +39,7 @@ const ChatBubble = ({
   isDragging,
   codeTheme,
   hasOpenAnnotations,
+  showSpeakerName = true,
 }: ChatBubbleProps) => {
   const chatEditorRef = useRef<ChatEditorRef>(null);
 
@@ -223,10 +225,12 @@ const ChatBubble = ({
           </div>
         )}
 
-        {/* Speaker name */}
-        <div className="text-[10px] font-semibold mb-1.5 uppercase tracking-[0.07em] text-[#888888]">
-          {character.name}
-        </div>
+        {/* Speaker name — only on the first bubble in a consecutive run */}
+        {showSpeakerName && (
+          <div className="text-[10px] font-semibold mb-1.5 uppercase tracking-[0.07em] text-[#888888]">
+            {character.name}
+          </div>
+        )}
 
         {/* Content */}
         {isEditing ? (

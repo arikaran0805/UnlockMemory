@@ -276,6 +276,8 @@ interface MessageItemProps {
   isEditMode: boolean;
   isFirst: boolean;
   isLast: boolean;
+  isFirstInRun?: boolean;
+  isLastInRun?: boolean;
   codeTheme?: string;
   index?: number;
   annotationMode?: boolean;
@@ -300,6 +302,8 @@ const MessageItemContent = ({
   isEditMode,
   isFirst,
   isLast,
+  isFirstInRun = true,
+  isLastInRun = true,
   codeTheme,
   index = 0,
   annotationMode,
@@ -469,7 +473,8 @@ const MessageItemContent = ({
       ref={nodeRef}
       style={dragStyle}
       className={cn(
-        "flex items-end gap-2 mb-4",
+        "flex items-end gap-2",
+        isLastInRun ? "mb-4" : "mb-1",
         isMentor ? "flex-row-reverse" : "flex-row"
       )}
     >
@@ -479,17 +484,22 @@ const MessageItemContent = ({
         onMouseEnter={handleHoverEnter}
         onMouseLeave={handleHoverLeave}
       >
-        {/* Avatar — letter-based to match CourseDetail */}
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold cursor-pointer select-none"
-          style={
-            isMentor
-              ? { backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }
-              : { backgroundColor: "#E8F0EC", color: "#5E7068" }
-          }
-        >
-          {isMentor ? "K" : character.name?.charAt(0)?.toUpperCase() || "U"}
-        </div>
+        {/* Avatar — only shown on the last bubble in a consecutive run */}
+        {isLastInRun ? (
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold cursor-pointer select-none"
+            style={
+              isMentor
+                ? { backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }
+                : { backgroundColor: "#E8F0EC", color: "#5E7068" }
+            }
+          >
+            {isMentor ? "K" : character.name?.charAt(0)?.toUpperCase() || "U"}
+          </div>
+        ) : (
+          /* Invisible spacer keeps bubble alignment consistent */
+          <div className="w-8 h-8 flex-shrink-0" />
+        )}
 
         {/* ActionButtons — absolute, positioned above avatar, debounce keeps it open as mouse moves to it */}
         {isEditMode && !isEditing && !annotationMode && showActions && (
@@ -519,6 +529,7 @@ const MessageItemContent = ({
           codeTheme={codeTheme}
           hasOpenAnnotations={hasOpenAnnotations}
           annotationMode={annotationMode}
+          showSpeakerName={isFirstInRun}
         />
       </div>
     </div>
@@ -716,8 +727,7 @@ const ChatStyleEditor = ({
     return value.toLowerCase().replace(/[\s_-]+/g, "");
   }, []);
   const [manualHeight, setManualHeight] = useState<number | null>(null);
-  const [splitViewHeight, setSplitViewHeight] = useState(120); // Custom height for split view
-  const splitViewDragRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const splitViewHeight = 120; // Fixed height for split view
   const [composerViewMode, setComposerViewMode] = useState<'edit' | 'split' | 'preview'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('chatEditorComposerViewMode');
@@ -1050,17 +1060,6 @@ const ChatStyleEditor = ({
   }, [newMessage, manualHeight]);
 
   // Track manual resizing
-  const handleTextareaMouseUp = useCallback(() => {
-    if (inputRef.current) {
-      const currentHeight = inputRef.current.offsetHeight;
-      const computedHeight = inputRef.current.scrollHeight;
-      // If heights differ significantly, user manually resized
-      if (Math.abs(currentHeight - computedHeight) > 20 || currentHeight > 80) {
-        setManualHeight(currentHeight);
-      }
-    }
-  }, []);
-
   // Convert TipTap JSON doc → markdown string so all existing renderers
   // (ChatBubble, version history, comparison pages) work without changes.
   const tiptapJsonToMarkdown = (json: any): string => {
@@ -1121,10 +1120,9 @@ const ChatStyleEditor = ({
 
   // Reset manual height when message is sent
   const handleAddMessage = useCallback(() => {
-    // In default edit mode, content comes from LightEditor — convert TipTap JSON
-    // to markdown so existing renderers (ChatBubble, version pages) work unchanged.
-    // In split/preview modes, content comes from the textarea (already markdown).
-    const isLightEditorMode = composerViewMode === 'edit';
+    // Edit and Split modes both use LightEditor (composerEditorRef).
+    // Preview mode falls back to the raw newMessage textarea value.
+    const isLightEditorMode = composerViewMode === 'edit' || composerViewMode === 'split';
     const contentToSend = isLightEditorMode
       ? (() => {
           const editor = composerEditorRef.current?.getEditor();
@@ -1177,93 +1175,6 @@ const ChatStyleEditor = ({
   }, [saveToUndoStack]);
 
   // Handle formatting shortcuts on main textarea
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const isModKey = isMac ? e.metaKey : e.ctrlKey;
-
-    // Enter sends. Shift+Enter inserts a newline.
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleAddMessage();
-      return;
-    }
-
-    // Bold: Ctrl/Cmd + B
-    if (isModKey && e.key.toLowerCase() === 'b' && !e.shiftKey) {
-      e.preventDefault();
-      handleInsertBold();
-      return;
-    }
-
-    // Italic: Ctrl/Cmd + I (without shift)
-    if (isModKey && e.key.toLowerCase() === 'i' && !e.shiftKey) {
-      e.preventDefault();
-      handleInsertItalic();
-      return;
-    }
-
-    // Inline Code: Ctrl/Cmd + `
-    if (isModKey && e.key === '`') {
-      e.preventDefault();
-      handleInsertInlineCode();
-      return;
-    }
-
-    // Bullet List: Ctrl/Cmd + Shift + U
-    if (isModKey && e.shiftKey && e.key.toLowerCase() === 'u') {
-      e.preventDefault();
-      handleInsertBulletList();
-      return;
-    }
-
-    // Numbered List: Ctrl/Cmd + Shift + O
-    if (isModKey && e.shiftKey && e.key.toLowerCase() === 'o') {
-      e.preventDefault();
-      handleInsertNumberedList();
-      return;
-    }
-
-    // Heading: Ctrl/Cmd + Shift + H
-    if (isModKey && e.shiftKey && e.key.toLowerCase() === 'h') {
-      e.preventDefault();
-      handleInsertHeading();
-      return;
-    }
-
-    // Quote: Ctrl/Cmd + Shift + Q
-    if (isModKey && e.shiftKey && e.key.toLowerCase() === 'q') {
-      e.preventDefault();
-      handleInsertBlockquote();
-      return;
-    }
-
-    // Link: Ctrl/Cmd + K
-    if (isModKey && e.key.toLowerCase() === 'k' && !e.shiftKey) {
-      e.preventDefault();
-      handleInsertLink();
-      return;
-    }
-
-    // Code block (Python): Ctrl/Cmd + Shift + C
-    if (isModKey && e.shiftKey && e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      handleInsertCodeSnippet('python');
-      return;
-    }
-
-    // Takeaway: Ctrl/Cmd + Shift + T
-    if (isModKey && e.shiftKey && e.key.toLowerCase() === 't') {
-      e.preventDefault();
-      handleAddTakeawayWithUndo();
-      return;
-    }
-
-    // Image: Ctrl/Cmd + Shift + I
-    if (isModKey && e.shiftKey && e.key.toLowerCase() === 'i') {
-      e.preventDefault();
-      handleInsertImage();
-      return;
-    }
-  };
 
   // Global keyboard shortcuts for the editor (when not in textarea)
   useEffect(() => {
@@ -1666,6 +1577,8 @@ const ChatStyleEditor = ({
               const bubbleHasOpenAnnotations = annotations.some(
                 a => a.bubble_index === index && a.status === "open"
               );
+              const isFirstInRun = index === 0 || messages[index - 1].speaker !== message.speaker;
+              const isLastInRun = index === messages.length - 1 || messages[index + 1].speaker !== message.speaker;
               return (
                 <div key={message.id}>
                   <PlainMessageItem
@@ -1685,6 +1598,8 @@ const ChatStyleEditor = ({
                     isEditMode={false}
                     isFirst={index === 0}
                     isLast={index === messages.length - 1}
+                    isFirstInRun={isFirstInRun}
+                    isLastInRun={isLastInRun}
                     codeTheme={codeTheme}
                     index={index}
                     annotationMode={true}
@@ -1718,6 +1633,8 @@ const ChatStyleEditor = ({
                   const bubbleHasOpenAnnotations = annotations.some(
                     a => a.bubble_index === index && a.status === "open"
                   );
+                  const isFirstInRun = index === 0 || messages[index - 1].speaker !== message.speaker;
+                  const isLastInRun = index === messages.length - 1 || messages[index + 1].speaker !== message.speaker;
                   return (
                     <div key={message.id}>
                       <SortableMessageItem
@@ -1737,6 +1654,8 @@ const ChatStyleEditor = ({
                         isEditMode={mode === "edit"}
                         isFirst={index === 0}
                         isLast={index === messages.length - 1}
+                        isFirstInRun={isFirstInRun}
+                        isLastInRun={isLastInRun}
                         codeTheme={codeTheme}
                         index={index}
                         annotationMode={false}
@@ -1851,22 +1770,58 @@ const ChatStyleEditor = ({
                     onLayout={handleSplitPanelResize}
                   >
                     <ResizablePanel defaultSize={splitPanelSizes[0]} minSize={20} maxSize={80}>
-                      <textarea
-                        ref={inputRef}
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={handleInputKeyDown}
-                        onMouseUp={handleTextareaMouseUp}
-                        placeholder={`Type a message as ${currentSpeaker === "mentor" ? mentorName : courseCharacter.name
-                          }...`}
-                        className="w-full h-full px-4 py-3 pr-10 text-sm font-mono bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60"
-                      />
+                      <div className="h-full overflow-y-auto">
+                        <LightEditor
+                          ref={composerEditorRef}
+                          value={composerEditorValue}
+                          onChange={setComposerEditorValue}
+                          placeholder={`Type a message as ${currentSpeaker === "mentor" ? mentorName : courseCharacter.name}…`}
+                          characterLimit={2000}
+                          showCharCount={false}
+                          minHeight="80px"
+                          onEnterSubmit={handleAddMessage}
+                          extendedToolbar
+                          className="rounded-none border-0 border-r border-border h-full"
+                          startToolbarActions={
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant="ghost" size="sm"
+                                    className="h-7 w-7 p-0 disabled:opacity-30"
+                                    onClick={handleUndo} disabled={undoStack.length === 0}
+                                  >
+                                    <Undo2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Undo ({modKey}+Z)</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant="ghost" size="sm"
+                                    className="h-7 w-7 p-0 disabled:opacity-30"
+                                    onClick={handleRedo} disabled={redoStack.length === 0}
+                                  >
+                                    <Redo2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Redo ({modKey}+⇧+Z)</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          }
+                        />
+                      </div>
                     </ResizablePanel>
                     <ResizableHandle withHandle className="bg-border hover:bg-primary/20 transition-colors" />
                     <ResizablePanel defaultSize={splitPanelSizes[1]} minSize={20} maxSize={80}>
                       <div className="h-full px-4 py-3 overflow-y-auto text-sm prose prose-sm dark:prose-invert max-w-none bg-muted/20 relative">
-                        {newMessage ? (
-                          <ComposerPreview content={newMessage} codeTheme={codeTheme} />
+                        {composerEditorValue ? (
+                          <ComposerPreview
+                            content={(() => {
+                              try { return tiptapJsonToMarkdown(JSON.parse(composerEditorValue)); }
+                              catch { return composerEditorValue; }
+                            })()}
+                            codeTheme={codeTheme}
+                          />
                         ) : (
                           <span className="text-muted-foreground/60 italic">Preview will appear here...</span>
                         )}
@@ -1874,46 +1829,6 @@ const ChatStyleEditor = ({
                     </ResizablePanel>
                   </ResizablePanelGroup>
 
-                  {/* Bottom bar with shortcuts */}
-                  <div className="absolute bottom-2 left-4 z-50">
-                    <div className="text-[10px] text-muted-foreground/50">
-                      Enter send • {modKey}+B bold • {modKey}+I italic • {modKey}+` code • {modKey}+⇧+U bullets
-                    </div>
-                  </div>
-                  {/* Draggable resize handle at bottom right corner */}
-                  <div
-                    className="absolute bottom-0 right-0 cursor-nwse-resize opacity-40 hover:opacity-70 transition-opacity z-50 p-1.5 select-none"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      splitViewDragRef.current = { startY: e.clientY, startHeight: splitViewHeight };
-
-                      const handleMouseMove = (moveEvent: MouseEvent) => {
-                        if (!splitViewDragRef.current) return;
-                        const deltaY = moveEvent.clientY - splitViewDragRef.current.startY;
-                        const newHeight = Math.max(80, Math.min(600, splitViewDragRef.current.startHeight + deltaY));
-                        setSplitViewHeight(newHeight);
-                      };
-
-                      const handleMouseUp = () => {
-                        splitViewDragRef.current = null;
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
-                    title="Drag to resize"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" className="text-muted-foreground">
-                      <path
-                        d="M10 2L2 10M10 6L6 10"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
                 </div>
               ) : composerViewMode === 'preview' ? (
                 <div
@@ -1921,8 +1836,14 @@ const ChatStyleEditor = ({
                   onClick={() => handleComposerViewModeChange('edit')}
                   title="Click to edit"
                 >
-                  {newMessage ? (
-                    <ComposerPreview content={newMessage} codeTheme={codeTheme} />
+                  {composerEditorValue ? (
+                    <ComposerPreview
+                      content={(() => {
+                        try { return tiptapJsonToMarkdown(JSON.parse(composerEditorValue)); }
+                        catch { return composerEditorValue; }
+                      })()}
+                      codeTheme={codeTheme}
+                    />
                   ) : (
                     <span className="text-muted-foreground/60 italic">Click to start typing...</span>
                   )}
@@ -2020,9 +1941,9 @@ const ChatStyleEditor = ({
             {/* Send button */}
             <Button
               onClick={handleAddMessage}
-              disabled={composerViewMode === 'edit'
-                ? !composerEditorValue.trim()
-                : !newMessage.trim()
+              disabled={composerViewMode === 'preview'
+                ? !newMessage.trim()
+                : !composerEditorValue.trim()
               }
               className={cn(
                 "h-12 w-12 rounded-full p-0 shadow-lg",

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Save, Loader2, Plus, X, Check, AlertCircle, Settings, FileText, FlaskConical, Trash2 } from "lucide-react";
+import { Save, Loader2, Plus, X, Check, AlertCircle, Settings, FileText, FlaskConical, Trash2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -359,18 +359,13 @@ export default function AdminProblemEditor() {
     <div className="flex flex-col gap-0">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {isEditing ? "Edit Problem" : "Create Problem"}
-            </h1>
-            <p className="text-muted-foreground">
-              {skill?.name} &gt; {isEditing ? "Edit" : "New Problem"}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {isEditing ? "Edit Problem" : "Create Problem"}
+          </h1>
+          <p className="text-muted-foreground">
+            {skill?.name} &gt; {isEditing ? "Edit" : "New Problem"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {isEditing && isAdmin && (
@@ -459,9 +454,10 @@ export default function AdminProblemEditor() {
               <Card>
                 <CardHeader>
                   <CardTitle>Basic Information</CardTitle>
-                  <CardDescription>Define the problem identity and access level</CardDescription>
+                  <CardDescription>Identity, difficulty, and access settings</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Title — full width */}
                   <FormField
                     control={form.control}
                     name="title"
@@ -480,6 +476,7 @@ export default function AdminProblemEditor() {
                     )}
                   />
 
+                  {/* Slug + Difficulty */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -494,7 +491,6 @@ export default function AdminProblemEditor() {
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="difficulty"
@@ -519,46 +515,22 @@ export default function AdminProblemEditor() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="draft">Draft</SelectItem>
-                              <SelectItem value="published" disabled={!canPublish}>
-                                Published {!canPublish && "(incomplete)"}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* Display Order */}
+                  <FormField
+                    control={form.control}
+                    name="display_order"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Display Order</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="number" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <FormField
-                      control={form.control}
-                      name="display_order"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Display Order</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="number" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
+                  {/* Premium toggle */}
                   <FormField
                     control={form.control}
                     name="is_premium"
@@ -984,28 +956,74 @@ export default function AdminProblemEditor() {
           </Tabs>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between border-t pt-6 sticky bottom-0 bg-background pb-4">
-            <div className="text-sm text-muted-foreground">
-              {!canPublish && form.watch("status") === "published" && (
-                <div className="flex items-center gap-2 text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Cannot publish: requires language, example, and hidden test case.</span>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={createMutation.isPending || updateMutation.isPending || isViewOnly}
-                className="gap-2"
-              >
-                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-                <Save className="h-4 w-4" />
-                {isEditing ? "Update Problem" : "Create Problem"}
-              </Button>
+          <div className="sticky bottom-0 bg-background border-t pt-4 pb-4 z-10">
+            <div className="flex items-center justify-between gap-4">
+
+              {/* Publish requirements checklist */}
+              <div className="flex items-center gap-3 flex-wrap">
+                {[
+                  { label: "Language selected", done: selectedLanguagesSafe.length >= 1 },
+                  { label: "Example added", done: examples.length >= 1 },
+                  { label: "Hidden test case", done: hiddenTestCasesCount >= 1 },
+                ].map(({ label, done }) => (
+                  <span
+                    key={label}
+                    className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
+                      done
+                        ? "bg-primary/8 border-primary/20 text-primary"
+                        : "bg-muted border-border text-muted-foreground"
+                    }`}
+                  >
+                    {done
+                      ? <Check className="h-3 w-3" />
+                      : <Lock className="h-3 w-3" />
+                    }
+                    {label}
+                  </span>
+                ))}
+              </div>
+
+              {/* Right: status + actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                <Button type="button" variant="outline" onClick={() => navigate(`/admin/practice/skills/${skillId}/problems`)}>
+                  Cancel
+                </Button>
+
+                {/* Status select — lives here, not in a form tab */}
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className="w-[130px] h-9 text-sm">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="published" disabled={!canPublish}>
+                          {!canPublish ? (
+                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                              <Lock className="h-3 w-3" /> Published
+                            </span>
+                          ) : "Published"}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending || isViewOnly}
+                  className="gap-2"
+                >
+                  {(createMutation.isPending || updateMutation.isPending)
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Save className="h-4 w-4" />
+                  }
+                  {isEditing ? "Update Problem" : "Create Problem"}
+                </Button>
+              </div>
             </div>
           </div>
         </form>

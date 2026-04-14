@@ -36,27 +36,31 @@ interface SkillCardProps {
 
 function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onViewCourse, getStatusBadge }: SkillCardProps) {
   return (
-    <Card className={`group hover:shadow-md transition-all ${isCustom ? 'hover:border-amber-500/30 border-amber-500/10' : 'hover:border-primary/30'}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+    <div className="group flex flex-col bg-card border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-border/80">
+
+      {/* ── Body ── */}
+      <div className="flex flex-col gap-3 p-5 flex-1">
+
+        {/* Identity row */}
+        <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isCustom ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
-              {isCustom ? (
-                <Sparkles className="h-5 w-5 text-amber-500" />
-              ) : (
-                <Code2 className="h-5 w-5 text-primary" />
-              )}
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isCustom ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+              {isCustom
+                ? <Sparkles className="h-4 w-4 text-amber-500" />
+                : <Code2 className="h-4 w-4 text-primary" />
+              }
             </div>
-            <div>
-              <CardTitle className="text-base">{skill.name}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">{skill.slug}</p>
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium text-foreground leading-snug truncate">{skill.name}</p>
+              <p className="text-[11.5px] text-muted-foreground mt-0.5 truncate">{skill.slug}</p>
             </div>
           </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <button className="h-7 w-7 shrink-0 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all duration-150">
                 <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onEdit}>
@@ -68,10 +72,7 @@ function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onView
                 Manage Problems
               </DropdownMenuItem>
               {onDelete && (
-                <DropdownMenuItem
-                  onClick={onDelete}
-                  className="text-destructive focus:text-destructive"
-                >
+                <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
@@ -79,48 +80,51 @@ function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onView
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
+
+        {/* Description */}
         {skill.description && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{skill.description}</p>
+          <p className="text-[12.5px] font-light text-muted-foreground leading-relaxed line-clamp-2">
+            {skill.description}
+          </p>
         )}
+
+        {/* Type label */}
         {isCustom ? (
-          <div className="flex items-center gap-1.5 mb-3 text-xs">
-            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-amber-600 dark:text-amber-400 font-medium">Custom Collection</span>
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3 w-3 text-amber-500" />
+            <span className="text-[11.5px] font-medium text-amber-600 dark:text-amber-400">Custom Collection</span>
           </div>
         ) : skill.course_name && onViewCourse ? (
-          <div className="flex items-center gap-1.5 mb-3 text-xs">
-            <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground">Linked to:</span>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs font-medium"
+          <div className="flex items-center gap-1.5">
+            <Link2 className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[11.5px] text-muted-foreground">Linked to:</span>
+            <button
               onClick={onViewCourse}
+              className="text-[11.5px] font-medium text-primary hover:underline flex items-center gap-1"
             >
-              <BookOpen className="h-3 w-3 mr-1" />
+              <BookOpen className="h-3 w-3" />
               {skill.course_name}
-            </Button>
+            </button>
           </div>
         ) : null}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getStatusBadge(skill.status)}
-            <span className="text-xs text-muted-foreground">{skill.problem_count || 0} problems</span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onManageProblems}
-            className="gap-1.5 text-xs"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Problems
-          </Button>
+      </div>
+
+      {/* ── Footer ── */}
+      <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/30">
+        <div className="flex items-center gap-2">
+          {getStatusBadge(skill.status)}
+          <span className="text-[11.5px] text-muted-foreground">{skill.problem_count || 0} problems</span>
         </div>
-      </CardContent>
-    </Card>
+        <button
+          onClick={onManageProblems}
+          className="flex items-center gap-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-lg px-3 py-1.5 transition-all duration-150 hover:border-primary/40 hover:text-primary"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          Problems
+        </button>
+      </div>
+
+    </div>
   );
 }
 

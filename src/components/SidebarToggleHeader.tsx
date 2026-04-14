@@ -80,7 +80,7 @@ const SidebarToggleHeader = ({ isOpen, onToggle }: Props) => {
               height:     "30px",
               opacity:    logoOpacity,
               transition: "opacity 0.18s ease",
-              filter:     "brightness(0) saturate(100%) invert(28%) sepia(20%) saturate(800%) hue-rotate(95deg) brightness(85%)",
+              filter:     "brightness(0) saturate(100%) invert(58%) sepia(20%) saturate(500%) hue-rotate(95deg) brightness(90%)",
               userSelect: "none",
               pointerEvents: "none",
             }}
@@ -93,7 +93,7 @@ const SidebarToggleHeader = ({ isOpen, onToggle }: Props) => {
               position:   "absolute",
               width:      "16px",
               height:     "16px",
-              color:      "#6B8F71",
+              color:      "var(--admin-muted)",
               opacity:    hovered ? 1 : 0,
               transition: "opacity 0.18s ease",
             }}
@@ -147,16 +147,16 @@ const SidebarToggleHeader = ({ isOpen, onToggle }: Props) => {
         onClick={onToggle}
         aria-label="Collapse sidebar"
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = "#E2EAE1";
+          e.currentTarget.style.background = "var(--admin-bg-hover)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = "transparent";
         }}
         onMouseDown={(e) => {
-          e.currentTarget.style.background = "#D4DDD3";
+          e.currentTarget.style.background = "var(--admin-border)";
         }}
         onMouseUp={(e) => {
-          e.currentTarget.style.background = "#E2EAE1";
+          e.currentTarget.style.background = "var(--admin-bg-hover)";
         }}
         style={{
           display:         "flex",
@@ -168,7 +168,7 @@ const SidebarToggleHeader = ({ isOpen, onToggle }: Props) => {
           background:      "transparent",
           border:          "none",
           cursor:          "pointer",
-          color:           "#6B8F71",
+          color:           "var(--admin-muted)",
           padding:         0,
           transition:      "background 0.2s ease, color 0.2s ease",
         }}

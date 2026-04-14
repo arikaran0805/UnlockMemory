@@ -123,6 +123,7 @@ const buildBreadcrumbs = (
     return [root, { label: "Promo Codes", path: `${p}/promo-codes` }, { label: "Edit Promo Code" }];
 
   // ── Admin-only: Announcement Bar editor ───────────────────────────────────
+  if (pathname === `${p}/announcement-bars`) return [root, { label: "Announcement Bars" }];
   if (pathname === `${p}/announcement-bars/new`)
     return [root, { label: "Announcement Bars", path: `${p}/announcement-bars` }, { label: "New Announcement Bar" }];
   if (new RegExp(`^${p}/announcement-bars/[^/]+$`).test(pathname))
@@ -131,8 +132,15 @@ const buildBreadcrumbs = (
   // ── Admin-only: Careers ────────────────────────────────────────────────────
   if (pathname === `${p}/careers/new`)
     return [root, { label: "Careers", path: `${p}/careers` }, { label: "New Career" }];
-  if (new RegExp(`^${p}/careers/`).test(pathname))
-    return [root, { label: "Careers", path: `${p}/careers` }, { label: "Edit Career" }];
+  if (new RegExp(`^${p}/careers/`).test(pathname)) {
+    const careerName = searchParams.get("name");
+    return [
+      root,
+      { label: "Careers", path: `${p}/careers` },
+      ...(careerName ? [{ label: careerName }] : []),
+      { label: "Edit" },
+    ];
+  }
 
   // ── Admin-only: Practice ───────────────────────────────────────────────────
   const practiceRoot: BreadcrumbItem = { label: "Practice Lab", path: `${p}/practice/skills` };
@@ -150,26 +158,28 @@ const buildBreadcrumbs = (
     ? `${p}/practice/skills/${skillIdFromPath}`
     : `${p}/practice/skills`;
 
+  const problemsRoot: BreadcrumbItem = { label: "Problems", path: `${skillBase}/problems` };
+
   if (/\/problems$/.test(pathname))
     return [root, practiceRoot, { label: "Problems" }];
   if (/\/problems\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Problems", path: `${skillBase}/problems` }, { label: "New Problem" }];
+    return [root, practiceRoot, problemsRoot, { label: "Problem Solving" }, { label: "New" }];
   if (/\/problems\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Problems", path: `${skillBase}/problems` }, { label: "Edit Problem" }];
+    return [root, practiceRoot, problemsRoot, { label: "Problem Solving" }, { label: "Edit" }];
   if (/\/predict-output$/.test(pathname))
     return [root, practiceRoot, { label: "Predict Output" }];
   if (/\/predict-output\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Predict Output", path: `${skillBase}/predict-output` }, { label: "New" }];
+    return [root, practiceRoot, problemsRoot, { label: "Predict Output" }, { label: "New" }];
   if (/\/predict-output\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Predict Output", path: `${skillBase}/predict-output` }, { label: "Edit" }];
+    return [root, practiceRoot, problemsRoot, { label: "Predict Output" }, { label: "Edit" }];
   if (/\/fix-error\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Fix Error" }, { label: "New" }];
+    return [root, practiceRoot, problemsRoot, { label: "Fix the Error" }, { label: "New" }];
   if (/\/fix-error\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Fix Error" }, { label: "Edit" }];
+    return [root, practiceRoot, problemsRoot, { label: "Fix the Error" }, { label: "Edit" }];
   if (/\/eliminate-wrong\/new$/.test(pathname))
-    return [root, practiceRoot, { label: "Eliminate Wrong" }, { label: "New" }];
+    return [root, practiceRoot, problemsRoot, { label: "Eliminate Wrong" }, { label: "New" }];
   if (/\/eliminate-wrong\/[^/]+$/.test(pathname))
-    return [root, practiceRoot, { label: "Eliminate Wrong" }, { label: "Edit" }];
+    return [root, practiceRoot, problemsRoot, { label: "Eliminate Wrong" }, { label: "Edit" }];
 
   // ── Fallback ───────────────────────────────────────────────────────────────
   return [root];
@@ -192,9 +202,9 @@ const AdminBreadcrumbHeader = () => {
     <header
       className="sticky top-0 z-40 flex items-center h-[52px] px-8 border-b"
       style={{
-        background:   "#ffffff",
-        borderColor:  "#E2EAE1",
-        backdropFilter: "blur(8px)",
+        background:         "var(--admin-header-bg)",
+        borderColor:        "var(--admin-header-border)",
+        backdropFilter:     "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
       }}
     >
@@ -208,7 +218,7 @@ const AdminBreadcrumbHeader = () => {
               {i > 0 && (
                 <span
                   className="mx-1.5 text-[11px] select-none"
-                  style={{ color: "#B8C9B8" }}
+                  style={{ color: "var(--admin-muted)" }}
                 >
                   ›
                 </span>
@@ -220,9 +230,8 @@ const AdminBreadcrumbHeader = () => {
                   to={item.path}
                   className={cn(
                     "text-[13px] transition-colors duration-150 truncate max-w-[140px]",
-                    "hover:text-[#1A3A2A] cursor-pointer",
                   )}
-                  style={{ color: "#6B8F71" }}
+                  style={{ color: "var(--admin-muted)" }}
                 >
                   {item.label}
                 </Link>
@@ -232,7 +241,7 @@ const AdminBreadcrumbHeader = () => {
                     "text-[13px] truncate max-w-[180px]",
                     isLast ? "font-medium" : "",
                   )}
-                  style={{ color: isLast ? "#1A3A2A" : "#6B8F71" }}
+                  style={{ color: isLast ? "var(--admin-text)" : "var(--admin-muted)" }}
                 >
                   {item.label}
                 </span>

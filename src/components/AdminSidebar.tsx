@@ -22,18 +22,18 @@ import ViewAsRoleSelector from "@/components/ViewAsRoleSelector";
 import ProfileEditDialog from "@/components/ProfileEditDialog";
 import SidebarToggleHeader from "@/components/SidebarToggleHeader";
 
-// ─── Base colour tokens ───────────────────────────────────────────────────────
+// ─── Base colour tokens — use CSS vars so dark mode works ────────────────────
 const C = {
-  bg: "#EFF3EE",
-  hoverBg: "#E2EAE1",
-  textPrimary: "#1A3A2A",
-  textMuted: "#6B8F71",
-  border: "#D4DDD3",
-  popupBg: "#EFF3EE",
-  popupMuted: "#6B8F71",
-  popupDiv: "#D4DDD3",
-  danger: "#FF3B30",
-  tooltipBg: "#1A3A2A",  // dark background for light text tooltips
+  bg:          "var(--admin-bg)",
+  hoverBg:     "var(--admin-bg-hover)",
+  textPrimary: "var(--admin-text)",
+  textMuted:   "var(--admin-muted)",
+  border:      "var(--admin-border)",
+  popupBg:     "var(--admin-popup-bg)",
+  popupMuted:  "var(--admin-popup-muted)",
+  popupDiv:    "var(--admin-popup-div)",
+  danger:      "#FF3B30",
+  tooltipBg:   "var(--admin-tooltip-bg)",
 } as const;
 
 // ─── Role-aware active-state tokens ──────────────────────────────────────────
@@ -180,7 +180,7 @@ const AdminSidebar = ({
           isOpen
             ? "gap-3 px-3 py-[11px]"
             : "justify-center w-10 mx-auto py-[11px]",
-          active ? "" : "hover:bg-[#E2EAE1]",
+          active ? "" : "admin-nav-hover",
         )}
         style={active ? { backgroundColor: A.bg } : undefined}
       >
@@ -275,7 +275,7 @@ const AdminSidebar = ({
           onClick={openGlobalCommandSearch}
           className={cn(
             "group relative flex items-center w-full rounded-xl cursor-pointer",
-            "transition-colors duration-150 hover:bg-[#E2EAE1]",
+            "transition-colors duration-150 admin-nav-hover",
             isOpen
               ? "gap-3 px-3 py-[11px]"
               : "justify-center w-10 mx-auto py-[11px]",
@@ -353,7 +353,7 @@ const AdminSidebar = ({
             {/* User header — click to open profile editor */}
             <button
               onClick={() => { setProfileOpen(false); setProfileEditOpen(true); }}
-              className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left hover:bg-black/5"
+              className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left admin-nav-hover"
             >
               {userProfile?.avatar_url ? (
                 <img
@@ -382,7 +382,7 @@ const AdminSidebar = ({
               <ViewAsRoleSelector onOpenDialog={() => setProfileOpen(false)} />
               <button
                 onClick={() => { setProfileOpen(false); navigate("/admin/settings"); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm admin-nav-hover transition-colors cursor-pointer"
                 style={{ color: C.textPrimary }}
               >
                 <Settings className="h-4 w-4 shrink-0" style={{ color: C.popupMuted }} />
@@ -390,7 +390,7 @@ const AdminSidebar = ({
               </button>
               <button
                 onClick={() => { setProfileOpen(false); navigate("/"); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm admin-nav-hover transition-colors cursor-pointer"
                 style={{ color: C.textPrimary }}
               >
                 <Home className="h-4 w-4 shrink-0" style={{ color: C.popupMuted }} />
@@ -403,7 +403,7 @@ const AdminSidebar = ({
             <div className="py-1.5 px-1.5">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-black/5 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm admin-nav-hover transition-colors cursor-pointer"
                 style={{ color: C.danger }}
               >
                 <LogOut className="h-4 w-4 shrink-0" style={{ color: C.danger }} />
@@ -418,7 +418,7 @@ const AdminSidebar = ({
           onClick={() => setProfileOpen((p) => !p)}
           className={cn(
             "w-full flex items-center rounded-xl",
-            "transition-colors duration-150 hover:bg-[#E2EAE1]",
+            "transition-colors duration-150 admin-nav-hover",
             isOpen ? "gap-3 px-3 py-2" : "justify-center py-2",
           )}
         >
