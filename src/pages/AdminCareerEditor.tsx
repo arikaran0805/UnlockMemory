@@ -1417,7 +1417,7 @@ const AdminCareerEditor = () => {
               </TabsContent>
               
               <TabsContent value="settings" className="flex-1 overflow-auto">
-                <div className="space-y-5 max-w-3xl">
+                <div className="space-y-5">
 
                   {/* ── Identity ─────────────────────────────── */}
                   <div>
