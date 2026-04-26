@@ -1301,7 +1301,7 @@ const AdminCareerEditor = () => {
                   const savings = totalOriginal - discountedTotal;
 
                   return (
-                    <div className="grid gap-5 lg:grid-cols-[1fr_340px] max-w-4xl">
+                    <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
 
                       {/* Left — course list */}
                       <Card className="p-5">
