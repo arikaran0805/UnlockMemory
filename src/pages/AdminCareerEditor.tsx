@@ -1211,17 +1211,12 @@ const AdminCareerEditor = () => {
                     )}
                   </Card>
 
-                  {/* ── Weight Bar + Skill Order ─── */}
+                  {/* ── Weight Bar ─── */}
                   <Card className="p-5 lg:col-span-2">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-semibold text-sm flex items-center gap-2">
                         <Zap className="h-4 w-4 text-primary" />
-                        Skill Breakdown & Order
-                        {skillNodes.length > 0 && (
-                          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full ml-1">
-                            Drag to reorder
-                          </span>
-                        )}
+                        Skill Breakdown
                       </h3>
                       <Button variant="outline" size="sm" onClick={autoBalanceWeights} disabled={skillNodes.length === 0} className="h-7 text-xs">
                         <Sparkles className="h-3 w-3 mr-1.5" />
@@ -1232,7 +1227,7 @@ const AdminCareerEditor = () => {
                     {skillNodes.length > 0 ? (
                       <>
                         {/* Segmented weight bar */}
-                        <div className="h-3 rounded-full overflow-hidden flex gap-px bg-muted mb-3">
+                        <div className="h-3 rounded-full overflow-hidden flex gap-px bg-muted mb-4">
                           {skillNodes.map((skill) => {
                             const cs = getSkillColor(skill.color);
                             return (
@@ -1245,45 +1240,63 @@ const AdminCareerEditor = () => {
                             );
                           })}
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Legend */}
-                          <div className="flex flex-wrap gap-x-4 gap-y-1.5 content-start">
-                            {skillNodes.map(skill => {
-                              const cs = getSkillColor(skill.color);
-                              return (
-                                <div key={skill.id} className="flex items-center gap-1.5 text-xs">
-                                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cs.solid}`} />
-                                  <span className="font-medium text-foreground/80">{skill.name}</span>
-                                  <span className="text-muted-foreground">({skill.weight}%)</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* Drag reorder list */}
-                          <ScrollArea className="h-[160px] pr-2">
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSkillDragEnd}>
-                              <SortableContext items={skillNodes.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                                <div className="space-y-1.5">
-                                  {skillNodes.map((skill) => (
-                                    <SortableSkillItem
-                                      key={skill.id}
-                                      skill={skill}
-                                      colorStyle={getSkillColor(skill.color)}
-                                      getIcon={getIcon}
-                                    />
-                                  ))}
-                                </div>
-                              </SortableContext>
-                            </DndContext>
-                          </ScrollArea>
+                        {/* Legend */}
+                        <div className="flex flex-wrap gap-x-5 gap-y-2">
+                          {skillNodes.map(skill => {
+                            const cs = getSkillColor(skill.color);
+                            return (
+                              <div key={skill.id} className="flex items-center gap-1.5 text-xs">
+                                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cs.solid}`} />
+                                <span className="font-medium text-foreground/80">{skill.name}</span>
+                                <span className="text-muted-foreground">({skill.weight}%)</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </>
                     ) : (
-                      <div className="py-10 text-center">
+                      <div className="py-8 text-center">
                         <Target className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
                         <p className="text-sm text-muted-foreground">Add skills in the Skill Canvas tab</p>
+                      </div>
+                    )}
+                  </Card>
+
+                  {/* ── Skill Order (drag reorder) ─── */}
+                  <Card className="p-5 lg:col-span-2">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
+                        <Icons.GripVertical className="h-4 w-4 text-primary" />
+                        Skill Order
+                      </h3>
+                      {skillNodes.length > 0 && (
+                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          Drag to reorder
+                        </span>
+                      )}
+                    </div>
+
+                    {skillNodes.length > 0 ? (
+                      <ScrollArea className="pr-2">
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSkillDragEnd}>
+                          <SortableContext items={skillNodes.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                            <div className="space-y-2">
+                              {skillNodes.map((skill) => (
+                                <SortableSkillItem
+                                  key={skill.id}
+                                  skill={skill}
+                                  colorStyle={getSkillColor(skill.color)}
+                                  getIcon={getIcon}
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      </ScrollArea>
+                    ) : (
+                      <div className="py-8 text-center">
+                        <Icons.GripVertical className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+                        <p className="text-sm text-muted-foreground">No skills to order yet</p>
                       </div>
                     )}
                   </Card>
