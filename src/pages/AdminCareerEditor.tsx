@@ -1594,153 +1594,195 @@ const AdminCareerEditor = () => {
 
       {/* Skill Editor Dialog */}
       <Dialog open={skillEditorOpen} onOpenChange={setSkillEditorOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Skill</DialogTitle>
-            <DialogDescription>
-              Configure skill name, weight, and appearance
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingSkill && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Skill Name</Label>
-                <Input
-                  value={editingSkill.name}
-                  onChange={(e) => updateSkill({ name: e.target.value })}
-                  placeholder="e.g., Python Programming"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Weight ({editingSkill.weight}%)</Label>
-                <Slider
-                  value={[editingSkill.weight]}
-                  onValueChange={([v]) => updateSkill({ weight: v })}
-                  max={100}
-                  step={5}
-                />
-                <p className="text-xs text-muted-foreground">
-                  How much this skill contributes to overall career readiness
-                </p>
-              </div>
+        <DialogContent className="max-w-[480px] p-0 gap-0 overflow-hidden">
+          {editingSkill && (() => {
+            const colorStyle = getSkillColor(editingSkill.color);
+            return (
+              <>
+                {/* Colored header strip */}
+                <div className={`h-1 w-full ${colorStyle.solid}`} />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Icon</Label>
-                  <Select value={editingSkill.icon} onValueChange={(v) => updateSkill({ icon: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {skillIconOptions.map(icon => (
-                        <SelectItem key={icon} value={icon}>
-                          <div className="flex items-center gap-2">
-                            {getIcon(icon)}
-                            {icon}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Header */}
+                <div className="px-6 pt-5 pb-4 border-b border-border/60">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorStyle.bg} ${colorStyle.text}`}>
+                      {getIcon(editingSkill.icon)}
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-foreground leading-tight">{editingSkill.name || "New Skill"}</h2>
+                      <p className="text-[12px] text-muted-foreground mt-0.5">Skill configuration</p>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label>Color</Label>
-                  <Select value={editingSkill.color} onValueChange={(v) => updateSkill({ color: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {skillColorOptions.map(color => (
-                        <SelectItem key={color.name} value={color.name}>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded ${color.bg} ${color.border} border`} />
-                            {color.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              {/* Mapped courses in skill */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Mapped Courses ({editingSkill.courses.length})</Label>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => openAddCoursesDialog(editingSkill.id)}
+                {/* Body */}
+                <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-y-auto">
+
+                  {/* Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Skill Name</Label>
+                    <Input
+                      value={editingSkill.name}
+                      onChange={(e) => updateSkill({ name: e.target.value })}
+                      placeholder="e.g., Python Programming"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  {/* Weight */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Weight</Label>
+                      <span className={`text-sm font-bold px-2.5 py-0.5 rounded-lg ${colorStyle.bg} ${colorStyle.text}`}>
+                        {editingSkill.weight}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[editingSkill.weight]}
+                      onValueChange={([v]) => updateSkill({ weight: v })}
+                      max={100}
+                      step={5}
+                    />
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Low</span>
+                      <span>Contribution to career readiness</span>
+                      <span>High</span>
+                    </div>
+                  </div>
+
+                  {/* Icon + Color */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Icon</Label>
+                      <Select value={editingSkill.icon} onValueChange={(v) => updateSkill({ icon: v })}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {skillIconOptions.map(icon => (
+                            <SelectItem key={icon} value={icon}>
+                              <div className="flex items-center gap-2">
+                                {getIcon(icon)}
+                                <span className="text-sm">{icon}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Color</Label>
+                      <Select value={editingSkill.color} onValueChange={(v) => updateSkill({ color: v })}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {skillColorOptions.map(color => (
+                            <SelectItem key={color.name} value={color.name}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-3.5 h-3.5 rounded-full ${color.solid}`} />
+                                <span className="text-sm">{color.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Mapped Courses */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
+                        Mapped Courses
+                        <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold text-[10px] normal-case tracking-normal">
+                          {editingSkill.courses.length}
+                        </span>
+                      </Label>
+                      <button
+                        onClick={() => openAddCoursesDialog(editingSkill.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+                      >
+                        <Icons.Plus className="h-3 w-3" />
+                        Add Courses
+                      </button>
+                    </div>
+
+                    {editingSkill.courses.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {editingSkill.courses.map(({ courseId, contribution }) => {
+                          const course = courses.find(c => c.id === courseId);
+                          return (
+                            <div key={courseId} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/50 border border-border/50 group">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${colorStyle.bg}`}>
+                                <BookOpen className={`h-3.5 w-3.5 ${colorStyle.text}`} />
+                              </div>
+                              <span className="text-sm font-medium flex-1 truncate text-foreground/80">{course?.name}</span>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  value={contribution}
+                                  onChange={(e) => {
+                                    const v = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                    updateCourseContribution(editingSkill.id, courseId, v);
+                                    setEditingSkill(prev => prev ? {
+                                      ...prev,
+                                      courses: prev.courses.map(c => c.courseId === courseId ? { ...c, contribution: v } : c)
+                                    } : null);
+                                  }}
+                                  className="w-14 h-7 text-xs text-center font-semibold"
+                                />
+                                <span className="text-xs text-muted-foreground font-medium">%</span>
+                                <button
+                                  onClick={() => {
+                                    removeCourseFromSkill(editingSkill.id, courseId);
+                                    setEditingSkill(prev => prev ? {
+                                      ...prev,
+                                      courses: prev.courses.filter(c => c.courseId !== courseId)
+                                    } : null);
+                                  }}
+                                  className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className={`py-5 rounded-xl border-2 border-dashed text-center ${colorStyle.border}`}>
+                        <BookOpen className={`h-5 w-5 mx-auto mb-1.5 ${colorStyle.text} opacity-40`} />
+                        <p className="text-xs font-medium text-muted-foreground">No courses mapped yet</p>
+                        <p className="text-[11px] text-muted-foreground/60 mt-0.5">Click "Add Courses" above</p>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-border/60 flex items-center justify-between bg-muted/20">
+                  <button
+                    onClick={() => deleteSkill(editingSkill.id)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-destructive hover:bg-destructive/8 transition-colors"
                   >
-                    <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                    Add Courses
-                  </Button>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete Skill
+                  </button>
+                  <button
+                    onClick={() => setSkillEditorOpen(false)}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    <Icons.Check className="h-3.5 w-3.5" />
+                    Done
+                  </button>
                 </div>
-                {editingSkill.courses.length > 0 ? (
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {editingSkill.courses.map(({ courseId, contribution }) => {
-                      const course = courses.find(c => c.id === courseId);
-                      return (
-                        <div key={courseId} className="flex items-center gap-2 p-2 rounded-lg bg-muted">
-                          <BookOpen className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm flex-1 truncate">{course?.name}</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={contribution}
-                            onChange={(e) => {
-                              const newContribution = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                              updateCourseContribution(editingSkill.id, courseId, newContribution);
-                              // Also update editingSkill state
-                              setEditingSkill(prev => prev ? {
-                                ...prev,
-                                courses: prev.courses.map(c => 
-                                  c.courseId === courseId ? { ...c, contribution: newContribution } : c
-                                )
-                              } : null);
-                            }}
-                            className="w-16 h-7 text-xs text-center"
-                          />
-                          <span className="text-xs text-muted-foreground">%</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              removeCourseFromSkill(editingSkill.id, courseId);
-                              // Also update editingSkill state
-                              setEditingSkill(prev => prev ? {
-                                ...prev,
-                                courses: prev.courses.filter(c => c.courseId !== courseId)
-                              } : null);
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground text-center py-4 bg-muted/50 rounded-lg">
-                    No courses mapped. Click "Add Courses" to add.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter className="gap-2">
-            <Button variant="destructive" onClick={() => editingSkill && deleteSkill(editingSkill.id)}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Skill
-            </Button>
-            <Button onClick={() => setSkillEditorOpen(false)}>Done</Button>
-          </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
