@@ -138,29 +138,41 @@
 }
 
 /* ─── Section Header ────────────────────────────────────────────────────────── */
-.l-eyebrow {
+
+/* Pill badge — replaces plain uppercase eyebrow text */
+.l-eyebrow-badge {
+  display: inline-flex;
+  align-items: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 400;
+  font-size: 10.5px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 8px;
+  letter-spacing: 1.1px;
+  color: #22A55D;
+  background: rgba(34, 165, 93, 0.08);
+  border: 1px solid rgba(34, 165, 93, 0.22);
+  border-radius: 100px;
+  padding: 3px 10px;
+  margin-bottom: 10px;
 }
 
 .l-section-title {
   font-family: 'DM Sans', sans-serif;
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  margin: 0 0 6px 0;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  line-height: 1.28;
+  margin: 0 0 7px 0;
 }
 
 .l-section-sub {
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 1.6;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.62;
+  max-width: 420px;
   margin: 0;
+  opacity: 0.72;
 }
 
 .l-section-hd {
@@ -168,85 +180,725 @@
 }
 
 .l-section {
-  padding: 56px 0;
+  padding: 44px 0;
 }
 
 /* ─── Card Grid ─────────────────────────────────────────────────────────────── */
 .l-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
-/* ─── Course Card ───────────────────────────────────────────────────────────── */
+.l-card-grid--3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .l-card-grid { grid-template-columns: repeat(2, 1fr); }
+  .l-card-grid--3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .l-card-grid { grid-template-columns: 1fr; }
+  .l-card-grid--3 { grid-template-columns: 1fr; }
+}
+
+/* ─── View All CTA (course section header) ──────────────────────────────────── */
+.l-section-hd-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.l-section-hd-row .l-section-hd {
+  margin-bottom: 0;
+}
+
+.l-view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #22A55D;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 7px 16px 7px 18px;
+  border: 1.5px solid rgba(34, 165, 93, 0.5);
+  border-radius: 100px;
+  margin-top: 28px;
+  background: transparent;
+  box-shadow: 0 1px 3px rgba(34, 165, 93, 0.06);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+              box-shadow 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.l-view-all-link:hover {
+  background: #22A55D;
+  color: #fff;
+  border-color: #22A55D;
+  box-shadow: 0 4px 14px rgba(34, 165, 93, 0.28), 0 1px 4px rgba(34, 165, 93, 0.18);
+  transform: translateY(-2px);
+}
+
+.l-view-all-arrow {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  flex-shrink: 0;
+}
+
+.l-view-all-link:hover .l-view-all-arrow {
+  transform: translateX(3px);
+}
+
+/* ─── Card Grid ─────────────────────────────────────────────────────────────── */
+a.l-course-card {
+  text-decoration: none;
+  color: inherit;
+}
+
 .l-course-card {
-  border: 0.5px solid;
   border-radius: var(--l-r-lg);
-  padding: 20px;
-  transition: all 0.2s ease;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  background: var(--card);
+  border: 1px solid hsl(var(--border) / 0.8);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .l-course-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 24px 48px rgba(0,0,0,0.08);
+  border-color: hsl(var(--border) / 0.5);
 }
 
-.l-course-tag {
+/* Skeleton */
+.l-course-skeleton {
+  height: 240px;
+  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted)/0.6) 50%, hsl(var(--muted)) 75%);
+  background-size: 200% 100%;
+  animation: l-shimmer 1.4s infinite;
+}
+
+@keyframes l-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Banner ─────────────────────────────────────────────────────────────────── */
+.l-course-banner {
+  position: relative;
+  height: 185px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+/* Scrim — bottom-heavy gradient for text legibility */
+.l-course-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.22) 48%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Top-left radial light — premium depth */
+.l-course-banner-light {
+  position: absolute;
+  top: -32px;
+  left: -32px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.13) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease;
+}
+
+.l-course-card:hover .l-course-banner-light {
+  opacity: 1.6;
+}
+
+/* Rating / New pill ── top-right */
+.l-course-rating {
+  position: absolute;
+  top: 11px;
+  right: 11px;
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10.5px;
-  font-weight: 400;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.92);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 100px;
+  letter-spacing: 0.4px;
+  z-index: 2;
+}
+
+/* Glass-style "New" badge */
+.l-course-rating--new {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.28);
+  color: rgba(255,255,255,0.88);
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  font-size: 9.5px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  width: fit-content;
+}
+
+/* Course name (bottom-left of banner) */
+.l-course-banner-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  z-index: 1;
+  position: relative;
+}
+
+.l-course-banner-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0;
+  line-height: 1.18;
+  letter-spacing: -0.4px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.5);
+  /* Allow wrap to two lines for longer names */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Decorative icon — CSS-controlled opacity for hover transition */
+.l-banner-icon-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  opacity: 0.40;
+  z-index: 1;
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+}
+
+.l-course-card:hover .l-banner-icon-wrap {
+  opacity: 0.62;
+  transform: translate(-50%, -50%) scale(1.1) translateY(-4px);
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));
+}
+
+/* ─── Info section ───────────────────────────────────────────────────────────── */
+.l-course-info {
+  padding: 16px;           /* uniform 16px — matches reference */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;               /* tight between title → level only */
+  flex: 1;
+  /* no border-top — the banner/card border is enough separation */
 }
 
 .l-course-title {
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.4;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.42;
+  letter-spacing: -0.15px;
   margin: 0;
-}
-
-.l-course-desc {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12.5px;
-  font-weight: 300;
-  line-height: 1.6;
-  margin: 0;
-  flex: 1;
-}
-
-.l-progress-wrap {
-  height: 2px;
-  border-radius: 2px;
+  /* Clamp to 2 lines so all cards stay the same height */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.l-progress-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.l-course-meta {
+.l-course-level {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-family: 'DM Sans', sans-serif;
+  gap: 5px;
   font-size: 11.5px;
   font-weight: 400;
 }
 
-/* ─── Career Card ───────────────────────────────────────────────────────────── */
+.l-course-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.l-course-enrolled {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+/* "Explore" — muted by default, green on card hover */
+.l-course-explore {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  letter-spacing: 0.1px;
+  transition: color 0.2s ease;
+}
+
+.l-course-explore-arrow {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+  opacity: 0;
+  transform: translateX(-4px);
+}
+
+.l-course-card:hover .l-course-explore {
+  color: #22A55D;
+}
+
+.l-course-card:hover .l-course-explore-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ─── Udemy-style shared card classes (course + career path) ────────────────── */
+
+/* Thumbnail */
+.lcc-thumb {
+  width: 100%;
+  height: 185px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #e5e7eb;
+  /* no border-radius here — parent .l-course-card has overflow:hidden + border-radius
+     which clips the thumb cleanly. Adding radius here causes a visible card-border gap */
+}
+
+.lcc-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.l-course-card:hover .lcc-thumb-img { transform: scale(1.04); }
+
+.lcc-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Body */
+.lcc-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Title + rating/count row */
+.lcc-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.lcc-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: hsl(var(--foreground));
+  margin: 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lcc-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400E;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+/* Description */
+.lcc-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 10px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Instructor / expert row */
+.lcc-instructor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.lcc-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #22A55D;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lcc-instructor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.lcc-instructor-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lcc-instructor-sub {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Footer */
+.lcc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 0.5px solid hsl(var(--border));
+}
+
+.lcc-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lcc-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+}
+
+.lcc-level-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #16803c;
+  background: rgba(34,197,94,0.10);
+  border: 0.5px solid rgba(34,197,94,0.25);
+  padding: 2px 8px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+/* ─── Career Path Card — Premium Polish ──────────────────────────────────────── */
+
+/* Card container overrides */
+.lcc-card {
+  border-radius: 16px !important;
+  border: 1px solid hsl(var(--border) / 0.7) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.05) !important;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease !important;
+}
+
+.lcc-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 24px 48px rgba(0,0,0,0.07) !important;
+  border-color: hsl(var(--border) / 0.45) !important;
+}
+
+/* Thumbnail: inset with border-radius for white frame effect */
+.lcc-cp-thumb {
+  position: relative;
+  overflow: hidden;
+  margin: 10px 10px 0;
+  width: calc(100% - 20px);
+  border-radius: 10px;
+}
+
+/* Bottom scrim — lifts skill pills off gradient, adds depth */
+.lcc-cp-thumb::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(to top, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.18) 60%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Dot-grid texture — quiet, barely-there */
+.lcc-cp-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.11) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Top-left radial light — premium depth highlight */
+.lcc-cp-light {
+  position: absolute;
+  top: -28px;
+  left: -28px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease;
+}
+
+.lcc-card:hover .lcc-cp-light {
+  opacity: 1.5;
+}
+
+/* Level badge — top-left, above scrim */
+.lcc-cp-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  color: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 0.5px solid rgba(255,255,255,0.28);
+  padding: 3.5px 10px;
+  border-radius: 100px;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* Icon — centered, nudged up 8px, subtle watermark */
+.lcc-cp-icon-tr {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% - 8px));
+  opacity: 0.40;
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s ease;
+  pointer-events: none;
+  z-index: 2;
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.3));
+}
+
+.lcc-cp-icon-tr .l-career-icon {
+  width: 112px !important;
+  height: 112px !important;
+  color: #fff;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.lcc-card:hover .lcc-cp-icon-tr {
+  opacity: 0.62;
+  transform: translate(-50%, calc(-50% - 14px)) scale(1.08);
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.35));
+}
+
+/* Skill pills — bottom strip, above scrim */
+.lcc-cp-skills {
+  position: absolute;
+  bottom: 11px;
+  left: 11px;
+  right: 11px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.lcc-cp-skill-pill {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.13);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 0.5px solid rgba(255,255,255,0.26);
+  padding: 3px 9px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lcc-card:hover .lcc-cp-skill-pill {
+  background: rgba(255,255,255,0.19);
+  border-color: rgba(255,255,255,0.36);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.16);
+}
+
+.lcc-cp-skill-pill--more {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.5);
+  box-shadow: none;
+}
+
+/* Body padding — generous, consistent 8px scale */
+.lcc-card .lcc-body {
+  padding: 16px 18px 18px;
+}
+
+/* Title */
+.lcc-card .lcc-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.32;
+}
+
+/* Description */
+.lcc-card .lcc-desc {
+  font-size: 12.5px;
+  line-height: 1.55;
+  opacity: 0.68;
+  margin-bottom: 12px;
+}
+
+/* Avatar — slightly smaller */
+.lcc-card .lcc-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 9px;
+}
+
+/* Instructor name */
+.lcc-card .lcc-instructor-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Instructor subtitle */
+.lcc-card .lcc-instructor-sub {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+/* Footer */
+.lcc-card .lcc-footer {
+  border-top: 1px solid hsl(var(--border) / 0.6);
+  padding-top: 12px;
+}
+
+.lcc-card .lcc-meta-item {
+  font-size: 11px;
+  gap: 4px;
+  opacity: 0.68;
+}
+
+/* Course count pill — right of title (replaces star rating) */
+.lcc-cp-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #22A55D;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 1px;
+  background: rgba(34, 165, 93, 0.08);
+  border: 1px solid rgba(34, 165, 93, 0.18);
+  border-radius: 100px;
+  padding: 2px 8px;
+}
+
+/* Price */
+.lcc-cp-price {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.4px;
+  transition: color 0.2s ease;
+}
+
+.lcc-card:hover .lcc-cp-price {
+  color: #22A55D;
+}
+
+/* UnlockMemory avatar (green gradient, "UM" text) */
+.lcc-cp-av {
+  background: linear-gradient(135deg, #22A55D, #16803c) !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2px;
+}
+
+/* ─── Legacy career card styles (kept for safety) ───────────────────────────── */
 .l-career-card {
   border: 0.5px solid;
   border-radius: var(--l-r-lg);
@@ -273,53 +925,14 @@
   flex-shrink: 0;
 }
 
-.l-career-title {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  margin: 0;
-}
-
-.l-career-desc {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12.5px;
-  font-weight: 300;
-  line-height: 1.6;
-  margin: 0;
-  flex: 1;
-}
-
-.l-roadmap {
-  display: flex;
-  align-items: center;
-}
-
-.l-roadmap-step {
-  display: inline-flex;
-  align-items: center;
-}
-
-.l-rdot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.l-rdot-off {
-  opacity: 0.25;
-}
-
-.l-rline {
-  width: 18px;
-  height: 1px;
-}
-
-.l-career-cta {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-}
+.l-career-title { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; margin: 0; }
+.l-career-desc  { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 300; line-height: 1.6; margin: 0; flex: 1; }
+.l-roadmap      { display: flex; align-items: center; }
+.l-roadmap-step { display: inline-flex; align-items: center; }
+.l-rdot         { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.l-rdot-off     { opacity: 0.25; }
+.l-rline        { width: 18px; height: 1px; }
+.l-career-cta   { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; }
 
 /* ─── Why Section ───────────────────────────────────────────────────────────── */
 .l-why {
@@ -371,124 +984,500 @@
   margin: 0;
 }
 
-/* ─── CTA Card ──────────────────────────────────────────────────────────────── */
+/* ─── CTA Section ───────────────────────────────────────────────────────────── */
 .l-cta-section {
   padding: 72px 0;
 }
 
-.l-cta-card {
-  max-width: 440px;
+/* Split card: left = text/CTAs, right = dashboard illustration */
+.l-cta-split-card {
+  max-width: 900px;
   margin: 0 auto;
   border: 0.5px solid;
   border-radius: var(--l-r-lg);
-  padding: 40px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.l-cta-left {
+  padding: 52px 52px 52px 52px;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  justify-content: center;
+}
+
+.l-cta-right {
+  background: linear-gradient(145deg, #f0fdf6 0%, #f3f6f3 55%, #eef1ef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 40px;
+  border-left: 0.5px solid hsl(var(--border) / 0.6);
 }
 
 .l-cta-title {
   font-family: 'DM Serif Display', serif;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.3px;
-  margin: 0 0 10px 0;
+  line-height: 1.18;
+  letter-spacing: -0.4px;
+  margin: 0 0 14px 0;
 }
 
 .l-cta-sub {
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   font-weight: 300;
-  line-height: 1.6;
-  margin: 0 0 24px 0;
+  line-height: 1.68;
+  margin: 0 0 28px 0;
 }
 
-.l-cta-input {
-  width: 100%;
-  height: 40px;
-  border: 0.5px solid;
-  border-radius: var(--l-r-md);
-  padding: 0 14px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  outline: none;
-  transition: border-color 0.2s ease;
-  margin-bottom: 10px;
+/* Auth action buttons */
+.l-cta-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.l-cta-input:focus {
-  border-color: hsl(var(--primary));
-}
-
-.l-cta-input::placeholder {
-  color: hsl(var(--muted-foreground));
-}
-
-.l-cta-btn {
-  width: 100%;
-  height: 40px;
+.l-cta-primary-btn {
+  height: 42px;
+  padding: 0 24px;
   border: none;
   border-radius: var(--l-r-md);
   font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.l-cta-btn:hover {
-  transform: translateY(-1px);
-}
-
-/* ─── Hero Section Overrides ────────────────────────────────────────────────── */
-
-.l-hero-section {
-  background: #FAFAFA !important;
-  border-color: #E5E7EB !important;
-}
-
-.l-hero .l-h1 {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 56px;
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  color: #0F172A;
-}
-
-.l-hero .l-h1 em {
-  color: #22A55D;
-  font-weight: 600;
-  font-style: italic;
-}
-
-.l-hero .l-sub {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 1.6;
-  color: #64748B;
-}
-
-.l-hero .l-btn-primary {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
   background: #22A55D;
-  color: #FFFFFF;
+  color: white;
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.l-hero .l-btn-primary:hover {
-  background: #1F9A55;
+.l-cta-primary-btn:hover {
+  background: #1a9050;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(34, 165, 93, 0.30);
+}
+
+.l-cta-secondary-btn {
+  height: 42px;
+  padding: 0 22px;
+  border-radius: var(--l-r-md);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  background: transparent;
+  border: 0.5px solid hsl(var(--border));
+  color: hsl(var(--foreground) / 0.60);
+  transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+}
+
+.l-cta-secondary-btn:hover {
+  border-color: hsl(var(--foreground) / 0.30);
+  color: hsl(var(--foreground));
   transform: translateY(-1px);
 }
 
-.l-hero .l-btn-ghost {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+.l-cta-footnote {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  opacity: 0.50;
+  margin: 0;
+}
+
+/* Illustration SVG sizing */
+.l-cta-illustration {
+  width: 100%;
+  max-width: 360px;
+  display: block;
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.10));
+}
+
+@media (max-width: 720px) {
+  .l-cta-split-card { grid-template-columns: 1fr; }
+  .l-cta-right      { display: none; }
+  .l-cta-left       { padding: 40px 32px; }
+}
+
+/* ─── Search Hero ────────────────────────────────────────────────────────────── */
+
+.l-hs-section {
+  min-height: calc(100vh - 104px);
+  padding: 0 24px 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #eef5ef;
+  position: relative;
+}
+
+.l-hs-section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: linear-gradient(to bottom, transparent, hsl(var(--background)));
+  pointer-events: none;
+}
+
+.l-hs-inner {
+  width: 100%;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  contain: layout;
+}
+
+.l-hs-headline {
+  font-family: 'DM Serif Display', serif;
+  font-size: 80px;
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 40px;
+}
+
+.l-hs-headline-line {
+  display: block;
+}
+
+.l-hs-headline-accent {
+  color: #22A55D;
+}
+
+.l-hs-sub {
   font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
+  opacity: 0.72;
+  margin: 0 0 36px;
+  max-width: 480px;
+}
+
+.l-hs-search-wrap {
+  width: 100%;
+  height: 120px;   /* 68px input + 52px reserved for explore row — NEVER changes */
+  position: relative;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.l-hs-input-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 68px;
+  padding: 8px 8px 8px 24px;
+  background: hsl(var(--background));
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, border-radius 0.18s ease;
+  box-sizing: border-box;
+}
+
+.l-hs-input-box--focused {
+  border-color: #22A55D;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.l-hs-input-box--open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: hsl(var(--border) / 0.4);
+}
+
+.l-hs-search-icon {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+  opacity: 0.6;
+}
+
+.l-hs-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
   font-weight: 500;
-  border-color: #E5E7EB;
+  color: hsl(var(--foreground) / 0.92);
+  caret-color: #22A55D;
+}
+
+.l-hs-input::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.45;
+}
+
+/* Arrow submit button — ghost style, prominent on hover */
+.l-hs-arrow-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid hsl(var(--border) / 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.l-hs-arrow-btn:hover {
+  background: rgba(34, 165, 93, 0.08);
+  border-color: rgba(34, 165, 93, 0.45);
+  box-shadow: 0 0 0 3px rgba(34, 165, 93, 0.07);
+}
+
+.l-hs-arrow-btn svg {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.7;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.l-hs-arrow-btn:hover svg {
+  color: #22A55D;
+  opacity: 1;
+}
+
+.l-hs-dropdown {
+  position: absolute;
+  top: 68px;
+  left: 0;
+  right: 0;
+  background: hsl(var(--background));
+  border: 1.5px solid #22A55D;
+  border-top: none;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.09);
+  overflow: hidden;
+  animation: l-hs-slide-in 0.15s ease;
+  z-index: 50;
+}
+
+@keyframes l-hs-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.l-hs-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.l-hs-dropdown-item:first-child { border-top: none; }
+
+.l-hs-dropdown-item:hover,
+.l-hs-dropdown-item--active {
+  background: hsl(var(--muted) / 0.6);
+}
+
+.l-hs-item-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.l-hs-mark {
+  background: transparent;
+  color: #22A55D;
+  font-weight: 700;
+}
+
+.l-hs-item-tag {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  padding: 2px 8px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Explore persistent row */
+.l-hs-explore-row {
+  position: absolute;
+  top: 68px;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  cursor: pointer;
+  border: 1.5px solid hsl(var(--border));
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  background: hsl(var(--background));
+  transition: background 0.12s ease, border-color 0.18s ease;
+}
+
+/* Match green border when input is focused */
+.l-hs-input-box--focused ~ .l-hs-explore-row,
+.l-hs-search-wrap:has(.l-hs-input-box--focused) .l-hs-explore-row {
+  border-color: #22A55D;
+}
+
+.l-hs-explore-row:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.l-hs-explore-row-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  flex: 1;
+  text-align: left;
+}
+
+.l-hs-explore-icon {
+  display: flex;
+  align-items: center;
+  color: #22A55D;
+  flex-shrink: 0;
+}
+
+.l-hs-item-tag--explore {
+  color: #22A55D;
+  background: rgba(34, 165, 93, 0.08);
+  border-color: rgba(34, 165, 93, 0.25);
+}
+
+.l-hs-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 36px;
+}
+
+
+.l-hs-chips-label {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+.l-hs-chip {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.7);
+  color: hsl(var(--foreground) / 0.65);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.l-hs-chip:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.9);
+  color: hsl(var(--foreground) / 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.l-hs-trust {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.5;
+  margin: 6px 0 32px;
+  letter-spacing: 0.1px;
+}
+
+.l-hs-flow-outer {
+  width: 100%;
+  max-width: 1100px;
+  margin: -155px auto 16px;
+  padding: 0 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Scroll cue ────────────────────────────────────────────────────────────── */
+
+.l-hs-scroll-cue {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: hsl(var(--foreground));
+  opacity: 0.28;
+  animation: l-hs-float 2s ease-in-out infinite;
+  z-index: 2;
+}
+
+@keyframes l-hs-float {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(5px); }
+}
+
+/* ─── Flow Illustration ─────────────────────────────────────────────────────── */
+
+.l-hs-illustration {
+  width: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
+}
+
+.l-hs-illustration-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  font-family: inherit;
+}
+
+.l-hs-illustration-svg .l-hs-node-circle {
+  fill: hsl(var(--background));
+}
+
+.l-hs-illustration-svg .l-hs-node-label {
+  fill: hsl(var(--foreground));
+  opacity: 0.92;
+}
+
+.l-hs-illustration-svg .l-hs-node-sub {
+  fill: hsl(var(--foreground));
+  opacity: 0.48;
 }
 
 /* ─── Responsive ────────────────────────────────────────────────────────────── */
@@ -508,27 +1497,13 @@
 }
 
 @media (max-width: 640px) {
-  .l-h1 {
-    font-size: 36px;
-  }
-
-  .l-stats {
-    gap: 24px;
-    flex-wrap: wrap;
-  }
-
-  .l-why-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .l-why-cell-border {
-    border-right: none;
-    border-bottom: 0.5px solid hsl(var(--border));
-  }
+  .l-h1 { font-size: 36px; }
+  .l-stats { gap: 24px; flex-wrap: wrap; }
+  .l-why-grid { grid-template-columns: 1fr; }
+  .l-why-cell-border { border-right: none; border-bottom: 0.5px solid hsl(var(--border)); }
+  .l-hs-headline { font-size: 44px; }
+  .l-hs-sub { font-size: 14.5px; }
+  .l-hs-section { padding: 0 16px 200px; min-height: calc(100svh - 104px); }
+  .l-hs-illustration { border-radius: 14px; }
 }
 
-/* ─── Hero Mascot Float ─────────────────────────────────────────────────────── */
-@keyframes heroFloat {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-14px); }
-}

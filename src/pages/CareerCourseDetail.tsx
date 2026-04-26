@@ -1453,7 +1453,7 @@ const CareerCourseDetail = () => {
           </div>
         </aside>
         {/* Main Content Skeleton */}
-        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pl-[10px] px-4 lg:px-0">
+        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0">
           <div className="p-6 lg:p-8">
             <div className="text-center mb-8">
               <Skeleton className="h-10 w-3/4 mx-auto mb-4" />
@@ -1584,7 +1584,7 @@ const CareerCourseDetail = () => {
         />
 
         {/* MAIN CONTENT - centered between sidebars (280px left + 300px right = 580px total, offset by 10px) */}
-        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pl-[10px] px-4 lg:px-0" data-lesson-content>
+        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0" data-lesson-content>
           <Card className="rounded-none border-0 shadow-none">
             <CardContent className="p-6 lg:p-8">
               {loadingPost ? (

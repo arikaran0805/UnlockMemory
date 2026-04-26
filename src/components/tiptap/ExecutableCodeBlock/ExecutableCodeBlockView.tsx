@@ -59,8 +59,8 @@ const ExecutableCodeBlockView = ({
   const [showOutput, setShowOutput] = useState(false);
   const [outputExpanded, setOutputExpanded] = useState(true);
   
-  // Store original code for tracking
-  const [originalCode] = useState(code);
+  // Snapshot of code when edit mode was entered — used for cancel/revert
+  const editStartCodeRef = useRef(code);
   
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -73,24 +73,26 @@ const ExecutableCodeBlockView = ({
   const lineCount = currentCode.split('\n').length;
   const editorHeight = Math.max(60, lineCount * 19 + 20);
 
-  // Sync code when node attrs change externally
+  // Sync code when node attrs change externally (skip while in edit mode — user owns the content)
   useEffect(() => {
-    setCurrentCode(code);
-  }, [code]);
+    if (!isEditMode) {
+      setCurrentCode(code);
+    }
+  }, [code]); // isEditMode intentionally omitted — only react to external attr changes
   
   // Report code edits to context
   useEffect(() => {
     if (codeEditContext) {
-      codeEditContext.reportCodeEdit(instanceId, currentCode, originalCode, language);
+      codeEditContext.reportCodeEdit(instanceId, currentCode, editStartCodeRef.current, language);
     }
-  }, [currentCode, originalCode, language, instanceId, codeEditContext]);
+  }, [currentCode, language, instanceId, codeEditContext]);
 
   const handleEditorMount: OnMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
     monacoRef.current = monaco;
     
     // Configure Monaco theme for a clean light look
-    monaco.editor.defineTheme('codeblock-light', {
+    monaco.editor.defineTheme('tiptap-codeblock-theme', {
       base: 'vs',
       inherit: true,
       rules: [
@@ -103,17 +105,17 @@ const ExecutableCodeBlockView = ({
         { token: 'type', foreground: '267F99' },
       ],
       colors: {
-        'editor.background': '#FAFAFA',
+        'editor.background': '#f4fbf7',
         'editor.foreground': '#1F2937',
-        'editor.lineHighlightBackground': '#F3F4F6',
-        'editorLineNumber.foreground': '#9CA3AF',
-        'editorLineNumber.activeForeground': '#6B7280',
-        'editor.selectionBackground': '#BFDBFE',
-        'editorCursor.foreground': '#3B82F6',
+        'editor.lineHighlightBackground': '#edf7f1',
+        'editorLineNumber.foreground': '#a8c5b5',
+        'editorLineNumber.activeForeground': '#6ea88a',
+        'editor.selectionBackground': '#c8e8d8',
+        'editorCursor.foreground': '#374151',
       },
     });
-    
-    monaco.editor.setTheme('codeblock-light');
+
+    monaco.editor.setTheme('tiptap-codeblock-theme');
   };
 
   const handleCodeChange = useCallback((value: string | undefined) => {
@@ -124,11 +126,12 @@ const ExecutableCodeBlockView = ({
 
   const handleEditToggle = () => {
     if (!isEditMode) {
-      // Enter edit mode
+      // Enter edit mode — snapshot current code so cancel can revert to it
+      editStartCodeRef.current = currentCode;
       setIsEditMode(true);
       setTimeout(() => {
         if (editorRef.current) {
-          editorRef.current.updateOptions({ 
+          editorRef.current.updateOptions({
             readOnly: false,
             renderLineHighlight: 'line',
           });
@@ -143,14 +146,21 @@ const ExecutableCodeBlockView = ({
         }
       }, 0);
     } else {
-      // Exit edit mode - keep edited code (no rollback per spec)
+      // Cancel edit mode — revert code back to the snapshot taken when editing started
+      const restoreCode = editStartCodeRef.current;
+      setCurrentCode(restoreCode);
       setIsEditMode(false);
       if (editorRef.current) {
-        editorRef.current.updateOptions({ 
+        editorRef.current.updateOptions({
           readOnly: true,
           renderLineHighlight: 'none',
         });
+        // Reset the Monaco editor content to original
+        editorRef.current.setValue(restoreCode);
       }
+      // Write the original code back into the TipTap document
+      // (required because handleCodeChange wrote the edited code into node.attrs on every keystroke)
+      updateAttributes({ code: restoreCode });
     }
   };
 
@@ -179,7 +189,15 @@ const ExecutableCodeBlockView = ({
       });
 
       if (error) {
-        setOutput(error.message || 'Execution failed');
+        // Try to extract the actual error message from the response body
+        let msg = error.message || 'Execution failed';
+        try {
+          if (error.context instanceof Response) {
+            const body = await error.context.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch { /* ignore parse failure */ }
+        setOutput(msg);
         setOutputError(true);
       } else if (data?.error) {
         setOutput(data.error);
@@ -218,7 +236,7 @@ const ExecutableCodeBlockView = ({
         )}
 
         {/* Main container */}
-        <div className="rounded-xl border border-border/40 bg-[#FAFAFA] overflow-hidden">
+        <div className="rounded-xl overflow-hidden" style={{ background: '#f4fbf7', border: '1px solid #c8e8d8' }}>
           {/* Header row */}
           <div className="flex items-center justify-between px-4 pt-3 pb-1">
             {/* Language label — static, no dropdown */}
@@ -296,7 +314,7 @@ const ExecutableCodeBlockView = ({
                 wordWrap: 'on',
                 automaticLayout: true,
               }}
-              theme="codeblock-light"
+              theme="tiptap-codeblock-theme"
               loading={
                 <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
                   Loading...

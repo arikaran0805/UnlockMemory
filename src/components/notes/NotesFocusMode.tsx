@@ -250,7 +250,7 @@ export function NotesFocusMode({
   if (!userId) {
     return (
       <div className={cn(
-        "bg-white dark:bg-background flex items-center justify-center",
+        "bg-surface-card dark:bg-background flex items-center justify-center",
         isStandalonePage ? "min-h-screen" : "fixed inset-0 z-50"
       )}>
         <div className="text-center max-w-xs">
@@ -272,7 +272,7 @@ export function NotesFocusMode({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.12 }}
       className={cn(
-        "bg-white dark:bg-background",
+        "bg-surface-card dark:bg-background",
         isStandalonePage ? "min-h-screen" : "fixed inset-0 z-50"
       )}
     >
@@ -421,7 +421,7 @@ export function NotesFocusMode({
         </aside>
 
         {/* Writing Canvas — The heart of the experience */}
-        <main className="flex-1 overflow-auto bg-white dark:bg-background">
+        <main className="flex-1 overflow-auto bg-surface-card dark:bg-background">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <span className="text-sm text-muted-foreground">Loading…</span>

@@ -231,7 +231,7 @@ const AdminReports = () => {
         );
       case "dismissed":
         return (
-          <Badge className="border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-50">
+          <Badge className="border-neutral-300/80 bg-neutral-100 text-content-secondary hover:bg-neutral-100">
             Dismissed
           </Badge>
         );

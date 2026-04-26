@@ -38,6 +38,8 @@ import { format, isPast, isFuture } from "date-fns";
 /* ─── constants ─── */
 const PLACEMENTS = [
   { value: "courses-banner", label: "All Courses Page Banner" },
+  { value: "careers-banner", label: "All Careers Page Banner" },
+  { value: "tags-banner",    label: "Tag Detail Page Banner" },
 ];
 
 const AD_LABELS = [
@@ -91,12 +93,13 @@ const AdminAdvertisementEditor = () => {
       .select("*")
       .eq("id", id)
       .single()
-      .then(({ data, error }) => {
-        if (error || !data) {
+      .then(({ data: _data, error }) => {
+        if (error || !_data) {
           toast({ title: "Advertisement not found", variant: "destructive" });
           navigate("/admin/monetization");
           return;
         }
+        const data = _data as any;
         setFormData({
           name: data.name,
           placement: data.placement,

@@ -16,7 +16,7 @@ interface Ad {
 }
 
 const LABEL_STYLES: Record<string, string> = {
-  sponsored: "bg-slate-900/60 text-slate-100",
+  sponsored: "bg-neutral-900/60 text-neutral-100",
   partner: "bg-blue-600/70 text-white",
   recommended: "bg-emerald-600/70 text-white",
 };

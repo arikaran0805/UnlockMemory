@@ -1,14 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
-import { Tag, Search, X, Hash, TrendingUp, SortAsc, Grid3X3, List, ArrowLeft, Clock, Trash2, Bookmark, Star } from "lucide-react";
+import {
+  Tag, Search, X, Hash, TrendingUp, SortAsc,
+  Grid3X3, List, ArrowLeft, Clock, Trash2, Bookmark,
+  Star, ChevronRight,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import UMLoader from "@/components/UMLoader";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRecentlyViewedTags } from "@/hooks/useRecentlyViewedTags";
@@ -34,605 +33,644 @@ interface TagWithCount {
   postCount: number;
 }
 
-type SortOption = "popular" | "alphabetical" | "recent";
-type ViewMode = "grid" | "list";
+type SortOption = "popular" | "alphabetical";
+type ViewMode  = "grid" | "list";
+
+const getTagFontSize = (postCount: number, maxCount: number): number => {
+  const ratio = maxCount > 0 ? postCount / maxCount : 0;
+  if (ratio > 0.7) return 15;
+  if (ratio > 0.4) return 13.5;
+  return 12;
+};
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 const Tags = () => {
-  const [tags, setTags] = useState<TagWithCount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("popular");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [tags,           setTags]           = useState<TagWithCount[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [searchQuery,    setSearchQuery]    = useState("");
+  const [sortBy,         setSortBy]         = useState<SortOption>("popular");
+  const [viewMode,       setViewMode]       = useState<ViewMode>("grid");
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  
-  // Debounce search query for better performance
+  const [searchFocused,  setSearchFocused]  = useState(false);
+  const [hoveredSort,    setHoveredSort]    = useState<string | null>(null);
+
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  
-  // Recently viewed tags
   const { recentTags, removeRecentTag, clearRecentTags } = useRecentlyViewedTags();
-  
-  // Tag bookmarks
   const { user } = useAuth();
-  const { bookmarkedTags, isBookmarked, toggleBookmark, loading: bookmarksLoading } = useTagBookmarks();
+  const { bookmarkedTags, isBookmarked, toggleBookmark } = useTagBookmarks();
 
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
+  useEffect(() => { fetchTags(); }, []);
 
   const fetchTags = async () => {
     setLoading(true);
     try {
-      // Get all approved tags
       const { data: tagsData, error: tagsError } = await supabase
-        .from("tags")
-        .select("id, name, slug")
-        .eq("status", "approved")
-        .order("name");
-
+        .from("tags").select("id, name, slug").eq("status", "approved").order("name");
       if (tagsError) throw tagsError;
 
-      // Get post counts for each tag
       const { data: postTagsData, error: postTagsError } = await supabase
-        .from("post_tags")
-        .select("tag_id");
-
+        .from("post_tags").select("tag_id");
       if (postTagsError) throw postTagsError;
 
-      // Count posts per tag
       const tagCounts = new Map<string, number>();
-      postTagsData?.forEach(pt => {
-        const count = tagCounts.get(pt.tag_id) || 0;
-        tagCounts.set(pt.tag_id, count + 1);
-      });
+      postTagsData?.forEach(pt => tagCounts.set(pt.tag_id, (tagCounts.get(pt.tag_id) || 0) + 1));
 
-      // Combine tags with counts
-      const tagsWithCounts: TagWithCount[] = (tagsData || []).map(tag => ({
-        id: tag.id,
-        name: tag.name,
-        slug: tag.slug,
-        postCount: tagCounts.get(tag.id) || 0
-      }));
-
-      setTags(tagsWithCounts);
-    } catch (error) {
-      console.error("Error fetching tags:", error);
-    } finally {
-      setLoading(false);
-    }
+      setTags(
+        (tagsData || []).map(tag => ({
+          id: tag.id, name: tag.name, slug: tag.slug,
+          postCount: tagCounts.get(tag.id) || 0,
+        }))
+      );
+    } catch (error) { console.error("Error fetching tags:", error); }
+    finally { setLoading(false); }
   };
 
-  // Filter and sort tags
+  // ── Derived state ─────────────────────────────────────────────────────────
+
   const filteredTags = useMemo(() => {
     let result = [...tags];
-
-    // Search filter (using debounced value)
     if (debouncedSearchQuery.trim()) {
-      const query = debouncedSearchQuery.toLowerCase();
-      result = result.filter(tag => tag.name.toLowerCase().includes(query));
+      const q = debouncedSearchQuery.toLowerCase();
+      result = result.filter(t => t.name.toLowerCase().includes(q));
     }
-
-    // Letter filter
     if (selectedLetter) {
-      result = result.filter(tag => 
-        tag.name.toUpperCase().startsWith(selectedLetter)
-      );
+      result = result.filter(t => t.name.toUpperCase().startsWith(selectedLetter));
     }
-
-    // Sort
-    switch (sortBy) {
-      case "popular":
-        result.sort((a, b) => b.postCount - a.postCount);
-        break;
-      case "alphabetical":
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "recent":
-        // Keep original order (by created_at desc would need additional fetch)
-        break;
-    }
-
+    result.sort((a, b) =>
+      sortBy === "popular" ? b.postCount - a.postCount : a.name.localeCompare(b.name)
+    );
     return result;
   }, [tags, debouncedSearchQuery, selectedLetter, sortBy]);
 
-  // Get letters that have tags
   const availableLetters = useMemo(() => {
-    const letters = new Set<string>();
-    tags.forEach(tag => {
-      const firstLetter = tag.name.charAt(0).toUpperCase();
-      if (/[A-Z]/.test(firstLetter)) {
-        letters.add(firstLetter);
-      }
-    });
-    return letters;
+    const set = new Set<string>();
+    tags.forEach(t => { const l = t.name.charAt(0).toUpperCase(); if (/[A-Z]/.test(l)) set.add(l); });
+    return set;
   }, [tags]);
 
-  // Stats - total and filtered
-  const totalTags = tags.length;
-  const totalPosts = tags.reduce((sum, tag) => sum + tag.postCount, 0);
-  const filteredPostCount = filteredTags.reduce((sum, tag) => sum + tag.postCount, 0);
-  const isFiltered = debouncedSearchQuery || selectedLetter;
+  const totalTags         = tags.length;
+  const totalPosts        = tags.reduce((s, t) => s + t.postCount, 0);
+  const filteredPostCount = filteredTags.reduce((s, t) => s + t.postCount, 0);
+  const isFiltered        = Boolean(debouncedSearchQuery || selectedLetter);
+  const maxCount          = Math.max(...tags.map(t => t.postCount), 1);
 
-  const getTagSize = (postCount: number) => {
-    const maxCount = Math.max(...tags.map(t => t.postCount), 1);
-    const ratio = postCount / maxCount;
-    if (ratio > 0.7) return "text-xl font-semibold";
-    if (ratio > 0.4) return "text-base font-medium";
-    return "text-sm";
+  const clearFilters = () => { setSearchQuery(""); setSelectedLetter(null); };
+
+  // ── Sort pill renderer ────────────────────────────────────────────────────
+
+  const SortPill = ({
+    id, value, icon, label,
+  }: { id: string; value: SortOption; icon: React.ReactNode; label: string }) => {
+    const active  = sortBy === value;
+    const hovered = hoveredSort === id;
+    return (
+      <button
+        onClick={() => setSortBy(value)}
+        onMouseEnter={() => setHoveredSort(id)}
+        onMouseLeave={() => setHoveredSort(null)}
+        className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-[12.5px] font-medium transition-all duration-150"
+        style={{
+          background: active
+            ? "linear-gradient(135deg, #22A55D 0%, #1a9050 100%)"
+            : hovered ? "rgba(34,165,93,0.08)" : "transparent",
+          color: active ? "#fff" : "hsl(var(--foreground) / 0.65)",
+          border: active ? "none" : "1px solid hsl(var(--border) / 0.5)",
+          boxShadow: active ? "0 2px 8px rgba(34,165,93,0.25)" : "none",
+        }}
+      >
+        {icon}
+        {label}
+      </button>
+    );
   };
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Layout>
-      <SEOHead 
+      <SEOHead
         title="Browse All Tags"
         description={`Explore ${totalTags} tags across ${totalPosts} lessons. Find topics that interest you.`}
       />
 
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        <div className="container px-4 py-8 md:py-12">
-          <div className="max-w-5xl mx-auto">
-            {/* Back Navigation */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mb-6 gap-2 text-muted-foreground hover:text-foreground -ml-2"
-              onClick={() => window.history.back()}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
+      <div className="container px-6 md:px-12 lg:px-16 xl:px-24">
 
-            {/* Header */}
-            <header className="mb-8">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                  <Hash className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">
-                    Browse All Tags
-                  </h1>
-                  <p className="text-muted-foreground">
-                    Discover topics and find lessons that match your interests
-                  </p>
-                </div>
-              </div>
+        {/* ════════════════════════════════════════════════════════
+            PAGE HEADER  (no hero gradient)
+        ════════════════════════════════════════════════════════ */}
+        <div className="pt-10 pb-8" style={{ borderBottom: "1px solid hsl(var(--border) / 0.4)" }}>
 
-              {/* Stats */}
-              {!loading && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Tag className="h-4 w-4" />
-                    {isFiltered ? (
-                      <>
-                        <span className="font-medium text-foreground">{filteredTags.length}</span> of {totalTags} tag{totalTags !== 1 ? "s" : ""}
-                      </>
-                    ) : (
-                      <>{totalTags} tag{totalTags !== 1 ? "s" : ""}</>
-                    )}
-                  </span>
-                  <span className="text-border">•</span>
-                  <span>
-                    {isFiltered ? (
-                      <>
-                        <span className="font-medium text-foreground">{filteredPostCount}</span> of {totalPosts} lesson{totalPosts !== 1 ? "s" : ""} tagged
-                      </>
-                    ) : (
-                      <>{totalPosts} lesson{totalPosts !== 1 ? "s" : ""} tagged</>
-                    )}
-                  </span>
-                </div>
-              )}
-            </header>
+          {/* Back */}
+          <button
+            onClick={() => window.history.back()}
+            className="inline-flex items-center gap-1.5 mb-7 text-[12.5px] font-medium text-muted-foreground/65 hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </button>
 
-            {/* Bookmarked Tags */}
-            {user && bookmarkedTags.length > 0 && !loading && (
-              <section className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                  <h2 className="text-sm font-medium text-foreground">Favorite Tags</h2>
-                  <Badge variant="secondary" className="text-xs">{bookmarkedTags.length}</Badge>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {bookmarkedTags.map((tag) => (
-                    <Link key={tag.id} to={`/tag/${tag.slug}`}>
-                      <Badge
-                        variant="outline"
-                        className="hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors cursor-pointer group pl-2 pr-1 border-yellow-500/30 bg-yellow-500/5"
-                      >
-                        <Star className="h-3 w-3 mr-1.5 text-yellow-500 fill-yellow-500" />
-                        {tag.name}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleBookmark(tag);
-                          }}
-                          className="ml-1.5 p-0.5 rounded hover:bg-destructive/20 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Recently Viewed Tags */}
-            {recentTags.length > 0 && !loading && (
-              <section className="mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-medium text-muted-foreground">Recently Viewed</h2>
-                  </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Clear
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Clear recently viewed tags?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will remove all {recentTags.length} recently viewed tag{recentTags.length !== 1 ? "s" : ""} from your history. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={clearRecentTags}>
-                          Clear All
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {recentTags.map((tag) => (
-                    <Link key={tag.id} to={`/tag/${tag.slug}`}>
-                      <Badge
-                        variant="secondary"
-                        className="hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer group pl-2 pr-1"
-                      >
-                        <Tag className="h-3 w-3 mr-1.5" />
-                        {tag.name}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            removeRecentTag(tag.id);
-                          }}
-                          className="ml-1.5 p-0.5 rounded hover:bg-destructive/20 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Search and Controls */}
-            <div className="space-y-4 mb-8">
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search tags..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 h-11"
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                    onClick={() => setSearchQuery("")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Controls Row */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                {/* Sort Options */}
-                <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSortBy("popular")}
-                    className={cn(
-                      "h-8 px-3 text-sm gap-1.5",
-                      sortBy === "popular"
-                        ? "bg-background shadow-sm text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    Popular
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSortBy("alphabetical")}
-                    className={cn(
-                      "h-8 px-3 text-sm gap-1.5",
-                      sortBy === "alphabetical"
-                        ? "bg-background shadow-sm text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <SortAsc className="h-3.5 w-3.5" />
-                    A-Z
-                  </Button>
-                </div>
-
-                {/* View Mode Toggle */}
-                <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewMode("grid")}
-                    className={cn(
-                      "h-8 w-8",
-                      viewMode === "grid"
-                        ? "bg-background shadow-sm text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewMode("list")}
-                    className={cn(
-                      "h-8 w-8",
-                      viewMode === "list"
-                        ? "bg-background shadow-sm text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Alphabet Filter */}
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedLetter(null)}
-                  className={cn(
-                    "h-8 w-8 p-0 text-xs",
-                    selectedLetter === null
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+            {/* Title block */}
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div
+                  className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(34,165,93,0.1)" }}
                 >
-                  All
-                </Button>
-                {alphabet.map((letter) => {
-                  const hasItems = availableLetters.has(letter);
-                  return (
-                    <Button
-                      key={letter}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => hasItems && setSelectedLetter(letter === selectedLetter ? null : letter)}
-                      disabled={!hasItems}
-                      className={cn(
-                        "h-8 w-8 p-0 text-xs",
-                        selectedLetter === letter
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : hasItems
-                            ? "text-muted-foreground hover:text-foreground"
-                            : "text-muted-foreground/30 cursor-not-allowed"
-                      )}
-                    >
-                      {letter}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Active Filters Indicator */}
-              {(searchQuery || selectedLetter) && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>
-                    Showing <span className="font-medium text-foreground">{filteredTags.length}</span> of {tags.length} tags
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedLetter(null);
-                    }}
-                  >
-                    Clear filters
-                  </Button>
+                  <Hash className="h-5 w-5 text-[#22A55D]" />
                 </div>
-              )}
+                <h1
+                  className="text-foreground font-bold"
+                  style={{ fontSize: "clamp(22px, 3vw, 30px)", letterSpacing: "-0.025em" }}
+                >
+                  Browse All Tags
+                </h1>
+              </div>
+              <p className="text-muted-foreground/65 ml-[52px]" style={{ fontSize: 14 }}>
+                Discover topics and find lessons that match your interests
+              </p>
             </div>
 
-            {/* Loading State */}
+            {/* Stats */}
+            {!loading && (
+              <div className="flex items-center gap-5 sm:flex-shrink-0">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-foreground font-bold leading-none" style={{ fontSize: 20, letterSpacing: "-0.03em" }}>
+                    {isFiltered ? filteredTags.length : totalTags}
+                  </span>
+                  <span className="font-medium" style={{ fontSize: 11, color: "#22A55D" }}>Tags</span>
+                </div>
+                <div className="w-px h-7 rounded-full bg-border/60" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-foreground font-bold leading-none" style={{ fontSize: 20, letterSpacing: "-0.03em" }}>
+                    {isFiltered ? filteredPostCount : totalPosts}
+                  </span>
+                  <span className="font-medium" style={{ fontSize: 11, color: "#22A55D" }}>Lessons tagged</span>
+                </div>
+              </div>
+            )}
             {loading && (
-              <div className="flex items-center justify-center py-16">
-                <UMLoader size={44} label="Unlocking memory…" />
-              </div>
-            )}
-
-            {/* Empty State */}
-            {!loading && filteredTags.length === 0 && (
-              <div className="text-center py-16">
-                <div className="p-4 rounded-full bg-muted/50 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Tag className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h2 className="text-lg font-medium text-foreground mb-2">
-                  {searchQuery || selectedLetter ? "No tags found" : "No tags yet"}
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  {searchQuery || selectedLetter 
-                    ? "Try adjusting your search or filters" 
-                    : "Tags will appear here once content is added"}
-                </p>
-                {(searchQuery || selectedLetter) && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedLetter(null);
-                    }}
-                  >
-                    Clear filters
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {/* Grid View */}
-            {!loading && filteredTags.length > 0 && viewMode === "grid" && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {filteredTags.map((tag) => (
-                  <Card key={tag.id} className="p-4 h-full hover:shadow-md hover:border-primary/30 transition-all group relative">
-                    {/* Bookmark button */}
-                    {user && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleBookmark(tag).then(result => {
-                            if (result.success) {
-                              toast.success(isBookmarked(tag.id) ? "Removed from favorites" : "Added to favorites");
-                            }
-                          });
-                        }}
-                        className={cn(
-                          "absolute top-2 right-2 p-1.5 rounded-md transition-all",
-                          isBookmarked(tag.id)
-                            ? "text-yellow-500 bg-yellow-500/10"
-                            : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted"
-                        )}
-                      >
-                        <Bookmark className={cn("h-4 w-4", isBookmarked(tag.id) && "fill-current")} />
-                      </button>
-                    )}
-                    <Link to={`/tag/${tag.slug}`} className="flex flex-col h-full">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <Tag className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                        <Badge variant="secondary" className="text-xs">
-                          {tag.postCount}
-                        </Badge>
-                      </div>
-                      <h3 className={cn(
-                        "text-foreground group-hover:text-primary transition-colors line-clamp-2",
-                        getTagSize(tag.postCount)
-                      )}>
-                        {tag.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-auto pt-2">
-                        {tag.postCount} lesson{tag.postCount !== 1 ? "s" : ""}
-                      </p>
-                    </Link>
-                  </Card>
+              <div className="flex items-center gap-5">
+                {[28, 40].map((w, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <div className="h-5 bg-muted/50 rounded animate-pulse" style={{ width: w }} />
+                    <div className="h-2.5 w-14 bg-muted/30 rounded animate-pulse" />
+                  </div>
                 ))}
               </div>
-            )}
-
-            {/* List View */}
-            {!loading && filteredTags.length > 0 && viewMode === "list" && (
-              <div className="space-y-2">
-                {filteredTags.map((tag) => (
-                  <Card key={tag.id} className="p-4 hover:shadow-md hover:border-primary/30 transition-all group">
-                    <div className="flex items-center justify-between gap-4">
-                      <Link to={`/tag/${tag.slug}`} className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
-                          <Tag className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
-                            {tag.name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {tag.postCount} lesson{tag.postCount !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                      </Link>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {user && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleBookmark(tag).then(result => {
-                                if (result.success) {
-                                  toast.success(isBookmarked(tag.id) ? "Removed from favorites" : "Added to favorites");
-                                }
-                              });
-                            }}
-                            className={cn(
-                              "p-1.5 rounded-md transition-all",
-                              isBookmarked(tag.id)
-                                ? "text-yellow-500 bg-yellow-500/10"
-                                : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted"
-                            )}
-                          >
-                            <Bookmark className={cn("h-4 w-4", isBookmarked(tag.id) && "fill-current")} />
-                          </button>
-                        )}
-                        <Badge variant="secondary" className="flex-shrink-0">
-                          {tag.postCount}
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {/* Popular Tags Cloud (shown when no filters are active) */}
-            {!loading && !searchQuery && !selectedLetter && tags.length > 0 && (
-              <section className="mt-12 pt-8 border-t border-border">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Tag Cloud
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {tags
-                    .sort((a, b) => b.postCount - a.postCount)
-                    .slice(0, 30)
-                    .map((tag) => (
-                      <Link key={tag.id} to={`/tag/${tag.slug}`}>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all cursor-pointer",
-                            getTagSize(tag.postCount)
-                          )}
-                        >
-                          {tag.name}
-                        </Badge>
-                      </Link>
-                    ))}
-                </div>
-              </section>
             )}
           </div>
+        </div>
+
+        {/* ════════════════════════════════════════════════════════
+            MAIN CONTENT
+        ════════════════════════════════════════════════════════ */}
+        <div className="py-8 max-w-6xl">
+
+          {/* ── Saved / favourite tags ── */}
+          {user && bookmarkedTags.length > 0 && !loading && (
+            <section className="mb-7">
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                <span className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-widest">
+                  Saved Tags
+                </span>
+                <span
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
+                  style={{ background: "rgba(234,179,8,0.15)", color: "#b45309" }}
+                >
+                  {bookmarkedTags.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {bookmarkedTags.map((tag) => (
+                  <Link
+                    key={tag.id}
+                    to={`/tag/${tag.slug}`}
+                    className="group inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all duration-150 hover:bg-[rgba(234,179,8,0.12)] hover:border-[rgba(234,179,8,0.3)]"
+                    style={{
+                      background: "rgba(234,179,8,0.07)",
+                      color: "#b45309",
+                      border: "1px solid rgba(234,179,8,0.2)",
+                    }}
+                  >
+                    <Star className="h-2.5 w-2.5 fill-current flex-shrink-0" />
+                    {tag.name}
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(tag); }}
+                      className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Recently viewed ── */}
+          {recentTags.length > 0 && !loading && (
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3 w-3 text-muted-foreground/40" />
+                  <span className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-widest">
+                    Recently Viewed
+                  </span>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="inline-flex items-center gap-1 text-[11.5px] font-medium text-muted-foreground/45 hover:text-foreground transition-colors">
+                      <Trash2 className="h-3 w-3" />
+                      Clear
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear recently viewed tags?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove all {recentTags.length} recently viewed tag{recentTags.length !== 1 ? "s" : ""} from your history.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearRecentTags}>Clear All</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {recentTags.map((tag) => (
+                  <Link
+                    key={tag.id}
+                    to={`/tag/${tag.slug}`}
+                    className="group inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all duration-150 hover:bg-[rgba(34,165,93,0.1)] hover:text-[#15803d] hover:border-[rgba(34,165,93,0.25)]"
+                    style={{
+                      background: "hsl(var(--muted) / 0.6)",
+                      color: "hsl(var(--foreground) / 0.7)",
+                      border: "1px solid hsl(var(--border) / 0.4)",
+                    }}
+                  >
+                    <Tag className="h-2.5 w-2.5 flex-shrink-0" />
+                    {tag.name}
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeRecentTag(tag.id); }}
+                      className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Search bar ── */}
+          <div
+            className="relative w-full rounded-2xl bg-white transition-all duration-200 mb-5"
+            style={{
+              border: searchFocused
+                ? "1.5px solid #22A55D"
+                : "1.5px solid hsl(var(--border) / 0.55)",
+              boxShadow: searchFocused
+                ? "0 0 0 4px rgba(34,165,93,0.1), 0 2px 8px rgba(0,0,0,0.07)"
+                : "0 1px 4px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)",
+            }}
+          >
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-200"
+              style={{ color: searchFocused ? "#22A55D" : "hsl(var(--muted-foreground) / 0.55)" }}
+            />
+            <input
+              type="text"
+              placeholder="Search tags…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              className="w-full h-12 pl-11 pr-10 bg-transparent rounded-2xl text-[14px] placeholder:text-muted-foreground/40 focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-muted/40 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground/60" />
+              </button>
+            )}
+          </div>
+
+          {/* ── Controls: sort + view toggle ── */}
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div className="flex items-center gap-2">
+              <SortPill
+                id="popular"
+                value="popular"
+                icon={<TrendingUp className="h-3.5 w-3.5" />}
+                label="Popular"
+              />
+              <SortPill
+                id="alphabetical"
+                value="alphabetical"
+                icon={<SortAsc className="h-3.5 w-3.5" />}
+                label="A–Z"
+              />
+            </div>
+
+            {/* View mode toggle */}
+            <div
+              className="flex items-center gap-0.5 p-1 rounded-xl"
+              style={{
+                background: "hsl(var(--muted) / 0.5)",
+                border: "1px solid hsl(var(--border) / 0.4)",
+              }}
+            >
+              {([
+                { mode: "grid" as ViewMode, icon: <Grid3X3 className="h-3.5 w-3.5" /> },
+                { mode: "list" as ViewMode, icon: <List className="h-3.5 w-3.5" /> },
+              ]).map(({ mode, icon }) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className="w-8 h-7 flex items-center justify-center rounded-lg transition-all duration-150"
+                  style={{
+                    background: viewMode === mode ? "white" : "transparent",
+                    color: viewMode === mode ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground) / 0.55)",
+                    boxShadow: viewMode === mode ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                  }}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Alphabet filter ── */}
+          <div className="flex flex-wrap gap-1 mb-6">
+            <button
+              onClick={() => setSelectedLetter(null)}
+              className="w-8 h-8 rounded-lg text-[11px] font-bold transition-all duration-150"
+              style={{
+                background: selectedLetter === null
+                  ? "linear-gradient(135deg, #22A55D 0%, #1a9050 100%)"
+                  : "transparent",
+                color: selectedLetter === null ? "#fff" : "hsl(var(--muted-foreground) / 0.65)",
+                border: selectedLetter === null ? "none" : "1px solid hsl(var(--border) / 0.4)",
+                boxShadow: selectedLetter === null ? "0 2px 6px rgba(34,165,93,0.25)" : "none",
+              }}
+            >
+              All
+            </button>
+            {alphabet.map((letter) => {
+              const has    = availableLetters.has(letter);
+              const active = selectedLetter === letter;
+              return (
+                <button
+                  key={letter}
+                  onClick={() => has && setSelectedLetter(active ? null : letter)}
+                  disabled={!has}
+                  className="w-8 h-8 rounded-lg text-[11.5px] font-semibold transition-all duration-150"
+                  style={{
+                    background: active
+                      ? "linear-gradient(135deg, #22A55D 0%, #1a9050 100%)"
+                      : "transparent",
+                    color: active ? "#fff" : has ? "hsl(var(--foreground) / 0.7)" : "hsl(var(--muted-foreground) / 0.22)",
+                    border: active ? "none" : `1px solid ${has ? "hsl(var(--border) / 0.45)" : "hsl(var(--border) / 0.18)"}`,
+                    boxShadow: active ? "0 2px 6px rgba(34,165,93,0.25)" : "none",
+                    cursor: has ? "pointer" : "default",
+                  }}
+                >
+                  {letter}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Results bar ── */}
+          {isFiltered && !loading && (
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-[13px] text-muted-foreground">
+                <span className="font-semibold text-foreground">{filteredTags.length}</span>{" "}
+                tag{filteredTags.length !== 1 ? "s" : ""}
+                {searchQuery && ` matching "${searchQuery}"`}
+                {selectedLetter && ` starting with "${selectedLetter}"`}
+              </p>
+              <button
+                onClick={clearFilters}
+                className="text-[12px] font-semibold text-[#22A55D] hover:text-[#1a9050] transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+
+          {/* ── Loading skeletons ── */}
+          {loading && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl p-4 bg-white"
+                  style={{
+                    border: "1px solid hsl(var(--border) / 0.5)",
+                    opacity: 1 - i * 0.04,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-8 h-8 rounded-xl bg-muted/40 animate-pulse" />
+                    <div className="h-3 w-5 rounded bg-muted/30 animate-pulse" />
+                  </div>
+                  <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4 mb-1.5" />
+                  <div className="h-3 bg-muted/25 rounded animate-pulse w-1/2" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Empty state ── */}
+          {!loading && filteredTags.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+                style={{ background: "rgba(34,165,93,0.07)" }}
+              >
+                <Tag className="h-6 w-6 text-[#22A55D]/50" />
+              </div>
+              <p className="text-[15px] font-semibold text-foreground mb-1.5">
+                {searchQuery || selectedLetter ? "No tags found" : "No tags yet"}
+              </p>
+              <p className="text-[13px] text-muted-foreground mb-6 max-w-xs leading-relaxed">
+                {searchQuery || selectedLetter
+                  ? "Try a different keyword or clear your filters."
+                  : "Tags will appear here once content is added."}
+              </p>
+              {isFiltered && (
+                <button
+                  onClick={clearFilters}
+                  className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[#22A55D] text-white hover:bg-[#1a9050] transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── Grid view ── */}
+          {!loading && filteredTags.length > 0 && viewMode === "grid" && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {filteredTags.map((tag) => (
+                <div key={tag.id} className="relative group">
+                  <Link
+                    to={`/tag/${tag.slug}`}
+                    className="flex flex-col gap-3 p-4 rounded-2xl bg-white transition-all duration-200 border border-border/50 hover:border-border/80 hover:shadow-md"
+                  >
+                    {/* Icon */}
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[rgba(34,165,93,0.15)] transition-colors"
+                      style={{ background: "rgba(34,165,93,0.08)" }}
+                    >
+                      <Tag className="h-3.5 w-3.5 text-[#22A55D]" />
+                    </div>
+                    {/* Name + meta */}
+                    <div>
+                      <h3
+                        className="font-semibold text-foreground/85 group-hover:text-foreground truncate transition-colors"
+                        style={{ fontSize: getTagFontSize(tag.postCount, maxCount) }}
+                      >
+                        {tag.name}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                        {tag.postCount} lesson{tag.postCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </Link>
+
+                  {/* Bookmark button */}
+                  {user && (
+                    <button
+                      onClick={() =>
+                        toggleBookmark(tag).then(result => {
+                          if (result.success)
+                            toast.success(isBookmarked(tag.id) ? "Removed from saved" : "Added to saved");
+                        })
+                      }
+                      className={cn(
+                        "absolute top-3 right-3 w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-150",
+                        isBookmarked(tag.id)
+                          ? "opacity-100 text-yellow-500"
+                          : "opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:bg-muted/60"
+                      )}
+                      style={isBookmarked(tag.id) ? { background: "rgba(234,179,8,0.12)" } : {}}
+                    >
+                      <Bookmark className={cn("h-3 w-3", isBookmarked(tag.id) && "fill-current")} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── List view ── */}
+          {!loading && filteredTags.length > 0 && viewMode === "list" && (
+            <div className="space-y-2">
+              {filteredTags.map((tag) => (
+                <div key={tag.id} className="group relative">
+                  <Link
+                    to={`/tag/${tag.slug}`}
+                    className="flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-white transition-all duration-200 border border-border/50 hover:border-border/80 hover:shadow-sm"
+                  >
+                    <div
+                      className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[rgba(34,165,93,0.15)] transition-colors"
+                      style={{ background: "rgba(34,165,93,0.08)" }}
+                    >
+                      <Tag className="h-3.5 w-3.5 text-[#22A55D]" />
+                    </div>
+                    <span
+                      className="flex-1 font-medium text-foreground/85 group-hover:text-foreground truncate transition-colors"
+                      style={{ fontSize: 13.5 }}
+                    >
+                      {tag.name}
+                    </span>
+                    <span className="text-[12px] font-semibold text-muted-foreground/40 pr-14 flex-shrink-0">
+                      {tag.postCount} lesson{tag.postCount !== 1 ? "s" : ""}
+                    </span>
+                  </Link>
+
+                  {/* Bookmark */}
+                  {user && (
+                    <button
+                      onClick={() =>
+                        toggleBookmark(tag).then(result => {
+                          if (result.success)
+                            toast.success(isBookmarked(tag.id) ? "Removed from saved" : "Added to saved");
+                        })
+                      }
+                      className={cn(
+                        "absolute right-10 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-150",
+                        isBookmarked(tag.id)
+                          ? "opacity-100 text-yellow-500"
+                          : "opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:bg-muted/60"
+                      )}
+                      style={isBookmarked(tag.id) ? { background: "rgba(234,179,8,0.12)" } : {}}
+                    >
+                      <Bookmark className={cn("h-3 w-3", isBookmarked(tag.id) && "fill-current")} />
+                    </button>
+                  )}
+
+                  {/* Chevron */}
+                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/25 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Tag cloud ── */}
+          {!loading && !searchQuery && !selectedLetter && tags.length > 0 && (
+            <section
+              className="mt-12 pt-8"
+              style={{ borderTop: "1px solid hsl(var(--border) / 0.4)" }}
+            >
+              <div className="flex items-center gap-2.5 mb-5">
+                <div
+                  className="w-7 h-7 rounded-xl flex items-center justify-center"
+                  style={{ background: "rgba(34,165,93,0.1)" }}
+                >
+                  <TrendingUp className="h-3.5 w-3.5 text-[#22A55D]" />
+                </div>
+                <h2 className="text-[15px] font-semibold text-foreground">Tag Cloud</h2>
+              </div>
+
+              <div className="flex flex-wrap gap-2 items-baseline">
+                {[...tags]
+                  .sort((a, b) => b.postCount - a.postCount)
+                  .slice(0, 30)
+                  .map((tag) => {
+                    const fs = getTagFontSize(tag.postCount, maxCount);
+                    return (
+                      <Link
+                        key={tag.id}
+                        to={`/tag/${tag.slug}`}
+                        className="inline-flex items-center rounded-xl font-medium transition-all duration-150 hover:bg-[rgba(34,165,93,0.1)] hover:text-[#15803d] hover:border-[rgba(34,165,93,0.25)]"
+                        style={{
+                          fontSize: fs,
+                          height: fs > 13 ? 30 : 26,
+                          padding: fs > 13 ? "0 12px" : "0 10px",
+                          background: "hsl(var(--muted) / 0.55)",
+                          color: "hsl(var(--foreground) / 0.7)",
+                          border: "1px solid hsl(var(--border) / 0.4)",
+                        }}
+                      >
+                        {tag.name}
+                      </Link>
+                    );
+                  })}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </Layout>

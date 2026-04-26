@@ -358,7 +358,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
             className={cn(
               'relative overflow-y-auto overflow-x-hidden rounded-xl border transition-colors',
               'flex-1 min-h-[300px]',
-              isDragOver ? 'border-primary/40 bg-primary/[0.03]' : 'border-border/60 bg-slate-50/60 dark:bg-muted/10',
+              isDragOver ? 'border-primary/40 bg-primary/[0.03]' : 'border-border/60 bg-neutral-100/60 dark:bg-muted/10',
             )}
             onDoubleClick={handleDoubleClick}
             onTouchEnd={handleTouchEnd}
@@ -506,7 +506,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
               };
               const c = overlayConfig[activeDragBlock.kind];
               return (
-                <div className="rounded-xl border border-l-[3px] border-primary/50 border-l-primary/70 bg-white dark:bg-card px-4 py-3 opacity-95 flex items-center gap-2.5">
+                <div className="rounded-xl border border-l-[3px] border-primary/50 border-l-primary/70 bg-surface-card dark:bg-card px-4 py-3 opacity-95 flex items-center gap-2.5">
                   <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 bg-primary/10">
                     <c.Icon className="h-3 w-3 text-primary" />
                   </div>

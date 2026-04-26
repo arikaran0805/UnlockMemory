@@ -73,37 +73,31 @@ const MonacoCodeBlock = ({
   const lineCount = currentCode.split('\n').length;
   const editorHeight = Math.max(minHeight, lineCount * 19 + 16); // 19px per line + padding
 
-  // Sync code when prop changes externally
+  // Sync code when prop changes externally (but never overwrite originalCode while editing)
   useEffect(() => {
     setCurrentCode(code);
-    setOriginalCode(code);
-  }, [code]);
+    if (!isEditMode) {
+      setOriginalCode(code);
+    }
+  }, [code]); // isEditMode intentionally omitted — we only care about code changes
 
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
     
-    // Configure Monaco theme for a clean look - pure white background like VS Code
+    // Sage-tinted theme — VS syntax colors on a soft green background
     monaco.editor.defineTheme('codeblock-light', {
       base: 'vs',
       inherit: true,
-      rules: [
-        { token: 'keyword', foreground: '0000FF' },
-        { token: 'string', foreground: 'A31515' },
-        { token: 'number', foreground: '098658' },
-        { token: 'comment', foreground: '008000', fontStyle: 'italic' },
-        { token: 'function', foreground: '795E26' },
-        { token: 'variable', foreground: '001080' },
-        { token: 'type', foreground: '267F99' },
-      ],
+      rules: [],
       colors: {
-        'editor.background': '#FFFFFF',
-        'editor.foreground': '#1F2937',
-        'editor.lineHighlightBackground': '#F5F5F5',
-        'editorLineNumber.foreground': '#6B7280',
-        'editorLineNumber.activeForeground': '#374151',
-        'editor.selectionBackground': '#ADD6FF',
-        'editorCursor.foreground': '#000000',
+        'editor.background': '#f4fbf7',
+        'editor.foreground': '#374151',
+        'editor.lineHighlightBackground': '#edf7f1',
+        'editorLineNumber.foreground': '#a8c5b5',
+        'editorLineNumber.activeForeground': '#6ea88a',
+        'editor.selectionBackground': '#c8e8d8',
+        'editorCursor.foreground': '#374151',
       },
     });
     
@@ -206,7 +200,15 @@ const MonacoCodeBlock = ({
       });
 
       if (error) {
-        setOutput(error.message || 'Execution failed');
+        // Try to extract the actual error message from the response body
+        let msg = error.message || 'Execution failed';
+        try {
+          if (error.context instanceof Response) {
+            const body = await error.context.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch { /* ignore parse failure */ }
+        setOutput(msg);
         setOutputError(true);
       } else if (data?.error) {
         setOutput(data.error);
@@ -231,10 +233,13 @@ const MonacoCodeBlock = ({
   return (
     <div className={cn("w-full", className)}>
       {/* Main code container - white background like VS Code */}
-      <div className={cn(
-        "border border-border/60 bg-white overflow-hidden shadow-sm",
-        showOutput ? "rounded-t-xl rounded-b-none" : "rounded-xl"
-      )}>
+      <div
+        className={cn(
+          "overflow-hidden shadow-sm",
+          showOutput ? "rounded-t-xl rounded-b-none" : "rounded-xl"
+        )}
+        style={{ background: '#ffffff', border: '1px solid #c8e8d8' }}
+      >
         {/* Header row */}
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
           {/* Language label */}

@@ -13,6 +13,7 @@ import {
   EmailSettings,
   NotificationsSettings,
   SEOSettings,
+  SocialSettings,
   SecuritySettings,
   IntegrationsSettings,
   AdvancedSettings,
@@ -52,6 +53,14 @@ const AdminSettings = () => {
   const [ogTitle, setOgTitle] = useState("");
   const [ogDescription, setOgDescription] = useState("");
   const [codeTheme, setCodeTheme] = useState("tomorrow");
+
+  // Social media URLs
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
 
   // Notification preferences
   const { preferences: notificationPrefs, loading: notifPrefsLoading } = useNotificationPreferences(userId);
@@ -121,6 +130,12 @@ const AdminSettings = () => {
       setOgTitle(data.og_title || "");
       setOgDescription(data.og_description || "");
       setCodeTheme(data.code_theme || "tomorrow");
+      setTwitterUrl(data.twitter_url || "");
+      setFacebookUrl(data.facebook_url || "");
+      setInstagramUrl(data.instagram_url || "");
+      setLinkedinUrl(data.linkedin_url || "");
+      setYoutubeUrl(data.youtube_url || "");
+      setGithubUrl(data.github_url || "");
     }
   };
 
@@ -141,6 +156,12 @@ const AdminSettings = () => {
         og_title: ogTitle,
         og_description: ogDescription,
         code_theme: codeTheme,
+        twitter_url: twitterUrl,
+        facebook_url: facebookUrl,
+        instagram_url: instagramUrl,
+        linkedin_url: linkedinUrl,
+        youtube_url: youtubeUrl,
+        github_url: githubUrl,
       };
 
       if (settingsId) {
@@ -274,6 +295,24 @@ const AdminSettings = () => {
             setOgTitle={(v) => { setOgTitle(v); setHasChanges(true); }}
             ogDescription={ogDescription}
             setOgDescription={(v) => { setOgDescription(v); setHasChanges(true); }}
+            readOnly={isReadOnly}
+          />
+        );
+      case "social":
+        return (
+          <SocialSettings
+            twitterUrl={twitterUrl}
+            setTwitterUrl={(v) => { setTwitterUrl(v); setHasChanges(true); }}
+            instagramUrl={instagramUrl}
+            setInstagramUrl={(v) => { setInstagramUrl(v); setHasChanges(true); }}
+            linkedinUrl={linkedinUrl}
+            setLinkedinUrl={(v) => { setLinkedinUrl(v); setHasChanges(true); }}
+            youtubeUrl={youtubeUrl}
+            setYoutubeUrl={(v) => { setYoutubeUrl(v); setHasChanges(true); }}
+            facebookUrl={facebookUrl}
+            setFacebookUrl={(v) => { setFacebookUrl(v); setHasChanges(true); }}
+            githubUrl={githubUrl}
+            setGithubUrl={(v) => { setGithubUrl(v); setHasChanges(true); }}
             readOnly={isReadOnly}
           />
         );

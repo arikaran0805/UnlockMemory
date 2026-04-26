@@ -231,9 +231,15 @@ export const serializeContent = (content: JSONContent): string => {
  */
 export const isContentEmpty = (content: JSONContent | null | undefined): boolean => {
   if (!content || !content.content) return true;
-  
+
+  // Atom nodes that store content in attrs rather than text children.
+  // These have no ProseMirror text content but represent real visible content.
+  const VISUAL_LEAF_NODES = new Set(['executableCodeBlock', 'image', 'horizontalRule']);
+
   const hasText = (node: JSONContent): boolean => {
     if (node.text && node.text.trim()) return true;
+    // Treat known visual leaf nodes as non-empty even though they have no text children
+    if (node.type && VISUAL_LEAF_NODES.has(node.type)) return true;
     if (node.content) {
       return node.content.some(hasText);
     }

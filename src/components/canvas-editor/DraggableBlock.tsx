@@ -315,7 +315,7 @@ const DraggableBlock = ({
       ref={setRefs}
       style={style}
       className={cn(
-        'group rounded-xl border border-l-[3px] bg-white dark:bg-card transition-colors duration-150',
+        'group rounded-xl border border-l-[3px] bg-surface-card dark:bg-card transition-colors duration-150',
         'border-l-primary/50',
         isDragging && 'opacity-20 scale-[0.98]',
         isFocused || isSelected

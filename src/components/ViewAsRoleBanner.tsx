@@ -23,7 +23,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
   super_moderator: "bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-400",
   senior_moderator: "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400",
   moderator: "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400",
-  user: "bg-gray-500/10 border-gray-500/30 text-gray-700 dark:text-gray-400",
+  user: "bg-neutral-600/10 border-neutral-600/30 text-content-secondary dark:text-content-muted",
 };
 
 const ViewAsRoleBanner = () => {

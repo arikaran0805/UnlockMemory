@@ -230,8 +230,8 @@ const TakeawayInlineBlock = ({
 
       {/* Content */}
       <div className="px-4 py-3 pl-6 relative">
-        <motion.div 
-          className="absolute left-4 top-3 bottom-3 w-0.5 bg-primary/40 rounded-full"
+        <motion.div
+          className="absolute left-4 top-3 bottom-3 w-0.5 bg-muted-foreground/25 rounded-full"
           initial={{ scaleY: 0 }}
           animate={{ scaleY: 1 }}
           transition={{ 
@@ -302,8 +302,8 @@ const ChatConversationView = ({
           mentor: {
             bubbleBg: data.mentor_bubble_bg || "#d4f5e6",
             bubbleText: data.mentor_bubble_text || "#064e3b",
-            avatarGradientFrom: data.mentor_avatar_gradient_from || "#34d399",
-            avatarGradientTo: data.mentor_avatar_gradient_to || "#059669",
+            avatarGradientFrom: data.mentor_avatar_gradient_from || "#c8e8d8",
+            avatarGradientTo: data.mentor_avatar_gradient_to || "#9dcdb4",
           },
           course: {
             bubbleBg: data.course_bubble_bg || "#f1f5f9",
@@ -554,17 +554,23 @@ const ChatConversationView = ({
               <div className="flex -space-x-1.5">
                 {/* Mentor (Karan) avatar */}
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-emerald-500/16"
-                  style={{ backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-bold ring-2 ring-white dark:ring-card transition-colors z-10"
+                  style={{
+                    background: "linear-gradient(135deg, #c8e8d8, #9dcdb4)",
+                    color: "#2a5c40",
+                    boxShadow: "0 1px 3px rgba(80,150,100,0.14)",
+                  }}
                 >
                   K
                 </div>
                 {/* Course avatar */}
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold opacity-80 transition-colors hover:bg-[#E2EBE6]"
-                  style={
-                    { backgroundColor: "#E8F0EC", color: "#5E7068" }
-                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-bold ring-2 ring-white dark:ring-card transition-colors"
+                  style={{
+                    background: "linear-gradient(135deg, #94a3b8, #64748b)",
+                    color: "#fff",
+                    boxShadow: "0 1px 4px rgba(100,116,139,0.25)",
+                  }}
                 >
                   {courseCharacter.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
@@ -584,7 +590,7 @@ const ChatConversationView = ({
         {/* Messages */}
         <div className="relative pl-0 pr-6 py-6">
           {/* Conversation spine — aligns with left avatar center (p-6=24px + w-7/2=14px = 38px) */}
-          <div className="pointer-events-none absolute bottom-6 left-[16px] top-6 w-px bg-emerald-400/[0.24]" />
+          <div className="pointer-events-none absolute bottom-6 left-[16px] top-6 w-px bg-muted-foreground/[0.1]" />
           {/* Empty state when no messages */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -671,13 +677,21 @@ const ChatConversationView = ({
                 {/* Avatar — only on the LAST bubble of a consecutive run (iMessage pattern) */}
                 <div
                   className={cn(
-                    "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors",
-                    isLastInRun ? "opacity-55" : "opacity-0 pointer-events-none",
+                    "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold ring-2 ring-white dark:ring-card transition-opacity duration-150",
+                    isLastInRun ? "opacity-100" : "opacity-0 pointer-events-none",
                   )}
                   style={
                     isMentorBubble
-                      ? { backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#3F5C50" }
-                      : { backgroundColor: "#E8F0EC", color: "#5E7068" }
+                      ? {
+                          background: "linear-gradient(135deg, #a7d9be, #6db899)",
+                          color: "#1a4a30",
+                          boxShadow: "0 1px 4px rgba(80,160,110,0.20)",
+                        }
+                      : {
+                          background: "linear-gradient(135deg, #94a3b8, #64748b)",
+                          color: "#fff",
+                          boxShadow: "0 1px 4px rgba(100,116,139,0.22)",
+                        }
                   }
                 >
                   {isMentorBubble ? (
@@ -690,15 +704,18 @@ const ChatConversationView = ({
                 {/* Bubble */}
                 <div
                   className={cn(
-                    "relative px-[12px] py-2 rounded-xl transition-colors duration-200",
+                    "relative px-[14px] py-2.5 rounded-xl transition-colors duration-200",
                     hasCodeBlock(message.content) ? "w-[75%] max-w-[75%] min-w-[360px]" : "max-w-[75%]"
                   )}
                   style={{
                     backgroundColor: dynamicStyle
                       ? dynamicStyle.bubbleStyle.backgroundColor
                       : isMentorBubble
-                        ? "rgba(16, 185, 129, 0.05)"
-                        : "rgba(0, 0, 0, 0.019)",
+                        ? "#EDF8F2"
+                        : "#F4F5F6",
+                    border: isMentorBubble
+                      ? "1px solid rgba(140, 200, 168, 0.45)"
+                      : "1px solid rgba(0, 0, 0, 0.07)",
                     ...(dynamicStyle ? dynamicStyle.textStyle : undefined),
                   }}
                 >
@@ -710,7 +727,7 @@ const ChatConversationView = ({
                   )}
 
                   {/* Content */}
-                  <div className="text-[14px] leading-[1.6] text-[#1F1F1F]">
+                  <div className="text-[14px] leading-[1.65] text-inherit">
                     {renderContent(message.content, isMentorBubble)}
                   </div>
                 </div>

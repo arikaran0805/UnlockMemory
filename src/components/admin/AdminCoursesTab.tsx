@@ -77,8 +77,8 @@ const LEVEL_CONFIG: Record<string, { band: string; badge: string }> = {
 };
 
 const DEFAULT_LEVEL_CONFIG = {
-  band: 'from-slate-400 to-slate-300',
-  badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  band: 'from-neutral-400 to-neutral-300',
+  badge: 'bg-neutral-200 text-content-secondary dark:bg-neutral-800 dark:text-content-muted',
 };
 
 function getLevelConfig(level: string | null) {

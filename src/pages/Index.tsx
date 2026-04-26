@@ -72,11 +72,10 @@ const HeroVisual = () => (
           ].map((lesson) => (
             <div
               key={lesson.label}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-[12px] font-medium transition-colors ${
-                lesson.done
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-[12px] font-medium transition-colors ${lesson.done
                   ? "border-primary/20 bg-primary/[0.04] text-foreground/60 line-through"
                   : "border-border bg-muted/30 text-foreground"
-              }`}
+                }`}
             >
               <CheckCircle
                 className={`h-3.5 w-3.5 flex-shrink-0 ${lesson.done ? "text-primary" : "text-muted-foreground/30"}`}
@@ -212,7 +211,7 @@ const Index = () => {
       setHeroHeadline(data.hero_headline || "Master Any Subject");
       setHeroSubheadline(
         data.hero_subheadline ||
-          "Learn through visuals and stories that spark clarity and deeper understanding.",
+        "Learn through visuals and stories that spark clarity and deeper understanding.",
       );
       setHeroHighlightText(data.hero_highlight_text || "Any Subject");
       setHeroHighlightColor(data.hero_highlight_color || "#10b981");
@@ -259,9 +258,8 @@ const Index = () => {
 
           <div className="container px-6 lg:px-12 xl:px-20 mx-auto relative z-10">
             <div
-              className={`grid lg:grid-cols-[55fr_45fr] gap-16 xl:gap-24 items-center transition-all duration-1000 ${
-                heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-              }`}
+              className={`grid lg:grid-cols-[55fr_45fr] gap-16 xl:gap-24 items-center transition-all duration-1000 ${heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                }`}
             >
               {/* LEFT: Content */}
               <div className="space-y-8 max-w-2xl">
@@ -332,9 +330,8 @@ const Index = () => {
         {/* ── SOCIAL PROOF STRIP ───────────────────────────────────────────── */}
         <section
           ref={statsAnimation.ref}
-          className={`border-y border-border/60 bg-muted/20 transition-all duration-700 ${
-            statsAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
+          className={`border-y border-border/60 bg-muted/20 transition-all duration-700 ${statsAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}
         >
           <div className="container px-6 lg:px-12 xl:px-20 mx-auto">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-5">
@@ -374,9 +371,8 @@ const Index = () => {
         {featuredCourses.length > 0 && (
           <section
             ref={coursesAnimation.ref}
-            className={`py-20 lg:py-28 transition-all duration-1000 delay-100 ${
-              coursesAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-            }`}
+            className={`py-20 lg:py-28 transition-all duration-1000 delay-100 ${coursesAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+              }`}
           >
             <div className="container px-6 lg:px-12 xl:px-20 mx-auto">
               {/* Section header */}
@@ -411,9 +407,8 @@ const Index = () => {
                     style={{
                       transitionDelay: coursesAnimation.isVisible ? `${index * 80}ms` : "0ms",
                     }}
-                    className={`transition-all duration-500 ${
-                      coursesAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-                    }`}
+                    className={`transition-all duration-500 ${coursesAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                      }`}
                   >
                     <BlogCard
                       title={course.title}
@@ -438,9 +433,8 @@ const Index = () => {
         {/* ── WHY UNLOCKMEMORY ─────────────────────────────────────────────── */}
         <section
           ref={featuresAnimation.ref}
-          className={`py-20 lg:py-28 bg-muted/20 border-y border-border/50 transition-all duration-1000 delay-100 ${
-            featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-          }`}
+          className={`py-20 lg:py-28 bg-muted/20 border-y border-border/50 transition-all duration-1000 delay-100 ${featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+            }`}
         >
           <div className="container px-6 lg:px-12 xl:px-20 mx-auto">
             {/* Header */}
@@ -500,9 +494,8 @@ const Index = () => {
                   style={{
                     transitionDelay: featuresAnimation.isVisible ? `${i * 60}ms` : "0ms",
                   }}
-                  className={`group p-6 rounded-2xl border border-border/60 bg-card hover:border-primary/30 hover:shadow-[0_4px_24px_hsl(var(--primary)/0.07)] transition-all duration-200 ${
-                    featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-                  }`}
+                  className={`group p-6 rounded-2xl border border-border/60 bg-card hover:border-primary/30 hover:shadow-[0_4px_24px_hsl(var(--primary)/0.07)] transition-all duration-200 ${featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                    }`}
                 >
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
                     <Icon className="h-5 w-5 text-primary" />
@@ -518,9 +511,8 @@ const Index = () => {
         {/* ── CTA BANNER ───────────────────────────────────────────────────── */}
         <section
           ref={ctaAnimation.ref}
-          className={`py-20 lg:py-28 transition-all duration-1000 delay-100 ${
-            ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-          }`}
+          className={`py-20 lg:py-28 transition-all duration-1000 delay-100 ${ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+            }`}
         >
           <div className="container px-6 lg:px-12 xl:px-20 mx-auto">
             <div className="relative rounded-3xl overflow-hidden bg-foreground px-8 py-16 md:px-16 md:py-20 text-center">

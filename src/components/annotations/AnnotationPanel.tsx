@@ -137,7 +137,7 @@ const AnnotationPanel = ({
       case "resolved":
         return "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800";
       case "dismissed":
-        return "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700";
+        return "bg-neutral-200 text-content-muted border-neutral-300 dark:bg-neutral-800/50 dark:border-neutral-700";
       default:
         return "";
     }
@@ -492,7 +492,7 @@ const AnnotationCard = ({
 
         {/* Selected text quote */}
         <div
-          className="mt-3 py-2 px-3 bg-[#f4fbf5] dark:bg-emerald-950/20 border-l-[3px] border-[#6fbf73] rounded-r-lg text-[13px] italic text-[#4a5568] dark:text-slate-300 line-clamp-3 font-medium"
+          className="mt-3 py-2 px-3 bg-[#f4fbf5] dark:bg-emerald-950/20 border-l-[3px] border-[#6fbf73] rounded-r-lg text-[13px] italic text-content-secondary dark:text-neutral-300 line-clamp-3 font-medium"
           onClick={(e) => e.stopPropagation()}
         >
           "{annotation.selected_text}"
@@ -666,7 +666,7 @@ const ReplyCard = ({ reply, isAdmin, userId, onDelete }: ReplyCardProps) => {
 
   return (
     <div className="flex items-start gap-2.5 py-2.5 px-3 rounded-lg hover:bg-muted/40 transition-colors duration-150 group">
-      <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-[10px] shrink-0 mt-0.5">
+      <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-content-secondary dark:text-neutral-300 font-semibold text-[10px] shrink-0 mt-0.5">
         {initials}
       </div>
       <div className="flex-1 min-w-0">

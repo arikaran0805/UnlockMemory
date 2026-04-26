@@ -43,7 +43,7 @@ export const CourseSidebarAds = ({
       : (showAnnouncement ? 'top-[4.75rem]' : 'top-10');
 
   return (
-    <aside className={cn("hidden xl:block w-[300px] flex-shrink-0", className)}>
+    <aside className={cn("hidden xl:block w-[260px] flex-shrink-0", className)}>
       <div className={cn("sticky transition-[top] duration-200 ease-out", stickyTopClass)}>
         {showAds ? (
           <div className="space-y-4 p-1 pb-6">

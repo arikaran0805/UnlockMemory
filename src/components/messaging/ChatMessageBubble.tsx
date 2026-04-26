@@ -92,10 +92,10 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
         case "seen":
           return <CheckCheck className="h-3 w-3 text-[#34B7F1] transition-colors duration-300" />;
         case "delivered":
-          return <CheckCheck className="h-3 w-3 text-gray-400 transition-colors duration-300" />;
+          return <CheckCheck className="h-3 w-3 text-content-muted transition-colors duration-300" />;
         case "sent":
         default:
-          return <Check className="h-3 w-3 text-gray-400 transition-colors duration-300" />;
+          return <Check className="h-3 w-3 text-content-muted transition-colors duration-300" />;
       }
     })();
 
@@ -181,17 +181,17 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
             "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
             isOwn ? "bg-black/10 dark:bg-white/20" : "bg-primary/10"
           )}>
-            <Icon className={cn("h-4 w-4", isOwn ? "text-gray-700 dark:text-gray-200" : "text-primary")} />
+            <Icon className={cn("h-4 w-4", isOwn ? "text-content-secondary dark:text-content-inverse" : "text-primary")} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={cn("text-xs font-medium truncate", isOwn ? "text-gray-900 dark:text-gray-100" : "text-foreground")}>
+            <p className={cn("text-xs font-medium truncate", isOwn ? "text-content-primary dark:text-content-inverse" : "text-foreground")}>
               {message.attachment_name || "File"}
             </p>
-            <p className={cn("text-[10px]", isOwn ? "text-gray-500 dark:text-gray-400" : "text-muted-foreground")}>
+            <p className={cn("text-[10px]", isOwn ? "text-content-muted dark:text-content-muted" : "text-muted-foreground")}>
               {ext} {formatSize((message as any).attachment_size)}
             </p>
           </div>
-          <Download className={cn("h-3.5 w-3.5 flex-shrink-0", isOwn ? "text-gray-500 dark:text-gray-400" : "text-muted-foreground")} />
+          <Download className={cn("h-3.5 w-3.5 flex-shrink-0", isOwn ? "text-content-muted" : "text-muted-foreground")} />
         </a>
       );
     }
@@ -206,7 +206,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
             rel="noopener noreferrer"
             className={cn(
               "flex items-center gap-2 mb-1 text-xs underline-offset-2 hover:underline",
-              isOwn ? "text-gray-800 dark:text-gray-200" : "text-primary"
+              isOwn ? "text-content-primary dark:text-content-inverse" : "text-primary"
             )}
           >
             <Paperclip className="h-3 w-3" />
@@ -292,7 +292,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
           "max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed",
           "transition-shadow duration-200",
           isOwn
-            ? "bg-[#DCF8C6] dark:bg-[#005C4B] text-gray-900 dark:text-gray-100 rounded-br-lg"
+            ? "bg-[#DCF8C6] dark:bg-[#005C4B] text-content-primary dark:text-content-inverse rounded-br-lg"
             : "bg-muted/50 text-foreground rounded-bl-lg border border-border/20",
           isImage && "p-1.5"
         )}
@@ -305,7 +305,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
         {/* Meta */}
         <div className={cn(
           "flex items-center justify-end gap-1 mt-1",
-          isOwn ? "text-gray-500 dark:text-gray-400" : "text-muted-foreground",
+          isOwn ? "text-content-muted" : "text-muted-foreground",
           isImage && "px-2"
         )}>
           <span className="text-[10px]">{time}</span>

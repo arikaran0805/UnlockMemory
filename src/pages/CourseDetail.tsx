@@ -1198,8 +1198,8 @@ const CourseDetail = () => {
             }}
           />
 
-          {/* MAIN CONTENT - centered between sidebars (280px left + 300px right = 580px total, offset by 10px) */}
-          <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pl-[10px] px-4 lg:px-0">
+          {/* MAIN CONTENT - centered between sidebars (280px left + 260px right = 540px total, offset by 10px right) */}
+          <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0">
             <Card className="rounded-none border-0 shadow-none">
               <CardContent className="p-6 lg:p-8">
                 {loadingPost ? (

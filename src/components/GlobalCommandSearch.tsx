@@ -350,7 +350,7 @@ export function GlobalCommandSearch({ open, onOpenChange }: CommandSearchProps) 
         className={cn(
           "overflow-hidden p-0 shadow-2xl",
           "sm:max-w-[560px] rounded-2xl",
-          "bg-white dark:bg-card",
+          "bg-surface-card dark:bg-card",
           "border border-border/50",
           "backdrop-blur-xl"
         )}

@@ -13,10 +13,8 @@ import {
   Home,
   Search,
   X,
-  Sparkles,
   Award,
   Link2,
-  Clock,
   Dumbbell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -124,7 +122,7 @@ export const CourseSidebar = memo(({
   // Filter lessons based on search query
   const filteredLessons = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    
+
     if (!query) {
       return lessons.filter(lesson => isPreviewMode || lesson.is_published);
     }
@@ -132,12 +130,10 @@ export const CourseSidebar = memo(({
     return lessons
       .filter(lesson => isPreviewMode || lesson.is_published)
       .filter(lesson => {
-        // Check if lesson title/description matches
-        const lessonMatches = 
+        const lessonMatches =
           lesson.title.toLowerCase().includes(query) ||
           (lesson.description?.toLowerCase().includes(query) ?? false);
-        
-        // Check if any posts in this lesson match
+
         const lessonPosts = getPostsForLesson(lesson.id);
         const hasMatchingPosts = lessonPosts.some(post =>
           post.title.toLowerCase().includes(query) ||
@@ -148,27 +144,23 @@ export const CourseSidebar = memo(({
       });
   }, [lessons, searchQuery, isPreviewMode, getPostsForLesson]);
 
-  // Find the index of the expanded lesson to determine which lessons to hide
   const expandedLessonIndex = useMemo(() => {
     if (!expandedLessonId || searchQuery) return -1;
     return filteredLessons.findIndex(l => l.id === expandedLessonId);
   }, [filteredLessons, expandedLessonId, searchQuery]);
 
-  // Get filtered posts for a lesson (when searching) — stable reference avoids recomputing the whole list
   const getFilteredPostsForLesson = useCallback((lessonId: string) => {
     const allPosts = getPostsForLesson(lessonId);
     const query = searchQuery.toLowerCase().trim();
 
     if (!query) return allPosts;
 
-    // Check if the lesson itself matches
     const lesson = lessons.find(l => l.id === lessonId);
     const lessonMatches = lesson && (
       lesson.title.toLowerCase().includes(query) ||
       (lesson.description?.toLowerCase().includes(query) ?? false)
     );
 
-    // If lesson matches, show all posts; otherwise filter posts
     if (lessonMatches) return allPosts;
 
     return allPosts.filter(post =>
@@ -177,24 +169,21 @@ export const CourseSidebar = memo(({
     );
   }, [getPostsForLesson, lessons, searchQuery]);
 
-  // Calculate sticky top position based on header visibility and context
-  // Career Board: Primary (64px) + CareerScopedHeader (48px) + Announcement (36px)
-  // Standard: Primary (64px) + Secondary (40px) + Announcement (36px)
+  // Sticky top position (unchanged logic)
   const stickyTopClass = isPreviewMode && canPreview && hasPreviewBanner
     ? isHeaderVisible
       ? (showAnnouncement ? 'top-[10.5rem]' : 'top-[8.5rem]')
       : (showAnnouncement ? 'top-[7.25rem]' : 'top-20')
     : isCareerBoard
       ? isHeaderVisible
-        ? (showAnnouncement ? 'top-[9.25rem]' : 'top-28') // 148px / 112px
-        : (showAnnouncement ? 'top-[5.25rem]' : 'top-12') // 84px / 48px
+        ? (showAnnouncement ? 'top-[9.25rem]' : 'top-28')
+        : (showAnnouncement ? 'top-[5.25rem]' : 'top-12')
       : isHeaderVisible
-        ? (showAnnouncement ? 'top-[8.75rem]' : 'top-[6.5rem]') // 140px / 104px
-        : (showAnnouncement ? 'top-[4.75rem]' : 'top-10'); // 76px / 40px
+        ? (showAnnouncement ? 'top-[8.75rem]' : 'top-[6.5rem]')
+        : (showAnnouncement ? 'top-[4.75rem]' : 'top-10');
 
   const noResults = searchQuery && filteredLessons.length === 0;
 
-  // Calculate matching height offset for sidebar content
   const heightOffset = isPreviewMode && canPreview && hasPreviewBanner
     ? isHeaderVisible
       ? (showAnnouncement ? '10.5rem' : '8.5rem')
@@ -210,15 +199,17 @@ export const CourseSidebar = memo(({
   return (
     <aside className="lg:w-[280px] bg-sidebar border-r border-sidebar-border flex-shrink-0">
       <div className={cn("sticky transition-[top] duration-200 ease-out", stickyTopClass)} style={{ height: `calc(100vh - ${heightOffset})` }}>
-        
-        {/* === SECTION 1: COURSE PROGRESS HEADER === */}
+
+        {/* ═══ SECTION 1: HEADER ═══ */}
         <div className="px-4 pt-4 pb-1">
           <div className="flex items-center justify-between">
-            <h2 className="font-medium text-muted-foreground text-xs tracking-widest uppercase leading-none">
+            {/* Label — refined tracking, tighter size */}
+            <h2 className="text-[10px] font-semibold text-muted-foreground/65 tracking-[0.14em] uppercase leading-none select-none">
               {isAuthenticated ? "Course Progress" : "Course Outline"}
             </h2>
+
             <div className="flex items-center gap-0.5">
-              {/* Search Icon */}
+              {/* Search toggle */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -227,43 +218,39 @@ export const CourseSidebar = memo(({
                       if (isSearchFocused) setSearchQuery("");
                     }}
                     className={cn(
-                      "p-1.5 rounded-md transition-all duration-200",
-                      isSearchFocused 
-                        ? "text-sidebar-primary bg-sidebar-accent" 
-                        : "text-muted-foreground hover:text-sidebar-primary hover:bg-sidebar-accent"
+                      "h-7 w-7 flex items-center justify-center rounded-xl transition-all duration-200",
+                      isSearchFocused
+                        ? "text-sidebar-primary bg-sidebar-accent"
+                        : "text-muted-foreground/60 hover:text-sidebar-primary hover:bg-sidebar-accent"
                     )}
                     aria-label="Search lessons"
                   >
-                    <Search className="h-4 w-4" />
+                    <Search className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Search lessons
-                </TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">Search lessons</TooltipContent>
               </Tooltip>
 
-              {/* Home Icon - Only for authenticated users */}
+              {/* Home — authenticated only */}
               {isAuthenticated && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={handleHomeClick}
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-sidebar-primary hover:bg-sidebar-accent transition-all duration-200"
+                      className="h-7 w-7 flex items-center justify-center rounded-xl text-muted-foreground/60 hover:text-sidebar-primary hover:bg-sidebar-accent transition-all duration-200"
                       aria-label="Go to course home"
                     >
-                      <Home className="h-4 w-4" />
+                      <Home className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">
-                    Course home
-                  </TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Course home</TooltipContent>
                 </Tooltip>
               )}
             </div>
           </div>
         </div>
 
-        {/* === SECTION 2: LESSON SEARCH (Collapsible) === */}
+        {/* ═══ SECTION 2: SEARCH (collapsible) ═══ */}
         <div
           className={cn(
             "overflow-hidden transition-all duration-300 ease-in-out",
@@ -272,24 +259,24 @@ export const CourseSidebar = memo(({
         >
           <div className="px-4 pb-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search lessons…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn(
-                  "w-full pl-9 pr-8 py-2 text-sm rounded-lg",
+                  "w-full h-9 pl-9 pr-8 text-[13px] rounded-xl",
                   "bg-background border border-sidebar-border",
-                  "placeholder:text-muted-foreground/60",
-                  "transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-sidebar-ring/30 focus:border-sidebar-primary/50"
+                  "placeholder:text-muted-foreground/45",
+                  "transition-colors duration-200",
+                  "focus:outline-none focus:border-sidebar-primary/45"
                 )}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
                   aria-label="Clear search"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -297,134 +284,134 @@ export const CourseSidebar = memo(({
               )}
             </div>
           </div>
-          {/* Separator inside collapsible - only visible when search is open */}
           <Separator className="bg-sidebar-border" />
         </div>
 
-        {/* === SECTION 3: PROGRESS DISPLAY (Logged-in users only) === */}
+        {/* ═══ SECTION 3: PROGRESS ═══ */}
         {isAuthenticated ? (
           <>
-            <div className="px-4 pt-1 pb-4">
+            <div className="px-4 pt-3 pb-4">
               {isLoading ? (
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-3 w-20 rounded-lg" />
+                    <Skeleton className="h-4 w-8 rounded-lg" />
                   </div>
-                  <Skeleton className="h-2 w-full" />
-                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+                  <Skeleton className="h-3 w-28 rounded-lg" />
                 </div>
               ) : (
-              <div className="space-y-2.5">
-                {/* Completion Stats Row */}
-                <div className="flex items-center justify-between">
-                  {courseProgress.percentage > 0 ? (
-                    <span className="text-xs text-muted-foreground">
-                      {courseProgress.completedCount}/{courseProgress.totalCount} lessons
+                <div className="space-y-2.5">
+                  {/* Stats row */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-muted-foreground/70">
+                      {courseProgress.percentage > 0
+                        ? `${courseProgress.completedCount} / ${courseProgress.totalCount} lessons`
+                        : `${courseProgress.totalCount} lesson${courseProgress.totalCount !== 1 ? "s" : ""}`}
                     </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/60">
-                      {courseProgress.totalCount} lessons
+                    {/* Percentage — muted at zero, green once started */}
+                    <span className={cn(
+                      "text-[15px] font-bold leading-none tabular-nums",
+                      courseProgress.percentage === 0
+                        ? "text-muted-foreground/40"
+                        : "text-sidebar-primary"
+                    )}>
+                      {courseProgress.percentage}%
                     </span>
-                  )}
-                  <span className="text-sm font-semibold text-sidebar-primary">
-                    {courseProgress.percentage}%
-                  </span>
-                </div>
+                  </div>
 
-                {/* Progress Bar */}
-                <Progress
-                  value={courseProgress.percentage}
-                  className="h-2 bg-sidebar-accent [&>div]:bg-gradient-to-r [&>div]:from-sidebar-primary [&>div]:to-sidebar-primary/70 [&>div]:transition-all [&>div]:duration-500"
-                  aria-label={`Course progress: ${courseProgress.percentage}%`}
-                />
+                  {/* Progress bar */}
+                  <Progress
+                    value={courseProgress.percentage}
+                    className="h-1.5 bg-sidebar-accent rounded-full [&>div]:bg-gradient-to-r [&>div]:from-sidebar-primary [&>div]:to-sidebar-primary/75 [&>div]:transition-all [&>div]:duration-700 [&>div]:rounded-full"
+                    aria-label={`Course progress: ${courseProgress.percentage}%`}
+                  />
 
-                {/* Motivational Text */}
-                <div className="flex items-center gap-1.5 text-xs">
-                  {!courseProgress.hasStarted && (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-muted-foreground">Ready when you are</span>
-                    </>
-                  )}
-                  {courseProgress.hasStarted && !courseProgress.isCompleted && courseProgress.percentage < 50 && (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" />
-                      <span className="text-sidebar-accent-foreground">Great start! Keep going</span>
-                    </>
-                  )}
-                  {courseProgress.hasStarted && !courseProgress.isCompleted && courseProgress.percentage >= 50 && (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" />
-                      <span className="text-sidebar-accent-foreground">You're doing amazing!</span>
-                    </>
-                  )}
-                  {courseProgress.isCompleted && (
-                    <>
-                      <Award className="h-3.5 w-3.5 text-sidebar-primary" />
-                      <span className="text-sidebar-primary font-medium">Course completed!</span>
-                    </>
-                  )}
+                  {/* Motivational row — calm dot instead of Sparkles icon */}
+                  <div className="flex items-center gap-2 text-[11.5px]">
+                    {!courseProgress.hasStarted && (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30 flex-shrink-0" />
+                        <span className="text-muted-foreground/60">Ready when you are</span>
+                      </>
+                    )}
+                    {courseProgress.hasStarted && !courseProgress.isCompleted && courseProgress.percentage < 50 && (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary/60 flex-shrink-0" />
+                        <span className="text-sidebar-accent-foreground">Great start — keep going</span>
+                      </>
+                    )}
+                    {courseProgress.hasStarted && !courseProgress.isCompleted && courseProgress.percentage >= 50 && (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary flex-shrink-0" />
+                        <span className="text-sidebar-accent-foreground">You're doing amazing!</span>
+                      </>
+                    )}
+                    {courseProgress.isCompleted && (
+                      <>
+                        <Award className="h-3.5 w-3.5 text-sidebar-primary flex-shrink-0" />
+                        <span className="text-sidebar-primary font-medium">Course completed!</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
               )}
             </div>
             <Separator className="bg-sidebar-border" />
           </>
         ) : (
-          /* Guest CTA */
+          /* Guest sign-in prompt */
           <div className="px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              <a href={`/login?redirect=${encodeURIComponent(window.location.pathname)}`} className="text-sidebar-primary hover:underline">Sign in</a> to track your progress
+            <p className="text-[12px] text-muted-foreground/65">
+              <a
+                href={`/login?redirect=${encodeURIComponent(window.location.pathname)}`}
+                className="text-sidebar-primary hover:underline"
+              >
+                Sign in
+              </a>{" "}
+              to track your progress
             </p>
           </div>
         )}
 
-        {/* === SECTION 4: LESSON TREE (Single-Open Accordion) === */}
+        {/* ═══ SECTION 4: LESSON TREE ═══ */}
         <ScrollArea className="flex-1 h-[calc(100%-16rem)]">
-          <nav 
-            className="p-2" 
-            aria-label="Course lessons"
-            role="region"
-          >
+          <nav className="p-2" aria-label="Course lessons" role="region">
+
             {noResults ? (
-              /* Empty State: No Search Results */
+              /* No search results */
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <Search className="h-8 w-8 text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground font-medium">
-                  No lessons match your search
-                </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Try a different keyword
-                </p>
+                <Search className="h-7 w-7 text-muted-foreground/30 mb-3" />
+                <p className="text-[13px] text-muted-foreground font-medium">No lessons found</p>
+                <p className="text-[11.5px] text-muted-foreground/50 mt-1">Try a different keyword</p>
               </div>
+
             ) : filteredLessons.length > 0 ? (
               <div role="group" aria-label="Lesson modules">
                 {filteredLessons.map((lesson, index) => {
-                  const lessonPosts = getFilteredPostsForLesson(lesson.id);
-                  const isExpanded = expandedLessons.has(lesson.id);
+                  const lessonPosts   = getFilteredPostsForLesson(lesson.id);
+                  const isExpanded    = expandedLessons.has(lesson.id);
                   const hasActivePost = lessonPosts.some(p => p.id === selectedPost?.id);
                   const lessonProgress = getLessonProgress(lesson.id);
-                  const panelId = `lesson-panel-${lesson.id}`;
+                  const panelId  = `lesson-panel-${lesson.id}`;
                   const headerId = `lesson-header-${lesson.id}`;
 
-                  // Determine if this lesson should be hidden (above the expanded one)
                   const isAboveExpanded = expandedLessonIndex !== -1 && index < expandedLessonIndex;
-                  const isTheExpanded = lesson.id === expandedLessonId;
+                  const isTheExpanded   = lesson.id === expandedLessonId;
 
                   return (
-                    <div 
-                      key={lesson.id} 
+                    <div
+                      key={lesson.id}
                       className={cn(
                         "transition-all duration-300 ease-out overflow-hidden",
-                        isAboveExpanded 
-                          ? "max-h-0 opacity-0 mb-0" 
+                        isAboveExpanded
+                          ? "max-h-0 opacity-0 mb-0"
                           : "max-h-[500px] opacity-100 mb-1",
                         isTheExpanded && "relative z-10"
-                      )} 
+                      )}
                       role="presentation"
                     >
-                      {/* Module Header - Accordion Trigger */}
+                      {/* ── Module accordion trigger ── */}
                       <button
                         id={headerId}
                         onClick={() => toggleLessonExpansion(lesson.id)}
@@ -435,219 +422,239 @@ export const CourseSidebar = memo(({
                           }
                         }}
                         className={cn(
-                          "w-full rounded-lg transition-all duration-200 text-left",
+                          "w-full rounded-xl transition-all duration-200 text-left relative overflow-hidden",
                           "focus:outline-none focus:ring-2 focus:ring-sidebar-ring/40",
                           hasActivePost
-                            ? "bg-sidebar-accent border border-sidebar-primary/20"
-                            : "hover:bg-sidebar-accent"
+                            ? "bg-sidebar-accent/80"
+                            : "hover:bg-sidebar-accent/60"
                         )}
                         aria-expanded={isExpanded}
                         aria-controls={panelId}
-                    >
-                      <div className="px-3 py-2.5 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                          {/* Module Status Icon - Only show progress for authenticated users */}
-                          {isAuthenticated ? (
-                            lessonProgress.isComplete ? (
-                              <CheckCircle className="h-4 w-4 text-sidebar-primary flex-shrink-0" />
-                            ) : lessonProgress.completedPosts > 0 ? (
-                              <div className="h-4 w-4 rounded-full border-2 border-sidebar-primary flex items-center justify-center flex-shrink-0">
-                                <div className="h-1.5 w-1.5 rounded-full bg-sidebar-primary/60" />
-                              </div>
-                            ) : (
-                              <Circle className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                            )
-                          ) : (
-                            <BookOpen className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                          )}
-                          <span className="text-sm font-medium text-sidebar-foreground truncate">
-                            {lesson.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {/* Module Progress Indicator - Only for authenticated users */}
-                          {isAuthenticated && lessonProgress.totalPosts > 0 && (
-                            <span className="text-[10px] text-muted-foreground tabular-nums">
-                              {lessonProgress.completedPosts}/{lessonProgress.totalPosts}
-                            </span>
-                          )}
-                          <ChevronDown
-                            className={cn(
-                              "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                              isExpanded && "rotate-180"
-                            )}
-                          />
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Lesson Posts - Accordion Panel */}
-                    {isExpanded && (
-                      <div 
-                        id={panelId}
-                        role="region"
-                        aria-labelledby={headerId}
-                        className="ml-3 mt-1 border-l-2 border-sidebar-border pl-2 space-y-0.5"
                       >
-                        {lessonPosts.length > 0 ? (
-                          lessonPosts.map((post) => {
-                            const isActive = selectedPost?.id === post.id;
-                            const isCompleted = isLessonCompleted(post.id);
+                        {/* Left accent bar — editorial indicator for active module */}
+                        {hasActivePost && (
+                          <div className="absolute left-0 top-[20%] bottom-[20%] w-[2.5px] bg-sidebar-primary/55 rounded-r" />
+                        )}
 
-                            return (
-                              <button
-                                key={post.id}
-                                onClick={() => handleLessonClick(post)}
-                                className={cn(
-                                  "w-full rounded-md transition-all duration-200 text-left group/lesson relative",
-                                  "focus:outline-none focus:ring-2 focus:ring-sidebar-ring/40",
-                                  isActive
-                                    ? "bg-sidebar-primary shadow-sm"
-                                    : shareOpenPostId === post.id
-                                      ? "bg-sidebar-accent/70"
-                                      : "hover:bg-sidebar-accent"
-                                )}
-                              >
-                                {/* Accent bar - share tooltip active */}
-                                {shareOpenPostId === post.id && !isActive && (
-                                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-r" />
-                                )}
-                                <div className="px-3 py-2 flex items-center gap-2">
-                                  {/* Lesson Status - Only show for authenticated users */}
-                                  {isAuthenticated ? (
-                                    isCompleted ? (
-                                      <CheckCircle
-                                        className={cn(
-                                          "h-3.5 w-3.5 flex-shrink-0",
-                                          isActive ? "text-sidebar-primary-foreground" : "text-sidebar-primary"
-                                        )}
-                                      />
-                                    ) : (
-                                      <Circle
-                                        className={cn(
-                                          "h-3.5 w-3.5 flex-shrink-0",
-                                          isActive ? "text-sidebar-primary-foreground/70" : "text-muted-foreground/50"
-                                        )}
-                                      />
-                                    )
-                                  ) : null}
-                                  <span
-                                    className={cn(
-                                      "text-sm flex-1 truncate transition-colors",
-                                      isActive
-                                        ? "text-sidebar-primary-foreground font-medium"
-                                        : "text-sidebar-foreground group-hover/lesson:text-sidebar-accent-foreground"
-                                    )}
-                                  >
-                                    {post.title}
-                                  </span>
-                                  
-                                  {/* Hover Actions - hidden for guests */}
-                                  {isAuthenticated && (
-                                    <div 
+                        <div className="px-3 py-2.5 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                            {/* Module status icon */}
+                            {isAuthenticated ? (
+                              lessonProgress.isComplete ? (
+                                <CheckCircle className="h-4 w-4 text-sidebar-primary flex-shrink-0" />
+                              ) : lessonProgress.completedPosts > 0 ? (
+                                <div className="h-4 w-4 rounded-full border-2 border-sidebar-primary flex items-center justify-center flex-shrink-0">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-sidebar-primary/60" />
+                                </div>
+                              ) : (
+                                <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                              )
+                            ) : (
+                              <BookOpen className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                            )}
+                            <span className="text-[13px] font-medium text-sidebar-foreground truncate">
+                              {lesson.title}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Module progress count */}
+                            {isAuthenticated && lessonProgress.totalPosts > 0 && (
+                              <span className="text-[10px] font-medium text-muted-foreground/50 tabular-nums">
+                                {lessonProgress.completedPosts}/{lessonProgress.totalPosts}
+                              </span>
+                            )}
+                            <ChevronDown
+                              className={cn(
+                                "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200",
+                                isExpanded && "rotate-180"
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* ── Lesson posts panel ── */}
+                      {isExpanded && (
+                        <div
+                          id={panelId}
+                          role="region"
+                          aria-labelledby={headerId}
+                          className={cn(
+                            "ml-3 mt-1 border-l pl-2 space-y-0.5",
+                            hasActivePost
+                              ? "border-sidebar-primary/30"
+                              : "border-border/50"
+                          )}
+                        >
+                          {lessonPosts.length > 0 ? (
+                            lessonPosts.map((post) => {
+                              const isActive    = selectedPost?.id === post.id;
+                              const isCompleted = isLessonCompleted(post.id);
+
+                              return (
+                                <button
+                                  key={post.id}
+                                  onClick={() => handleLessonClick(post)}
+                                  className={cn(
+                                    "w-full rounded-xl transition-all duration-200 text-left group/lesson relative",
+                                    "focus:outline-none focus:ring-2 focus:ring-sidebar-ring/40",
+                                    isActive
+                                      ? "bg-sidebar-primary/[0.17] ring-1 ring-inset ring-sidebar-primary/[0.14]"
+                                      : shareOpenPostId === post.id
+                                        ? "bg-sidebar-accent/70"
+                                        : "hover:bg-sidebar-accent/60"
+                                  )}
+                                >
+                                  {/* Active accent bar */}
+
+                                  {/* Share-open accent bar */}
+                                  {shareOpenPostId === post.id && !isActive && (
+                                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-sidebar-primary rounded-r" />
+                                  )}
+
+                                  <div className="px-3 py-2 flex items-center gap-2">
+                                    {/* Completion status — authenticated only */}
+                                    {isAuthenticated ? (
+                                      isCompleted ? (
+                                        <CheckCircle
+                                          className={cn(
+                                            "h-3 w-3 flex-shrink-0",
+                                            isActive ? "text-sidebar-primary" : "text-sidebar-primary"
+                                          )}
+                                        />
+                                      ) : (
+                                        <Circle
+                                          className={cn(
+                                            "h-3 w-3 flex-shrink-0",
+                                            isActive
+                                              ? "text-sidebar-primary/50"
+                                              : "text-muted-foreground/30"
+                                          )}
+                                        />
+                                      )
+                                    ) : null}
+
+                                    <span
                                       className={cn(
-                                        "flex items-center gap-1.5 transition-opacity duration-200",
-                                        isActive || shareOpenPostId === post.id 
-                                          ? "opacity-100" 
-                                          : "opacity-0 group-hover/lesson:opacity-100"
+                                        "text-[13px] flex-1 truncate transition-colors",
+                                        isActive
+                                          ? "text-sidebar-primary font-medium"
+                                          : "text-sidebar-foreground/85 group-hover/lesson:text-sidebar-accent-foreground"
                                       )}
                                     >
-                                      {/* Copy Link */}
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              navigator.clipboard.writeText(`${window.location.origin}/courses/${post.slug}`);
-                                              setCopiedPostId(post.id);
-                                              toast.success("Link copied!");
-                                              setTimeout(() => setCopiedPostId(null), 2000);
-                                            }}
-                                            className={cn(
-                                              "p-0.5 rounded transition-colors",
-                                              isActive 
-                                                ? "text-sidebar-primary-foreground/70 hover:text-sidebar-primary-foreground" 
-                                                : "text-muted-foreground hover:text-foreground"
-                                            )}
-                                          >
-                                            <Link2 className="h-3 w-3" />
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="text-xs">
-                                          {copiedPostId === post.id ? "Copied" : "Copy link"}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                      
-                                      {/* Share - using LessonShareMenu for consistent behavior */}
-                                      <LessonShareMenu
-                                        postId={post.id}
-                                        postTitle={post.title}
-                                        postSlug={post.slug}
-                                        sectionName={lesson.title}
-                                        alwaysVisible
-                                        side="right"
-                                        vertical
-                                        onOpenChange={(isOpen) =>
-                                          setShareOpenPostId((prev) =>
-                                            isOpen ? post.id : prev === post.id ? null : prev
-                                          )
-                                        }
-                                        sidebarVariant
-                                        isActive={isActive}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              </button>
-                            );
-                                          })
-                                        ) : (
-                                          <div className="px-3 py-3 text-xs text-muted-foreground/60 italic">
-                                            Content coming soon…
-                                          </div>
+                                      {post.title}
+                                    </span>
+
+                                    {/* Hover actions — authenticated only */}
+                                    {isAuthenticated && (
+                                      <div
+                                        className={cn(
+                                          "flex items-center gap-1.5 transition-opacity duration-200",
+                                          isActive || shareOpenPostId === post.id
+                                            ? "opacity-100"
+                                            : "opacity-0 group-hover/lesson:opacity-100"
                                         )}
-                                        
-                                        {/* Practice Problems Link */}
-                                        {practiceSkillSlug && lessonProblemCounts && lessonProblemCounts.get(lesson.id) ? (
-                                          <Link
-                                            to={`/practice/${practiceSkillSlug}/lesson/${lesson.id}`}
-                                            className={cn(
-                                              "flex items-center gap-2 px-3 py-2 mt-1 rounded-md",
-                                              "text-xs text-muted-foreground",
-                                              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                                              "transition-colors duration-200"
-                                            )}
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {isAuthenticated && lessonProblemsCompleted?.get(lesson.id) ? (
-                                              <CheckCircle className="h-3.5 w-3.5 text-sidebar-primary" />
-                                            ) : (
-                                              <Dumbbell className="h-3.5 w-3.5" />
-                                            )}
-                                            <span>Practice Problems</span>
-                                          </Link>
-                                        ) : null}
+                                      >
+                                        {/* Copy link */}
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(`${window.location.origin}/courses/${post.slug}`);
+                                                setCopiedPostId(post.id);
+                                                toast.success("Link copied!");
+                                                setTimeout(() => setCopiedPostId(null), 2000);
+                                              }}
+                                              className={cn(
+                                                "p-0.5 rounded-lg transition-colors",
+                                                isActive
+                                                  ? "text-sidebar-primary/60 hover:text-sidebar-primary"
+                                                  : "text-muted-foreground/60 hover:text-foreground"
+                                              )}
+                                            >
+                                              <Link2 className="h-3 w-3" />
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="text-xs">
+                                            {copiedPostId === post.id ? "Copied!" : "Copy link"}
+                                          </TooltipContent>
+                                        </Tooltip>
+
+                                        {/* Share menu */}
+                                        <LessonShareMenu
+                                          postId={post.id}
+                                          postTitle={post.title}
+                                          postSlug={post.slug}
+                                          sectionName={lesson.title}
+                                          alwaysVisible
+                                          side="right"
+                                          vertical
+                                          onOpenChange={(isOpen) =>
+                                            setShareOpenPostId((prev) =>
+                                              isOpen ? post.id : prev === post.id ? null : prev
+                                            )
+                                          }
+                                          sidebarVariant
+                                          isActive={false}
+                                        />
                                       </div>
                                     )}
                                   </div>
-                                );
-                              })}
-                              </div>
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="px-3 py-3 text-[12px] text-muted-foreground/50 italic">
+                              Content coming soon…
+                            </div>
+                          )}
+
+                          {/* Practice problems link */}
+                          {practiceSkillSlug && lessonProblemCounts && lessonProblemCounts.get(lesson.id) ? (
+                            <Link
+                              to={`/practice/${practiceSkillSlug}/lesson/${lesson.id}`}
+                              className={cn(
+                                "flex items-center gap-2 px-3 py-2 mt-1 rounded-xl",
+                                "text-[12px] font-medium",
+                                "bg-sidebar-primary/[0.07] text-sidebar-primary/70",
+                                "hover:bg-sidebar-primary/[0.13] hover:text-sidebar-primary",
+                                "transition-all duration-200"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {isAuthenticated && lessonProblemsCompleted?.get(lesson.id) ? (
+                                <CheckCircle className="h-3.5 w-3.5 text-sidebar-primary flex-shrink-0" />
+                              ) : (
+                                <Dumbbell className="h-3.5 w-3.5 flex-shrink-0" />
+                              )}
+                              <span>Practice Problems</span>
+                            </Link>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
             ) : isLoading ? (
-              /* Loading skeleton for lessons */
-              <div className="space-y-1 p-2">
+              /* Loading skeleton */
+              <div className="space-y-1 p-1">
                 {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="flex items-center gap-2 px-2 py-2">
-                    <Skeleton className="h-4 w-4 rounded-full shrink-0" />
-                    <Skeleton className="h-3 flex-1" />
+                  <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl">
+                    <Skeleton className="h-4 w-4 rounded-full flex-shrink-0" />
+                    <Skeleton className="h-3 flex-1 rounded-lg" />
                   </div>
                 ))}
               </div>
+
             ) : (
-              /* Empty State: No Lessons */
+              /* No lessons */
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <BookOpen className="h-8 w-8 text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground">No lessons yet</p>
+                <BookOpen className="h-7 w-7 text-muted-foreground/30 mb-3" />
+                <p className="text-[13px] text-muted-foreground/70">No lessons yet</p>
               </div>
             )}
           </nav>

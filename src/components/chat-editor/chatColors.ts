@@ -23,21 +23,21 @@ export const CHAT_COLORS = {
   },
   course: {
     // Bubble background
-    bubble: "bg-slate-100 dark:bg-slate-800",
+    bubble: "bg-neutral-200 dark:bg-neutral-800",
     // Bubble text
-    text: "text-slate-900 dark:text-slate-100",
+    text: "text-content-primary dark:text-content-inverse",
     // Avatar gradient
-    avatar: "bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700",
+    avatar: "bg-gradient-to-br from-neutral-300 to-neutral-400 dark:from-neutral-600 dark:to-neutral-800",
     // Speaker name text
-    speaker: "text-slate-600 dark:text-slate-400",
+    speaker: "text-content-secondary dark:text-content-muted",
     // Inline code
     inlineCode: "bg-muted-foreground/20 text-foreground",
     // Blockquote border
     blockquoteBorder: "border-muted-foreground/50",
     // Button active state
-    buttonActive: "bg-slate-200/50 dark:bg-slate-700/50",
+    buttonActive: "bg-neutral-300/50 dark:bg-neutral-800/50",
     // Button hover
-    buttonHover: "hover:bg-slate-200/50 dark:hover:bg-slate-700/50",
+    buttonHover: "hover:bg-neutral-300/50 dark:hover:bg-neutral-800/50",
   },
 } as const;
 

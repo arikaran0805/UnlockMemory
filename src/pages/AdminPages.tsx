@@ -97,7 +97,7 @@ const statusMeta: Record<
   },
   archived: {
     label: "Archived",
-    badgeClass: "border-slate-400/20 bg-slate-400/10 text-slate-700",
+    badgeClass: "border-neutral-400/20 bg-neutral-400/10 text-content-secondary",
     icon: Archive,
   },
 };

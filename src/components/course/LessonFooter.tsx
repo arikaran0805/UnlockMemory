@@ -124,7 +124,7 @@ const LessonFooter = ({
             <Button
               size="lg"
               className={cn(
-                "gap-2 px-8 py-6 text-lg font-semibold",
+                "gap-2 px-8 py-5 text-base font-semibold rounded-2xl",
                 "bg-primary hover:bg-primary/90 text-primary-foreground",
                 "transition-all duration-200"
               )}
@@ -148,8 +148,8 @@ const LessonFooter = ({
             <div className="flex flex-col items-center gap-2">
               <div
                 className={cn(
-                  "flex items-center gap-2 px-6 py-3 text-base font-semibold rounded-md",
-                  "border border-primary text-primary",
+                  "flex items-center gap-2 px-6 py-3 text-[15px] font-semibold rounded-xl",
+                  "border border-primary/70 text-primary",
                   "transition-all duration-200",
                   justCompleted && "animate-scale-in"
                 )}
@@ -189,10 +189,10 @@ const LessonFooter = ({
                 <span className="text-base font-medium">Tags:</span>
               </div>
               {tags.map((tag) => (
-                <Link 
-                  key={tag.id} 
+                <Link
+                  key={tag.id}
                   to={`/tag/${tag.slug}`}
-                  className="text-sm text-primary bg-primary/10 px-3 py-1 rounded-full hover:bg-primary/20 transition-colors whitespace-nowrap"
+                  className="text-[12.5px] font-medium text-primary/90 bg-primary/[0.08] px-3 py-1 rounded-full hover:bg-primary/[0.15] hover:text-primary transition-colors whitespace-nowrap"
                 >
                   {tag.name}
                 </Link>
@@ -285,10 +285,10 @@ const LessonFooter = ({
       <div className="flex items-center justify-between gap-4 pt-4">
         {/* Previous Button */}
         {previousLesson ? (
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
-            className="gap-2 flex-1 max-w-xs"
+            className="gap-2 flex-1 max-w-xs rounded-xl"
             onClick={onPrevious}
           >
             <ChevronLeft className="h-5 w-5 flex-shrink-0" />
@@ -304,11 +304,11 @@ const LessonFooter = ({
         {/* Next Button OR Finish Course Button */}
         {isCourseComplete && isCompleted && !nextLesson ? (
           /* ALL lessons completed - Show "Finish Course" CTA */
-          <Button 
+          <Button
             size="lg"
             variant="default"
             className={cn(
-              "gap-2 flex-1 max-w-xs",
+              "gap-2 flex-1 max-w-xs rounded-xl",
               "bg-primary hover:bg-primary/90 text-primary-foreground"
             )}
             onClick={() => {
@@ -327,26 +327,20 @@ const LessonFooter = ({
           </Button>
         ) : nextLesson ? (
           /* Has next lesson - Show regular navigation */
-          <Button 
+          <Button
             size="lg"
             variant={isCompleted ? "default" : "outline"}
             className={cn(
-              "gap-2 flex-1 max-w-xs",
+              "gap-2 flex-1 max-w-xs rounded-xl",
               isCompleted 
                 ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
                 : "border-border"
             )}
             onClick={onNext}
           >
-            <div className="text-right min-w-0">
-              <div className={cn(
-                "text-xs",
-                isCompleted ? "opacity-80" : "text-muted-foreground"
-              )}>
-                {isCompleted ? "Continue →" : "Next"}
-              </div>
-              <div className="font-medium truncate">{nextLesson.title}</div>
-            </div>
+            <span className="font-medium truncate min-w-0">
+              {isCompleted ? `Continue: ${nextLesson.title}` : nextLesson.title}
+            </span>
             <ChevronRight className="h-5 w-5 flex-shrink-0" />
           </Button>
         ) : (

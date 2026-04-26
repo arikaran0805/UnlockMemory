@@ -83,9 +83,10 @@ interface Ad {
 type AdStatus = "active" | "disabled" | "scheduled" | "expired";
 
 /* ─── constants ─── */
-// Single placement for now — All Courses Page Banner
 const PLACEMENTS = [
   { value: "courses-banner", label: "All Courses Page Banner" },
+  { value: "careers-banner", label: "All Careers Page Banner" },
+  { value: "tags-banner",    label: "Tag Detail Page Banner" },
 ];
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
@@ -570,7 +571,7 @@ const AdminMonetization = () => {
                                 variant="outline"
                                 className={`text-xs font-medium capitalize ${
                                   ad.ad_label === "sponsored"
-                                    ? "border-slate-400/40 text-slate-600"
+                                    ? "border-neutral-400/40 text-content-secondary"
                                     : ad.ad_label === "partner"
                                     ? "border-blue-400/40 text-blue-600"
                                     : "border-emerald-400/40 text-emerald-600"

@@ -1703,7 +1703,7 @@ const ChatStyleEditor = ({
                   <span className={cn(
                     "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors",
                     currentSpeaker === "course"
-                      ? "bg-slate-200 dark:bg-slate-700 text-foreground"
+                      ? "bg-neutral-300 dark:bg-neutral-800 text-foreground"
                       : "bg-muted text-muted-foreground"
                   )}>
                     {courseCharacter.name.charAt(0).toUpperCase()}

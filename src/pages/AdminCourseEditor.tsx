@@ -349,19 +349,19 @@ const AdminCourseEditor = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent, submitForApproval: boolean = false) => {
+  const handleSubmit = async (e: React.FormEvent, submitForApproval: boolean = false, statusOverride?: string) => {
     e.preventDefault();
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      let status = formData.status;
+      let status = statusOverride ?? formData.status;
       if (isModerator && !isAdmin) {
         if (submitForApproval) {
           status = "pending";
         } else {
-          status = "draft";
+          status = statusOverride ?? "draft";
         }
       } else if (submitForApproval) {
         status = "pending";
@@ -1050,16 +1050,40 @@ const AdminCourseEditor = () => {
 
             {/* ── Action CTAs (pinned footer) ── */}
             <div className="px-4 py-3 border-t border-border/60 bg-muted/20 flex-shrink-0 space-y-2">
+              {/* Admin / super-mod: can publish directly */}
               {canPublishDirectly && (
-                <Button
-                  onClick={(e) => handleSubmit(e, false)}
-                  disabled={loading}
-                  className="w-full h-9 text-sm gap-2 font-semibold"
-                >
-                  <Save className="h-4 w-4" />
-                  {id ? 'Update Course' : 'Create Course'}
-                </Button>
+                <>
+                  <Button
+                    onClick={(e) => handleSubmit(e, false, "published")}
+                    disabled={loading}
+                    className="w-full h-9 text-sm gap-2 font-semibold bg-[#16a34a] hover:bg-[#15803d] text-white"
+                  >
+                    <Save className="h-4 w-4" />
+                    {id ? 'Update Course' : 'Create Course'}
+                  </Button>
+                  <Button
+                    onClick={(e) => handleSubmit(e, false, "draft")}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full h-9 text-sm gap-2"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    Save as Draft
+                  </Button>
+                  {id && (
+                    <Button
+                      onClick={() => setShowVersioningNoteDialog(true)}
+                      disabled={loading}
+                      variant="ghost"
+                      className="w-full h-8 text-xs text-muted-foreground gap-1.5"
+                    >
+                      Save Version Note
+                    </Button>
+                  )}
+                </>
               )}
+
+              {/* Moderator: submit for approval or save draft */}
               {showSubmitForApproval && (
                 <Button
                   onClick={(e) => handleSubmit(e, true)}
@@ -1070,37 +1094,25 @@ const AdminCourseEditor = () => {
                   Submit for Approval
                 </Button>
               )}
-              <div className="flex gap-2">
-                {id && canPublishDirectly && (
-                  <Button
-                    onClick={() => setShowVersioningNoteDialog(true)}
-                    disabled={loading}
-                    variant="outline"
-                    className="flex-1 h-9 text-sm gap-1.5"
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    Save Draft
-                  </Button>
-                )}
-                {!canPublishDirectly && (
-                  <Button
-                    onClick={(e) => handleSubmit(e, false)}
-                    disabled={loading}
-                    variant="outline"
-                    className="flex-1 h-9 text-sm gap-1.5"
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    Save Draft
-                  </Button>
-                )}
+              {!canPublishDirectly && (
                 <Button
-                  onClick={() => navigate(`${basePath}/courses`)}
-                  variant="ghost"
-                  className="h-9 text-sm px-3 text-muted-foreground"
+                  onClick={(e) => handleSubmit(e, false, "draft")}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full h-9 text-sm gap-1.5"
                 >
-                  Cancel
+                  <Save className="h-3.5 w-3.5" />
+                  Save as Draft
                 </Button>
-              </div>
+              )}
+
+              <Button
+                onClick={() => navigate(`${basePath}/courses`)}
+                variant="ghost"
+                className="w-full h-8 text-sm text-muted-foreground"
+              >
+                Cancel
+              </Button>
             </div>
           </Card>
 

@@ -100,7 +100,7 @@ const AdminRoutes = () => {
           <Route path="monetization/:id" element={<AdminAdvertisementEditor />} />
           <Route path="redirects" element={<AdminRedirects />} />
 
-<Route path="activity" element={<AdminModeratorActivity />} />
+          <Route path="activity" element={<AdminModeratorActivity />} />
           <Route path="activity-log" element={<AdminPlatformActivityLog />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="seo" element={<Navigate to="/admin/settings" replace />} />
@@ -116,7 +116,7 @@ const AdminRoutes = () => {
           {/* Developer Platform */}
           <Route path="developers/api-keys" element={<AdminApiKeys />} />
           <Route path="developers/webhooks" element={<AdminWebhooks />} />
-          <Route path="developers/logs"     element={<AdminDevLogs />} />
+          <Route path="developers/logs" element={<AdminDevLogs />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

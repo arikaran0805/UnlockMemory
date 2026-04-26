@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: ["./index.html", "./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
     container: {
@@ -14,7 +14,13 @@ export default {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
+        // ── shadcn/ui base tokens (DO NOT REMOVE) ─────────────────────────────
+        border: {
+          DEFAULT: "hsl(var(--border))",
+          subtle:  '#EDE8DF',
+          strong:  '#B5AFA6',
+          focus:   '#0F6E56',
+        },
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -22,7 +28,11 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          glow: "hsl(var(--primary-glow))",
+          glow:    "hsl(var(--primary-glow))",
+          hover:   '#0D5E49',
+          active:  '#0A4D3C',
+          tint:    '#E1F3EE',
+          dark:    '#085041',
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -39,6 +49,9 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          hover:   '#E09018',
+          light:   '#FDF3E0',
+          dark:    '#7A4D00',
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -61,6 +74,82 @@ export default {
         // Semantic text colors for mint/green backgrounds
         "text-on-mint": "hsl(var(--text-on-mint))",
         "text-on-mint-secondary": "hsl(var(--text-on-mint-secondary))",
+
+        // ── New semantic token system ──────────────────────────────────────────
+
+        // Background Layers
+        surface: {
+          base:     '#F7F4EE',
+          section:  '#EDE8DF',
+          card:     '#FFFFFF',
+          elevated: '#FAFAF8',
+          overlay:  'rgba(26, 23, 20, 0.48)',
+        },
+
+        // Text Scale
+        content: {
+          primary:   '#1A1714',
+          secondary: '#3D3730',
+          muted:     '#7A7168',
+          disabled:  '#B5AFA6',
+          inverse:   '#F7F4EE',
+        },
+
+        // Neutral / Warm Grays
+        neutral: {
+          900: '#1A1714',
+          800: '#3D3730',
+          600: '#7A7168',
+          400: '#B5AFA6',
+          300: '#D9D4CC',
+          200: '#EDE8DF',
+          100: '#F7F4EE',
+        },
+
+        // State Colors (functional)
+        success: {
+          DEFAULT: '#1E8A3C',
+          light:   '#D4F0DC',
+          dark:    '#145C28',
+        },
+        warning: {
+          DEFAULT: '#D97706',
+          light:   '#FEF3C7',
+          dark:    '#925004',
+        },
+        danger: {
+          DEFAULT: '#DC2626',
+          light:   '#FEE2E2',
+          dark:    '#991B1B',
+        },
+        info: {
+          DEFAULT: '#1D6DB5',
+          light:   '#DBEAFE',
+          dark:    '#1E3A5F',
+        },
+
+        // Course Track Colors
+        track: {
+          ai:             '#2D5A8E',
+          'ai-light':     '#D6E8F7',
+          ds:             '#6B3D9A',
+          'ds-light':     '#EDD9FF',
+          career:         '#C65200',
+          'career-light': '#FFE4CC',
+        },
+
+        // Tier / Plan Colors
+        tier: {
+          free:        '#7A7168',
+          'free-light':  '#EDE8DF',
+          pro:         '#F5A623',
+          'pro-light':   '#FDF3E0',
+          'pro-dark':    '#7A4D00',
+        },
+      },
+      fontFamily: {
+        sans:  ['DM Sans', 'sans-serif'],
+        serif: ['DM Serif Display', 'serif'],
       },
       backgroundImage: {
         'gradient-primary': 'var(--gradient-primary)',

@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRoleScope } from "@/hooks/useRoleScope";
-import { Plus, Pencil, Trash2, Eye, MoreHorizontal, Code2, FileText, Link2, BookOpen, Sparkles } from "lucide-react";
+import {
+  Plus, Pencil, Trash2, Eye, MoreHorizontal,
+  Code2, FileText, Link2, BookOpen, Sparkles, Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +25,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePracticeSkills, useDeletePracticeSkill, PracticeSkill } from "@/hooks/usePracticeSkills";
+import {
+  usePracticeSkills,
+  useDeletePracticeSkill,
+  useUpdatePracticeSkill,
+  PracticeSkill,
+} from "@/hooks/usePracticeSkills";
+import { toast } from "sonner";
+
+/* ─── SkillCard ──────────────────────────────────────────────────────── */
 
 interface SkillCardProps {
   skill: PracticeSkill;
@@ -31,10 +42,22 @@ interface SkillCardProps {
   onManageProblems: () => void;
   onDelete?: () => void;
   onViewCourse?: () => void;
-  getStatusBadge: (status: string) => JSX.Element;
+  onToggleLive: (id: string, live: boolean) => void;
+  isToggling: boolean;
 }
 
-function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onViewCourse, getStatusBadge }: SkillCardProps) {
+function SkillCard({
+  skill,
+  isCustom,
+  onEdit,
+  onManageProblems,
+  onDelete,
+  onViewCourse,
+  onToggleLive,
+  isToggling,
+}: SkillCardProps) {
+  const isLive = skill.status === "published";
+
   return (
     <div className="group flex flex-col bg-card border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-border/80">
 
@@ -44,7 +67,7 @@ function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onView
         {/* Identity row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isCustom ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isCustom ? "bg-amber-500/10" : "bg-primary/10"}`}>
               {isCustom
                 ? <Sparkles className="h-4 w-4 text-amber-500" />
                 : <Code2 className="h-4 w-4 text-primary" />
@@ -110,14 +133,54 @@ function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onView
       </div>
 
       {/* ── Footer ── */}
-      <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/30">
-        <div className="flex items-center gap-2">
-          {getStatusBadge(skill.status)}
-          <span className="text-[11.5px] text-muted-foreground">{skill.problem_count || 0} problems</span>
+      <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/30 gap-3">
+
+        {/* Left: Live toggle + problem count */}
+        <div className="flex items-center gap-3 min-w-0">
+
+          {/* Toggle group */}
+          <div className="flex items-center gap-2">
+            {isToggling ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            ) : (
+              <Switch
+                checked={isLive}
+                onCheckedChange={(checked) => onToggleLive(skill.id, checked)}
+                disabled={isToggling}
+                className="h-[18px] w-[32px] data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-muted-foreground/30"
+              />
+            )}
+
+            <span
+              className={`text-[11.5px] font-semibold transition-colors duration-200 ${
+                isLive ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+              }`}
+            >
+              {isLive ? "Live" : "Draft"}
+            </span>
+
+            {/* Pulsing dot when live */}
+            {isLive && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+            )}
+          </div>
+
+          {/* Divider */}
+          <span className="w-px h-4 bg-border/60 shrink-0" />
+
+          {/* Problem count */}
+          <span className="text-[11.5px] text-muted-foreground whitespace-nowrap">
+            {skill.problem_count || 0} problems
+          </span>
         </div>
+
+        {/* Right: Problems button */}
         <button
           onClick={onManageProblems}
-          className="flex items-center gap-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-lg px-3 py-1.5 transition-all duration-150 hover:border-primary/40 hover:text-primary"
+          className="flex items-center gap-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-lg px-3 py-1.5 transition-all duration-150 hover:border-primary/40 hover:text-primary shrink-0"
         >
           <Eye className="h-3.5 w-3.5" />
           Problems
@@ -128,21 +191,23 @@ function SkillCard({ skill, isCustom, onEdit, onManageProblems, onDelete, onView
   );
 }
 
+/* ─── Page ───────────────────────────────────────────────────────────── */
+
 export default function AdminPracticeSkills() {
   const navigate = useNavigate();
   const { data: skills, isLoading } = usePracticeSkills();
   const deleteMutation = useDeletePracticeSkill();
+  const updateMutation = useUpdatePracticeSkill();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const { role, courseIds } = useRoleScope();
   const isAdmin = role === "admin";
   const isSuperMod = role === "super_moderator";
   const canManageLabs = isAdmin || isSuperMod;
 
-  // Filter skills to scope for non-admin roles
+  // Scope skills for non-admin roles
   const scopedSkills = !isAdmin && skills
-    ? skills.filter((s) =>
-        !s.course_id || courseIds.includes(s.course_id)
-      )
+    ? skills.filter((s) => !s.course_id || courseIds.includes(s.course_id))
     : skills;
 
   const handleDelete = async () => {
@@ -152,19 +217,24 @@ export default function AdminPracticeSkills() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "published":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Published</Badge>;
-      case "draft":
-        return <Badge variant="secondary">Draft</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const handleToggleLive = async (id: string, live: boolean) => {
+    setTogglingId(id);
+    try {
+      await updateMutation.mutateAsync({ id, status: live ? "published" : "draft" });
+      const skill = skills?.find((s) => s.id === id);
+      toast.success(
+        live
+          ? `"${skill?.name}" is now live — learners can see it`
+          : `"${skill?.name}" moved to draft`,
+      );
+    } finally {
+      setTogglingId(null);
     }
   };
 
   return (
     <div className="flex flex-col gap-0">
+      {/* Page header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Practice Skills</h1>
@@ -182,114 +252,118 @@ export default function AdminPracticeSkills() {
 
       <div className="space-y-6">
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : scopedSkills && scopedSkills.length > 0 ? (
-        <>
-          {/* Custom Skills Section */}
-          {scopedSkills.filter(s => !s.course_id).length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                <h2 className="text-sm font-semibold text-muted-foreground">Custom Problem Collections</h2>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-44 w-full rounded-2xl" />
+            ))}
+          </div>
+        ) : scopedSkills && scopedSkills.length > 0 ? (
+          <>
+            {/* Custom Collections */}
+            {scopedSkills.filter((s) => !s.course_id).length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <h2 className="text-sm font-semibold text-muted-foreground">Custom Problem Collections</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {scopedSkills.filter((s) => !s.course_id).map((skill) => (
+                    <SkillCard
+                      key={skill.id}
+                      skill={skill}
+                      isCustom
+                      onEdit={() => navigate(`/admin/practice/skills/${skill.id}`)}
+                      onManageProblems={() => navigate(`/admin/practice/skills/${skill.id}/problems`)}
+                      onDelete={canManageLabs ? () => setDeleteId(skill.id) : undefined}
+                      onViewCourse={skill.course_id ? () => navigate(`/admin/courses/${skill.course_id}`) : undefined}
+                      onToggleLive={handleToggleLive}
+                      isToggling={togglingId === skill.id}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {scopedSkills.filter(s => !s.course_id).map((skill) => (
-                  <SkillCard
-                    key={skill.id}
-                    skill={skill}
-                    isCustom
-                    onEdit={() => navigate(`/admin/practice/skills/${skill.id}`)}
-                    onManageProblems={() => navigate(`/admin/practice/skills/${skill.id}/problems`)}
-                    onDelete={canManageLabs ? () => setDeleteId(skill.id) : undefined}
-                    onViewCourse={skill.course_id ? () => navigate(`/admin/courses/${skill.course_id}`) : undefined}
-                    getStatusBadge={getStatusBadge}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Course-Linked Skills Section */}
-          {scopedSkills.filter(s => s.course_id).length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold text-muted-foreground">Course-Linked Skills</h2>
+            {/* Course-Linked Skills */}
+            {scopedSkills.filter((s) => s.course_id).length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold text-muted-foreground">Course-Linked Skills</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {scopedSkills.filter((s) => s.course_id).map((skill) => (
+                    <SkillCard
+                      key={skill.id}
+                      skill={skill}
+                      isCustom={false}
+                      onEdit={() => navigate(`/admin/practice/skills/${skill.id}`)}
+                      onManageProblems={() => navigate(`/admin/practice/skills/${skill.id}/problems`)}
+                      onDelete={canManageLabs ? () => setDeleteId(skill.id) : undefined}
+                      onViewCourse={() => navigate(`/admin/courses/${skill.course_id}`)}
+                      onToggleLive={handleToggleLive}
+                      isToggling={togglingId === skill.id}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {scopedSkills.filter(s => s.course_id).map((skill) => (
-                  <SkillCard
-                    key={skill.id}
-                    skill={skill}
-                    isCustom={false}
-                    onEdit={() => navigate(`/admin/practice/skills/${skill.id}`)}
-                    onManageProblems={() => navigate(`/admin/practice/skills/${skill.id}/problems`)}
-                    onDelete={canManageLabs ? () => setDeleteId(skill.id) : undefined}
-                    onViewCourse={() => navigate(`/admin/courses/${skill.course_id}`)}
-                    getStatusBadge={getStatusBadge}
-                  />
-                ))}
+            )}
+          </>
+        ) : (
+          <Card className="relative overflow-hidden rounded-2xl border-primary/15 bg-gradient-to-b from-primary/[0.035] via-background to-background">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 opacity-60"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 36%), linear-gradient(rgba(34, 197, 94, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 197, 94, 0.05) 1px, transparent 1px)",
+                backgroundSize: "100% 100%, 24px 24px, 24px 24px",
+              }}
+            />
+            <CardContent className="relative flex min-h-[360px] items-center justify-center px-6 py-16 sm:px-10 sm:py-20">
+              <div className="mx-auto flex w-full max-w-lg flex-col items-center text-center">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-primary/15 bg-primary/10 shadow-sm shadow-primary/5">
+                  <Code2 className="h-9 w-9 text-primary/70" />
+                </div>
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
+                  No practice skills yet
+                </h2>
+                <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground sm:text-[15px]">
+                  Start by creating your first skill to organise learning, practice, and progression more clearly.
+                </p>
+                {canManageLabs && (
+                  <Button
+                    onClick={() => navigate("/admin/practice/skills/new")}
+                    className="mt-8 h-11 rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/15 hover:bg-primary/90"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create your first skill
+                  </Button>
+                )}
               </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <Card className="relative overflow-hidden rounded-2xl border-primary/15 bg-gradient-to-b from-primary/[0.035] via-background to-background">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 opacity-60"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 36%), linear-gradient(rgba(34, 197, 94, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 197, 94, 0.05) 1px, transparent 1px)",
-              backgroundSize: "100% 100%, 24px 24px, 24px 24px",
-            }}
-          />
-          <CardContent className="relative flex min-h-[360px] items-center justify-center px-6 py-16 sm:px-10 sm:py-20">
-            <div className="mx-auto flex w-full max-w-lg flex-col items-center text-center">
-              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-primary/15 bg-primary/10 shadow-sm shadow-primary/5">
-                <Code2 className="h-9 w-9 text-primary/70" />
-              </div>
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
-                No practice skills yet
-              </h2>
-              <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground sm:text-[15px]">
-                Start by creating your first skill to organize learning, practice, and progression more clearly.
-              </p>
-              {canManageLabs && (
-                <Button
-                  onClick={() => navigate("/admin/practice/skills/new")}
-                  className="mt-8 h-11 rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/15 hover:bg-primary/90"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create your first skill
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Practice Skill</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this skill and all its problems. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Delete confirmation */}
+        <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Practice Skill</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this skill and all its problems. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </div>
     </div>
   );

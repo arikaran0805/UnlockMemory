@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Form,
   FormControl,
@@ -193,7 +194,7 @@ export default function AdminPracticeSkillEditor() {
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="icon"
@@ -232,29 +233,51 @@ export default function AdminPracticeSkillEditor() {
                     </FormItem>
                   )}
                 />
+              </div>
 
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
+              {/* Live toggle */}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => {
+                  const isLive = field.value === "published";
+                  return (
                     <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="published">Published</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-5 py-4">
+                        <div className="flex flex-col gap-0.5">
+                          <FormLabel className="text-sm font-semibold leading-none cursor-pointer">
+                            Publish to Practice Lab
+                          </FormLabel>
+                          <p className="text-[12.5px] text-muted-foreground mt-1">
+                            {isLive
+                              ? "Learners can see and practise this skill"
+                              : "Hidden from learners — switch on to make it live"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <FormControl>
+                            <Switch
+                              checked={isLive}
+                              onCheckedChange={(checked) => field.onChange(checked ? "published" : "draft")}
+                              className="h-[18px] w-[32px] data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-muted-foreground/30"
+                            />
+                          </FormControl>
+                          <span className={`text-[12px] font-semibold leading-none transition-colors duration-200 ${isLive ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                            {isLive ? "Live" : "Draft"}
+                          </span>
+                          {isLive && (
+                            <span className="relative flex h-2 w-2 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
-              </div>
+                  );
+                }}
+              />
             </CardContent>
           </Card>
 

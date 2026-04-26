@@ -613,7 +613,7 @@ function MessageBubble({ message, currentUserId, learnerSeenAt, onEdit, onDelete
         <div className={cn(
           "px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed transition-shadow duration-200",
           isOwn
-            ? "bg-[#DCF8C6] dark:bg-[#005C4B] text-gray-900 dark:text-gray-100 rounded-br-lg"
+            ? "bg-[#DCF8C6] dark:bg-[#005C4B] text-content-primary dark:text-content-inverse rounded-br-lg"
             : "bg-muted/50 text-foreground rounded-bl-lg border border-border/20"
         )}>
           {!isOwn && (
@@ -655,7 +655,7 @@ function MessageBubble({ message, currentUserId, learnerSeenAt, onEdit, onDelete
           )}
           <div className={cn(
             "flex items-center justify-end gap-1 mt-1",
-            isOwn ? "text-gray-500 dark:text-gray-400" : "text-muted-foreground"
+            isOwn ? "text-content-muted" : "text-muted-foreground"
           )}>
             <span className="text-[10px]">{format(new Date(message.created_at), "HH:mm")}</span>
             {isOwn && (() => {
@@ -664,7 +664,7 @@ function MessageBubble({ message, currentUserId, learnerSeenAt, onEdit, onDelete
                 : false;
               return seenByLearner
                 ? <CheckCheck className="h-3 w-3 text-[#34B7F1]" />
-                : <CheckCheck className="h-3 w-3 text-gray-400" />;
+                : <CheckCheck className="h-3 w-3 text-content-muted" />;
             })()}
           </div>
         </div>

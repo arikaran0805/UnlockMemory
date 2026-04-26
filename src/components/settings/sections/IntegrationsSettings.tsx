@@ -334,7 +334,7 @@ function StatusBadge({
   }
   return (
     <div className="flex items-center gap-1.5">
-      <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+      <div className="h-1.5 w-1.5 rounded-full bg-neutral-300" />
       <span className="text-[12px]" style={{ color: "var(--admin-muted)" }}>Not connected</span>
     </div>
   );
