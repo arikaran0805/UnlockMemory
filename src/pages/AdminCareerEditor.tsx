@@ -883,9 +883,10 @@ const AdminCareerEditor = () => {
           <div className="flex-1 flex flex-col min-w-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
               <TabsContent value="canvas" className="flex-1 data-[state=active]:flex data-[state=active]:flex-col">
-                <div 
+                <div
                   ref={canvasRef}
-                  className="relative w-full flex-1 min-h-[400px] bg-muted/30 rounded-xl border-2 border-dashed border-border overflow-hidden cursor-crosshair"
+                  className="relative w-full bg-muted/30 rounded-xl border-2 border-dashed border-border overflow-hidden cursor-crosshair"
+                  style={{ height: "calc(100vh - 180px)" }}
                   onDoubleClick={handleCanvasDoubleClick}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
