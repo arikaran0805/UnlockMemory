@@ -1343,8 +1343,6 @@ const AdminCareerEditor = () => {
         </div>
       </div>
     </div>
-  </div>
-</div>
 
       {/* Skill Editor Dialog */}
       <Dialog open={skillEditorOpen} onOpenChange={setSkillEditorOpen}>
