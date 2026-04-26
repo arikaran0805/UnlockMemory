@@ -514,8 +514,9 @@ const AdminCareerEditor = () => {
     });
   };
 
-  const applySharedContributionToAll = () => {
-    setSelectedCoursesToAdd(prev => prev.map(c => ({ ...c, contribution: sharedContribution })));
+  const applySharedContributionToAll = (value?: number) => {
+    const contrib = value ?? sharedContribution;
+    setSelectedCoursesToAdd(prev => prev.map(c => ({ ...c, contribution: contrib })));
   };
 
   const updateSelectedCourseContribution = (courseId: string, contribution: number) => {
@@ -1840,138 +1841,166 @@ const AdminCareerEditor = () => {
 
       {/* Add Multiple Courses Dialog */}
       <Dialog open={addCoursesDialogOpen} onOpenChange={setAddCoursesDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Add Courses to Skill</DialogTitle>
-            <DialogDescription>
-              Select multiple courses and set their contribution levels
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 min-h-0 space-y-4">
-            {/* Shared Contribution Control */}
-            <Card className="p-3 bg-muted/30">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <Label className="text-xs font-medium">Shared Contribution Level</Label>
-                  <p className="text-[10px] text-muted-foreground">Apply same % to all selected courses</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[sharedContribution]}
-                    onValueChange={([v]) => {
-                      setSharedContribution(v);
-                      if (useSharedContribution) {
-                        applySharedContributionToAll();
-                      }
-                    }}
-                    max={100}
-                    step={5}
-                    className="w-24"
-                  />
-                  <span className="text-sm font-medium w-12 text-right">{sharedContribution}%</span>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={applySharedContributionToAll}
+        <DialogContent className="max-w-[500px] p-0 gap-0 overflow-hidden flex flex-col max-h-[85vh]">
+
+          {/* Header */}
+          <div className="px-6 pt-5 pb-4 border-b border-border/60 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <BookOpen className="h-4.5 w-4.5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-foreground leading-tight">Add Courses to Skill</h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Select courses and set contribution levels</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Contribution control */}
+          <div className="px-6 py-4 border-b border-border/40 flex-shrink-0 bg-muted/20">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-foreground/80">Default Contribution</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Applied to newly selected courses</p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <Slider
+                  value={[sharedContribution]}
+                  onValueChange={([v]) => {
+                    setSharedContribution(v);
+                    applySharedContributionToAll(v);
+                  }}
+                  max={100}
+                  step={5}
+                  className="w-28"
+                />
+                <span className="text-sm font-bold text-foreground w-10 text-right">{sharedContribution}%</span>
+                <button
+                  onClick={() => applySharedContributionToAll()}
                   disabled={selectedCoursesToAdd.length === 0}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Apply All
-                </Button>
+                </button>
               </div>
-            </Card>
-            
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search courses..."
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="px-6 py-3 border-b border-border/40 flex-shrink-0">
+            <div
+              className="flex items-center gap-2.5 h-9 px-3 rounded-lg border border-border bg-card"
+              style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+            >
+              <Search className="h-3.5 w-3.5 text-muted-foreground/60 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Search courses…"
                 value={courseSearch}
                 onChange={(e) => setCourseSearch(e.target.value)}
-                className="pl-8"
+                className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/40 text-foreground"
               />
+              {courseSearch && (
+                <button onClick={() => setCourseSearch("")} className="text-muted-foreground/50 hover:text-muted-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
-            
-            <ScrollArea className="h-[260px] border rounded-lg">
-              <div className="p-2 space-y-1">
-                {filteredCourses.map(course => {
-                  const skill = skillNodes.find(s => s.id === addCoursesSkillId);
-                  const isAlreadyMapped = skill?.courses.some(c => c.courseId === course.id);
+          </div>
+
+          {/* Course list */}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-4 py-3 space-y-1.5">
+              {(() => {
+                const skill = skillNodes.find(s => s.id === addCoursesSkillId);
+                const visible = filteredCourses.filter(c => !skill?.courses.some(sc => sc.courseId === c.id));
+                if (visible.length === 0) {
+                  return (
+                    <div className="py-12 text-center">
+                      <Search className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">
+                        {courseSearch ? `No courses matching "${courseSearch}"` : "All courses already mapped"}
+                      </p>
+                    </div>
+                  );
+                }
+                return visible.map(course => {
                   const isSelected = selectedCoursesToAdd.some(c => c.courseId === course.id);
                   const selectedCourse = selectedCoursesToAdd.find(c => c.courseId === course.id);
-                  
-                  if (isAlreadyMapped) return null;
-                  
                   return (
                     <div
                       key={course.id}
-                      className={`p-3 rounded-lg border transition-colors cursor-pointer ${
-                        isSelected 
-                          ? 'bg-primary/10 border-primary/30' 
-                          : 'bg-card hover:bg-muted/50 border-border'
-                      }`}
                       onClick={() => toggleCourseSelection(course.id)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        isSelected
+                          ? "bg-primary/8 border-primary/25 shadow-sm"
+                          : "bg-card border-border/60 hover:bg-muted/40 hover:border-border"
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {}}
-                          className="h-4 w-4 rounded border-muted-foreground pointer-events-none"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{course.name}</p>
-                          {course.description && (
-                            <p className="text-xs text-muted-foreground truncate">{course.description}</p>
-                          )}
-                        </div>
-                        {isSelected && (
-                          <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={selectedCourse?.contribution || sharedContribution}
-                              onChange={(e) => updateSelectedCourseContribution(
-                                course.id, 
-                                Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                              )}
-                              className="w-16 h-7 text-xs text-center"
-                            />
-                            <span className="text-xs text-muted-foreground">%</span>
-                          </div>
+                      {/* Custom checkbox */}
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                        isSelected ? "bg-primary border-primary" : "border-border bg-background"
+                      }`}>
+                        {isSelected && <Icons.Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate ${isSelected ? "text-foreground" : "text-foreground/80"}`}>
+                          {course.name}
+                        </p>
+                        {course.description && (
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">{course.description}</p>
                         )}
                       </div>
+
+                      {isSelected && (
+                        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={selectedCourse?.contribution ?? sharedContribution}
+                            onChange={(e) => updateSelectedCourseContribution(
+                              course.id,
+                              Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                            )}
+                            className="w-14 h-7 text-xs text-center font-bold"
+                          />
+                          <span className="text-xs text-muted-foreground font-medium">%</span>
+                        </div>
+                      )}
                     </div>
                   );
-                })}
-              </div>
-            </ScrollArea>
-            
-            {selectedCoursesToAdd.length > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {selectedCoursesToAdd.length} course(s) selected
-                </span>
-                <span className="text-muted-foreground">
-                  Avg: {Math.round(selectedCoursesToAdd.reduce((sum, c) => sum + c.contribution, 0) / selectedCoursesToAdd.length)}%
-                </span>
-              </div>
-            )}
+                });
+              })()}
+            </div>
+          </ScrollArea>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-border/60 flex-shrink-0 flex items-center justify-between bg-muted/10">
+            <p className="text-xs text-muted-foreground">
+              {selectedCoursesToAdd.length > 0
+                ? <><span className="font-semibold text-foreground">{selectedCoursesToAdd.length}</span> course{selectedCoursesToAdd.length !== 1 ? "s" : ""} selected</>
+                : "No courses selected"}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAddCoursesDialogOpen(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-foreground/70 hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAddMultipleCourses}
+                disabled={selectedCoursesToAdd.length === 0}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Add {selectedCoursesToAdd.length > 0 ? selectedCoursesToAdd.length : ""} Course{selectedCoursesToAdd.length !== 1 ? "s" : ""}
+              </button>
+            </div>
           </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddCoursesDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmAddMultipleCourses}
-              disabled={selectedCoursesToAdd.length === 0}
-            >
-              <BookOpen className="h-4 w-4 mr-2" />
-              Add {selectedCoursesToAdd.length} Course(s)
-            </Button>
-          </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </>
