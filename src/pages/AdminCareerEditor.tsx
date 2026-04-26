@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { 
   Save, X, BookOpen, Sparkles, MousePointerClick,
   GripVertical, Trash2, Settings, Palette, ChevronRight, ChevronLeft, Search,
@@ -70,13 +71,6 @@ interface SkillNode {
 interface SkillContribution {
   skill_name: string;
   contribution: number;
-}
-
-interface Course {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string | null;
 }
 
 // Sortable Skill Item Component
@@ -722,6 +716,7 @@ const AdminCareerEditor = () => {
             color: careerColor,
             display_order: displayOrder,
             discount_percentage: careerDiscount,
+            status: careerStatus,
           })
           .eq("id", id);
 
@@ -765,6 +760,7 @@ const AdminCareerEditor = () => {
             color: careerColor,
             display_order: displayOrder,
             discount_percentage: careerDiscount,
+            status: careerStatus,
           })
           .select()
           .single();
@@ -821,10 +817,26 @@ const AdminCareerEditor = () => {
     <div className="flex flex-col gap-0">
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
-          {/* Left — title */}
-          <div className="flex flex-col">
-            <h1 className="text-3xl font-bold text-foreground">{careerName || "New Career"}</h1>
-            <p className="text-muted-foreground leading-tight">
+          {/* Left — title + status */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-3xl font-bold text-foreground">{careerName || "New Career"}</h1>
+              {careerStatus === "published" ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-green-500/12 text-green-700 dark:text-green-400 border border-green-500/25">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-70" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                  </span>
+                  Live
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-border">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                  Draft
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
               Configure career tracks, skills, and course mappings
             </p>
           </div>
@@ -847,7 +859,7 @@ const AdminCareerEditor = () => {
                 </TabsTrigger>
                 <TabsTrigger value="preview" className="text-xs px-3">
                   <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
-                  Preview
+                  Overview
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -858,11 +870,11 @@ const AdminCareerEditor = () => {
                 {getValidationErrors().length} issue(s)
               </Badge>
             )}
-            <Button variant="outline" className="w-[136px]" onClick={() => navigate("/admin/careers")}>
+            <Button variant="outline" className="w-[120px]" onClick={() => navigate("/admin/careers")}>
               Cancel
             </Button>
             <Button
-              className="w-[136px]"
+              className="w-[120px]"
               onClick={handleSubmit}
               disabled={loading}
               variant={(hasAttemptedSave && !isValid()) ? "outline" : "default"}
@@ -885,29 +897,103 @@ const AdminCareerEditor = () => {
               <TabsContent value="canvas" className="flex-1 data-[state=active]:flex data-[state=active]:flex-col">
                 <div
                   ref={canvasRef}
-                  className="relative w-full bg-muted/30 rounded-xl border-2 border-dashed border-border overflow-hidden cursor-crosshair"
-                  style={{ height: "calc(100vh - 180px)" }}
+                  className="relative w-full rounded-xl border border-border overflow-hidden cursor-crosshair"
+                  style={{
+                    height: "calc(100vh - 180px)",
+                    background: "hsl(var(--card))",
+                    backgroundImage: "radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)",
+                    backgroundSize: "24px 24px",
+                  }}
                   onDoubleClick={handleCanvasDoubleClick}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
                   onMouseLeave={handleCanvasMouseUp}
                 >
-                  {/* Weights badge - top right of canvas */}
+                  {/* Floating toolbar — bottom left */}
+                  <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
+                    <button
+                      className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        const rect = canvasRef.current?.getBoundingClientRect();
+                        if (!rect) return;
+                        const newSkill: SkillNode = {
+                          id: `skill-${Date.now()}`,
+                          name: "New Skill",
+                          weight: 25,
+                          icon: skillIconOptions[skillNodes.length % skillIconOptions.length],
+                          color: skillColorOptions[skillNodes.length % skillColorOptions.length].name,
+                          x: 80 + Math.random() * (rect.width - 280),
+                          y: 80 + Math.random() * (rect.height - 200),
+                          courses: [],
+                        };
+                        setSkillNodes(prev => [...prev, newSkill]);
+                        setEditingSkill(newSkill);
+                        setSkillEditorOpen(true);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const rect = canvasRef.current?.getBoundingClientRect();
+                        if (!rect) return;
+                        const newSkill: SkillNode = {
+                          id: `skill-${Date.now()}`,
+                          name: "New Skill",
+                          weight: 25,
+                          icon: skillIconOptions[skillNodes.length % skillIconOptions.length],
+                          color: skillColorOptions[skillNodes.length % skillColorOptions.length].name,
+                          x: 80 + Math.random() * (rect.width - 280),
+                          y: 80 + Math.random() * (rect.height - 200),
+                          courses: [],
+                        };
+                        setSkillNodes(prev => [...prev, newSkill]);
+                        setEditingSkill(newSkill);
+                        setSkillEditorOpen(true);
+                      }}
+                    >
+                      <Icons.Plus className="h-3.5 w-3.5" />
+                      Add Skill
+                    </button>
+                    {skillNodes.length > 0 && (
+                      <button
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-card border border-border text-foreground shadow-sm hover:bg-muted/60 transition-colors"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); autoBalanceWeights(); }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        Auto-balance
+                      </button>
+                    )}
+                    <span className="px-2.5 py-1.5 rounded-lg text-[11px] text-muted-foreground bg-card/80 border border-border backdrop-blur-sm">
+                      Double-click canvas to add
+                    </span>
+                  </div>
+
+                  {/* Weight badge — top right */}
                   {skillNodes.length > 0 && (
                     <div className="absolute top-3 right-3 z-20">
-                      <Badge variant={getTotalWeight() === 100 ? "default" : "destructive"} className="text-sm px-3 py-1">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border ${
+                        getTotalWeight() === 100
+                          ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/25"
+                          : "bg-destructive/10 text-destructive border-destructive/25"
+                      }`}>
+                        {getTotalWeight() === 100
+                          ? <Icons.CheckCircle2 className="h-3.5 w-3.5" />
+                          : <Icons.AlertTriangle className="h-3.5 w-3.5" />}
                         Weights: {getTotalWeight()}%
-                      </Badge>
+                      </span>
                     </div>
                   )}
 
-                  {/* Canvas hint */}
+                  {/* Empty state */}
                   {skillNodes.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="text-center text-muted-foreground">
-                        <MousePointerClick className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-lg font-medium">Double-click to create a skill</p>
-                        <p className="text-sm">Click a skill node to open its editor and add courses</p>
+                      <div className="text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-muted/60 border-2 border-dashed border-border flex items-center justify-center mx-auto mb-4">
+                          <MousePointerClick className="h-7 w-7 text-muted-foreground/50" />
+                        </div>
+                        <p className="text-base font-semibold text-foreground/60 mb-1">No skills yet</p>
+                        <p className="text-sm text-muted-foreground/50">Click "Add Skill" or double-click anywhere on the canvas</p>
                       </div>
                     </div>
                   )}
@@ -917,13 +1003,12 @@ const AdminCareerEditor = () => {
                     const colorStyle = getSkillColor(skill.color);
                     const isSelected = selectedSkill === skill.id;
                     const isDropTarget = dropTargetSkill === skill.id;
-                    
+                    const hasCourses = skill.courses.length > 0;
+
                     return (
                       <div
                         key={skill.id}
-                        className={`skill-node absolute select-none transition-shadow ${
-                          isDropTarget ? 'ring-4 ' + colorStyle.ring : ''
-                        } ${isSelected ? 'z-10' : 'z-0'}`}
+                        className={`skill-node absolute select-none ${isSelected ? 'z-10' : 'z-0'}`}
                         style={{ left: skill.x, top: skill.y }}
                         onMouseDown={(e) => handleSkillMouseDown(e, skill.id)}
                         onDragOver={(e) => handleSkillDragOver(e, skill.id)}
@@ -931,75 +1016,82 @@ const AdminCareerEditor = () => {
                         onDrop={(e) => handleSkillDrop(e, skill.id)}
                       >
                         <div className={`
-                          w-52 rounded-xl border-2 backdrop-blur-sm cursor-move
-                          ${colorStyle.bg} ${colorStyle.border}
-                          ${isSelected ? 'shadow-lg' : 'shadow-md hover:shadow-lg'}
-                          transition-all duration-200
+                          w-56 rounded-2xl border bg-card cursor-move overflow-hidden
+                          ${isDropTarget ? `ring-2 ${colorStyle.ring}` : ''}
+                          ${isSelected ? 'shadow-xl ring-2 ' + colorStyle.ring : 'shadow-md hover:shadow-xl'}
+                          transition-all duration-150
                         `}>
-                          {/* Skill Header */}
-                          <div className="p-3 border-b border-inherit/50">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className={`p-1.5 rounded-lg ${colorStyle.bg} ${colorStyle.text}`}>
+                          {/* Color accent strip */}
+                          <div className={`h-1 w-full ${colorStyle.solid}`} />
+
+                          {/* Header */}
+                          <div className="p-3 pb-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${colorStyle.bg} ${colorStyle.text}`}>
                                   {getIcon(skill.icon)}
                                 </div>
-                                <div>
-                                  <p className={`font-semibold text-sm ${colorStyle.text}`}>
-                                    {skill.name}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Weight: {skill.weight}%
+                                <div className="min-w-0">
+                                  <p className="font-bold text-sm text-foreground truncate leading-tight">{skill.name}</p>
+                                  <p className={`text-[11px] font-semibold ${colorStyle.text}`}>
+                                    {skill.weight}% weight
                                   </p>
                                 </div>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
+                              <button
+                                className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setEditingSkill(skill);
                                   setSkillEditorOpen(true);
                                 }}
                               >
-                                <Settings className="h-3.5 w-3.5" />
-                              </Button>
+                                <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                            </div>
+
+                            {/* Weight progress bar */}
+                            <div className="mt-2.5 h-1 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${colorStyle.solid}`}
+                                style={{ width: `${skill.weight}%` }}
+                              />
                             </div>
                           </div>
-                          
-                          {/* Mapped Courses */}
-                          <div className="p-2 space-y-1 max-h-32 overflow-y-auto">
-                            {skill.courses.length === 0 ? (
-                              <div className={`text-xs text-center py-3 ${colorStyle.text} opacity-60`}>
-                                Drop courses here
-                              </div>
-                            ) : (
+
+                          {/* Courses section */}
+                          <div className="px-2.5 pb-2.5 space-y-1 max-h-36 overflow-y-auto">
+                            {hasCourses ? (
                               skill.courses.map(({ courseId, contribution }) => {
                                 const course = courses.find(c => c.id === courseId);
                                 return (
-                                  <div 
+                                  <div
                                     key={courseId}
-                                    className="flex items-center gap-1.5 p-1.5 rounded-lg bg-background/60 group"
+                                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-muted/50 group"
                                   >
                                     <BookOpen className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                    <span className="text-xs truncate flex-1">
+                                    <span className="text-[11px] truncate flex-1 font-medium text-foreground/80">
                                       {course?.name || "Unknown"}
                                     </span>
-                                    <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${colorStyle.bg} ${colorStyle.text}`}>
                                       {contribution}%
-                                    </Badge>
+                                    </span>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         removeCourseFromSkill(skill.id, courseId);
                                       }}
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                     >
                                       <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                                     </button>
                                   </div>
                                 );
                               })
+                            ) : (
+                              <div className={`text-[11px] text-center py-2.5 rounded-lg border border-dashed ${colorStyle.border} ${colorStyle.text} opacity-50`}>
+                                Click ⚙ to add courses
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1010,154 +1102,188 @@ const AdminCareerEditor = () => {
               </TabsContent>
 
               <TabsContent value="preview" className="flex-1 overflow-auto">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {/* Career Summary Card */}
-                  <Card className="p-5 bg-gradient-to-br from-card to-muted/30 border-2">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`p-2.5 rounded-xl ${careerColor}`}>
+                <div className="grid gap-5 lg:grid-cols-2">
+
+                  {/* ── Readiness Checklist ─── */}
+                  <Card className="p-5 space-y-4">
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${careerColor}`}>
                         {getIcon(careerIcon)}
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg">{careerName || "Career Name"}</h3>
-                        <p className="text-sm text-muted-foreground">{careerDescription || "No description yet"}</p>
+                        <h3 className="font-bold text-base leading-tight">{careerName || "Career Name"}</h3>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{careerDescription || "No description yet"}</p>
                       </div>
                     </div>
-                    
-                    {/* Configuration Checklist */}
-                    <div className="space-y-3 mb-4">
-                      <div className={`flex items-center gap-2 p-2 rounded-lg ${careerName ? 'bg-green-500/10' : 'bg-muted'}`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${careerName ? 'bg-green-500 text-white' : 'bg-muted-foreground/30'}`}>
-                          {careerName ? <Icons.Check className="h-3 w-3" /> : <span className="text-xs">1</span>}
+
+                    {/* Readiness score */}
+                    {(() => {
+                      const checks = [
+                        !!careerName.trim(),
+                        skillNodes.length > 0,
+                        getTotalWeight() === 100,
+                        getMappedCourseIds().size > 0,
+                        careerStatus === "published",
+                      ];
+                      const score = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+                      return (
+                        <div className="p-3.5 rounded-xl bg-muted/50 border border-border/50">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Readiness</p>
+                            <p className={`text-sm font-bold ${score === 100 ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>{score}%</p>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${score === 100 ? "bg-green-500" : "bg-amber-500"}`}
+                              style={{ width: `${score}%` }}
+                            />
+                          </div>
                         </div>
-                        <span className="text-sm">Career name & slug set</span>
-                      </div>
-                      <div className={`flex items-center gap-2 p-2 rounded-lg ${skillNodes.length > 0 ? 'bg-green-500/10' : 'bg-muted'}`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${skillNodes.length > 0 ? 'bg-green-500 text-white' : 'bg-muted-foreground/30'}`}>
-                          {skillNodes.length > 0 ? <Icons.Check className="h-3 w-3" /> : <span className="text-xs">2</span>}
+                      );
+                    })()}
+
+                    <div className="space-y-2">
+                      {[
+                        { done: !!careerName.trim(), label: "Career name & slug defined" },
+                        { done: skillNodes.length > 0, label: `Skills added (${skillNodes.length})` },
+                        { done: getTotalWeight() === 100, label: `Weights balanced (${getTotalWeight()}%)`, warn: skillNodes.length > 0 && getTotalWeight() !== 100 },
+                        { done: getMappedCourseIds().size > 0, label: `Courses mapped (${getMappedCourseIds().size})` },
+                        { done: careerStatus === "published", label: "Published & live" },
+                      ].map(({ done, label, warn }, i) => (
+                        <div key={i} className={`flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors ${done ? "bg-green-500/8" : warn ? "bg-amber-500/8" : "bg-muted/40"}`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-green-500 text-white" : warn ? "bg-amber-500 text-white" : "bg-muted-foreground/20"}`}>
+                            {done ? <Icons.Check className="h-3 w-3" /> : warn ? <Icons.AlertTriangle className="h-3 w-3" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
+                          </div>
+                          <span className={done ? "text-foreground/80" : "text-muted-foreground"}>{label}</span>
                         </div>
-                        <span className="text-sm">Skills defined ({skillNodes.length})</span>
-                      </div>
-                      <div className={`flex items-center gap-2 p-2 rounded-lg ${getTotalWeight() === 100 ? 'bg-green-500/10' : 'bg-amber-500/10'}`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${getTotalWeight() === 100 ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
-                          {getTotalWeight() === 100 ? <Icons.Check className="h-3 w-3" /> : <Icons.AlertTriangle className="h-3 w-3" />}
-                        </div>
-                        <span className="text-sm">Weights total 100% ({getTotalWeight()}%)</span>
-                      </div>
-                      <div className={`flex items-center gap-2 p-2 rounded-lg ${getMappedCourseIds().size > 0 ? 'bg-green-500/10' : 'bg-muted'}`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${getMappedCourseIds().size > 0 ? 'bg-green-500 text-white' : 'bg-muted-foreground/30'}`}>
-                          {getMappedCourseIds().size > 0 ? <Icons.Check className="h-3 w-3" /> : <span className="text-xs">4</span>}
-                        </div>
-                        <span className="text-sm">Courses mapped ({getMappedCourseIds().size})</span>
-                      </div>
+                      ))}
                     </div>
-                    
-                    {/* Stats Row */}
-                    <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border">
-                      <div className="text-center">
+
+                    <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/50">
+                      <div className="text-center p-2 rounded-lg bg-muted/40">
                         <p className="text-xl font-bold text-primary">{skillNodes.length}</p>
-                        <p className="text-xs text-muted-foreground">Skills</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Skills</p>
                       </div>
-                      <div className="text-center">
+                      <div className="text-center p-2 rounded-lg bg-muted/40">
                         <p className="text-xl font-bold text-green-500">{getMappedCourseIds().size}</p>
-                        <p className="text-xs text-muted-foreground">Courses</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Courses</p>
                       </div>
-                      <div className="text-center">
-                        <p className={`text-xl font-bold ${getTotalWeight() === 100 ? 'text-primary' : 'text-destructive'}`}>
-                          {getTotalWeight()}%
-                        </p>
-                        <p className="text-xs text-muted-foreground">Total Weight</p>
+                      <div className="text-center p-2 rounded-lg bg-muted/40">
+                        <p className={`text-xl font-bold ${getTotalWeight() === 100 ? "text-primary" : "text-destructive"}`}>{getTotalWeight()}%</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Weight</p>
                       </div>
                     </div>
                   </Card>
-                  
-                  {/* Skill Breakdown with Drag Reorder */}
+
+                  {/* ── Radar Chart ─── */}
                   <Card className="p-5">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold flex items-center gap-2">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        Skill Weight Distribution
+                      </h3>
+                    </div>
+                    {skillNodes.length >= 3 ? (
+                      <ChartContainer config={chartConfig} className="h-[220px] w-full">
+                        <RadarChart data={getSkillRadarData()}>
+                          <PolarGrid className="stroke-border" />
+                          <PolarAngleAxis dataKey="skill" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                          <Radar
+                            name="Weight"
+                            dataKey="value"
+                            stroke="hsl(var(--primary))"
+                            fill="hsl(var(--primary))"
+                            fillOpacity={0.15}
+                            strokeWidth={2}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                        </RadarChart>
+                      </ChartContainer>
+                    ) : (
+                      <div className="h-[220px] flex flex-col items-center justify-center text-center">
+                        <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center mb-3">
+                          <TrendingUp className="h-5 w-5 text-muted-foreground/40" />
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">Add 3+ skills to see radar</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Currently {skillNodes.length} skill{skillNodes.length !== 1 ? "s" : ""}</p>
+                      </div>
+                    )}
+                  </Card>
+
+                  {/* ── Weight Bar + Skill Order ─── */}
+                  <Card className="p-5 lg:col-span-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
                         <Zap className="h-4 w-4 text-primary" />
-                        Skill Order
+                        Skill Breakdown & Order
                         {skillNodes.length > 0 && (
-                          <Badge variant="outline" className="text-[10px] ml-2">
-                            <Move className="h-3 w-3 mr-1" />
+                          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full ml-1">
                             Drag to reorder
-                          </Badge>
+                          </span>
                         )}
                       </h3>
-                      <Button variant="outline" size="sm" onClick={autoBalanceWeights} disabled={skillNodes.length === 0}>
-                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                      <Button variant="outline" size="sm" onClick={autoBalanceWeights} disabled={skillNodes.length === 0} className="h-7 text-xs">
+                        <Sparkles className="h-3 w-3 mr-1.5" />
                         Auto-balance
                       </Button>
                     </div>
-                    
-                    {skillNodes.length === 0 ? (
-                      <div className="py-8 text-center text-muted-foreground">
-                        <Target className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                        <p className="text-sm">No skills added yet</p>
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-[280px] pr-4">
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleSkillDragEnd}
-                        >
-                          <SortableContext
-                            items={skillNodes.map(s => s.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            <div className="space-y-2">
-                              {skillNodes.map((skill, index) => (
-                                <SortableSkillItem
-                                  key={skill.id}
-                                  skill={skill}
-                                  colorStyle={getSkillColor(skill.color)}
-                                  getIcon={getIcon}
-                                />
-                              ))}
-                            </div>
-                          </SortableContext>
-                        </DndContext>
-                      </ScrollArea>
-                    )}
-                  </Card>
-                  
-                  {/* Weight Distribution Bar */}
-                  <Card className="p-5 lg:col-span-2">
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                      <Palette className="h-4 w-4" />
-                      Weight Distribution
-                    </h3>
+
                     {skillNodes.length > 0 ? (
                       <>
-                        <div className="h-6 rounded-full overflow-hidden flex bg-muted">
+                        {/* Segmented weight bar */}
+                        <div className="h-3 rounded-full overflow-hidden flex gap-px bg-muted mb-3">
                           {skillNodes.map((skill) => {
-                            const colorStyle = getSkillColor(skill.color);
+                            const cs = getSkillColor(skill.color);
                             return (
                               <div
                                 key={skill.id}
-                                className={`h-full ${colorStyle.solid} transition-all duration-300`}
+                                className={`h-full ${cs.solid} transition-all duration-300`}
                                 style={{ width: `${skill.weight}%` }}
                                 title={`${skill.name}: ${skill.weight}%`}
                               />
                             );
                           })}
                         </div>
-                        <div className="flex flex-wrap gap-3 mt-3">
-                          {skillNodes.map(skill => {
-                            const colorStyle = getSkillColor(skill.color);
-                            return (
-                              <div key={skill.id} className="flex items-center gap-1.5 text-xs">
-                                <div className={`w-3 h-3 rounded-full ${colorStyle.solid}`} />
-                                <span className="font-medium">{skill.name}</span>
-                                <span className="text-muted-foreground">({skill.weight}%)</span>
-                              </div>
-                            );
-                          })}
+
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Legend */}
+                          <div className="flex flex-wrap gap-x-4 gap-y-1.5 content-start">
+                            {skillNodes.map(skill => {
+                              const cs = getSkillColor(skill.color);
+                              return (
+                                <div key={skill.id} className="flex items-center gap-1.5 text-xs">
+                                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cs.solid}`} />
+                                  <span className="font-medium text-foreground/80">{skill.name}</span>
+                                  <span className="text-muted-foreground">({skill.weight}%)</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Drag reorder list */}
+                          <ScrollArea className="h-[160px] pr-2">
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSkillDragEnd}>
+                              <SortableContext items={skillNodes.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                                <div className="space-y-1.5">
+                                  {skillNodes.map((skill) => (
+                                    <SortableSkillItem
+                                      key={skill.id}
+                                      skill={skill}
+                                      colorStyle={getSkillColor(skill.color)}
+                                      getIcon={getIcon}
+                                    />
+                                  ))}
+                                </div>
+                              </SortableContext>
+                            </DndContext>
+                          </ScrollArea>
                         </div>
                       </>
                     ) : (
-                      <div className="py-6 text-center text-muted-foreground text-sm">
-                        Add skills to see weight distribution
+                      <div className="py-10 text-center">
+                        <Target className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+                        <p className="text-sm text-muted-foreground">Add skills in the Skill Canvas tab</p>
                       </div>
                     )}
                   </Card>
@@ -1167,177 +1293,284 @@ const AdminCareerEditor = () => {
 
               {/* Pricing Tab */}
               <TabsContent value="pricing" className="flex-1 overflow-auto">
-                <Card className="p-5">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <Icons.IndianRupee className="h-4 w-4 text-primary" />
-                    Career Pricing
-                  </h3>
-                  {(() => {
-                    const mappedIds = getMappedCourseIds();
-                    const mappedCourses = courses.filter(c => mappedIds.has(c.id));
-                    const totalOriginal = mappedCourses.reduce((sum, c) => sum + (Number(c.original_price) || 0), 0);
-                    const discountedTotal = careerDiscount > 0 ? Math.round(totalOriginal * (1 - careerDiscount / 100)) : totalOriginal;
-                    const savings = totalOriginal - discountedTotal;
+                {(() => {
+                  const mappedIds = getMappedCourseIds();
+                  const mappedCourses = courses.filter(c => mappedIds.has(c.id));
+                  const totalOriginal = mappedCourses.reduce((sum, c) => sum + (Number(c.original_price) || 0), 0);
+                  const discountedTotal = careerDiscount > 0 ? Math.round(totalOriginal * (1 - careerDiscount / 100)) : totalOriginal;
+                  const savings = totalOriginal - discountedTotal;
 
-                    return (
-                      <div className="space-y-4">
+                  return (
+                    <div className="grid gap-5 lg:grid-cols-[1fr_340px] max-w-4xl">
+
+                      {/* Left — course list */}
+                      <Card className="p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-1 h-4 rounded-full bg-primary" />
+                          <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">Included Courses</h3>
+                        </div>
+
                         {mappedCourses.length > 0 ? (
                           <div className="space-y-2">
-                            {mappedCourses.map(course => (
-                              <div key={course.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
-                                <div className="flex items-center gap-2">
-                                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-sm font-medium">{course.name}</span>
+                            {mappedCourses.map((course, i) => (
+                              <div key={course.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted/60 transition-colors">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <BookOpen className="h-3.5 w-3.5 text-primary" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">{course.name}</p>
+                                  </div>
                                 </div>
-                                <span className="text-sm font-semibold">
-                                  {Number(course.original_price) ? `₹${Number(course.original_price).toLocaleString("en-IN")}` : "—"}
+                                <span className="text-sm font-bold text-foreground flex-shrink-0 ml-3">
+                                  {Number(course.original_price) ? `₹${Number(course.original_price).toLocaleString("en-IN")}` : <span className="text-muted-foreground font-normal">Free</span>}
                                 </span>
                               </div>
                             ))}
+
+                            <div className="flex items-center justify-between pt-3 border-t border-border/50 px-1">
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Subtotal ({mappedCourses.length} courses)</span>
+                              <span className="text-sm font-bold">₹{totalOriginal.toLocaleString("en-IN")}</span>
+                            </div>
                           </div>
                         ) : (
-                          <div className="py-4 text-center text-muted-foreground text-sm">
-                            No courses mapped yet
+                          <div className="py-14 text-center">
+                            <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                              <BookOpen className="h-5 w-5 text-muted-foreground/40" />
+                            </div>
+                            <p className="text-sm font-medium text-muted-foreground">No courses mapped yet</p>
+                            <p className="text-xs text-muted-foreground/60 mt-1">Add courses to skills in the Skill Canvas tab</p>
                           </div>
                         )}
+                      </Card>
 
-                        <div className="flex items-center justify-between pt-3 border-t border-border">
-                          <span className="text-sm text-muted-foreground">Total Original Price</span>
-                          <span className="text-sm font-semibold">₹{totalOriginal.toLocaleString("en-IN")}</span>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                          <Label className="text-sm font-medium whitespace-nowrap">Career Discount</Label>
-                          <div className="flex items-center gap-2 ml-auto">
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={careerDiscount === 0 ? "" : careerDiscount}
-                              placeholder="0"
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === "") { setCareerDiscount(0); return; }
-                                setCareerDiscount(Math.min(100, Math.max(0, parseInt(val) || 0)));
-                              }}
-                              className="w-20 h-8 text-sm text-center"
-                            />
-                            <span className="text-sm font-medium">%</span>
+                      {/* Right — pricing summary */}
+                      <div className="space-y-4">
+                        {/* Discount input */}
+                        <Card className="p-5 space-y-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-1 h-4 rounded-full bg-primary" />
+                            <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">Bundle Discount</h3>
                           </div>
-                        </div>
 
-                        {careerDiscount > 0 && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Discount Amount</span>
-                            <span className="text-sm font-medium text-green-600">-₹{savings.toLocaleString("en-IN")}</span>
+                          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-muted/40 border border-border/50">
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-foreground/70 mb-0.5">Discount %</p>
+                              <p className="text-[11px] text-muted-foreground">Applied to bundle total</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={careerDiscount === 0 ? "" : careerDiscount}
+                                placeholder="0"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === "") { setCareerDiscount(0); return; }
+                                  setCareerDiscount(Math.min(100, Math.max(0, parseInt(val) || 0)));
+                                }}
+                                className="w-20 h-9 text-center font-bold text-base"
+                              />
+                              <span className="text-base font-semibold text-muted-foreground">%</span>
+                            </div>
                           </div>
-                        )}
 
-                        <div className="flex items-center justify-between pt-3 border-t border-border">
-                          <span className="font-semibold">Final Career Price</span>
-                          <div className="text-right">
+                          {careerDiscount > 0 && (
+                            <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/8 border border-green-500/20 text-green-700 dark:text-green-400">
+                              <Icons.BadgePercent className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-xs font-semibold">
+                                Students save ₹{savings.toLocaleString("en-IN")} ({careerDiscount}% off)
+                              </span>
+                            </div>
+                          )}
+                        </Card>
+
+                        {/* Price summary */}
+                        <Card className="p-5">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Original total</span>
+                              <span className={`font-semibold ${careerDiscount > 0 ? "line-through text-muted-foreground" : ""}`}>
+                                ₹{totalOriginal.toLocaleString("en-IN")}
+                              </span>
+                            </div>
                             {careerDiscount > 0 && (
-                              <p className="text-xs text-muted-foreground line-through">₹{totalOriginal.toLocaleString("en-IN")}</p>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Discount ({careerDiscount}%)</span>
+                                <span className="font-semibold text-green-600 dark:text-green-400">-₹{savings.toLocaleString("en-IN")}</span>
+                              </div>
                             )}
-                            <p className="text-lg font-bold text-primary">₹{discountedTotal.toLocaleString("en-IN")}</p>
+                            <div className="flex items-center justify-between pt-3 border-t border-border">
+                              <span className="font-bold text-base">Bundle Price</span>
+                              <div className="text-right">
+                                <p className="text-2xl font-black text-primary">₹{discountedTotal.toLocaleString("en-IN")}</p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-
-                        {careerDiscount > 0 && savings > 0 && (
-                          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 text-green-700 dark:text-green-400">
-                            <Icons.BadgePercent className="h-4 w-4" />
-                            <span className="text-sm font-medium">
-                              Students save ₹{savings.toLocaleString("en-IN")} ({careerDiscount}% off)
-                            </span>
-                          </div>
-                        )}
+                        </Card>
                       </div>
-                    );
-                  })()}
-                </Card>
+
+                    </div>
+                  );
+                })()}
               </TabsContent>
               
               <TabsContent value="settings" className="flex-1 overflow-auto">
-                <Card className="p-6 space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Career Name *</Label>
-                      <Input
-                        placeholder="e.g., Data Scientist"
-                        value={careerName}
-                        onChange={(e) => {
-                          setCareerName(e.target.value);
-                          if (!id) setCareerSlug(generateSlug(e.target.value));
-                        }}
-                      />
+                <div className="space-y-5 max-w-3xl">
+
+                  {/* ── Identity ─────────────────────────────── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full bg-primary" />
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Identity</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Slug *</Label>
-                      <Input
-                        placeholder="e.g., data-scientist"
-                        value={careerSlug}
-                        onChange={(e) => setCareerSlug(generateSlug(e.target.value))}
-                      />
-                    </div>
+                    <Card className="p-5 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground/80">Career Name <span className="text-destructive">*</span></Label>
+                          <Input
+                            placeholder="e.g., Data Scientist"
+                            value={careerName}
+                            onChange={(e) => {
+                              setCareerName(e.target.value);
+                              if (!id) setCareerSlug(generateSlug(e.target.value));
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground/80">URL Slug <span className="text-destructive">*</span></Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">/career/</span>
+                            <Input
+                              placeholder="data-scientist"
+                              value={careerSlug}
+                              onChange={(e) => setCareerSlug(generateSlug(e.target.value))}
+                              className="h-9 pl-[58px] font-mono text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-foreground/80">Description</Label>
+                        <Textarea
+                          placeholder="Brief description of this career path — shown on the public career card…"
+                          value={careerDescription}
+                          onChange={(e) => setCareerDescription(e.target.value)}
+                          rows={3}
+                          className="resize-none text-sm"
+                        />
+                        <p className="text-[11px] text-muted-foreground">{careerDescription.length}/300 characters</p>
+                      </div>
+                    </Card>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea
-                      placeholder="Brief description of this career path..."
-                      value={careerDescription}
-                      onChange={(e) => setCareerDescription(e.target.value)}
-                      rows={3}
-                    />
+                  {/* ── Appearance ───────────────────────────── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full bg-primary" />
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Appearance</p>
+                    </div>
+                    <Card className="p-5">
+                      <div className="grid grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground/80">Icon</Label>
+                          <Select value={careerIcon} onValueChange={setCareerIcon}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {careerIconOptions.map(icon => (
+                                <SelectItem key={icon} value={icon}>
+                                  <div className="flex items-center gap-2">
+                                    {getIcon(icon)}
+                                    <span className="text-sm">{icon}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground/80">Color Theme</Label>
+                          <Select value={careerColor} onValueChange={setCareerColor}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {careerColorOptions.map(color => (
+                                <SelectItem key={color.value} value={color.value}>
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-3.5 h-3.5 rounded-full border ${color.value}`} />
+                                    <span className="text-sm">{color.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Live Preview chip */}
+                      <div className="mt-4 pt-4 border-t border-border/50">
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Card Preview</p>
+                        <div className={`inline-flex items-center gap-2.5 px-3 py-2 rounded-xl border text-sm font-semibold ${careerColor}`}>
+                          {getIcon(careerIcon)}
+                          <span>{careerName || "Career Name"}</span>
+                        </div>
+                      </div>
+                    </Card>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Icon</Label>
-                      <Select value={careerIcon} onValueChange={setCareerIcon}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {careerIconOptions.map(icon => (
-                            <SelectItem key={icon} value={icon}>
-                              <div className="flex items-center gap-2">
-                                {getIcon(icon)}
-                                {icon}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {/* ── Publishing ───────────────────────────── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full bg-primary" />
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Publishing</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Color Theme</Label>
-                      <Select value={careerColor} onValueChange={setCareerColor}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {careerColorOptions.map(color => (
-                            <SelectItem key={color.value} value={color.value}>
-                              <div className="flex items-center gap-2">
-                                <div className={`w-4 h-4 rounded ${color.value}`} />
-                                {color.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Display Order</Label>
-                      <Input
-                        type="number"
-                        value={displayOrder}
-                        onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)}
-                      />
-                    </div>
+                    <Card className="p-5 space-y-4">
+                      {/* Live toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-semibold text-foreground">Publish Status</p>
+                          <p className="text-[12px] text-muted-foreground">
+                            {careerStatus === "published"
+                              ? "This career path is visible to students on the public site."
+                              : "This career path is hidden from students. Toggle to make it live."}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 ml-6 flex-shrink-0">
+                          <span className={`text-xs font-semibold ${careerStatus === "published" ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                            {careerStatus === "published" ? "Live" : "Draft"}
+                          </span>
+                          <Switch
+                            checked={careerStatus === "published"}
+                            onCheckedChange={(checked) => setCareerStatus(checked ? "published" : "draft")}
+                            className="data-[state=checked]:bg-green-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Display order */}
+                      <div className="pt-4 border-t border-border/50">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-semibold text-foreground">Display Order</p>
+                            <p className="text-[12px] text-muted-foreground">Controls the order this career appears on the Careers page.</p>
+                          </div>
+                          <Input
+                            type="number"
+                            value={displayOrder}
+                            onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)}
+                            className="w-24 h-8 text-sm text-center ml-6"
+                          />
+                        </div>
+                      </div>
+                    </Card>
                   </div>
-                </Card>
+
+                </div>
               </TabsContent>
             </Tabs>
           </div>
