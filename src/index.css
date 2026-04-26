@@ -86,6 +86,49 @@ All colors MUST be HSL.
     --admin-focus-border:  #1E4D3A;
     --admin-label:         #1E1E1E;
     --admin-label-muted:   rgba(30,30,30,0.40);
+
+    /* ── New semantic color variables ────────────────────────────────────── */
+    /* Brand */
+    --color-primary:        #0F6E56;
+    --color-primary-hover:  #0D5E49;
+    --color-primary-active: #0A4D3C;
+    --color-primary-tint:   #E1F3EE;
+
+    /* Accent */
+    --color-accent:         #F5A623;
+    --color-accent-hover:   #E09018;
+    --color-accent-light:   #FDF3E0;
+    --color-accent-dark:    #7A4D00;
+
+    /* Surfaces */
+    --color-bg-base:        #F7F4EE;
+    --color-bg-section:     #EDE8DF;
+    --color-bg-card:        #FFFFFF;
+    --color-bg-elevated:    #FAFAF8;
+    --color-overlay:        rgba(26, 23, 20, 0.48);
+
+    /* Text */
+    --color-text-primary:   #1A1714;
+    --color-text-secondary: #3D3730;
+    --color-text-muted:     #7A7168;
+    --color-text-disabled:  #B5AFA6;
+    --color-text-inverse:   #F7F4EE;
+
+    /* Borders */
+    --color-border:         #D9D4CC;
+    --color-border-subtle:  #EDE8DF;
+    --color-border-strong:  #B5AFA6;
+    --color-border-focus:   #0F6E56;
+
+    /* States */
+    --color-success:        #1E8A3C;
+    --color-success-light:  #D4F0DC;
+    --color-warning:        #D97706;
+    --color-warning-light:  #FEF3C7;
+    --color-danger:         #DC2626;
+    --color-danger-light:   #FEE2E2;
+    --color-info:           #1D6DB5;
+    --color-info-light:     #DBEAFE;
   }
 
   .dark {
@@ -167,8 +210,13 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
   }
 
   /* Premium dashboard background */
@@ -301,9 +349,14 @@ All colors MUST be HSL.
       0 4px 16px rgba(0, 0, 0, 0.04) !important;
   }
   .card-tertiary:hover {
-    box-shadow: 
+    box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.06),
       0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Suppress hover lift on non-clickable container cards */
+  .card-no-lift:hover {
+    transform: none !important;
   }
 
   /* Animated progress bar fill */
@@ -467,6 +520,161 @@ All colors MUST be HSL.
   .animate-sidebar {
     animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
     opacity: 0;
+  }
+
+  /* ── Profile Page Layout ─────────────────────────────────────────────── */
+  .profile-page-outer {
+    display: flex;
+    min-height: calc(100vh - 64px);
+    background: var(--background);  /* same as header & footer */
+    overflow-x: hidden;
+  }
+
+  /* Content fills remainder, scrollable */
+  .profile-content-wrap {
+    flex: 1;
+    min-width: 0;
+    background: var(--background);
+    padding: 28px 28px 40px 28px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Gray bg only on dashboard tab */
+  .profile-content-wrap--gray {
+    background: #f2f3f5;
+  }
+
+  /* ── Profile Icon Sidebar ────────────────────────────────────────────── */
+
+  /* Sticky wrapper — fixed viewport height, no card */
+  .profile-icon-sidebar-wrap {
+    flex-shrink: 0;
+    width: 64px;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    align-self: flex-start;
+  }
+
+  /* Sidebar — same bg as header & footer, right border for separation */
+  .profile-icon-sidebar {
+    width: 64px;
+    height: 100%;
+    background: var(--background);
+    border: none;
+    border-right: 1px solid rgba(0, 0, 0, 0.07);
+    box-shadow: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 0 28px;
+  }
+
+  /* Main nav area — vertically centered in available space */
+  .profile-icon-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 0;
+  }
+
+  /* Hairline separator */
+  .profile-icon-sep {
+    width: 28px;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.08);
+    margin: 10px 0;
+    flex-shrink: 0;
+  }
+
+  /* Bottom cluster: avatar */
+  .profile-icon-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 0;
+  }
+
+  /* Icon button */
+  .profile-icon-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #7a9189;
+    transition: background 140ms ease, color 140ms ease;
+    flex-shrink: 0;
+  }
+
+  .profile-icon-btn:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.05);
+    color: #2d5a47;
+  }
+
+  /* Active: soft green rounded square */
+  .profile-icon-btn.active {
+    background: rgba(34, 197, 94, 0.14);
+    color: #16803c;
+  }
+
+  .profile-icon-btn-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  .profile-icon-tooltip {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* Avatar button at bottom — clickable, opens settings */
+  .profile-icon-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-top: 10px;
+    flex-shrink: 0;
+    cursor: pointer;
+    border: none;
+    transition: opacity 140ms ease, transform 140ms ease;
+  }
+
+  .profile-icon-avatar:hover {
+    opacity: 0.88;
+    transform: scale(1.04);
+  }
+
+  .profile-icon-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .profile-icon-avatar-initial {
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
   }
 
   /* Clean Light code theme - matches the minimal white design */
@@ -946,6 +1154,10 @@ All colors MUST be HSL.
   background: hsl(var(--muted-foreground) / 0.08);
   transform: translateY(-1px);
 }
+
+/* Hide scrollbar — utility used across horizontal scroll rows */
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 
 /* Scrollbar */
 .co-scrollbar::-webkit-scrollbar { width: 4px; }

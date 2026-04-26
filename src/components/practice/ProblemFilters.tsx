@@ -1,5 +1,4 @@
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DifficultyFilter, StatusFilter } from "./types";
@@ -35,61 +34,64 @@ export function ProblemFilters({
   onSearchChange,
 }: ProblemFiltersProps) {
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b border-border/50">
-      {/* Difficulty Filter */}
-      <div className="flex items-center gap-1">
-        <span className="text-sm text-muted-foreground mr-2">Difficulty:</span>
-        <div className="flex gap-1">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 py-3">
+      {/* Difficulty */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11.5px] font-medium text-muted-foreground/70 tracking-[0.02em] whitespace-nowrap">
+          Difficulty
+        </span>
+        <div className="flex gap-0.5 ml-1">
           {difficultyOptions.map((opt) => (
-            <Button
+            <button
               key={opt.value}
-              variant="ghost"
-              size="sm"
               onClick={() => onDifficultyChange(opt.value)}
               className={cn(
-                "h-8 px-3 text-sm font-normal rounded-full",
+                "h-7 px-3 text-[12px] font-medium rounded-lg transition-all duration-150",
                 difficulty === opt.value
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/10 text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
               )}
             >
               {opt.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Status Filter */}
-      <div className="flex items-center gap-1">
-        <span className="text-sm text-muted-foreground mr-2">Status:</span>
-        <div className="flex gap-1">
+      {/* Divider */}
+      <div className="hidden sm:block w-px h-5 bg-border/50 mx-1" />
+
+      {/* Status */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11.5px] font-medium text-muted-foreground/70 tracking-[0.02em] whitespace-nowrap">
+          Status
+        </span>
+        <div className="flex gap-0.5 ml-1">
           {statusOptions.map((opt) => (
-            <Button
+            <button
               key={opt.value}
-              variant="ghost"
-              size="sm"
               onClick={() => onStatusChange(opt.value)}
               className={cn(
-                "h-8 px-3 text-sm font-normal rounded-full",
+                "h-7 px-3 text-[12px] font-medium rounded-lg transition-all duration-150",
                 status === opt.value
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/10 text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
               )}
             >
               {opt.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Search */}
       <div className="relative flex-1 max-w-xs ml-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
         <Input
-          placeholder="Search problems..."
+          placeholder="Search problems…"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9 h-9 bg-muted/30 border-border/50"
+          className="pl-8 h-8 text-[12.5px] bg-muted/30 border-border/40 rounded-lg focus-visible:ring-primary/20"
         />
       </div>
     </div>

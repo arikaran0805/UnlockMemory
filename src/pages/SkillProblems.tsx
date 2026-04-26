@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Bookmark } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Bookmark, CheckCircle2, ChevronLeft } from "lucide-react";
 import UMLoader from "@/components/UMLoader";
 import { Toggle } from "@/components/ui/toggle";
 import { ProblemFilters } from "@/components/practice/ProblemFilters";
@@ -17,7 +16,6 @@ import { toast } from "sonner";
 type DifficultyFilter = 'all' | 'Easy' | 'Medium' | 'Hard';
 type StatusFilter = 'all' | 'solved' | 'unsolved';
 
-// Convert database problem to display format
 interface DisplayProblem {
   id: string;
   title: string;
@@ -37,17 +35,16 @@ interface DisplayProblem {
 export default function SkillProblems() {
   const { skillId } = useParams<{ skillId: string }>();
   const navigate = useNavigate();
-  
+
   const [difficulty, setDifficulty] = useState<DifficultyFilter>('all');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
   const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
-  
+
   const { isBookmarked, isAuthenticated } = useProblemBookmarks();
   const { user } = useAuth();
   const { data: progressData } = useLearnerProgress(user?.id);
 
-  // Create a lookup set for solved problems
   const solvedProblems = useMemo(() => {
     return new Set(
       (progressData || [])
@@ -56,7 +53,6 @@ export default function SkillProblems() {
     );
   }, [progressData]);
 
-  // Fetch skill info
   const { data: skill, isLoading: skillLoading } = useQuery({
     queryKey: ["skill-by-slug", skillId],
     queryFn: async () => {
@@ -73,10 +69,8 @@ export default function SkillProblems() {
     enabled: !!skillId,
   });
 
-  // Fetch problems with lesson/sub-topic info
   const { data: problems, isLoading: problemsLoading } = usePublishedPracticeProblems(skillId);
 
-  // Convert to display format
   const displayProblems: DisplayProblem[] = useMemo(() => {
     if (!problems) return [];
     return problems.map((p: ProblemWithMapping) => ({
@@ -96,7 +90,6 @@ export default function SkillProblems() {
     }));
   }, [problems, solvedProblems]);
 
-  // Filter problems
   const filteredProblems = useMemo(() => {
     return displayProblems.filter((p) => {
       if (difficulty !== 'all' && p.difficulty !== difficulty) return false;
@@ -108,18 +101,17 @@ export default function SkillProblems() {
     });
   }, [displayProblems, difficulty, status, search, showBookmarkedOnly, isBookmarked]);
 
-  // Group problems by lesson > sub-topic hierarchy
   const groupedByLesson = useMemo(() => {
     const lessons: Record<string, {
       lessonId?: string;
       lessonTitle: string;
       subTopics: Record<string, DisplayProblem[]>;
     }> = {};
-    
+
     filteredProblems.forEach((p) => {
       const lessonKey = p.lessonId || p.lessonTitle || "General";
       const subTopicKey = p.subTopicTitle || p.subTopic || "Uncategorized";
-      
+
       if (!lessons[lessonKey]) {
         lessons[lessonKey] = {
           lessonId: p.lessonId,
@@ -127,14 +119,14 @@ export default function SkillProblems() {
           subTopics: {},
         };
       }
-      
+
       if (!lessons[lessonKey].subTopics[subTopicKey]) {
         lessons[lessonKey].subTopics[subTopicKey] = [];
       }
-      
+
       lessons[lessonKey].subTopics[subTopicKey].push(p);
     });
-    
+
     return lessons;
   }, [filteredProblems]);
 
@@ -157,101 +149,149 @@ export default function SkillProblems() {
   };
 
   const isLoading = skillLoading || problemsLoading;
+  const totalCount = displayProblems.length;
+  const solvedCount = displayProblems.filter((p) => p.solved).length;
+  const solvedPct = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f8f9fa]">
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          size="sm"
+
+        {/* Back button — premium pill */}
+        <button
           onClick={() => navigate('/profile?tab=practice')}
-          className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
+          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-muted-foreground hover:text-foreground transition-all duration-150 hover:bg-white hover:shadow-sm border border-transparent hover:border-border/40 -ml-1 mb-7"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-150 group-hover:-translate-x-0.5" />
           Back to Practice
-        </Button>
+        </button>
 
-        {/* Header */}
-        <div className="mb-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <UMLoader size={44} label="Unlocking memory…" />
-            </div>
-          ) : (
-            <>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                {skill?.name || "Skill"}
-              </h1>
-              <p className="text-muted-foreground">{skill?.description || "Practice problems for this skill"}</p>
-            </>
-          )}
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <ProblemFilters
-              difficulty={difficulty}
-              status={status}
-              search={search}
-              onDifficultyChange={setDifficulty}
-              onStatusChange={setStatus}
-              onSearchChange={setSearch}
-            />
+        {/* ── Skill Hero Header ── */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <UMLoader size={48} dark label={null} />
+            <p className="text-[11px] text-muted-foreground tracking-[0.06em] uppercase">Loading skill</p>
           </div>
-          {isAuthenticated && (
-            <Toggle
-              pressed={showBookmarkedOnly}
-              onPressedChange={setShowBookmarkedOnly}
-              aria-label="Show bookmarked only"
-              className="data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
-            >
-              <Bookmark className={`h-4 w-4 ${showBookmarkedOnly ? 'fill-current' : ''}`} />
-            </Toggle>
-          )}
-        </div>
+        ) : (
+          <>
+            <div className="bg-white rounded-2xl border border-border/50 overflow-hidden mb-6 shadow-sm">
+              <div className="px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    {/* Eyebrow */}
+                    <p className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-primary/70 mb-1.5">
+                      Practice Skill
+                    </p>
+                    <h1
+                      className="text-[26px] font-bold leading-tight tracking-[-0.025em] text-foreground mb-1.5"
+                    >
+                      {skill?.name || "Skill"}
+                    </h1>
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">
+                      {skill?.description || "Practice problems for this skill"}
+                    </p>
+                  </div>
 
-        {/* Problem Sections - Grouped by Lesson > Sub-Topic */}
-        <div className="mt-6 space-y-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <UMLoader size={44} label="Unlocking memory…" />
+                  {/* Stat pills */}
+                  {totalCount > 0 && (
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-semibold"
+                          style={{ background: "rgba(34,197,94,0.08)", color: "#15803D" }}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {solvedCount} / {totalCount} Solved
+                        </span>
+                      </div>
+                      {/* Mini progress bar */}
+                      <div className="w-28 h-1.5 rounded-full bg-muted/60">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${solvedPct}%`,
+                            background: "linear-gradient(90deg, #4CAF82, #22C55E)",
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10.5px] text-muted-foreground">{solvedPct}% complete</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : Object.keys(groupedByLesson).length > 0 ? (
-            Object.entries(groupedByLesson).map(([lessonKey, lessonData]) => (
-              <LessonProblemSection
-                key={lessonKey}
-                lessonTitle={lessonData.lessonTitle}
-                subTopics={Object.entries(lessonData.subTopics).map(([title, problems]) => ({
-                  title,
-                  problems,
-                }))}
-                onProblemClick={handleProblemClick}
-              />
-            ))
-          ) : filteredProblems.length === 0 && displayProblems.length > 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>No problems match your filters.</p>
-              <Button
-                variant="link"
-                onClick={() => {
-                  setDifficulty('all');
-                  setStatus('all');
-                  setSearch('');
-                  setShowBookmarkedOnly(false);
-                }}
-                className="mt-2"
-              >
-                Clear filters
-              </Button>
+
+            {/* ── Filters ── */}
+            <div className="bg-white rounded-xl border border-border/50 shadow-sm mb-5 px-4">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <ProblemFilters
+                    difficulty={difficulty}
+                    status={status}
+                    search={search}
+                    onDifficultyChange={setDifficulty}
+                    onStatusChange={setStatus}
+                    onSearchChange={setSearch}
+                  />
+                </div>
+                {isAuthenticated && (
+                  <Toggle
+                    pressed={showBookmarkedOnly}
+                    onPressedChange={setShowBookmarkedOnly}
+                    aria-label="Show bookmarked only"
+                    className="shrink-0 data-[state=on]:bg-primary/10 data-[state=on]:text-primary rounded-lg h-8 w-8"
+                  >
+                    <Bookmark className={`h-3.5 w-3.5 ${showBookmarkedOnly ? 'fill-current' : ''}`} />
+                  </Toggle>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>No problems available for this skill yet.</p>
+
+            {/* ── Problem list ── */}
+            <div className="space-y-4">
+              {Object.keys(groupedByLesson).length > 0 ? (
+                Object.entries(groupedByLesson).map(([lessonKey, lessonData]) => (
+                  <LessonProblemSection
+                    key={lessonKey}
+                    lessonTitle={lessonData.lessonTitle}
+                    subTopics={Object.entries(lessonData.subTopics).map(([title, problems]) => ({
+                      title,
+                      problems,
+                    }))}
+                    onProblemClick={handleProblemClick}
+                  />
+                ))
+              ) : filteredProblems.length === 0 && displayProblems.length > 0 ? (
+                <div className="bg-white rounded-xl border border-border/50 shadow-sm px-6 py-14 flex flex-col items-center gap-3 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-muted-foreground/60" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                    </svg>
+                  </div>
+                  <p className="text-[13.5px] font-medium text-foreground/70">No problems match your filters</p>
+                  <button
+                    onClick={() => { setDifficulty('all'); setStatus('all'); setSearch(''); setShowBookmarkedOnly(false); }}
+                    className="text-[12.5px] font-semibold text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-border/50 shadow-sm px-6 py-14 flex flex-col items-center gap-3 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-muted-foreground/60" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                      <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
+                    </svg>
+                  </div>
+                  <p className="text-[13.5px] font-medium text-foreground/70">No problems available yet</p>
+                  <p className="text-[12px] text-muted-foreground max-w-[240px] leading-relaxed">
+                    Problems for this skill are being prepared. Check back soon.
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -158,6 +158,8 @@ export function useUpdatePracticeSkill() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["practice-skills"] });
       queryClient.invalidateQueries({ queryKey: ["practice-skill", variables.id] });
+      // Also bust the published-skills cache so PracticeLab reflects live-toggle changes immediately
+      queryClient.invalidateQueries({ queryKey: ["published-practice-skills"] });
       toast.success("Practice skill updated successfully");
     },
     onError: (error: Error) => {

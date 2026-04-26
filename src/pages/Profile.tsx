@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import UMLoader from "@/components/UMLoader";
 import { useCourseNavigation } from "@/hooks/useCourseNavigation";
@@ -24,14 +24,17 @@ import { useProblemBookmarks } from "@/hooks/useProblemBookmarks";
 import { CourseProgressDisplay } from "@/components/CourseProgressDisplay";
 import { useCareers } from "@/hooks/useCareers";
 import { CareerReadinessCard } from "@/components/CareerReadinessCard";
-import { SkillMilestones } from "@/components/SkillMilestones";
 import { CareerSelectionDialog } from "@/components/CareerSelectionDialog";
 import { ProfileWeeklyActivityCard } from "@/components/profile/ProfileWeeklyActivityCard";
 import { ProfileDashboardHeader } from "@/components/profile/ProfileDashboardHeader";
 import { ContinueLearningCard } from "@/components/ContinueLearningCard";
 import Layout from "@/components/Layout";
+import SlimFooter from "@/components/SlimFooter";
 import { useUserRole } from "@/hooks/useUserRole";
 import { PracticeLab } from "@/components/practice";
+import { useActiveLabsProgress } from "@/hooks/useActiveLabsProgress";
+import { useSkillsProgress } from "@/hooks/useSkillsProgress";
+import { usePublishedPracticeSkills } from "@/hooks/usePracticeSkills";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { LightEditor } from "@/components/tiptap";
 import { useWeeklyActivity } from "@/hooks/useWeeklyActivity";
@@ -95,7 +98,7 @@ const passwordSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type TabType = 'dashboard' | 'learnings' | 'bookmarks' | 'discussions' | 'achievements' | 'settings' | 'practice';
+type TabType = 'dashboard' | 'learnings' | 'bookmarks' | 'discussions' | 'settings' | 'practice';
 
 const sidebarItems = [
   { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
@@ -106,7 +109,6 @@ const sidebarItems = [
 
 const exploreItems = [
   { id: 'practice' as TabType, label: 'Practice Lab', icon: FlaskConical },
-  { id: 'achievements' as TabType, label: 'Achievements', icon: Award },
 ];
 
 const accountItems = [
@@ -617,7 +619,6 @@ const Profile = () => {
   const [maxStreak, setMaxStreak] = useState(0);
   const [streakFreezesAvailable, setStreakFreezesAvailable] = useState(2);
   const [isFreezingStreak, setIsFreezingStreak] = useState(false);
-  const [achievements, setAchievements] = useState<any[]>([]);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [resendingVerification, setResendingVerification] = useState(false);
   const [userComments, setUserComments] = useState<any[]>([]);
@@ -639,6 +640,30 @@ const Profile = () => {
   const weeklyActivityData =
     weeklyActivityQueryData ??
     ({ totalSeconds: 0, activeDays: 0, dailySeconds: {}, lastWeekSeconds: 0 } as const);
+
+  // Practice labs progress — used in My Learnings
+  const enrolledCourseIds = useMemo(
+    () => enrolledCourses.map((e: any) => e.courses?.id).filter(Boolean) as string[],
+    [enrolledCourses],
+  );
+  const { data: labProgressMap, isLoading: labProgressLoading } = useActiveLabsProgress(
+    userId ?? undefined,
+    enrolledCourseIds,
+  );
+  const sortedActiveLabs = useMemo(() => {
+    if (!labProgressMap) return [];
+    const active = enrolledCourses.filter((enrollment: any) => {
+      const courseId = enrollment.courses?.id;
+      if (!courseId) return false;
+      const p = labProgressMap.get(courseId);
+      return p && p.percentage > 0 && p.percentage < 100;
+    });
+    return [...active].sort((a: any, b: any) => {
+      const at = labProgressMap?.get(a.courses?.id)?.lastPracticedAt;
+      const bt = labProgressMap?.get(b.courses?.id)?.lastPracticedAt;
+      return (bt ? new Date(bt).getTime() : 0) - (at ? new Date(at).getTime() : 0);
+    });
+  }, [enrolledCourses, labProgressMap]);
 
   // Handle skill click - navigate to course that teaches this skill INSIDE CAREER BOARD
   // This uses the Career Board route for guaranteed CareerScopedHeader rendering
@@ -946,17 +971,6 @@ const Profile = () => {
         setCompletedCourseSlugs(completed);
       }
 
-      // Fetch achievements from database
-      const { data: userAchievements } = await supabase
-        .from("achievements")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("earned_at", { ascending: false })
-        .limit(5);
-
-      if (userAchievements) {
-        setAchievements(userAchievements);
-      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -1183,10 +1197,14 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[400px]">
-          <UMLoader size={56} dark label="Loading…" />
+      <Layout showFooter={false}>
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-10">
+          <div className="flex flex-col items-center gap-4">
+            <UMLoader size={64} dark label={null} />
+            <span className="text-[11px] text-muted-foreground tracking-[0.06em] uppercase">Loading…</span>
+          </div>
         </div>
+        <SlimFooter />
       </Layout>
     );
   }
@@ -1344,7 +1362,7 @@ const Profile = () => {
             maxStreak={maxStreak}
           />
           {/* Career Readiness - Primary tier */}
-          <Card className="card-premium card-primary animate-stagger-2">
+          <Card className="card-premium card-primary card-no-lift animate-stagger-2">
             <CardContent className="p-7">
               <div className="flex items-center justify-between mb-7">
                 <div>
@@ -1464,8 +1482,8 @@ const Profile = () => {
                           {/* Progress gradient arc */}
                           <defs>
                             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#8B5CF6" />
-                              <stop offset="100%" stopColor="#22C55E" />
+                              <stop offset="0%" stopColor="#86EFAC" />
+                              <stop offset="100%" stopColor="#15803D" />
                             </linearGradient>
                             {/* Glow filter for active arc */}
                             <filter id="arcGlow" x="-50%" y="-50%" width="200%" height="200%">
@@ -1596,7 +1614,7 @@ const Profile = () => {
           </Card>
 
           {/* Recommended Labs Section */}
-          <Card className="card-premium animate-stagger-3">
+          <Card className="card-premium card-no-lift animate-stagger-3">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -1608,68 +1626,58 @@ const Profile = () => {
                     <CardDescription className="font-normal" style={{ color: '#6E6E73' }}>Practice exercises based on your enrolled courses</CardDescription>
                   </div>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="ghost"
-                  onClick={() => handleTabChange('practice')} 
-                  className="gap-1 rounded-full px-5 border border-border/60 text-muted-foreground font-semibold hover:text-white hover:border-transparent transition-all duration-200"
-                  style={{}}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #4CAF82, #43A375)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                <button
+                  onClick={() => handleTabChange('practice')}
+                  className="group inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary hover:text-primary/80 transition-colors duration-150"
                 >
-                  View All <ChevronRight className="h-4 w-4" />
-                </Button>
+                  View all
+                  <ChevronRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                </button>
               </div>
             </CardHeader>
             <CardContent>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {enrolledCourses.slice(0, 2).map((enrollment, index) => {
+              <div className="space-y-2.5">
+                {enrolledCourses.slice(0, 4).map((enrollment, index) => {
                   const course = enrollment.courses;
                   if (!course) return null;
-                  
-                  const labTypes = ['Coding Challenge', 'Quiz', 'Project'];
-                  const labIcons = [<Zap className="h-4 w-4" />, <Target className="h-4 w-4" />, <Award className="h-4 w-4" />];
-                  const labColors = ['from-emerald-500 to-teal-600', 'from-blue-500 to-indigo-600', 'from-purple-500 to-pink-600'];
-                  
-                    return (
-                      <div 
-                        key={enrollment.id} 
-                        className="group cursor-pointer transition-all duration-[250ms] ease-out hover:-translate-y-[3px] hover:scale-[1.01] rounded-[22px] border border-border/40 p-7 flex flex-col items-center text-center"
-                        style={{
-                          background: 'rgba(255,255,255,0.92)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
-                        }}
+
+                  const labTypes = ['Coding Challenge', 'Quiz', 'Project', 'Mini Project'];
+                  const labIcons = [<Zap className="h-4 w-4" />, <Target className="h-4 w-4" />, <Award className="h-4 w-4" />, <Zap className="h-4 w-4" />];
+                  const labColors = ['from-emerald-500 to-teal-600', 'from-blue-500 to-indigo-600', 'from-violet-500 to-purple-600', 'from-rose-500 to-pink-600'];
+
+                  return (
+                    <div
+                      key={enrollment.id}
+                      className="group flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-border/30 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:bg-muted/20 hover:-translate-y-[2px]"
                       onClick={() => handleTabChange('practice')}
                     >
                       {/* Icon */}
-                      <div 
-                        className={`w-16 h-16 rounded-[18px] bg-gradient-to-br ${labColors[index % 3]} flex items-center justify-center shrink-0`}
-                        style={{ boxShadow: '0 10px 24px rgba(34,197,94,0.35)' }}
+                      <div
+                        className={`w-9 h-9 rounded-xl flex-shrink-0 bg-gradient-to-br ${labColors[index % 4]} flex items-center justify-center`}
+                        style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.12)' }}
                       >
-                        {React.cloneElement(labIcons[index % 3] as React.ReactElement, { className: 'h-7 w-7 text-white' })}
+                        {React.cloneElement(labIcons[index % 4] as React.ReactElement, { className: 'h-[18px] w-[18px] text-white' })}
                       </div>
 
-                      {/* Title */}
-                      <p className="font-semibold text-xl mt-5 w-full tracking-[-0.01em] line-clamp-2 leading-snug" style={{ color: '#1D1D1F' }}>
-                        {course.name}
-                      </p>
-
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13.5px] font-semibold text-foreground line-clamp-1 leading-snug">
+                          {course.name}
+                        </p>
+                        <p className="text-[11.5px] text-muted-foreground mt-0.5">
+                          {labTypes[index % 4]}
+                        </p>
+                      </div>
 
                       {/* CTA */}
-                      <button 
-                        className="text-sm font-semibold text-white px-5 py-3 rounded-full transition-transform duration-[220ms] ease-out group-hover:-translate-y-0.5 mt-5 w-full"
-                        style={{
-                          background: 'linear-gradient(180deg, #22C55E, #16A34A)',
-                          boxShadow: '0 10px 24px rgba(34,197,94,0.35)',
-                        }}
-                      >
-                        Start Lab →
-                      </button>
+                      <div className="flex-shrink-0 flex items-center gap-0.5 text-[12px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        Start <ChevronRight className="h-3.5 w-3.5" />
+                      </div>
                     </div>
                   );
                 })}
                 {enrolledCourses.length === 0 && (
-                  <div className="col-span-full text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-muted-foreground">
                     <FlaskConical className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">Enroll in courses to unlock practice labs</p>
                     <Button variant="link" onClick={() => navigate('/courses')} className="mt-2">
@@ -1685,7 +1693,7 @@ const Profile = () => {
         {/* Right Column - Today's Focus + Weekly Activity + AI Mentor */}
         <div className="flex flex-col space-y-7 h-full min-h-full">
           {/* Today's Focus Card */}
-          <Card className="card-premium animate-stagger-1">
+          <Card className="card-premium card-no-lift animate-stagger-1">
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/15">
@@ -1699,66 +1707,70 @@ const Profile = () => {
               
               <div className="space-y-3">
                 {/* Lesson Suggestion */}
-                <div 
+                <div
                   onClick={todaysFocus.handleContinueLearning}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-all duration-250 cursor-pointer hover:-translate-y-0.5"
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 hover:border-primary/20 hover:bg-primary/[0.03] transition-all duration-200 cursor-pointer group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0 group-hover:bg-primary/12 transition-colors">
                     <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Continue Learning</p>
-                    <p className="text-xs mt-0.5 truncate" style={{ color: '#6E6E73' }}>
-                      {todaysFocus.nextLesson 
-                        ? todaysFocus.nextLesson.title 
-                        : todaysFocus.hasActiveCourse 
-                          ? "All lessons completed!" 
+                    <p className="text-[13px] font-semibold text-foreground">Continue Learning</p>
+                    <p className="text-[11.5px] mt-0.5 truncate text-muted-foreground">
+                      {todaysFocus.nextLesson
+                        ? todaysFocus.nextLesson.title
+                        : todaysFocus.hasActiveCourse
+                          ? "All lessons completed!"
                           : "Start your learning journey"}
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </div>
 
                 {/* MCQ Suggestion */}
-                <div 
+                <div
                   onClick={todaysFocus.handleDailyQuiz}
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/30 transition-all duration-250 ${
-                    todaysFocus.hasCompletedLessons ? 'hover:bg-amber-50/80 cursor-pointer hover:-translate-y-0.5' : 'opacity-50 cursor-default'
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border border-border/30 transition-all duration-200 group ${
+                    todaysFocus.hasCompletedLessons
+                      ? 'hover:border-amber-300/40 hover:bg-amber-50/30 cursor-pointer'
+                      : 'opacity-45 cursor-default'
                   }`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/8 flex items-center justify-center shrink-0">
                     <HelpCircle className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Daily Quiz</p>
-                    <p className="text-xs mt-0.5" style={{ color: '#6E6E73' }}>
-                      {todaysFocus.hasCompletedLessons 
-                        ? "Test your knowledge with MCQs" 
+                    <p className="text-[13px] font-semibold text-foreground">Daily Quiz</p>
+                    <p className="text-[11.5px] mt-0.5 text-muted-foreground">
+                      {todaysFocus.hasCompletedLessons
+                        ? "Test your knowledge with MCQs"
                         : "Complete lessons to unlock quiz"}
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </div>
 
                 {/* Debug & Practice Suggestion */}
-                <div 
+                <div
                   onClick={todaysFocus.handleDebugPractice}
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl bg-violet-50/50 border border-violet-200/30 transition-all duration-250 ${
-                    todaysFocus.nextLesson ? 'hover:bg-violet-50/80 cursor-pointer hover:-translate-y-0.5' : 'opacity-50 cursor-default'
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border border-border/30 transition-all duration-200 group ${
+                    todaysFocus.nextLesson
+                      ? 'hover:border-slate-300/50 hover:bg-slate-50/40 cursor-pointer'
+                      : 'opacity-45 cursor-default'
                   }`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                    <Code className="h-4 w-4 text-violet-500" strokeWidth={1.8} />
+                  <div className="w-9 h-9 rounded-xl bg-slate-500/8 flex items-center justify-center shrink-0">
+                    <Code className="h-4 w-4 text-slate-500" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Debug & Practice</p>
-                    <p className="text-xs mt-0.5" style={{ color: '#6E6E73' }}>
-                      {todaysFocus.nextLesson 
-                        ? "Hands-on coding challenges" 
+                    <p className="text-[13px] font-semibold text-foreground">Debug & Practice</p>
+                    <p className="text-[11.5px] mt-0.5 text-muted-foreground">
+                      {todaysFocus.nextLesson
+                        ? "Hands-on coding challenges"
                         : "No practice available for today"}
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
             </CardContent>
@@ -1771,44 +1783,45 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - tertiary tier */}
-          <Card className="card-premium card-tertiary animate-stagger-3 flex-1 flex flex-col">
-            {/* Ambient glow for AI Mentor */}
-            <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(139,92,246,0.06)' }} />
+          <Card className="card-premium card-tertiary card-no-lift animate-stagger-3 flex-1 flex flex-col overflow-hidden">
+            {/* Calm ambient tint */}
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(99,102,241,0.07)' }} />
             <CardContent className="p-5 flex-1 flex flex-col relative">
               <div className="flex items-center gap-3 mb-4">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full blur-lg" style={{ background: 'rgba(139,92,246,0.15)' }} />
-                  <div
-                    className="relative w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)', boxShadow: '0 8px 20px rgba(124,58,237,0.3)' }}
-                  >
-                    <Sparkles className="h-6 w-6 text-white" strokeWidth={1.5} />
-                  </div>
+                <div
+                  className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                    boxShadow: '0 4px 14px rgba(99,102,241,0.28)',
+                  }}
+                >
+                  <Sparkles className="h-5 w-5 text-white" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>AI Mentor</h3>
-                  <p className="text-sm font-normal" style={{ color: '#6E6E73' }}>
-                    Your personal learning assistant
-                  </p>
+                  <h3 className="text-[15px] font-bold tracking-tight text-foreground">AI Mentor</h3>
+                  <p className="text-[11.5px] text-muted-foreground">Your personal learning assistant</p>
                 </div>
               </div>
-              
-               <div className="flex-1 flex flex-col justify-end">
-                <p className="text-sm leading-relaxed font-normal" style={{ color: '#6E6E73' }}>
-                  {completedInCareer < careerRelatedSlugs.length 
+
+              <div className="flex-1 flex flex-col justify-end">
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  {completedInCareer < careerRelatedSlugs.length
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
                     : 'Great progress! Ask me about advanced topics, career advice, or explore new learning paths.'}
                 </p>
-                
+
                 <Button
                   variant="default"
-                  className="w-full mt-4 gap-2 rounded-full font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-                  style={{ background: 'linear-gradient(90deg, #7C3AED, #9333EA)', boxShadow: '0 10px 30px rgba(124,58,237,0.35)' }}
+                  className="w-full mt-4 gap-2 rounded-xl font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms] text-[13px] h-10"
+                  style={{
+                    background: 'linear-gradient(135deg, #6366F1, #4338CA)',
+                    boxShadow: '0 6px 20px rgba(99,102,241,0.28)',
+                  }}
                 >
-                  <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+                  <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
                   Ask AI Mentor
                 </Button>
-               </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -1827,160 +1840,277 @@ const Profile = () => {
 
 
   const renderLearnings = () => {
-    // Get featured courses (not enrolled)
-    const enrolledCourseIds = enrolledCourses.map(e => e.courses?.id);
-    const featuredCourses = allCourses.filter(c => !enrolledCourseIds.includes(c.id)).slice(0, 4);
-
-    // Softer premium gradient colors for featured cards
-    const gradients = [
-      'linear-gradient(135deg, #60A5FA, #3B82F6)',
-      'linear-gradient(135deg, #34D399, #10B981)',
-      'linear-gradient(135deg, #A78BFA, #8B5CF6)',
-      'linear-gradient(135deg, #38BDF8, #0EA5E9)',
-    ];
-
-    // Split enrolled courses into ongoing and completed
     const ongoingCourses = enrolledCourses.filter(enrollment => {
       const progress = courseProgressMap[enrollment.courses?.slug];
-      // Not completed: either no progress data or completed < total or total is 0
       return !progress || progress.total === 0 || progress.completed < progress.total;
     });
 
     const completedCourses = enrolledCourses.filter(enrollment => {
       const progress = courseProgressMap[enrollment.courses?.slug];
-      // Completed: has progress data, total > 0, and completed >= total
       return progress && progress.total > 0 && progress.completed >= progress.total;
     });
 
-    return (
-      <div className="space-y-10">
+    const iconColors = [
+      { bg: 'rgba(34,197,94,0.1)',  fg: '#16A34A' },
+      { bg: 'rgba(59,130,246,0.1)', fg: '#2563EB' },
+      { bg: 'rgba(168,85,247,0.1)', fg: '#9333EA' },
+      { bg: 'rgba(249,115,22,0.1)', fg: '#EA580C' },
+      { bg: 'rgba(20,184,166,0.1)', fg: '#0D9488' },
+      { bg: 'rgba(236,72,153,0.1)', fg: '#DB2777' },
+    ];
 
-        {/* Header */}
-        <div className="flex items-center justify-between animate-fade-in relative z-10">
-          <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.03em' }}>Study Plan</h2>
-          <Button 
-            variant="ghost" 
-            onClick={() => {
-              if (careersLoading) {
-                toast({ description: "Loading career data...", duration: 1500 });
-                return;
-              }
-              const career = getCareerBySlug(selectedCareer);
-              if (career) {
-                const courseSlugs = getCareerCourseSlugs(career.id);
-                if (courseSlugs.length > 0) {
-                  navigate(`/career-board/${selectedCareer}/course/${courseSlugs[0]}`);
-                } else {
-                  navigate('/careers');
-                }
-              } else {
-                navigate('/careers');
-              }
-            }}
-            className="gap-1 rounded-full px-5 font-medium text-muted-foreground"
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #4CAF82, #43A375)'; e.currentTarget.style.color = '#fff'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = ''; }}
-            style={{ transition: 'all 200ms ease' }}
+    const CourseRow = ({ enrollment, index, isCompleted }: { enrollment: any; index: number; isCompleted: boolean }) => {
+      const course = enrollment.courses;
+      const progress = courseProgressMap[course?.slug] || { completed: 0, total: 0 };
+      const pct = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+      const col = iconColors[index % iconColors.length];
+      const IconComp = getIcon(course?.icon, BookOpen);
+
+      return (
+        <div
+          className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+          onClick={() => navigateToCourse(course?.slug, course?.id)}
+        >
+          {/* Course icon */}
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: col.bg }}
           >
-            My Study Plan <ChevronRight className="h-4 w-4" />
-          </Button>
+            <IconComp className="w-[18px] h-[18px]" style={{ color: col.fg }} strokeWidth={1.8} />
+          </div>
+
+          {/* Main info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[14px] font-semibold text-foreground tracking-tight truncate">
+                {course?.name}
+              </span>
+              {course?.level && (
+                <span className="flex-shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                  {course.level}
+                </span>
+              )}
+              {isCompleted && (
+                <span className="flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-emerald-700" style={{ background: 'rgba(34,197,94,0.1)' }}>
+                  <CheckCircle2 className="w-3 h-3" />
+                  Completed
+                </span>
+              )}
+            </div>
+            {/* Progress bar */}
+            <div className="flex items-center gap-2.5">
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${isCompleted ? 100 : pct}%`,
+                    background: isCompleted
+                      ? 'linear-gradient(90deg, #22C55E, #16A34A)'
+                      : 'linear-gradient(90deg, hsl(var(--primary)), hsl(142,76%,36%))',
+                    transition: 'width 600ms ease',
+                  }}
+                />
+              </div>
+              <span className="flex-shrink-0 text-[12px] font-semibold text-muted-foreground w-8 text-right">
+                {isCompleted ? '100%' : `${pct}%`}
+              </span>
+            </div>
+            <p className="text-[12px] text-muted-foreground mt-1">
+              {progress.completed} of {progress.total} lessons completed
+              {!isCompleted && course?.learning_hours > 0 ? ` · ${course.learning_hours}h total` : ''}
+            </p>
+          </div>
+
+          {/* CTA button */}
+          <button
+            className="flex-shrink-0 text-[13px] font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all duration-150"
+            style={isCompleted
+              ? { background: 'rgba(34,197,94,0.08)', color: '#16A34A' }
+              : { background: 'hsl(var(--primary))', color: '#fff', boxShadow: '0 2px 8px hsla(142,71%,45%,0.22)' }
+            }
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+          >
+            {isCompleted ? 'Review' : 'Continue →'}
+          </button>
+        </div>
+      );
+    };
+
+    const EmptyOngoing = () => (
+      <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-white text-center">
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(34,197,94,0.08)' }}>
+          <BookOpen className="w-5 h-5 text-primary" strokeWidth={1.8} />
+        </div>
+        <p className="text-[14px] font-semibold text-foreground mb-1">No courses in progress</p>
+        <p className="text-[13px] text-muted-foreground mb-5">Enroll in a course to start your learning journey.</p>
+        <button
+          onClick={() => navigate('/courses')}
+          className="text-[13px] font-semibold text-white px-5 py-2.5 rounded-xl border-0 cursor-pointer"
+          style={{ background: 'hsl(var(--primary))', boxShadow: '0 2px 8px hsla(142,71%,45%,0.25)' }}
+        >
+          Browse Courses
+        </button>
+      </div>
+    );
+
+    return (
+      <div className="space-y-8">
+
+        {/* ── Page header ── */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[22px] font-bold tracking-tight text-foreground">My Learnings</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">Track your progress across all enrolled courses</p>
+          </div>
+          {/* Stats pills */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-semibold text-foreground">
+              <Library className="w-3.5 h-3.5 text-muted-foreground" />
+              {enrolledCourses.length} Enrolled
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-orange-600" style={{ background: 'rgba(249,115,22,0.08)' }}>
+              <Flame className="w-3.5 h-3.5" />
+              {ongoingCourses.length} Ongoing
+            </div>
+            {completedCourses.length > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-emerald-700" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {completedCourses.length} Done
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Ongoing Section */}
-        <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.1s' }}>
-          <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
-            <div className="p-2 rounded-xl" style={{ background: 'rgba(249,115,22,0.06)' }}>
-              <Flame className="h-4.5 w-4.5 text-orange-500" />
+        {/* ── Ongoing ── */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5 pb-1 border-b border-border/60">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.08)' }}>
+              <Flame className="w-3.5 h-3.5 text-orange-500" />
             </div>
-            Ongoing
-          </h3>
+            <h2 className="text-[14px] font-semibold text-foreground">Ongoing</h2>
+            <span className="ml-auto text-[12px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {ongoingCourses.length}
+            </span>
+          </div>
           {ongoingCourses.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4">
-              {ongoingCourses.map((enrollment) => (
-                <OngoingCourseCard 
-                  key={enrollment.id}
-                  course={enrollment.courses}
-                  userId={userId}
-                  onClick={() => navigateToCourse(enrollment.courses?.slug, enrollment.courses?.id)}
-                />
+            <div className="space-y-2.5">
+              {ongoingCourses.map((enrollment, i) => (
+                <CourseRow key={enrollment.id} enrollment={enrollment} index={i} isCompleted={false} />
               ))}
             </div>
           ) : (
-            <div
-              className="text-center py-12 px-8"
-              style={{
-                background: 'rgba(255,255,255,0.88)',
-                backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(0,0,0,0.04)',
-                borderRadius: '28px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.03), 0 8px 24px rgba(0,0,0,0.02)',
-              }}
-            >
-              <div className="mx-auto mb-5 w-fit" style={{ background: 'rgba(34,197,94,0.06)', padding: '18px', borderRadius: '20px' }}>
-                <BookOpen className="h-8 w-8 text-primary" style={{ opacity: 0.7 }} />
-              </div>
-              <p className="text-muted-foreground mb-5 text-sm">No ongoing courses yet. Start your learning journey.</p>
-              <button
-                className="text-white text-sm font-semibold border-0 cursor-pointer"
-                style={{ 
-                  background: 'linear-gradient(180deg, hsl(var(--primary)), hsl(142, 76%, 36%))',
-                  borderRadius: '999px',
-                  padding: '10px 24px',
-                  boxShadow: '0 6px 20px hsla(142, 71%, 45%, 0.25)',
-                  transition: 'all 220ms ease',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px hsla(142, 71%, 45%, 0.35)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px hsla(142, 71%, 45%, 0.25)'; }}
-                onClick={() => navigate('/courses')}
-              >
-                Browse Courses
-              </button>
-            </div>
+            <EmptyOngoing />
           )}
         </div>
 
-        {/* Completed Section */}
+        {/* ── Completed ── */}
         {completedCourses.length > 0 && (
-          <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.15s' }}>
-            <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.06)' }}>
-                <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5 pb-1 border-b border-border/60">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               </div>
-              Completed
-            </h3>
-            <div className="grid grid-cols-1 gap-4">
-              {completedCourses.map((enrollment) => (
-                <CompletedCourseCard 
-                  key={enrollment.id}
-                  course={enrollment.courses}
-                  onClick={() => navigateToCourse(enrollment.courses?.slug, enrollment.courses?.id)}
-                />
+              <h2 className="text-[14px] font-semibold text-foreground">Completed</h2>
+              <span className="ml-auto text-[12px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {completedCourses.length}
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {completedCourses.map((enrollment, i) => (
+                <CourseRow key={enrollment.id} enrollment={enrollment} index={i} isCompleted={true} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Featured Section */}
-        {featuredCourses.length > 0 && (
-          <div className="space-y-5 animate-fade-in relative z-10" style={{ animationDelay: '0.2s' }}>
-            <h3 className="flex items-center gap-2.5" style={{ fontSize: '20px', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.06)' }}>
-                <Sparkles className="h-4.5 w-4.5 text-violet-500" />
+        {/* ── Practice Labs ── */}
+        {!labProgressLoading && sortedActiveLabs.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5 pb-1 border-b border-border/60">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                <FlaskConical className="w-3.5 h-3.5 text-primary" />
               </div>
-              Featured Courses
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {featuredCourses.map((course, index) => (
-                <FeaturedCourseCard 
-                  key={course.id}
-                  course={course}
-                  gradient={gradients[index % gradients.length]}
-                  onClick={() => navigateToCourse(course.slug, course.id)}
-                />
-              ))}
+              <h2 className="text-[14px] font-semibold text-foreground">Practice Labs</h2>
+              <span className="ml-auto text-[12px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {sortedActiveLabs.length}
+              </span>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {sortedActiveLabs.map((enrollment: any, idx: number) => {
+                const course = enrollment.courses;
+                if (!course) return null;
+                const lp = labProgressMap?.get(course.id);
+                const pct = lp?.percentage ?? 0;
+                const GRADIENTS_MINI = [
+                  "linear-gradient(148deg, #0a2a14 0%, #104828 42%, #186838 72%, #22a055 100%)",
+                  "linear-gradient(148deg, #0b1a3a 0%, #142e62 42%, #1e4490 72%, #2558b0 100%)",
+                  "linear-gradient(148deg, #16082a 0%, #2e1054 42%, #5228a0 72%, #7840d4 100%)",
+                  "linear-gradient(148deg, #2d1200 0%, #5c2800 42%, #a04810 72%, #d86820 100%)",
+                ];
+                const grad = GRADIENTS_MINI[idx % GRADIENTS_MINI.length];
+                return (
+                  <div
+                    key={enrollment.id}
+                    className="group flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+                    onClick={() => navigate(`/course/${course.slug}`)}
+                  >
+                    {/* Mini gradient icon */}
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: grad }}
+                    >
+                      <FlaskConical className="w-4 h-4 text-white/80" strokeWidth={1.8} />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[13.5px] font-semibold text-foreground tracking-tight truncate">
+                          {course.name}
+                        </span>
+                        {idx === 0 && (
+                          <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full text-primary" style={{ background: 'rgba(34,197,94,0.1)' }}>
+                            Continue
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${pct}%`,
+                              background: 'linear-gradient(90deg, #4CAF82, #22C55E)',
+                              transition: 'width 600ms ease',
+                            }}
+                          />
+                        </div>
+                        <span className="flex-shrink-0 text-[11.5px] font-semibold text-muted-foreground tabular-nums">
+                          {pct}%
+                        </span>
+                      </div>
+                      <p className="text-[11.5px] text-muted-foreground mt-1">
+                        {lp?.completed ?? 0} of {lp?.total ?? 0} lessons
+                      </p>
+                    </div>
+
+                    {/* Arrow */}
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary/60 group-hover:translate-x-0.5 transition-all duration-150 flex-shrink-0" />
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => handleTabChange('practice')}
+              className="group inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:text-primary/80 transition-colors duration-150 mt-1"
+            >
+              View all practice labs
+              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+            </button>
           </div>
         )}
+
       </div>
     );
   };
@@ -1991,317 +2121,163 @@ const Profile = () => {
     const totalBookmarks = bookmarks.length + problemBookmarks.length;
     const isLoading = bookmarksLoading || problemBookmarksLoading;
 
-    const BookmarkSectionHeader = ({ title, icon: Icon, count, iconColor = "text-primary" }: { title: string; icon: React.ComponentType<{ className?: string }>; count: number; iconColor?: string }) => (
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'hsl(var(--primary) / 0.08)' }}>
-          <Icon className={`h-4.5 w-4.5 ${iconColor}`} />
+    const diffMap: Record<string, { bg: string; fg: string }> = {
+      Easy:   { bg: 'rgba(34,197,94,0.1)',   fg: '#16A34A' },
+      Medium: { bg: 'rgba(234,179,8,0.1)',    fg: '#A16207' },
+      Hard:   { bg: 'rgba(239,68,68,0.1)',    fg: '#DC2626' },
+    };
+
+    const RowWrap = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
+      <div
+        className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+        onClick={onClick}
+      >
+        {children}
+      </div>
+    );
+
+    const SecHeader = ({ icon: Icon, label, count, iconBg, iconFg }: { icon: any; label: string; count: number; iconBg: string; iconFg: string }) => (
+      <div className="flex items-center gap-2.5 pb-1 border-b border-border/60">
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: iconBg }}>
+          <Icon className="w-3.5 h-3.5" style={{ color: iconFg }} strokeWidth={1.8} />
         </div>
-        <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
-        <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">{count}</span>
+        <h2 className="text-[14px] font-semibold text-foreground">{label}</h2>
+        <span className="ml-auto text-[12px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{count}</span>
+      </div>
+    );
+
+    const RemoveBtn = ({ onClick }: { onClick: (e: React.MouseEvent) => void }) => (
+      <button
+        onClick={onClick}
+        className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500"
+        title="Remove bookmark"
+      >
+        <BookmarkX className="w-4 h-4" />
+      </button>
+    );
+
+    if (isLoading) return (
+      <div className="flex flex-col items-center justify-center py-28 gap-4">
+        <UMLoader size={48} dark label={null} />
+        <p className="text-[12px] text-muted-foreground tracking-[0.06em] uppercase">Loading bookmarks</p>
       </div>
     );
 
     return (
       <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+
+        {/* ── Page header ── */}
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Bookmarks</h2>
-            <p className="text-sm text-muted-foreground mt-1">Your saved courses, lessons, and problems</p>
+            <h1 className="text-[22px] font-bold tracking-tight text-foreground">Bookmarks</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">Your saved courses, lessons, and problems</p>
           </div>
-          <div
-            className="px-4 py-2 rounded-full text-sm font-medium"
-            style={{
-              background: 'hsl(var(--primary) / 0.08)',
-              color: 'hsl(var(--primary))',
-            }}
-          >
-            {totalBookmarks} Saved
+          {/* Stats pills — always visible, mirrors My Learnings pattern */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-semibold text-foreground">
+              <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+              {courseBookmarks.length} Courses
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-blue-600" style={{ background: 'rgba(59,130,246,0.08)' }}>
+              <FileText className="w-3.5 h-3.5" />
+              {lessonBookmarks.length} Lessons
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-orange-600" style={{ background: 'rgba(249,115,22,0.08)' }}>
+              <Code className="w-3.5 h-3.5" />
+              {problemBookmarks.length} Problems
+            </div>
           </div>
         </div>
-        
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <UMLoader size={44} label="Unlocking memory…" />
+
+        {totalBookmarks === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-white text-center">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(34,197,94,0.08)' }}>
+              <Bookmark className="w-5 h-5 text-primary" strokeWidth={1.8} />
+            </div>
+            <p className="text-[14px] font-semibold text-foreground mb-1">No bookmarks yet</p>
+            <p className="text-[13px] text-muted-foreground mb-5">Save courses, lessons, and problems for quick access later.</p>
+            <button onClick={() => navigate('/courses')} className="text-[13px] font-semibold text-white px-5 py-2.5 rounded-xl border-0 cursor-pointer" style={{ background: 'hsl(var(--primary))' }}>
+              Browse Courses
+            </button>
           </div>
-        ) : totalBookmarks > 0 ? (
-          <div className="space-y-10">
-            {/* Course Bookmarks */}
+        ) : (
+          <div className="space-y-8">
+
+            {/* Courses */}
             {courseBookmarks.length > 0 && (
-              <div>
-                <BookmarkSectionHeader title="Courses" icon={BookOpen} count={courseBookmarks.length} />
-                <div className="grid gap-3">
+              <div className="space-y-3">
+                <SecHeader icon={BookOpen} label="Courses" count={courseBookmarks.length} iconBg="rgba(34,197,94,0.1)" iconFg="#16A34A" />
+                <div className="space-y-2.5">
                   {courseBookmarks.map((bookmark) => (
-                    <div
-                      key={bookmark.id}
-                      className="group cursor-pointer"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.88)',
-                        backdropFilter: 'blur(16px)',
-                        WebkitBackdropFilter: 'blur(16px)',
-                        border: '1px solid rgba(0, 0, 0, 0.05)',
-                        borderRadius: '18px',
-                        padding: '16px 20px',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
-                        transition: 'all 0.25s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-3px)';
-                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)';
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)';
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
-                      }}
-                      onClick={() => navigate(`/course/${bookmark.courses?.slug}`)}
-                    >
-                      <div className="flex items-center gap-4">
-                        {/* Course Thumbnail */}
-                        <div 
-                          className="w-[72px] h-[72px] rounded-2xl overflow-hidden flex-shrink-0"
-                          style={{
-                            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))',
-                            boxShadow: '0 2px 8px hsl(var(--primary) / 0.1)',
-                          }}
-                        >
-                          {bookmark.courses?.featured_image ? (
-                            <img 
-                              src={bookmark.courses.featured_image} 
-                              alt={bookmark.courses.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <BookOpen className="h-7 w-7 text-primary" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 py-1">
-                          <h4 className="text-base font-semibold text-foreground tracking-tight truncate">
-                            {bookmark.courses?.name}
-                          </h4>
-                          <div className="mt-2">
-                            <span
-                              className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full"
-                              style={{
-                                background: 'hsl(var(--secondary))',
-                                color: 'hsl(var(--secondary-foreground))',
-                              }}
-                            >
-                              {bookmark.courses?.level || 'Beginner'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Bookmark Remove Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleBookmark(bookmark.course_id || undefined);
-                          }}
-                          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
-                          style={{
-                            background: 'hsl(var(--primary) / 0.08)',
-                          }}
-                        >
-                          <Bookmark className="h-4.5 w-4.5 text-primary fill-primary" />
-                        </button>
+                    <RowWrap key={bookmark.id} onClick={() => navigate(`/course/${bookmark.courses?.slug}`)}>
+                      <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.08)' }}>
+                        {bookmark.courses?.featured_image
+                          ? <img src={bookmark.courses.featured_image} alt={bookmark.courses.name} className="w-full h-full object-cover" />
+                          : <BookOpen className="w-4.5 h-4.5 text-primary" strokeWidth={1.8} />}
                       </div>
-                    </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-semibold text-foreground truncate">{bookmark.courses?.name}</p>
+                        {bookmark.courses?.level && (
+                          <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full mt-1 inline-block">{bookmark.courses.level}</span>
+                        )}
+                      </div>
+                      <RemoveBtn onClick={(e) => { e.stopPropagation(); toggleBookmark(bookmark.course_id || undefined); }} />
+                    </RowWrap>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Lesson Bookmarks */}
+            {/* Lessons */}
             {lessonBookmarks.length > 0 && (
-              <div>
-                <BookmarkSectionHeader title="Lessons" icon={FileText} count={lessonBookmarks.length} />
-                <div className="grid gap-3">
+              <div className="space-y-3">
+                <SecHeader icon={FileText} label="Lessons" count={lessonBookmarks.length} iconBg="rgba(59,130,246,0.1)" iconFg="#2563EB" />
+                <div className="space-y-2.5">
                   {lessonBookmarks.map((bookmark) => (
-                    <div
-                      key={bookmark.id}
-                      className="group cursor-pointer"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.88)',
-                        backdropFilter: 'blur(16px)',
-                        WebkitBackdropFilter: 'blur(16px)',
-                        border: '1px solid rgba(0, 0, 0, 0.05)',
-                        borderRadius: '18px',
-                        padding: '16px 20px',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
-                        transition: 'all 0.25s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-3px)';
-                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)';
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)';
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
-                      }}
-                      onClick={() => navigate(`/course/${bookmark.posts?.courses?.slug}?lesson=${bookmark.posts?.slug}`)}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div 
-                          className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                          style={{
-                            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))',
-                          }}
-                        >
-                          <FileText className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0 py-1">
-                          <h4 className="text-base font-semibold text-foreground tracking-tight truncate">
-                            {bookmark.posts?.title}
-                          </h4>
-                          <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-                            {bookmark.posts?.excerpt 
-                              ? bookmark.posts.excerpt.replace(/<[^>]*>/g, '').slice(0, 100) 
-                              : 'No description'}
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleBookmark(undefined, bookmark.post_id || undefined);
-                          }}
-                          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
-                          style={{
-                            background: 'hsl(var(--primary) / 0.08)',
-                          }}
-                        >
-                          <Bookmark className="h-4.5 w-4.5 text-primary fill-primary" />
-                        </button>
+                    <RowWrap key={bookmark.id} onClick={() => navigate(`/course/${bookmark.posts?.courses?.slug}?lesson=${bookmark.posts?.slug}`)}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(59,130,246,0.08)' }}>
+                        <FileText className="w-4.5 h-4.5" style={{ color: '#2563EB' }} strokeWidth={1.8} />
                       </div>
-                    </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-semibold text-foreground truncate">{bookmark.posts?.title}</p>
+                        <p className="text-[12px] text-muted-foreground truncate mt-0.5">
+                          {bookmark.posts?.excerpt ? bookmark.posts.excerpt.replace(/<[^>]*>/g, '').slice(0, 80) : 'No description'}
+                        </p>
+                      </div>
+                      <RemoveBtn onClick={(e) => { e.stopPropagation(); toggleBookmark(undefined, bookmark.post_id || undefined); }} />
+                    </RowWrap>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Problem Bookmarks */}
+            {/* Problems */}
             {problemBookmarks.length > 0 && (
-              <div>
-                <BookmarkSectionHeader title="Saved Problems" icon={Code} count={problemBookmarks.length} iconColor="text-orange-500" />
-                <div className="grid gap-3">
+              <div className="space-y-3">
+                <SecHeader icon={Code} label="Problems" count={problemBookmarks.length} iconBg="rgba(249,115,22,0.1)" iconFg="#EA580C" />
+                <div className="space-y-2.5">
                   {problemBookmarks.map((bookmark) => {
                     const problem = bookmark.problem;
-                    const difficultyStyles: Record<string, { bg: string; text: string }> = {
-                      'Easy': { bg: 'hsl(142 70% 45% / 0.1)', text: 'hsl(142 70% 35%)' },
-                      'Medium': { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 40%)' },
-                      'Hard': { bg: 'hsl(0 84% 60% / 0.1)', text: 'hsl(0 84% 45%)' },
-                    };
-                    const dStyle = difficultyStyles[problem?.difficulty || 'Easy'] || difficultyStyles['Easy'];
-                    
+                    const dStyle = diffMap[problem?.difficulty || 'Easy'] || diffMap['Easy'];
                     return (
-                      <div
-                        key={bookmark.id}
-                        className="group cursor-pointer"
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.88)',
-                          backdropFilter: 'blur(16px)',
-                          WebkitBackdropFilter: 'blur(16px)',
-                          border: '1px solid rgba(0, 0, 0, 0.05)',
-                          borderRadius: '18px',
-                          padding: '16px 20px',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
-                          transition: 'all 0.25s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-3px)';
-                          e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)';
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)';
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
-                        }}
-                        onClick={() => problem?.skill_id && navigate(`/practice/${problem.skill_id}/problem/${problem.slug}`)}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div 
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                            style={{
-                              background: 'linear-gradient(135deg, hsl(30 90% 55% / 0.12), hsl(30 90% 55% / 0.04))',
-                            }}
-                          >
-                            <Code className="h-6 w-6 text-orange-500" />
-                          </div>
-                          <div className="flex-1 min-w-0 py-1">
-                            <h4 className="text-base font-semibold text-foreground tracking-tight truncate">
-                              {problem?.title || 'Unknown Problem'}
-                            </h4>
-                            <div className="mt-2">
-                              <span
-                                className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full"
-                                style={{
-                                  background: dStyle.bg,
-                                  color: dStyle.text,
-                                }}
-                              >
-                                {problem?.difficulty || 'Unknown'}
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleProblemBookmark(bookmark.problem_id);
-                            }}
-                            className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
-                            style={{
-                              background: 'hsl(var(--primary) / 0.08)',
-                            }}
-                          >
-                            <Bookmark className="h-4.5 w-4.5 text-primary fill-primary" />
-                          </button>
+                      <RowWrap key={bookmark.id} onClick={() => problem?.skill_id && navigate(`/practice/${problem.skill_id}/problem/${problem.slug}`)}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(249,115,22,0.08)' }}>
+                          <Code className="w-4.5 h-4.5 text-orange-500" strokeWidth={1.8} />
                         </div>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-semibold text-foreground truncate">{problem?.title || 'Unknown Problem'}</p>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: dStyle.bg, color: dStyle.fg }}>
+                            {problem?.difficulty || 'Unknown'}
+                          </span>
+                        </div>
+                        <RemoveBtn onClick={(e) => { e.stopPropagation(); toggleProblemBookmark(bookmark.problem_id); }} />
+                      </RowWrap>
                     );
                   })}
                 </div>
               </div>
             )}
-          </div>
-        ) : (
-          <div
-            className="text-center py-16 px-8"
-            style={{
-              background: 'rgba(255, 255, 255, 0.88)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(0, 0, 0, 0.05)',
-              borderRadius: '24px',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
-            }}
-          >
-            <div 
-              className="mx-auto mb-5 w-fit p-4 rounded-2xl"
-              style={{ background: 'hsl(var(--primary) / 0.08)' }}
-            >
-              <Bookmark className="h-10 w-10 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">No bookmarks yet</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-              Save courses, lessons, and problems for quick access later.
-            </p>
-            <Button 
-              onClick={() => navigate('/courses')}
-              className="text-primary-foreground border-0 rounded-full px-6"
-              style={{ 
-                background: 'linear-gradient(180deg, hsl(var(--primary)), hsl(142 60% 35%))',
-                boxShadow: '0 8px 20px hsl(var(--primary) / 0.25)',
-              }}
-            >
-              Browse Courses
-            </Button>
+
           </div>
         )}
       </div>
@@ -2408,163 +2384,137 @@ const Profile = () => {
       return reply.profiles?.full_name || 'Unknown User';
     };
 
-    if (commentsLoading) {
-      return (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold">My Discussions</h2>
-          <Card>
-            <CardContent className="py-12 text-center">
-              <div className="animate-pulse space-y-4">
-                <div className="h-4 bg-muted rounded w-1/3 mx-auto" />
-                <div className="h-4 bg-muted rounded w-1/2 mx-auto" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
+    if (commentsLoading) return (
+      <div className="flex flex-col items-center justify-center py-28 gap-4">
+        <UMLoader size={48} dark label={null} />
+        <p className="text-[12px] text-muted-foreground tracking-[0.06em] uppercase">Loading discussions</p>
+      </div>
+    );
 
     return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold">My Discussions</h2>
-        
+      <div className="space-y-8">
+
+        {/* ── Page header ── */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[22px] font-bold tracking-tight text-foreground">Discussions</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">Comments you've made across lessons</p>
+          </div>
+          {userComments.length > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold flex-shrink-0" style={{ background: 'rgba(99,102,241,0.08)', color: '#4F46E5' }}>
+              <MessageSquare className="w-3.5 h-3.5" />
+              {userComments.length} Comments
+            </div>
+          )}
+        </div>
+
         {userComments.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <MessageSquare className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No discussions yet</h3>
-              <p className="text-muted-foreground">Join the conversation by commenting on lessons.</p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-white text-center">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(99,102,241,0.08)' }}>
+              <MessageSquare className="w-5 h-5" style={{ color: '#4F46E5' }} strokeWidth={1.8} />
+            </div>
+            <p className="text-[14px] font-semibold text-foreground mb-1">No discussions yet</p>
+            <p className="text-[13px] text-muted-foreground">Join the conversation by commenting on lessons.</p>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {userComments.map((comment) => {
               const post = comment.posts as any;
               const course = post?.courses;
               const commentText = extractTextFromContent(comment.content);
               const replies = commentReplies[comment.id] || [];
               const isExpanded = expandedComment === comment.id;
-              
+
               return (
-                <Card key={comment.id}>
-                  <CardContent className="p-4">
-                    {/* Main comment header */}
-                    <div 
-                      className="flex items-start gap-4 cursor-pointer"
-                      onClick={() => setExpandedComment(isExpanded ? null : comment.id)}
-                    >
-                      <div className="shrink-0">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            <MessageSquare className="h-5 w-5" />
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-sm font-medium text-primary">
-                            {course?.name || 'Unknown Course'}
-                          </span>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(comment.created_at)}
-                          </span>
-                          {replies.length > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2 truncate">
-                          {post?.title || 'Unknown Lesson'}
-                        </p>
-                        <p className="text-foreground">
-                          {commentText}
-                        </p>
-                      </div>
-                      <ChevronRight className={`h-5 w-5 text-muted-foreground shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                <div key={comment.id} className="rounded-2xl bg-white border border-border/60 overflow-hidden transition-all duration-200">
+                  {/* Comment row */}
+                  <div
+                    className="flex items-start gap-4 px-5 py-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                    onClick={() => setExpandedComment(isExpanded ? null : comment.id)}
+                  >
+                    {/* Icon */}
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(99,102,241,0.08)' }}>
+                      <MessageSquare className="w-4 h-4" style={{ color: '#4F46E5' }} strokeWidth={1.8} />
                     </div>
-                    
-                    {/* Expanded section with replies and reply form */}
-                    {isExpanded && (
-                      <div className="mt-4 ml-14 space-y-4">
-                        {/* Replies */}
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[12px] font-semibold text-primary">{course?.name || 'Unknown Course'}</span>
+                        <span className="text-muted-foreground text-[12px]">·</span>
+                        <span className="text-[12px] text-muted-foreground">{post?.title || 'Unknown Lesson'}</span>
+                        <span className="text-muted-foreground text-[12px]">·</span>
+                        <span className="text-[12px] text-muted-foreground">{formatDate(comment.created_at)}</span>
                         {replies.length > 0 && (
-                          <div className="space-y-3 border-l-2 border-muted pl-4">
-                            {replies.map((reply) => (
-                              <div key={reply.id} className="flex items-start gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={reply.profiles?.avatar_url || undefined} />
-                                  <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                                    {getDisplayName(reply).charAt(0).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-medium">
-                                      {getDisplayName(reply)}
-                                    </span>
-                                    {reply.user_id === comment.user_id && (
-                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/30">
-                                        Author
-                                      </Badge>
-                                    )}
-                                    <span className="text-xs text-muted-foreground">
-                                      {formatDate(reply.created_at)}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-foreground">
-                                    {extractTextFromContent(reply.content)}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.08)', color: '#4F46E5' }}>
+                            {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+                          </span>
                         )}
-                        
-                        {/* Reply form */}
-                        <div className="flex gap-3 items-start pt-2 border-t border-muted">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={avatarUrl || undefined} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                              {fullName?.charAt(0)?.toUpperCase() || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 space-y-2">
-                            <LightEditor
-                              value={replyContent}
-                              onChange={setReplyContent}
-                              placeholder="Write a reply..."
-                              minHeight="60px"
-                            />
-                            <div className="flex justify-between items-center">
-                              <Button 
-                                variant="link" 
-                                size="sm" 
-                                className="text-xs p-0 h-auto"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (course?.slug && post?.slug) {
-                                    navigate(`/courses/${course.slug}/${post.slug}`);
-                                  }
-                                }}
-                              >
-                                View in lesson →
-                              </Button>
-                              <Button 
-                                size="sm"
-                                disabled={!replyContent || submittingReply}
-                                onClick={() => handleSubmitReply(comment.id, comment.post_id)}
-                              >
-                                {submittingReply ? "Posting..." : "Reply"}
-                              </Button>
+                      </div>
+                      <p className="text-[13px] text-foreground line-clamp-2">{commentText}</p>
+                    </div>
+
+                    <ChevronRight className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                  </div>
+
+                  {/* Expanded: replies + reply form */}
+                  {isExpanded && (
+                    <div className="border-t border-border/60 px-5 py-4 space-y-4 bg-muted/20">
+                      {/* Replies thread */}
+                      {replies.length > 0 && (
+                        <div className="space-y-3 pl-4 border-l-2 border-border">
+                          {replies.map((reply) => (
+                            <div key={reply.id} className="flex items-start gap-3">
+                              <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden bg-muted flex items-center justify-center">
+                                {reply.profiles?.avatar_url
+                                  ? <img src={reply.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                                  : <span className="text-[11px] font-bold text-muted-foreground">{getDisplayName(reply).charAt(0).toUpperCase()}</span>}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="text-[12px] font-semibold text-foreground">{getDisplayName(reply)}</span>
+                                  {reply.user_id === comment.user_id && (
+                                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', color: '#16A34A' }}>Author</span>
+                                  )}
+                                  <span className="text-[11px] text-muted-foreground">{formatDate(reply.created_at)}</span>
+                                </div>
+                                <p className="text-[13px] text-foreground">{extractTextFromContent(reply.content)}</p>
+                              </div>
                             </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Reply composer */}
+                      <div className="flex gap-3 items-start pt-2">
+                        <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}>
+                          {avatarUrl
+                            ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                            : <span className="text-[11px] font-bold text-white">{fullName?.charAt(0)?.toUpperCase() || 'U'}</span>}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <LightEditor value={replyContent} onChange={setReplyContent} placeholder="Write a reply…" minHeight="56px" />
+                          <div className="flex items-center justify-between">
+                            <button
+                              className="text-[12px] font-medium text-primary hover:underline bg-transparent border-0 cursor-pointer p-0"
+                              onClick={(e) => { e.stopPropagation(); if (course?.slug && post?.slug) navigate(`/courses/${course.slug}/${post.slug}`); }}
+                            >
+                              View in lesson →
+                            </button>
+                            <button
+                              disabled={!replyContent || submittingReply}
+                              onClick={() => handleSubmitReply(comment.id, comment.post_id)}
+                              className="text-[13px] font-semibold text-white px-4 py-1.5 rounded-xl border-0 cursor-pointer disabled:opacity-50"
+                              style={{ background: 'hsl(var(--primary))' }}
+                            >
+                              {submittingReply ? 'Posting…' : 'Reply'}
+                            </button>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -2573,387 +2523,183 @@ const Profile = () => {
     );
   };
 
-  const renderAchievements = () => {
-    const readinessPercentage = careerRelatedSlugs.length > 0 
-      ? Math.round((completedInCareer / careerRelatedSlugs.length) * 100) 
-      : 0;
-
-    const totalCompletedLessons = Object.values(courseProgressMap).reduce((sum, p) => sum + (p.completed || 0), 0);
-    const hasCompletedFirstLesson = totalCompletedLessons > 0;
-
-    return (
-      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {/* Back Button since Sidebar is hidden */}
-        <div className="flex mb-[-1rem]">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => handleTabChange('dashboard')}
-            className="text-muted-foreground hover:text-foreground gap-1.5 -ml-2 rounded-full"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </div>
-
-        {/* Elite Hero Section */}
-        <div className="relative overflow-hidden rounded-[28px] border border-border/40 bg-background/50 backdrop-blur-xl shadow-lg shadow-black/5">
-          {/* Subtle gradient mesh background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-background to-purple-500/5 z-0" />
-          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
-          <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/10 blur-[80px] pointer-events-none" />
-          
-          <div className="relative z-10 p-8 sm:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12 pl-8 md:pl-16">
-            {/* Trophy Icon Container */}
-            <div className="relative group shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full blur-2xl opacity-40 group-hover:opacity-70 transition-opacity duration-700" />
-              <div 
-                className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-[3px] shadow-2xl shadow-orange-500/20 transform transition-all duration-700 hover:scale-105 hover:-rotate-12 cursor-default"
-                style={{ background: 'linear-gradient(135deg, #FBBF24, #F97316)' }}
-              >
-                <div className="w-full h-full rounded-full bg-background/90 backdrop-blur-md flex items-center justify-center">
-                  <Trophy className="h-14 w-14 sm:h-16 sm:w-16 text-transparent bg-clip-text bg-gradient-to-br from-amber-400 to-orange-600 drop-shadow-sm" style={{ fill: 'url(#trophy-gradient)', filter: 'drop-shadow(0 4px 6px rgba(249, 115, 22, 0.4))' }} />
-                  {/* Define SVG gradient for the trophy fill */}
-                  <svg width="0" height="0" className="absolute">
-                    <linearGradient id="trophy-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop stopColor="#FBBF24" offset="0%" />
-                      <stop stopColor="#F97316" offset="100%" />
-                    </linearGradient>
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            {/* Copy & Status */}
-            <div className="text-center md:text-left flex-1">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground mb-4">
-                Your Trophy Room
-              </h2>
-              <p className="text-muted-foreground text-base sm:text-lg max-w-2xl leading-relaxed mb-6">
-                Every step forward is a victory. Track your learning milestones and earn exclusive badges as you master new skills.
-              </p>
-              
-              {/* Optional secondary stat chips */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-primary">
-                  <Flame className="h-4 w-4" />
-                  {completedInCareer} Courses Finished
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                  <Zap className="h-4 w-4" />
-                  {readinessPercentage}% Readiness
-                </div>
-              </div>
-            </div>
+  const renderSettings = () => {
+    const SettingSection = ({ icon: Icon, title, subtitle, iconBg, iconFg, children }: { icon: any; title: string; subtitle: string; iconBg: string; iconFg: string; children: React.ReactNode }) => (
+      <div className="rounded-2xl bg-white border border-border/60 overflow-hidden">
+        {/* Section header */}
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border/60">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+            <Icon className="w-4 h-4" style={{ color: iconFg }} strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold text-foreground">{title}</p>
+            <p className="text-[12px] text-muted-foreground">{subtitle}</p>
           </div>
         </div>
-
-        {/* Skill Milestones - Full View */}
-        <div className="relative z-20">
-          <SkillMilestones 
-            completedCourses={completedInCareer}
-            readinessPercentage={readinessPercentage}
-            compact={false}
-          />
-        </div>
-
-        {/* Additional Achievements (Learning Badges) */}
-        <div className="space-y-6 pt-4">
-          <div className="flex items-center gap-3 px-2">
-            <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 shadow-inner">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold tracking-tight text-foreground">Special Badges</h3>
-              <p className="text-sm text-muted-foreground mt-0.5">Extra accolades earned along your journey</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { 
-                name: 'First Lesson', 
-                desc: 'Complete your first lesson', 
-                locked: !hasCompletedFirstLesson, 
-                icon: BookOpen,
-                color: 'from-blue-400 to-indigo-500',
-                shadow: 'shadow-blue-500/30'
-              },
-              { 
-                name: 'Enrolled', 
-                desc: 'Enroll in your first course', 
-                locked: enrolledCourses.length === 0, 
-                icon: Target,
-                color: 'from-emerald-400 to-teal-500',
-                shadow: 'shadow-emerald-500/30'
-              },
-              { 
-                name: 'Bookworm', 
-                desc: 'Complete 5 courses', 
-                locked: completedCourseSlugs.length < 5, 
-                icon: BookCopy, // Using BookOpen fallback below as BookCopy isn't imported
-                color: 'from-purple-400 to-fuchsia-500',
-                shadow: 'shadow-purple-500/30'
-              },
-              { 
-                name: 'Discussion Star', 
-                desc: 'Leave 10 comments', 
-                locked: true, 
-                icon: MessageSquare,
-                color: 'from-pink-400 to-rose-500',
-                shadow: 'shadow-pink-500/30'
-              },
-            ].map((achievement, index) => {
-              const Icon = achievement.icon || Award;
-              
-              // Base stlye logic based on lock state
-              const isLocked = achievement.locked;
-              
-              return (
-                <div 
-                  key={index} 
-                  className={`relative group overflow-hidden rounded-2xl border transition-all duration-500 flex flex-col items-center text-center p-6 ${
-                    isLocked 
-                      ? 'bg-muted/20 border-border/40 hover:bg-muted/30 hover:border-border/60' 
-                      : 'bg-background hover:bg-muted/10 border-border shadow-sm hover:shadow-md hover:-translate-y-1'
-                  }`}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  {/* Subtle hover background effect for unlocked */}
-                  {!isLocked && (
-                    <div className={`absolute inset-0 bg-gradient-to-br ${achievement.color} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
-                  )}
-                  
-                  {/* Lock Indicator overlay */}
-                  {isLocked && (
-                    <div className="absolute top-4 right-4">
-                      <Lock className="h-4 w-4 text-muted-foreground/50" strokeWidth={2} />
-                    </div>
-                  )}
-
-                  {/* Icon Container */}
-                  <div className="relative mb-4">
-                    {!isLocked && (
-                      <div className={`absolute inset-0 bg-gradient-to-br ${achievement.color} rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-500`} />
-                    )}
-                    <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${
-                      isLocked 
-                        ? 'bg-muted/50 border-transparent filter grayscale opacity-60' 
-                        : `bg-gradient-to-br ${achievement.color} border-transparent shadow-lg ${achievement.shadow} group-hover:scale-110`
-                    }`}>
-                      <Icon className={`h-7 w-7 ${isLocked ? 'text-muted-foreground' : 'text-white drop-shadow-md'}`} strokeWidth={isLocked ? 1.5 : 2} />
-                    </div>
-                  </div>
-                  
-                  <h4 className={`font-semibold text-base mb-1.5 transition-colors ${
-                    isLocked ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary'
-                  }`}>
-                    {achievement.name}
-                  </h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed balance-text">
-                    {achievement.desc}
-                  </p>
-                  
-                  {/* Status Badge */}
-                  <div className="mt-auto pt-5">
-                    {isLocked ? (
-                      <div className="h-1.5 w-16 rounded-full border border-border bg-muted/30 overflow-hidden">
-                        <div className="h-full bg-muted-foreground/20 w-1/4" />
-                      </div>
-                    ) : (
-                      <Badge variant="secondary" className={`bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors`}>
-                        Unlocked
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <div className="px-6 py-5">{children}</div>
       </div>
     );
-  };
 
+    const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[12px] font-semibold text-foreground uppercase tracking-wide">{label}</label>
+        {children}
+      </div>
+    );
 
-  const renderSettings = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Settings</h2>
+    return (
+      <div className="space-y-8">
 
-      {/* Profile Information */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            <CardTitle>Profile Information</CardTitle>
-          </div>
-          <CardDescription>Update your account details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div className="flex items-center gap-4 mb-6">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={avatarUrl} alt={fullName} />
-                <AvatarFallback className="text-2xl">
-                  {fullName?.charAt(0)?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
+        {/* ── Page header ── */}
+        <div>
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Settings</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">Manage your profile, security, and account preferences</p>
+        </div>
+
+        {/* ── Profile Information ── */}
+        <SettingSection icon={User} title="Profile Information" subtitle="Update your display name and avatar" iconBg="rgba(34,197,94,0.1)" iconFg="#16A34A">
+          <form onSubmit={handleUpdateProfile} className="space-y-5">
+            {/* Avatar preview */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}>
+                {avatarUrl
+                  ? <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+                  : <span className="text-xl font-bold text-white">{fullName?.charAt(0)?.toUpperCase() || 'U'}</span>}
+              </div>
               <div>
-                <h3 className="font-medium">{fullName || 'User'}</h3>
-                <p className="text-sm text-muted-foreground">{email}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                disabled
-                className="bg-muted"
-              />
-              <div className="flex items-center gap-2 mt-2">
-                {emailVerified === null ? (
-                  <span className="text-xs text-muted-foreground">Checking verification status...</span>
-                ) : emailVerified ? (
-                  <div className="flex items-center gap-1.5 text-xs text-primary">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>Email verified</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-1.5 text-xs text-accent">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>Email not verified</span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResendVerification}
-                      disabled={resendingVerification}
-                      className="h-7 text-xs"
-                    >
-                      <Mail className="h-3 w-3 mr-1" />
-                      {resendingVerification ? "Sending..." : "Resend verification"}
-                    </Button>
-                  </div>
-                )}
+                <p className="text-[14px] font-semibold text-foreground">{fullName || 'User'}</p>
+                <p className="text-[12px] text-muted-foreground">{email}</p>
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="fullName">Full Name</Label>
+            <FieldRow label="Full Name">
               <Input
-                id="fullName"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
                 required
+                className="h-10 text-[13px] rounded-xl border-border/70"
               />
-            </div>
+            </FieldRow>
 
-            <div>
-              <Label htmlFor="avatarUrl">Avatar URL</Label>
+            <FieldRow label="Avatar URL">
               <Input
-                id="avatarUrl"
                 type="url"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
                 placeholder="https://example.com/avatar.jpg"
+                className="h-10 text-[13px] rounded-xl border-border/70"
               />
+            </FieldRow>
+
+            <FieldRow label="Email">
+              <div className="flex items-center gap-3">
+                <Input
+                  type="email"
+                  value={email}
+                  disabled
+                  className="h-10 text-[13px] rounded-xl border-border/70 bg-muted flex-1"
+                />
+                {emailVerified === null ? null : emailVerified ? (
+                  <span className="flex items-center gap-1 text-[12px] font-semibold flex-shrink-0" style={{ color: '#16A34A' }}>
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                    className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors flex-shrink-0 disabled:opacity-50 bg-transparent cursor-pointer"
+                  >
+                    <Mail className="w-3 h-3 inline mr-1" />
+                    {resendingVerification ? 'Sending…' : 'Verify email'}
+                  </button>
+                )}
+              </div>
+            </FieldRow>
+
+            <div className="pt-1">
+              <button
+                type="submit"
+                disabled={updating}
+                className="text-[13px] font-semibold text-white px-5 py-2.5 rounded-xl border-0 cursor-pointer disabled:opacity-60"
+                style={{ background: 'hsl(var(--primary))' }}
+              >
+                {updating ? 'Saving…' : 'Save Changes'}
+              </button>
             </div>
-
-            <Button type="submit" disabled={updating}>
-              {updating ? "Updating..." : "Update Profile"}
-            </Button>
           </form>
-        </CardContent>
-      </Card>
+        </SettingSection>
 
-      {/* Password Change */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            <CardTitle>Security</CardTitle>
-          </div>
-          <CardDescription>Update your password</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePasswordChange} className="space-y-4">
-            <div>
-              <Label htmlFor="newPassword">New Password</Label>
+        {/* ── Security ── */}
+        <SettingSection icon={Shield} title="Security" subtitle="Update your password" iconBg="rgba(99,102,241,0.1)" iconFg="#4F46E5">
+          <form onSubmit={handlePasswordChange} className="space-y-5">
+            <FieldRow label="New Password">
               <Input
-                id="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
                 required
+                className="h-10 text-[13px] rounded-xl border-border/70"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+            </FieldRow>
+            <FieldRow label="Confirm Password">
               <Input
-                id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
                 required
+                className="h-10 text-[13px] rounded-xl border-border/70"
               />
+            </FieldRow>
+            <div className="pt-1">
+              <button
+                type="submit"
+                disabled={updating}
+                className="text-[13px] font-semibold text-white px-5 py-2.5 rounded-xl border-0 cursor-pointer disabled:opacity-60"
+                style={{ background: '#4F46E5' }}
+              >
+                {updating ? 'Updating…' : 'Change Password'}
+              </button>
             </div>
-
-            <Button type="submit" disabled={updating}>
-              {updating ? "Updating..." : "Change Password"}
-            </Button>
           </form>
-        </CardContent>
-      </Card>
+        </SettingSection>
 
-      {/* Notification Preferences - Only show for admins/moderators */}
-      {(isAdmin || isModerator) && (
-        <NotificationPreferences 
-          userId={userId} 
-          isAdmin={isAdmin} 
-          isModerator={isModerator} 
-        />
-      )}
-
-      {/* Logout */}
-      <Card className="border-destructive/20">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+        {/* ── Danger zone ── */}
+        <div className="rounded-2xl bg-white border border-red-100 overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-5">
             <div>
-              <h3 className="font-medium">Sign Out</h3>
-              <p className="text-sm text-muted-foreground">Sign out of your account</p>
+              <p className="text-[14px] font-semibold text-foreground">Sign Out</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Sign out of your account on this device</p>
             </div>
-            <Button variant="destructive" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-[13px] font-semibold text-red-600 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
               Sign Out
-            </Button>
+            </button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+        </div>
+
+      </div>
+    );
+  };
 
   const renderPracticeLab = () => (
     <div className="px-8 md:px-16 lg:px-32 xl:px-40 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex mb-4">
-        <Button 
-          variant="ghost" 
-          size="sm"
+      {/* Premium back nav */}
+      <div className="flex mb-5">
+        <button
           onClick={() => handleTabChange('dashboard')}
-          className="text-muted-foreground hover:text-foreground gap-1.5 -ml-2 rounded-full"
+          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-muted-foreground hover:text-foreground transition-all duration-150 hover:bg-muted/50 border border-transparent hover:border-border/40 -ml-1"
         >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Button>
+          <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-150 group-hover:-translate-x-0.5" />
+          Dashboard
+        </button>
       </div>
       <PracticeLab enrolledCourses={enrolledCourses} userId={userId || undefined} />
     </div>
@@ -2966,130 +2712,99 @@ const Profile = () => {
       case 'practice': return renderPracticeLab();
       case 'bookmarks': return renderBookmarks();
       case 'discussions': return renderDiscussions();
-      case 'achievements': return renderAchievements();
       case 'settings': return renderSettings();
       default: return renderDashboard();
     }
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className={`flex flex-col lg:flex-row gap-8 -mx-4 px-4 py-6 rounded-3xl ${activeTab === 'dashboard' || activeTab === 'learnings' || activeTab === 'bookmarks' ? 'dashboard-bg' : 'bg-background'}`}>
-          {/* Sidebar - hidden for Practice Lab and Achievements */}
-          {activeTab !== 'practice' && activeTab !== 'achievements' && (
-          <aside className="lg:w-64 flex-shrink-0 animate-sidebar">
-            <Card className="sidebar-premium">
-              <CardContent className="p-5">
-                {/* Profile Summary */}
-                <div className="text-center pb-5 mb-5 border-b border-border/30">
-                  <div className="mx-auto w-fit avatar-premium">
-                    <Avatar className="h-20 w-20 ring-offset-2 ring-offset-background" style={{ boxShadow: '0 0 0 6px hsla(142,70%,45%,0.08)' }}>
-                      <AvatarImage src={avatarUrl} alt={fullName} />
-                      <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                        {fullName?.charAt(0)?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <h3 className="font-semibold text-lg truncate mt-3 text-foreground tracking-[-0.01em]">{fullName || 'User'}</h3>
-                  <p className="text-sm text-muted-foreground truncate mt-0.5">{email}</p>
-                </div>
-                
-                {/* Navigation */}
-                <nav className="space-y-0.5">
-                  {sidebarItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleTabChange(item.id)}
-                      style={activeTab === item.id ? { background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 20px rgba(34,197,94,0.25)' } : undefined}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] ${
-                        activeTab === item.id 
-                          ? 'text-white font-semibold' 
-                          : 'text-[#5F7266] font-medium hover:text-foreground'
-                      }`}
-                      onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
-                      onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? 'text-white' : 'text-[#5F7266]'}`} strokeWidth={1.5} />
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </nav>
+    <Layout showFooter={false}>
+      <div className="profile-page-outer">
 
-                {/* Explore Section */}
-                <div className="border-t border-border/30 mt-3 pt-3">
-                  <p className="px-4 py-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
-                    Explore
-                  </p>
-                  <nav className="space-y-0.5">
-                    {exploreItems.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => handleTabChange(item.id)}
-                        style={activeTab === item.id ? { background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 20px rgba(34,197,94,0.25)' } : undefined}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] ${
-                          activeTab === item.id 
-                            ? 'text-white font-semibold' 
-                            : 'text-[#5F7266] font-medium hover:text-foreground'
-                        }`}
-                        onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
-                        onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? 'text-white' : 'text-[#5F7266]'}`} strokeWidth={1.5} />
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
+        {/* ── Icon Sidebar — flat, no card, floats on page bg ── */}
+        {activeTab !== 'practice' && (
+          <aside className="profile-icon-sidebar-wrap animate-sidebar">
+            <div className="profile-icon-sidebar">
+              {/* Main nav icons */}
+              <nav className="profile-icon-nav">
+                {sidebarItems.map((item) => (
+                  <TooltipProvider key={item.id} delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => handleTabChange(item.id)}
+                          className={`profile-icon-btn${activeTab === item.id ? ' active' : ''}`}
+                        >
+                          <item.icon className="profile-icon-btn-icon" strokeWidth={activeTab === item.id ? 2 : 1.5} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="profile-icon-tooltip">
+                        <p>{item.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
 
-                  </nav>
-                </div>
+                {/* Separator */}
+                <div className="profile-icon-sep" />
 
-                {/* Account Section */}
-                <div className="border-t border-border/30 mt-3 pt-3">
-                  <p className="px-4 py-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
-                    Account
-                  </p>
-                  <nav className="space-y-0.5">
-                    {accountItems.map((item) => (
+                {/* Explore items */}
+                {exploreItems.map((item) => (
+                  <TooltipProvider key={item.id} delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => handleTabChange(item.id)}
+                          className={`profile-icon-btn${activeTab === item.id ? ' active' : ''}`}
+                        >
+                          <item.icon className="profile-icon-btn-icon" strokeWidth={activeTab === item.id ? 2 : 1.5} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="profile-icon-tooltip">
+                        <p>{item.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </nav>
+
+              {/* Bottom: avatar only — clicks to open settings */}
+              <div className="profile-icon-bottom">
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <button
-                        key={item.id}
-                        onClick={() => handleTabChange(item.id)}
-                        style={activeTab === item.id ? { background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 20px rgba(34,197,94,0.25)' } : undefined}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] ${
-                          activeTab === item.id 
-                            ? 'text-white font-semibold' 
-                            : 'text-[#5F7266] font-medium hover:text-foreground'
-                        }`}
-                        onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
-                        onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
+                        onClick={() => handleTabChange('settings')}
+                        className="profile-icon-avatar"
                       >
-                        <item.icon className={`h-[18px] w-[18px] ${activeTab === item.id ? 'text-white' : 'text-[#5F7266]'}`} strokeWidth={1.5} />
-                        <span>{item.label}</span>
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt={fullName} className="profile-icon-avatar-img" />
+                        ) : (
+                          <span className="profile-icon-avatar-initial">
+                            {fullName?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        )}
                       </button>
-                    ))}
-                    {(isAdmin || isModerator) && (
-                      <button
-                        onClick={() => navigate('/admin')}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] text-left text-[14px] text-[#5F7266] font-medium hover:text-foreground"
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <Shield className="h-[18px] w-[18px] text-[#5F7266]" strokeWidth={1.5} />
-                        <span>Admin Panel</span>
-                      </button>
-                    )}
-                  </nav>
-                </div>
-              </CardContent>
-            </Card>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="profile-icon-tooltip">
+                      <p>Settings</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
           </aside>
-          )}
+        )}
 
-          {/* Main Content */}
-          <main className={`flex-1 min-w-0 ${activeTab === 'practice' ? 'py-8' : ''}`}>
+        {/* ── Main content ── */}
+        <div className={`profile-content-wrap${activeTab === 'dashboard' ? ' profile-content-wrap--gray' : ''}`}>
+          <main className={`${activeTab === 'practice' ? 'py-4' : ''}`}>
             {renderContent()}
           </main>
         </div>
+
       </div>
+      <SlimFooter />
     </Layout>
   );
 };

@@ -19,7 +19,7 @@ const Layout = ({ children, showFooter = true }: LayoutProps) => {
   // Hide secondary course header for specific pages
   const isProfilePage = location.pathname === "/profile";
   const hideOnPages = ["/choose-plan", "/careers", "/plan", "/checkout"].includes(location.pathname);
-  const hideSecondaryHeader = hideOnPages || (isPro && isProfilePage);
+  const hideSecondaryHeader = hideOnPages || isProfilePage;
 
   const handleAnnouncementVisibility = useCallback((visible: boolean) => {
     setShowAnnouncement(visible);
@@ -37,7 +37,7 @@ const Layout = ({ children, showFooter = true }: LayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       {/* Sticky Announcement Bar */}
       <div className="fixed top-0 left-0 right-0 z-[60]">
         <AnnouncementBar onVisibilityChange={handleAnnouncementVisibility} />

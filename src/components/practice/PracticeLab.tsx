@@ -1,453 +1,489 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  Zap,
-  Clock,
-  Brain,
-  Code2,
-  Database,
-  Bug,
-  BarChart3,
-  Lightbulb,
-  ArrowRight,
-  Target,
-  Calendar,
-  Rocket,
-  BookOpen,
-  Cpu,
-  Globe,
-  Terminal,
-  ChevronRight,
+  Play,
+  Zap, Rocket, BookOpen,
+  Code2, Brain, Database, Bug, BarChart3,
+  Lightbulb, Target, Cpu, Globe, Terminal,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { usePublishedPracticeSkills } from "@/hooks/usePracticeSkills";
 import { useSkillsProgress } from "@/hooks/useSkillsProgress";
 import { useActiveLabsProgress } from "@/hooks/useActiveLabsProgress";
 import { useMemo } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
+
+/* ─── Types ─────────────────────────────────────────────────────────── */
 
 interface PracticeLabProps {
   enrolledCourses: any[];
   userId?: string;
 }
 
-// Icon mapping for dynamic icons
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Brain,
-  Database,
-  BarChart3,
-  Lightbulb,
-  Code2,
-  Bug,
-  Target,
-  Cpu,
-  Globe,
-  Terminal,
+/* ─── Icon map ───────────────────────────────────────────────────────── */
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Brain, Database, BarChart3, Lightbulb, Code2,
+  Bug, Target, Cpu, Globe, Terminal,
 };
+
+/* ─── Gradient palette (matches the reference image palette) ─────────── */
+
+const GRADIENTS = [
+  // Deep blue — like the System Design / DSA cards
+  "linear-gradient(148deg, #0b1a3a 0%, #142e62 42%, #1e4490 72%, #2558b0 100%)",
+  // Forest green
+  "linear-gradient(148deg, #0a2a14 0%, #104828 42%, #186838 72%, #22a055 100%)",
+  // Amber-orange
+  "linear-gradient(148deg, #2d1200 0%, #5c2800 42%, #a04810 72%, #d86820 100%)",
+  // Rich purple
+  "linear-gradient(148deg, #16082a 0%, #2e1054 42%, #5228a0 72%, #7840d4 100%)",
+  // Navy teal
+  "linear-gradient(148deg, #041e28 0%, #0a3248 42%, #105a70 72%, #1880a0 100%)",
+  // Crimson
+  "linear-gradient(148deg, #28060a 0%, #500e14 42%, #941a22 72%, #c82830 100%)",
+  // Slate indigo
+  "linear-gradient(148deg, #0e1228 0%, #1a2050 42%, #2a3480 72%, #3c4eb0 100%)",
+  // Dark teal-green
+  "linear-gradient(148deg, #042820 0%, #084838 42%, #10705a 72%, #18a080 100%)",
+];
+
+const gradientFor = (index: number) => GRADIENTS[index % GRADIENTS.length];
+
+/* ─── Main component ─────────────────────────────────────────────────── */
 
 export function PracticeLab({ enrolledCourses, userId }: PracticeLabProps) {
   const navigate = useNavigate();
+
+  /* Skills — only published (Live) skills are shown to users */
   const { data: skills, isLoading: skillsLoading } = usePublishedPracticeSkills();
-  
-  const skillIds = useMemo(() => (skills || []).map(s => s.id), [skills]);
+  const skillIds = useMemo(() => (skills ?? []).map((s) => s.id), [skills]);
   const { data: progressMap } = useSkillsProgress(userId, skillIds);
 
-  // Extract course IDs from enrollments for progress lookup
+  /* Active labs */
   const enrolledCourseIds = useMemo(
     () => enrolledCourses.map((e) => e.courses?.id).filter(Boolean) as string[],
-    [enrolledCourses]
+    [enrolledCourses],
   );
   const { data: labProgressMap, isLoading: labProgressLoading } =
     useActiveLabsProgress(userId, enrolledCourseIds);
 
-  // Filter: only show labs where 0% < progress < 100%
+  /* Labs where 0 < progress < 100 */
   const activeLabs = useMemo(() => {
     if (!labProgressMap) return [];
     return enrolledCourses.filter((enrollment) => {
       const courseId = enrollment.courses?.id;
       if (!courseId) return false;
-      const progress = labProgressMap.get(courseId);
-      if (!progress) return false;
-      return progress.percentage > 0 && progress.percentage < 100;
+      const p = labProgressMap.get(courseId);
+      return p && p.percentage > 0 && p.percentage < 100;
     });
   }, [enrolledCourses, labProgressMap]);
 
-  const handleSkillClick = (skillSlug: string) => {
-    navigate(`/practice/${skillSlug}`);
-  };
+  /* Active labs sorted by most recently practiced first */
+  const sortedActiveLabs = useMemo(() => {
+    if (!activeLabs.length) return [];
+    return [...activeLabs].sort((a, b) => {
+      const at = labProgressMap?.get(a.courses?.id)?.lastPracticedAt;
+      const bt = labProgressMap?.get(b.courses?.id)?.lastPracticedAt;
+      return (bt ? new Date(bt).getTime() : 0) - (at ? new Date(at).getTime() : 0);
+    });
+  }, [activeLabs, labProgressMap]);
 
-  // Empty state for new users
-  if (!userId) {
-    return <EmptyState />;
-  }
+  /* Guest / unauthenticated */
+  if (!userId) return <EmptyState />;
 
+  /* ── Render ──────────────────────────────────────────────────────── */
   return (
-    <div className="space-y-8 pt-4 pb-20">
-      {/* Hero Section */}
-      <section className="text-center py-6 px-4 rounded-2xl bg-gradient-to-br from-primary/5 via-background to-accent/5 border border-border/50">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Practice what matters — based on your learning
-          </h1>
-          <p className="text-lg text-muted-foreground mb-6">
-            Personalized exercises, coding challenges, and projects to strengthen memory
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button size="lg" className="px-8 gap-2 text-base">
-              <Zap className="h-5 w-5" />
-              Start Practicing
-            </Button>
-            <Button variant="ghost" size="lg" className="gap-2 text-muted-foreground">
-              Browse all labs
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </section>
+    <div className="space-y-8">
 
-      {/* Your Active Labs */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
-              <h2 className="text-xl font-semibold">Your Active Labs</h2>
-            </div>
-            <p className="text-sm text-muted-foreground mt-0.5 ml-7">
-              Labs you're actively practicing and improving
-            </p>
-          </div>
-          {activeLabs.length > 3 && (
-            <Button variant="ghost" size="sm" className="text-muted-foreground">
-              View all <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-          )}
-        </div>
-        
-        {labProgressLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i} className="overflow-hidden border-0 shadow-lg h-[160px]">
-                <div className="flex h-full">
-                  <div className="w-1/3 bg-muted animate-pulse" />
-                  <div className="w-2/3 bg-card p-4">
-                    <div className="h-3 w-20 bg-muted animate-pulse rounded mb-2" />
-                    <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : activeLabs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeLabs.slice(0, 6).map((enrollment) => {
+      {/* ── Hero ───────────────────────────────────────────────────── */}
+      <PracticeHero
+        skillCount={skills?.length ?? 0}
+        labCount={activeLabs.length}
+        loading={skillsLoading}
+      />
+
+      {/* ── Ongoing Labs ───────────────────────────────────────────── */}
+      {!labProgressLoading && sortedActiveLabs.length > 0 && (
+        <section>
+          <h2 className="text-[15px] font-bold tracking-tight text-foreground mb-3">
+            Ongoing
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {sortedActiveLabs.map((enrollment, idx) => {
               const course = enrollment.courses;
               if (!course) return null;
-              const labProgress = labProgressMap?.get(course.id);
-              const progress = labProgress?.percentage ?? 0;
-              const lastPracticedAt = labProgress?.lastPracticedAt;
-              const lastPracticed = lastPracticedAt
-                ? formatDistanceToNow(new Date(lastPracticedAt), { addSuffix: true })
-                : "Not yet";
-              
+              const lp = labProgressMap?.get(course.id);
               return (
-                <ActiveLabCard
+                <ExploreCard
                   key={enrollment.id}
-                  name={course.name}
-                  level={course.level}
-                  lessonCount={labProgress?.total || 0}
-                  completedLessons={labProgress?.completed || 0}
-                  progress={progress}
-                  lastPracticed={lastPracticed}
+                  category="Practice Lab"
+                  title={course.name}
+                  gradient={gradientFor(idx)}
+                  chapters={lp?.total}
+                  items={lp?.completed ?? 0}
+                  progress={lp?.percentage ?? 0}
+                  continueBadge={idx === 0}
                   onClick={() => navigate(`/course/${course.slug}`)}
                 />
               );
             })}
           </div>
-        ) : (
-          <Card className="bg-muted/30">
-            <CardContent className="text-center py-8">
-              <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">
-                {enrolledCourses.length === 0
-                  ? "Enroll in courses to unlock practice labs"
-                  : "Start a lesson to see your active labs here"}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* Practice by Skill */}
+      {/* ── Featured Skills ────────────────────────────────────────── */}
       <section>
-        <h2 className="text-xl font-bold mb-6">Practice Skills</h2>
+        <h2 className="text-[15px] font-bold tracking-tight text-foreground mb-3">Featured</h2>
+
         {skillsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="overflow-hidden border-0 shadow-lg h-[160px]">
-                <div className="flex h-full">
-                  <div className="w-1/3 bg-muted animate-pulse" />
-                  <div className="w-2/3 bg-card p-4">
-                    <div className="h-3 w-20 bg-muted animate-pulse rounded mb-2" />
-                    <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <SkeletonGrid />
         ) : skills && skills.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {skills.map((skill) => {
-              const Icon = iconMap[skill.icon] || Code2;
-              const skillProgress = progressMap?.get(skill.id);
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {skills.map((skill, idx) => {
+              const sp = progressMap?.get(skill.id);
               return (
-                <SkillCard
+                <ExploreCard
                   key={skill.id}
-                  name={skill.name}
-                  slug={skill.slug}
-                  icon={Icon}
-                  description={skill.description}
-                  progress={skillProgress?.percentage ?? 0}
-                  totalProblems={skillProgress?.totalProblems ?? 0}
-                  solvedProblems={skillProgress?.solvedProblems ?? 0}
-                  onClick={() => handleSkillClick(skill.slug)}
+                  category="Practice Skill"
+                  title={skill.name}
+                  gradient={gradientFor(idx + 1)}
+                  items={sp?.totalProblems ?? 0}
+                  progress={sp?.percentage ?? 0}
+                  solved={sp?.solvedProblems ?? 0}
+                  onClick={() => navigate(`/practice/${skill.slug}`)}
                 />
               );
             })}
           </div>
         ) : (
-          <Card className="bg-muted/30">
-            <CardContent className="text-center py-8">
-              <Code2 className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">
-                No practice skills available yet.
-              </p>
-            </CardContent>
-          </Card>
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            No practice skills available yet.
+          </p>
         )}
       </section>
     </div>
   );
 }
 
-// Card matching Library CourseCard design for Active Labs
-function ActiveLabCard({
-  name,
-  level,
-  lessonCount,
-  completedLessons,
-  progress,
-  lastPracticed,
-  onClick,
-}: {
-  name: string;
-  level?: string | null;
-  lessonCount: number;
-  completedLessons: number;
-  progress: number;
-  lastPracticed: string;
-  onClick: () => void;
-}) {
-  return (
-    <Card
-      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-lg h-[160px]"
-      onClick={onClick}
-    >
-      <div className="flex h-full">
-        {/* Left Section - Dark */}
-        <div className="w-1/3 p-4 flex flex-col justify-between" style={{ background: '#14532d' }}>
-          <div>
-            <span className="text-[10px] font-medium tracking-wider text-slate-400 uppercase">
-              Practice Lab
-            </span>
-            <h3 className="text-sm font-semibold text-white mt-1 leading-tight line-clamp-3">
-              {name}
-            </h3>
-          </div>
-          <div className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-xs mt-2">
-            <span>View all</span>
-            <ChevronRight className="h-3 w-3" />
-          </div>
-        </div>
+/* ─── ExploreCard ────────────────────────────────────────────────────── */
 
-        {/* Right Section - Light */}
-        <div className="w-2/3 bg-card p-4 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
-                {level || "Beginner"} • {completedLessons}/{lessonCount} Lessons
-              </span>
-              <span className="text-[10px] text-muted-foreground">{progress}%</span>
-            </div>
-            <div className="w-full h-1 bg-muted rounded-full overflow-hidden mb-2">
-              <div 
-                className="h-full rounded-full transition-all"
-                style={{ width: `${progress}%`, background: '#14532d' }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <Calendar className="h-3 w-3" />
-              Last practiced: {lastPracticed}
-            </p>
+interface ExploreCardProps {
+  category: string;
+  title: string;
+  gradient: string;
+  /** lesson / chapter count */
+  chapters?: number;
+  /** problems / items count */
+  items: number;
+  /** 0-100 */
+  progress: number;
+  /** solved count (skills only) */
+  solved?: number;
+  /** show "Continue" badge on this card */
+  continueBadge?: boolean;
+  onClick: () => void;
+}
+
+function ExploreCard({
+  category,
+  title,
+  gradient,
+  chapters,
+  items,
+  progress,
+  continueBadge,
+  onClick,
+}: ExploreCardProps) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => e.key === "Enter" && onClick()}
+      className={cn(
+        "rounded-xl overflow-hidden cursor-pointer",
+        "border border-border/40",
+        "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.05)]",
+        "hover:shadow-[0_8px_24px_rgba(0,0,0,0.10),0_24px_48px_rgba(0,0,0,0.08)]",
+        "hover:-translate-y-[4px] active:translate-y-0",
+        "transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+      )}
+    >
+      {/* ── Banner ─────────────────────────────────────────────────── */}
+      <div
+        className="relative overflow-hidden"
+        style={{ background: gradient, height: 150 }}
+      >
+        {/* Scrim */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent pointer-events-none" />
+
+        {/* Top-left radial light */}
+        <div
+          className="absolute -top-6 -left-6 w-32 h-32 rounded-full pointer-events-none opacity-35 group-hover:opacity-55 transition-opacity duration-300"
+          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)" }}
+        />
+
+        {/* Decorative circles */}
+        <span className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/[0.05] pointer-events-none" />
+        <span className="absolute right-4 top-10 w-16 h-16 rounded-full bg-white/[0.04] pointer-events-none" />
+
+        {/* Continue badge */}
+        {continueBadge && (
+          <div
+            className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full"
+            style={{
+              background: "rgba(34,165,93,0.90)",
+              backdropFilter: "blur(4px)",
+              border: "1px solid rgba(255,255,255,0.2)",
+            }}
+          >
+            <Play className="w-2.5 h-2.5 text-white fill-white translate-x-[0.5px]" />
+            <span className="text-[9px] font-bold text-white tracking-wide uppercase">Continue</span>
           </div>
-          
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span className="text-xs">
-                {Math.max(1, Math.round((lessonCount * 15) / 60))}h
-              </span>
-            </div>
-            <Button 
-              variant="default" 
-              size="sm"
-              className="text-white rounded-full px-4 h-7 text-xs hover:opacity-90"
-              style={{ background: '#14532d' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              Continue
-            </Button>
-          </div>
+        )}
+
+        {/* Content */}
+        <div className="relative z-10 p-3 h-full flex flex-col">
+          {/* Category label */}
+          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/50 leading-none mb-1.5">
+            {category}
+          </p>
+
+          {/* Title */}
+          <h3 className="text-[16px] font-bold text-white leading-[1.25] line-clamp-3 flex-1">
+            {title}
+          </h3>
         </div>
       </div>
-    </Card>
+
+      {/* ── Progress bar ───────────────────────────────────────────── */}
+      <div className="h-[3px] bg-border/30 w-full">
+        <div
+          className="h-full bg-[#22A55D] transition-all duration-500"
+          style={{ width: `${Math.max(progress, progress > 0 ? 4 : 0)}%` }}
+        />
+      </div>
+
+      {/* ── Progress bar ───────────────────────────────────────────── */}
+      <div className="w-full h-[3px] bg-muted/60">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${progress}%`,
+            background: "linear-gradient(90deg, #4CAF82, #22C55E)",
+          }}
+        />
+      </div>
+
+      {/* ── KPI strip ──────────────────────────────────────────────── */}
+      <div className="bg-background px-3 py-3 flex items-center gap-0">
+        {chapters !== undefined && (
+          <>
+            <StatCol value={chapters} label="Chapters" />
+            <StatDivider />
+          </>
+        )}
+        <StatCol value={items} label="Items" />
+        <StatDivider />
+        <StatCol value={`${progress}%`} label="Done" />
+      </div>
+    </div>
   );
 }
 
-// Card matching Library CourseCard design for Practice Skills
-function SkillCard({
-  name,
-  slug,
-  icon: Icon,
-  description,
-  progress,
-  totalProblems,
-  solvedProblems,
-  onClick,
+/* ─── Hero ───────────────────────────────────────────────────────────── */
+
+function PracticeHero({
+  skillCount,
+  labCount,
+  loading,
 }: {
-  name: string;
-  slug: string;
-  icon: React.ComponentType<{ className?: string }>;
-  description?: string | null;
-  progress: number;
-  totalProblems: number;
-  solvedProblems: number;
-  onClick: () => void;
+  skillCount: number;
+  labCount: number;
+  loading: boolean;
 }) {
   return (
-    <Card
-      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-lg"
-      onClick={onClick}
+    <div
+      className="rounded-2xl border border-border/40 overflow-hidden"
+      style={{
+        background: "linear-gradient(180deg, #edf5ef 0%, #f4f9f5 55%, #f9fbf9 100%)",
+      }}
     >
-      <div className="flex flex-col h-full">
-        {/* Top Section - Dark */}
-        <div className="p-4 flex items-center gap-3" style={{ background: '#14532d' }}>
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-            <Icon className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10px] font-medium tracking-wider text-slate-400 uppercase">
-              Skill
-            </span>
-            <h3 className="text-sm font-semibold text-white leading-tight truncate">
-              {name}
-            </h3>
-          </div>
+      <div className="px-6 py-7 flex flex-col items-center text-center">
+        {/* Eyebrow */}
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
+          style={{
+            background: "rgba(34,165,93,0.08)",
+            border: "1px solid rgba(34,165,93,0.18)",
+          }}
+        >
+          <div
+            className="w-1.5 h-1.5 rounded-full bg-[#22A55D]"
+            style={{ boxShadow: "0 0 4px rgba(34,165,93,0.6)" }}
+          />
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#1a9050", letterSpacing: "0.025em" }}>
+            Hands-on skill drills
+          </span>
         </div>
 
-        {/* Bottom Section - Light */}
-        <div className="bg-card p-4 flex flex-col justify-between flex-1">
-          <div>
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-              {description || `Sharpen your ${name} skills with hands-on challenges`}
-            </p>
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
-                Progress
-              </span>
-              <span className="text-[10px] text-muted-foreground">{progress}%</span>
-            </div>
-            <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full rounded-full transition-all"
-                style={{ width: `${progress}%`, background: '#14532d' }}
-              />
-            </div>
+        {/* Headline + sub */}
+        <h1
+          className="text-foreground leading-[1.08] mb-2"
+          style={{ fontSize: "clamp(26px, 3.5vw, 36px)", fontWeight: 800, letterSpacing: "-0.03em" }}
+        >
+          Practice Lab
+        </h1>
+        <p
+          className="text-muted-foreground mb-5 max-w-[480px]"
+          style={{ fontSize: 14, lineHeight: 1.65 }}
+        >
+          Strengthen your skills through targeted exercises and coding challenges —
+          tailored to your learning path.
+        </p>
+
+        {/* Stats */}
+        {!loading && (
+          <div className="flex items-center justify-center gap-5">
+            <HeroStat value={skillCount} label="Skills" />
+            <div className="w-px h-7 rounded-full bg-border/60" />
+            <HeroStat value={labCount} label="Labs" />
+            <div className="w-px h-7 rounded-full bg-border/60" />
+            <HeroStat value="Self-paced" label="Learning" />
           </div>
-          
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Code2 className="h-3 w-3" />
-              <span className="text-xs">{solvedProblems}/{totalProblems} Solved</span>
-            </div>
-            <Button 
-              variant="default" 
-              size="sm"
-              className="text-white rounded-full px-4 h-7 text-xs hover:opacity-90"
-              style={{ background: '#14532d' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              {progress > 0 ? "Continue" : "Start"}
-            </Button>
+        )}
+        {loading && (
+          <div className="flex items-center gap-5">
+            {[36, 28, 56].map((w, i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <div className="h-4 rounded bg-muted/50 animate-pulse" style={{ width: w }} />
+                <div className="h-2.5 w-8 rounded bg-muted/30 animate-pulse" />
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
-    </Card>
+    </div>
   );
 }
 
-// Empty state component for new users
+function HeroStat({ value, label }: { value: string | number; label: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-foreground font-bold leading-none" style={{ fontSize: 19, letterSpacing: "-0.025em" }}>
+        {value}
+      </span>
+      <span className="font-medium" style={{ fontSize: 11, color: "#22A55D", letterSpacing: "0.01em" }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/* ─── Stat helpers ───────────────────────────────────────────────────── */
+
+function StatCol({ value, label }: { value: number | string; label: string }) {
+  return (
+    <div className="flex flex-col items-center flex-1 min-w-0">
+      <span className="text-[18px] font-bold text-foreground tabular-nums leading-none tracking-tight">
+        {value}
+      </span>
+      <span className="text-[9.5px] text-muted-foreground mt-1 leading-none truncate">
+        {label || "\u00A0"}
+      </span>
+    </div>
+  );
+}
+
+function StatDivider() {
+  return <div className="w-px self-stretch bg-border/50 mx-0.5 my-0.5 shrink-0" />;
+}
+
+/* ─── Skeleton ───────────────────────────────────────────────────────── */
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-xl overflow-hidden border border-border/30 animate-pulse">
+      <div className="bg-muted" style={{ height: 150 }} />
+      <div className="bg-background px-3 py-2.5 flex items-center gap-2">
+        <div className="h-3.5 w-8 bg-muted rounded flex-1" />
+        <div className="w-px h-4 bg-border/40" />
+        <div className="h-3.5 w-8 bg-muted rounded flex-1" />
+        <div className="w-px h-4 bg-border/40" />
+        <div className="h-3.5 w-7 bg-muted rounded flex-1" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <SkeletonCard key={i} />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────── */
+
 function EmptyState() {
+  const navigate = useNavigate();
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="text-center max-w-md mx-auto px-4">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mx-auto mb-6">
-          <Zap className="h-10 w-10 text-primary-foreground" />
+      <div className="text-center max-w-sm mx-auto px-4">
+        {/* Icon */}
+        <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
+          style={{ background: GRADIENTS[0] }}>
+          <Zap className="h-9 w-9 text-white" />
         </div>
-        <h1 className="text-2xl font-bold mb-3">Welcome to Practice Lab</h1>
-        <p className="text-muted-foreground mb-6">
-          This is where you strengthen your learning through hands-on exercises, 
-          coding challenges, and real-world projects. Start with a quick 5-minute 
-          practice to get a feel for it.
+
+        <h1 className="text-[22px] font-extrabold mb-2 tracking-tight">
+          Welcome to Practice Lab
+        </h1>
+        <p className="text-sm text-muted-foreground mb-7 leading-relaxed">
+          Strengthen your skills through hands-on exercises, coding challenges,
+          and real-world projects — all personalised to your learning path.
         </p>
-        <div className="space-y-3">
-          <Button size="lg" className="w-full gap-2">
-            <Rocket className="h-5 w-5" />
-            Start your first 5-minute practice
+
+        <div className="space-y-2.5">
+          <Button size="lg" className="w-full gap-2 rounded-xl h-11">
+            <Rocket className="h-4 w-4" />
+            Start your first practice
           </Button>
-          <Button variant="outline" size="lg" className="w-full gap-2">
-            <BookOpen className="h-5 w-5" />
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full gap-2 rounded-xl h-11"
+            onClick={() => navigate("/courses")}
+          >
+            <BookOpen className="h-4 w-4" />
             Explore courses first
           </Button>
         </div>
-        
-        <div className="mt-8 pt-8 border-t">
-          <p className="text-sm text-muted-foreground mb-4">What you'll find here:</p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <Brain className="h-5 w-5 text-primary" />
+
+        {/* What you'll find */}
+        <div className="mt-8 pt-7 border-t border-border/50">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60 mb-4">
+            What's inside
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: Brain, label: "Quick Drills" },
+              { icon: Code2, label: "Code Challenges" },
+              { icon: Rocket, label: "Mini Projects" },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center">
+                  <Icon className="h-[18px] w-[18px] text-primary" />
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug text-center">
+                  {label}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">Quick Exercises</p>
-            </div>
-            <div>
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <Code2 className="h-5 w-5 text-primary" />
-              </div>
-              <p className="text-xs text-muted-foreground">Coding Challenges</p>
-            </div>
-            <div>
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <Rocket className="h-5 w-5 text-primary" />
-              </div>
-              <p className="text-xs text-muted-foreground">Mini Projects</p>
-            </div>
+            ))}
           </div>
         </div>
       </div>
