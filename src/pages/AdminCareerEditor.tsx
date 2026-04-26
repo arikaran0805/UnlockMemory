@@ -819,42 +819,39 @@ const AdminCareerEditor = () => {
   return (
     <>
     <div className="flex flex-col gap-0">
-        {/* Header with Tabs inline */}
+        {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4">
-<div className="flex flex-col">
-              <h1 className="text-3xl font-bold text-foreground">{careerName || "New Career"}</h1>
-              <p className="text-muted-foreground leading-tight">
-                Configure career tracks, skills, and course mappings
-              </p>
-            </div>
-            
-            {/* Tabs inline with career name */}
-            <div className="ml-4">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="h-9">
-                  <TabsTrigger value="settings" className="text-xs px-3">
-                    <Settings className="h-3.5 w-3.5 mr-1.5" />
-                    Settings
-                  </TabsTrigger>
-                  <TabsTrigger value="canvas" className="text-xs px-3">
-                    <Target className="h-3.5 w-3.5 mr-1.5" />
-                    Skill Canvas
-                  </TabsTrigger>
-                  <TabsTrigger value="pricing" className="text-xs px-3">
-                    <Icons.IndianRupee className="h-3.5 w-3.5 mr-1.5" />
-                    Pricing
-                  </TabsTrigger>
-                  <TabsTrigger value="preview" className="text-xs px-3">
-                    <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
-                    Preview
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+          {/* Left — title */}
+          <div className="flex flex-col">
+            <h1 className="text-3xl font-bold text-foreground">{careerName || "New Career"}</h1>
+            <p className="text-muted-foreground leading-tight">
+              Configure career tracks, skills, and course mappings
+            </p>
           </div>
-          
-          <div className="flex items-center gap-2">
+
+          {/* Right — tabs + actions */}
+          <div className="flex items-center gap-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="h-9">
+                <TabsTrigger value="settings" className="text-xs px-3">
+                  <Settings className="h-3.5 w-3.5 mr-1.5" />
+                  Settings
+                </TabsTrigger>
+                <TabsTrigger value="canvas" className="text-xs px-3">
+                  <Target className="h-3.5 w-3.5 mr-1.5" />
+                  Skill Canvas
+                </TabsTrigger>
+                <TabsTrigger value="pricing" className="text-xs px-3">
+                  <Icons.IndianRupee className="h-3.5 w-3.5 mr-1.5" />
+                  Pricing
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="text-xs px-3">
+                  <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
+                  Preview
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             {hasAttemptedSave && !isValid() && (
               <Badge variant="destructive" className="text-xs">
                 <Icons.AlertTriangle className="h-3 w-3 mr-1" />
@@ -864,9 +861,9 @@ const AdminCareerEditor = () => {
             <Button variant="outline" className="w-[136px]" onClick={() => navigate("/admin/careers")}>
               Cancel
             </Button>
-            <Button 
-              className="w-[136px]" 
-              onClick={handleSubmit} 
+            <Button
+              className="w-[136px]"
+              onClick={handleSubmit}
               disabled={loading}
               variant={(hasAttemptedSave && !isValid()) ? "outline" : "default"}
             >
