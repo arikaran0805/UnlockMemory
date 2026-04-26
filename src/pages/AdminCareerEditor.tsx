@@ -1843,11 +1843,14 @@ const AdminCareerEditor = () => {
       <Dialog open={addCoursesDialogOpen} onOpenChange={setAddCoursesDialogOpen}>
         <DialogContent className="max-w-[500px] p-0 gap-0 overflow-hidden flex flex-col max-h-[85vh]">
 
+          {/* Green accent strip */}
+          <div className="h-1 w-full bg-primary flex-shrink-0" />
+
           {/* Header */}
           <div className="px-6 pt-5 pb-4 border-b border-border/60 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <BookOpen className="h-4.5 w-4.5 text-primary" />
+                <BookOpen className="h-[18px] w-[18px] text-primary" />
               </div>
               <div>
                 <h2 className="text-base font-bold text-foreground leading-tight">Add Courses to Skill</h2>
@@ -1860,16 +1863,15 @@ const AdminCareerEditor = () => {
           <div className="px-6 py-4 border-b border-border/40 flex-shrink-0 bg-muted/20">
             <div className="flex items-center gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground/80">Default Contribution</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Applied to newly selected courses</p>
+                <p className="text-xs font-semibold text-foreground/80">Contribution %</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Set default for new selections · click <span className="font-semibold text-primary">Apply All</span> to update already-selected
+                </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <Slider
                   value={[sharedContribution]}
-                  onValueChange={([v]) => {
-                    setSharedContribution(v);
-                    applySharedContributionToAll(v);
-                  }}
+                  onValueChange={([v]) => setSharedContribution(v)}
                   max={100}
                   step={5}
                   className="w-28"
@@ -1878,7 +1880,7 @@ const AdminCareerEditor = () => {
                 <button
                   onClick={() => applySharedContributionToAll()}
                   disabled={selectedCoursesToAdd.length === 0}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Apply All
                 </button>
