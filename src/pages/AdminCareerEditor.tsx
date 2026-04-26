@@ -235,6 +235,7 @@ const AdminCareerEditor = () => {
   const [contributionValue, setContributionValue] = useState(50);
   const [sharedContribution, setSharedContribution] = useState(50);
   const [useSharedContribution, setUseSharedContribution] = useState(true);
+  const [courseSearch, setCourseSearch] = useState("");
   
   // Track if user has attempted to save (for validation display)
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
@@ -249,6 +250,11 @@ const AdminCareerEditor = () => {
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
+  );
+
+  // Filtered courses for the Add Courses dialog search
+  const filteredCourses = courses.filter(course =>
+    !courseSearch || course.name.toLowerCase().includes(courseSearch.toLowerCase())
   );
 
   const handleSkillDragEnd = (event: DragEndEvent) => {
@@ -464,7 +470,6 @@ const AdminCareerEditor = () => {
     if (skill?.courses.some(c => c.courseId === courseId)) {
       toast({ title: "Course already mapped to this skill" });
       setDropTargetSkill(null);
-      setDraggingCourse(null);
       return;
     }
 
@@ -473,7 +478,6 @@ const AdminCareerEditor = () => {
     setContributionValue(50);
     setContributionDialogOpen(true);
     setDropTargetSkill(null);
-    setDraggingCourse(null);
   };
 
   const confirmCourseMapping = () => {
