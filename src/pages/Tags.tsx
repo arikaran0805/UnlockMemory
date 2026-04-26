@@ -330,7 +330,7 @@ const Tags = () => {
 
           {/* ── Search bar ── */}
           <div
-            className="relative w-full rounded-2xl bg-white transition-all duration-200 mb-5"
+            className="relative w-full rounded-2xl bg-card transition-all duration-200 mb-5"
             style={{
               border: searchFocused
                 ? "1.5px solid #22A55D"
@@ -474,7 +474,7 @@ const Tags = () => {
               {Array.from({ length: 15 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl p-4 bg-white"
+                  className="rounded-2xl p-4 bg-card"
                   style={{
                     border: "1px solid hsl(var(--border) / 0.5)",
                     opacity: 1 - i * 0.04,
@@ -526,7 +526,7 @@ const Tags = () => {
                 <div key={tag.id} className="relative group">
                   <Link
                     to={`/tag/${tag.slug}`}
-                    className="flex flex-col gap-3 p-4 rounded-2xl bg-white transition-all duration-200 border border-border/50 hover:border-border/80 hover:shadow-md"
+                    className="flex flex-col gap-3 p-4 rounded-2xl bg-card transition-all duration-200 border border-border/50 hover:border-border/80 hover:shadow-md"
                   >
                     {/* Icon */}
                     <div
@@ -581,7 +581,7 @@ const Tags = () => {
                 <div key={tag.id} className="group relative">
                   <Link
                     to={`/tag/${tag.slug}`}
-                    className="flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-white transition-all duration-200 border border-border/50 hover:border-border/80 hover:shadow-sm"
+                    className="flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-card transition-all duration-200 border border-border/50 hover:border-border/80 hover:shadow-sm"
                   >
                     <div
                       className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[rgba(34,165,93,0.15)] transition-colors"

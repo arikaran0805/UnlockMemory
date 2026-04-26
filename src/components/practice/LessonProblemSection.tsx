@@ -23,7 +23,7 @@ export function LessonProblemSection({
   if (totalProblems === 0) return null;
 
   return (
-    <div className="bg-white rounded-xl border border-border/50 overflow-hidden shadow-sm">
+    <div className="bg-card rounded-xl border border-border/50 overflow-hidden shadow-sm">
       {/* Lesson header */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/40">
         <div className="w-1 h-4 rounded-full bg-primary/70 shrink-0" />

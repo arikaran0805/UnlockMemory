@@ -972,17 +972,20 @@ const AdminCourseEditor = () => {
                   </div>
                 </div>
 
-                {/* Featured Toggle - Admin Only */}
+                {/* Featured Toggle - Admin Only, only when course is Live */}
                 {isAdmin && (
-                  <div className="rounded-xl border border-border/70 overflow-hidden">
+                  <div className={`rounded-xl border overflow-hidden transition-opacity duration-200 ${formData.status === "published" ? "border-border/70" : "border-border/40 opacity-50"}`}>
                     <div className="px-3 py-2.5 bg-card flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium">Featured Course</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Pinned on the homepage</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {formData.status === "published" ? "Pinned on the homepage" : "Set course to Live first"}
+                        </p>
                       </div>
                       <Switch
                         id="featured"
                         checked={formData.featured}
+                        disabled={formData.status !== "published"}
                         onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
                         className="scale-90"
                       />
@@ -1050,36 +1053,54 @@ const AdminCourseEditor = () => {
 
             {/* ── Action CTAs (pinned footer) ── */}
             <div className="px-4 py-3 border-t border-border/60 bg-muted/20 flex-shrink-0 space-y-2">
-              {/* Admin / super-mod: can publish directly */}
+
+              {/* Live / Draft toggle — admin & super-mod */}
+              {canPublishDirectly && (
+                <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3.5 py-3 mb-1">
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-[12.5px] font-semibold leading-none text-foreground">
+                      {formData.status === "published" ? "Live" : "Draft"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {formData.status === "published"
+                        ? "Visible to learners"
+                        : "Hidden from learners"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Switch
+                      checked={formData.status === "published"}
+                      onCheckedChange={(checked) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          status: checked ? "published" : "draft",
+                          // Clear featured if going to draft
+                          featured: checked ? prev.featured : false,
+                        }))
+                      }
+                      className="h-[18px] w-[32px] data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-muted-foreground/30"
+                    />
+                    {formData.status === "published" && (
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin / super-mod: save with current status */}
               {canPublishDirectly && (
                 <>
                   <Button
-                    onClick={(e) => handleSubmit(e, false, "published")}
+                    onClick={(e) => handleSubmit(e, false, formData.status)}
                     disabled={loading}
                     className="w-full h-9 text-sm gap-2 font-semibold bg-[#16a34a] hover:bg-[#15803d] text-white"
                   >
                     <Save className="h-4 w-4" />
                     {id ? 'Update Course' : 'Create Course'}
                   </Button>
-                  <Button
-                    onClick={(e) => handleSubmit(e, false, "draft")}
-                    disabled={loading}
-                    variant="outline"
-                    className="w-full h-9 text-sm gap-2"
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    Save as Draft
-                  </Button>
-                  {id && (
-                    <Button
-                      onClick={() => setShowVersioningNoteDialog(true)}
-                      disabled={loading}
-                      variant="ghost"
-                      className="w-full h-8 text-xs text-muted-foreground gap-1.5"
-                    >
-                      Save Version Note
-                    </Button>
-                  )}
                 </>
               )}
 

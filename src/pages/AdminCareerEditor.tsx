@@ -198,7 +198,6 @@ const AdminCareerEditor = () => {
   // Core state
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [courseSearch, setCourseSearch] = useState("");
   const [activeTab, setActiveTab] = useState("settings");
   
   // Career form state
@@ -218,10 +217,7 @@ const AdminCareerEditor = () => {
   const [draggingSkill, setDraggingSkill] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   
-  // Course drag state
-  const [draggingCourse, setDraggingCourse] = useState<string | null>(null);
   const [dropTargetSkill, setDropTargetSkill] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Course library sidebar
   
   // Dialogs
   const [skillEditorOpen, setSkillEditorOpen] = useState(false);
@@ -449,17 +445,6 @@ const AdminCareerEditor = () => {
     setDraggingSkill(null);
   };
 
-  // Course drag handlers
-  const handleCourseDragStart = (e: React.DragEvent, courseId: string) => {
-    e.dataTransfer.setData("courseId", courseId);
-    setDraggingCourse(courseId);
-  };
-
-  const handleCourseDragEnd = () => {
-    setDraggingCourse(null);
-    setDropTargetSkill(null);
-  };
-
   const handleSkillDragOver = (e: React.DragEvent, skillId: string) => {
     e.preventDefault();
     setDropTargetSkill(skillId);
@@ -654,10 +639,6 @@ const AdminCareerEditor = () => {
       fullMark: 100,
     }));
   };
-
-  const filteredCourses = courses.filter(c => 
-    c.name.toLowerCase().includes(courseSearch.toLowerCase())
-  );
 
   const getMappedCourseIds = () => {
     const ids = new Set<string>();
@@ -924,7 +905,7 @@ const AdminCareerEditor = () => {
                       <div className="text-center text-muted-foreground">
                         <MousePointerClick className="h-12 w-12 mx-auto mb-3 opacity-50" />
                         <p className="text-lg font-medium">Double-click to create a skill</p>
-                        <p className="text-sm">Drag courses from the right panel onto skills</p>
+                        <p className="text-sm">Click a skill node to open its editor and add courses</p>
                       </div>
                     </div>
                   )}
@@ -1359,113 +1340,7 @@ const AdminCareerEditor = () => {
             </Tabs>
           </div>
 
-          {/* Right Sidebar - Course Library */}
-          <div className="flex-shrink-0 flex sticky top-[52px] self-start h-[calc(100vh-116px)]">
-            <div className="flex flex-col bg-muted/50 border-y border-l rounded-l-md overflow-hidden divide-y">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className={`relative flex flex-col items-center justify-start gap-1 py-3 px-2 transition-colors cursor-pointer ${
-                  sidebarOpen
-                    ? "bg-primary/8 text-primary"
-                    : "hover:bg-muted text-muted-foreground"
-                }`}
-              >
-                {sidebarOpen && (
-                  <span className="absolute left-0 inset-y-0 w-0.5 bg-primary rounded-r-full" />
-                )}
-                <BookOpen className={`h-4 w-4 ${sidebarOpen ? "text-primary" : "text-muted-foreground"}`} />
-                <span
-                  className={`text-[10px] font-medium [writing-mode:vertical-lr] rotate-180 select-none ${
-                    sidebarOpen ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  Courses
-                </span>
-              </button>
-            </div>
-
-            <Card
-              className={`flex flex-col min-h-0 rounded-l-none border-l-0 transition-all duration-300 ${
-                sidebarOpen ? "w-72" : "w-0 overflow-hidden border-0 p-0"
-              }`}
-            >
-              <div className={`px-4 py-3 border-b flex-shrink-0 ${!sidebarOpen ? "hidden" : ""}`}>
-                <div className="flex items-center">
-                  <h3 className="font-semibold text-sm whitespace-nowrap">Course Library</h3>
-                </div>
-              </div>
-
-              <div className={`px-4 py-3 border-b flex-shrink-0 ${!sidebarOpen ? "hidden" : ""}`}>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search courses..."
-                    value={courseSearch}
-                    onChange={(e) => setCourseSearch(e.target.value)}
-                    className="pl-9 h-9 text-sm"
-                  />
-                </div>
-              </div>
-
-              <ScrollArea className={`flex-1 min-h-0 ${!sidebarOpen ? "hidden" : ""}`}>
-                <div className="p-3 space-y-2">
-                  {filteredCourses.map(course => {
-                    const isMapped = getMappedCourseIds().has(course.id);
-
-                    return (
-                      <div
-                        key={course.id}
-                        draggable
-                        onDragStart={(e) => handleCourseDragStart(e, course.id)}
-                        onDragEnd={handleCourseDragEnd}
-                        className={`
-                          group flex items-center gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing select-none
-                          transition-colors
-                          ${isMapped
-                            ? "border-primary/30 bg-primary/5 hover:bg-primary/10"
-                            : "border-border/60 bg-muted/40 hover:border-primary/30 hover:bg-muted/70"
-                          }
-                          ${draggingCourse === course.id ? "opacity-50" : ""}
-                        `}
-                      >
-                        <GripVertical
-                          className={`h-4 w-4 flex-shrink-0 transition-colors ${
-                            isMapped
-                              ? "text-primary/60"
-                              : "text-primary/30 group-hover:text-primary/60"
-                          }`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{course.name}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Drag onto a skill node to map this course
-                          </p>
-                        </div>
-                        {isMapped ? (
-                          <Badge variant="secondary" className="text-[10px] flex-shrink-0">
-                            Mapped
-                          </Badge>
-                        ) : (
-                          <BookOpen className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {filteredCourses.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-10 text-center">
-                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3">
-                        <BookOpen className="h-5 w-5 text-muted-foreground/40" />
-                      </div>
-                      <p className="text-[11px] font-medium text-foreground/60">No courses found</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Try a different search term
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </Card>
+        </div>
       </div>
     </div>
   </div>

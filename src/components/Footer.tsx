@@ -131,7 +131,7 @@ const Footer = () => {
       {/* ══════════════════════════════════════════════════════════════════════
           MAIN CONTENT — tinted background for visual separation from page
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#f3f6f3]">
+      <div className="footer-bg">
         <div className="container mx-auto px-6 lg:px-12 pt-20 pb-16">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-y-12 gap-x-12">
 

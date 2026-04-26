@@ -154,13 +154,13 @@ export default function SkillProblems() {
   const solvedPct = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8">
 
         {/* Back button — premium pill */}
         <button
           onClick={() => navigate('/profile?tab=practice')}
-          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-muted-foreground hover:text-foreground transition-all duration-150 hover:bg-white hover:shadow-sm border border-transparent hover:border-border/40 -ml-1 mb-7"
+          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-muted-foreground hover:text-foreground transition-all duration-150 hover:bg-card hover:shadow-sm border border-transparent hover:border-border/40 -ml-1 mb-7"
         >
           <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-150 group-hover:-translate-x-0.5" />
           Back to Practice
@@ -174,7 +174,7 @@ export default function SkillProblems() {
           </div>
         ) : (
           <>
-            <div className="bg-white rounded-2xl border border-border/50 overflow-hidden mb-6 shadow-sm">
+            <div className="bg-card rounded-2xl border border-border/50 overflow-hidden mb-6 shadow-sm">
               <div className="px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -222,7 +222,7 @@ export default function SkillProblems() {
             </div>
 
             {/* ── Filters ── */}
-            <div className="bg-white rounded-xl border border-border/50 shadow-sm mb-5 px-4">
+            <div className="bg-card rounded-xl border border-border/50 shadow-sm mb-5 px-4">
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <ProblemFilters
@@ -262,7 +262,7 @@ export default function SkillProblems() {
                   />
                 ))
               ) : filteredProblems.length === 0 && displayProblems.length > 0 ? (
-                <div className="bg-white rounded-xl border border-border/50 shadow-sm px-6 py-14 flex flex-col items-center gap-3 text-center">
+                <div className="bg-card rounded-xl border border-border/50 shadow-sm px-6 py-14 flex flex-col items-center gap-3 text-center">
                   <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
                     <svg className="w-5 h-5 text-muted-foreground/60" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                       <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -277,7 +277,7 @@ export default function SkillProblems() {
                   </button>
                 </div>
               ) : (
-                <div className="bg-white rounded-xl border border-border/50 shadow-sm px-6 py-14 flex flex-col items-center gap-3 text-center">
+                <div className="bg-card rounded-xl border border-border/50 shadow-sm px-6 py-14 flex flex-col items-center gap-3 text-center">
                   <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
                     <svg className="w-5 h-5 text-muted-foreground/60" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                       <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />

@@ -304,12 +304,7 @@ function PracticeHero({
   loading: boolean;
 }) {
   return (
-    <div
-      className="rounded-2xl border border-border/40 overflow-hidden"
-      style={{
-        background: "linear-gradient(180deg, #edf5ef 0%, #f4f9f5 55%, #f9fbf9 100%)",
-      }}
-    >
+    <div className="rounded-2xl border border-border/40 overflow-hidden hero-section-bg">
       <div className="px-6 py-7 flex flex-col items-center text-center">
         {/* Eyebrow */}
         <div

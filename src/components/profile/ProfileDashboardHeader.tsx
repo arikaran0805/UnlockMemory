@@ -33,8 +33,8 @@ export const ProfileDashboardHeader = ({
           {/* Left — Identity */}
           <div className="flex flex-col gap-1">
             <h2
-              className="text-[22px] md:text-[24px] font-bold leading-tight"
-              style={{ color: "#1D1D1F", letterSpacing: "-0.025em" }}
+              className="text-[22px] md:text-[24px] font-bold leading-tight text-foreground"
+              style={{ letterSpacing: "-0.025em" }}
             >
               {fullName || "Learner"}
             </h2>

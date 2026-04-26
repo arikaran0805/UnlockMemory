@@ -1366,8 +1366,8 @@ const Profile = () => {
             <CardContent className="p-7">
               <div className="flex items-center justify-between mb-7">
                 <div>
-                  <h3 className="text-xl font-bold tracking-[-0.02em]" style={{ color: '#1D1D1F' }}>Career Readiness</h3>
-                  <p className="text-sm mt-1 font-normal" style={{ color: '#6E6E73' }}>Your progress toward becoming job-ready</p>
+                  <h3 className="text-xl font-bold tracking-[-0.02em] text-foreground">Career Readiness</h3>
+                  <p className="text-sm mt-1 font-normal text-muted-foreground">Your progress toward becoming job-ready</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Readiness Level Badge with Tooltip */}
@@ -1414,10 +1414,10 @@ const Profile = () => {
                             <div className="text-primary/70 transition-transform duration-200 group-hover:scale-110">
                               {renderSkillIcon(skill.icon)}
                             </div>
-                            <span className="font-medium" style={{ color: '#1D1D1F' }}>{skill.skill_name}</span>
+                            <span className="font-medium">{skill.skill_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold tabular-nums" style={{ color: '#1D1D1F' }}>{skillProgress}%</span>
+                            <span className="font-semibold tabular-nums">{skillProgress}%</span>
                             <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
                           </div>
                         </div>
@@ -1554,12 +1554,12 @@ const Profile = () => {
                         {/* Center content */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <div className="relative">
-                            <span className="text-5xl font-bold" style={{ color: '#1D1D1F' }}>
+                            <span className="text-5xl font-bold">
                               {readinessPercentage}
                             </span>
-                            <span className="text-2xl font-bold" style={{ color: '#6E6E73' }}>%</span>
+                            <span className="text-2xl font-bold">%</span>
                           </div>
-                          <span className="text-sm mt-1" style={{ color: '#6E6E73' }}>Career Ready</span>
+                          <span className="text-sm mt-1 text-muted-foreground">Career Ready</span>
                         </div>
                       </div>
 
@@ -1622,8 +1622,8 @@ const Profile = () => {
                     <FlaskConical className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>Recommended Labs</CardTitle>
-                    <CardDescription className="font-normal" style={{ color: '#6E6E73' }}>Practice exercises based on your enrolled courses</CardDescription>
+                    <CardTitle className="text-lg tracking-[-0.01em]">Recommended Labs</CardTitle>
+                    <CardDescription className="font-normal">Practice exercises based on your enrolled courses</CardDescription>
                   </div>
                 </div>
                 <button
@@ -1700,8 +1700,8 @@ const Profile = () => {
                   <Target className="h-5 w-5 text-white" strokeWidth={1.5} />
                 </div>
                 <div className="space-y-0.5">
-                  <h3 className="text-lg font-semibold tracking-[-0.01em]" style={{ color: '#1D1D1F' }}>Today's Focus</h3>
-                  <p className="text-xs font-medium" style={{ color: '#6E6E73' }}>Recommended for you today</p>
+                  <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Today's Focus</h3>
+                  <p className="text-xs font-medium text-muted-foreground">Recommended for you today</p>
                 </div>
               </div>
               
@@ -1868,7 +1868,7 @@ const Profile = () => {
 
       return (
         <div
-          className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+          className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-card border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
           onClick={() => navigateToCourse(course?.slug, course?.id)}
         >
           {/* Course icon */}
@@ -1899,7 +1899,7 @@ const Profile = () => {
             </div>
             {/* Progress bar */}
             <div className="flex items-center gap-2.5">
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden progress-track">
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -1938,7 +1938,7 @@ const Profile = () => {
     };
 
     const EmptyOngoing = () => (
-      <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-white text-center">
+      <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-card text-center">
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(34,197,94,0.08)' }}>
           <BookOpen className="w-5 h-5 text-primary" strokeWidth={1.8} />
         </div>
@@ -2052,7 +2052,7 @@ const Profile = () => {
                 return (
                   <div
                     key={enrollment.id}
-                    className="group flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+                    className="group flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-card border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
                     onClick={() => navigate(`/course/${course.slug}`)}
                   >
                     {/* Mini gradient icon */}
@@ -2076,7 +2076,7 @@ const Profile = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden progress-track">
                           <div
                             className="h-full rounded-full"
                             style={{
@@ -2129,7 +2129,7 @@ const Profile = () => {
 
     const RowWrap = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
       <div
-        className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+        className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-card border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
         onClick={onClick}
       >
         {children}
@@ -2190,7 +2190,7 @@ const Profile = () => {
         </div>
 
         {totalBookmarks === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-white text-center">
+          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-card text-center">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(34,197,94,0.08)' }}>
               <Bookmark className="w-5 h-5 text-primary" strokeWidth={1.8} />
             </div>
@@ -2409,7 +2409,7 @@ const Profile = () => {
         </div>
 
         {userComments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-white text-center">
+          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed border-border bg-card text-center">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(99,102,241,0.08)' }}>
               <MessageSquare className="w-5 h-5" style={{ color: '#4F46E5' }} strokeWidth={1.8} />
             </div>
@@ -2426,7 +2426,7 @@ const Profile = () => {
               const isExpanded = expandedComment === comment.id;
 
               return (
-                <div key={comment.id} className="rounded-2xl bg-white border border-border/60 overflow-hidden transition-all duration-200">
+                <div key={comment.id} className="rounded-2xl bg-card border border-border/60 overflow-hidden transition-all duration-200">
                   {/* Comment row */}
                   <div
                     className="flex items-start gap-4 px-5 py-4 cursor-pointer hover:bg-muted/30 transition-colors"
@@ -2525,7 +2525,7 @@ const Profile = () => {
 
   const renderSettings = () => {
     const SettingSection = ({ icon: Icon, title, subtitle, iconBg, iconFg, children }: { icon: any; title: string; subtitle: string; iconBg: string; iconFg: string; children: React.ReactNode }) => (
-      <div className="rounded-2xl bg-white border border-border/60 overflow-hidden">
+      <div className="rounded-2xl bg-card border border-border/60 overflow-hidden">
         {/* Section header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border/60">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
@@ -2669,7 +2669,7 @@ const Profile = () => {
         </SettingSection>
 
         {/* ── Danger zone ── */}
-        <div className="rounded-2xl bg-white border border-red-100 overflow-hidden">
+        <div className="rounded-2xl bg-card border border-red-200/40 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5">
             <div>
               <p className="text-[14px] font-semibold text-foreground">Sign Out</p>

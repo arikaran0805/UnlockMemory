@@ -225,6 +225,9 @@ All colors MUST be HSL.
     position: relative;
     isolation: isolate;
   }
+  .dark .dashboard-bg {
+    background: linear-gradient(180deg, hsl(150 22% 6%) 0%, hsl(150 20% 7%) 100%);
+  }
 
   .dashboard-bg::before {
     content: '';
@@ -233,6 +236,9 @@ All colors MUST be HSL.
     background: radial-gradient(ellipse 55% 40% at 50% 38%, hsl(142 25% 93% / 0.5) 0px, transparent 70%);
     pointer-events: none;
     z-index: 0;
+  }
+  .dark .dashboard-bg::before {
+    background: radial-gradient(ellipse 55% 40% at 50% 38%, hsl(152 35% 12% / 0.4) 0px, transparent 70%);
   }
 
   .dashboard-bg > * {
@@ -543,6 +549,9 @@ All colors MUST be HSL.
   /* Gray bg only on dashboard tab */
   .profile-content-wrap--gray {
     background: #f2f3f5;
+  }
+  .dark .profile-content-wrap--gray {
+    background: hsl(150 20% 6%);
   }
 
   /* ── Profile Icon Sidebar ────────────────────────────────────────────── */
@@ -1248,4 +1257,33 @@ All colors MUST be HSL.
 /* Admin page main background in dark */
 .dark body {
   background-color: hsl(var(--background));
+}
+
+/* ── Hero section gradient — light green in light, deep forest in dark ──── */
+.hero-section-bg {
+  background: linear-gradient(180deg, #edf5ef 0%, #f4f9f5 55%, #f9fbf9 100%);
+}
+.dark .hero-section-bg {
+  background: linear-gradient(180deg, hsl(150 22% 7%) 0%, hsl(150 20% 8%) 55%, hsl(150 18% 9%) 100%);
+}
+
+/* ── Footer background ───────────────────────────────────────────────────── */
+.footer-bg {
+  background-color: #f3f6f3;
+}
+.dark .footer-bg {
+  background-color: hsl(150 20% 6%);
+}
+
+/* ── Inline card whites — use bg-card instead but fallback utility ───────── */
+.dark .force-card-bg {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* ── Progress track — theme-aware subtle groove ─────────────────────────── */
+.progress-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+.dark .progress-track {
+  background: hsl(150 15% 16%);
 }

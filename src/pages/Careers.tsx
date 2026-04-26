@@ -100,12 +100,7 @@ const Careers = () => {
       {/* ════════════════════════════════════════════════════════
           HERO
       ════════════════════════════════════════════════════════ */}
-      <div
-        className="border-b border-border/40"
-        style={{
-          background: "linear-gradient(180deg, #edf5ef 0%, #f4f9f5 50%, #f9fbf9 100%)",
-        }}
-      >
+      <div className="border-b border-border/40 hero-section-bg">
         <div className="container px-6 md:px-12 lg:px-16 xl:px-24 pt-16 pb-12">
 
           <div className={`flex flex-col lg:flex-row lg:items-stretch gap-8 ${!hasAd ? "lg:justify-center" : ""}`}>
@@ -176,7 +171,7 @@ const Careers = () => {
               {/* Search */}
               <div className={`flex flex-col sm:flex-row gap-3 items-center ${hasAd ? "w-full" : "w-full max-w-[820px]"}`}>
                 <div
-                  className="relative w-full rounded-2xl bg-white transition-all duration-200"
+                  className="relative w-full rounded-2xl bg-card transition-all duration-200"
                   style={{
                     border: searchFocused
                       ? "1.5px solid #22A55D"
@@ -259,7 +254,7 @@ const Careers = () => {
                 }}
               >
                 <div className="h-52 bg-muted/40 animate-pulse" />
-                <div className="p-4 space-y-2.5 bg-white border border-t-0 border-border/40 rounded-b-2xl">
+                <div className="p-4 space-y-2.5 bg-card border border-t-0 border-border/40 rounded-b-2xl">
                   <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4" />
                   <div className="h-3 bg-muted/30 rounded animate-pulse w-1/3" />
                   <div className="h-3 bg-muted/25 rounded animate-pulse w-1/2" />
