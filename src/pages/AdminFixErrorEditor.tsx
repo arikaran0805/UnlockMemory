@@ -806,7 +806,7 @@ export default function AdminFixErrorEditor() {
           </Tabs>
 
           {/* Sticky Footer */}
-          <div className="sticky bottom-0 bg-background border-t pt-4 pb-4 z-10">
+          <div className="sticky bottom-0 bg-background border-t pt-4 pb-4 z-40">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 flex-wrap">
                 {[
@@ -826,15 +826,10 @@ export default function AdminFixErrorEditor() {
                   Cancel
                 </Button>
                 <FormField control={form.control} name="status" render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published" disabled={!canPublish}>
-                        {!canPublish ? <span className="flex items-center gap-1.5 text-muted-foreground"><Lock className="h-3 w-3" /> Published</span> : "Published"}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center rounded-md border border-input overflow-hidden text-sm font-medium">
+                    <button type="button" onClick={() => field.onChange("draft")} className={`px-3 h-9 border-r border-input transition-colors ${field.value === "draft" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>Draft</button>
+                    <button type="button" onClick={() => canPublish && field.onChange("published")} disabled={!canPublish} className={`px-3 h-9 transition-colors ${field.value === "published" ? "bg-primary text-primary-foreground" : canPublish ? "bg-background text-muted-foreground hover:bg-muted" : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"}`}>Published</button>
+                  </div>
                 )} />
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="gap-2">
                   {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

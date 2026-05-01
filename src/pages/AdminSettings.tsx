@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
 import {
@@ -11,7 +10,6 @@ import {
   SettingsSection,
   GeneralSettings,
   EmailSettings,
-  NotificationsSettings,
   SEOSettings,
   SocialSettings,
   SecuritySettings,
@@ -62,26 +60,11 @@ const AdminSettings = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
 
-  // Notification preferences
-  const { preferences: notificationPrefs, loading: notifPrefsLoading } = useNotificationPreferences(userId);
-  const [allNotificationsEnabled, setAllNotificationsEnabled] = useState(true);
-
   useEffect(() => {
     if (!roleLoading) {
       checkAccess();
     }
   }, [roleLoading]);
-
-  useEffect(() => {
-    if (notificationPrefs) {
-      const allEnabled =
-        notificationPrefs.content_submissions &&
-        notificationPrefs.reports &&
-        notificationPrefs.new_users &&
-        notificationPrefs.delete_requests;
-      setAllNotificationsEnabled(allEnabled);
-    }
-  }, [notificationPrefs]);
 
   // Clean up legacy /branding URL → redirect to /general
   useEffect(() => {
@@ -182,56 +165,6 @@ const AdminSettings = () => {
     }
   };
 
-  const handleToggleAllNotifications = async (enabled: boolean) => {
-    if (!userId) return;
-    setAllNotificationsEnabled(enabled);
-
-    try {
-      const updates = {
-        content_submissions: enabled,
-        reports: enabled,
-        new_users: enabled,
-        delete_requests: enabled,
-      };
-
-      const { data: existing } = await supabase
-        .from("notification_preferences")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase.from("notification_preferences").update(updates).eq("user_id", userId);
-      } else {
-        await supabase.from("notification_preferences").insert({ user_id: userId, ...updates });
-      }
-
-      toast({ title: enabled ? "Notifications enabled" : "Notifications disabled" });
-    } catch (error) {
-      setAllNotificationsEnabled(!enabled);
-      toast({ title: "Error updating notifications", variant: "destructive" });
-    }
-  };
-
-  const handleToggleSingleNotification = async (key: string, enabled: boolean) => {
-    if (!userId) return;
-    try {
-      const { data: existing } = await supabase
-        .from("notification_preferences")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase.from("notification_preferences").update({ [key]: enabled }).eq("user_id", userId);
-      } else {
-        await supabase.from("notification_preferences").insert({ user_id: userId, [key]: enabled });
-      }
-    } catch (error) {
-      toast({ title: "Error updating preference", variant: "destructive" });
-    }
-  };
-
   // Determine read-only for senior moderators
   const isReadOnly = !isAdmin;
 
@@ -269,17 +202,6 @@ const AdminSettings = () => {
             setAdminEmail={(v) => { setAdminEmail(v); setHasChanges(true); }}
             emailNotifications={emailNotifications}
             setEmailNotifications={setEmailNotifications}
-          />
-        );
-      case "notifications":
-        return (
-          <NotificationsSettings
-            preferences={notificationPrefs}
-            allNotificationsEnabled={allNotificationsEnabled}
-            onToggleAll={handleToggleAllNotifications}
-            onToggleSingle={handleToggleSingleNotification}
-            loading={notifPrefsLoading}
-            isAdmin={isAdmin}
           />
         );
       case "seo":

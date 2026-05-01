@@ -10,12 +10,13 @@ import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import Editor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Copy, Check, Play, Loader2, X, Pencil,
-  ChevronUp, ChevronDown 
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCodeEdit } from '@/contexts/CodeEditContext';
+import { useTheme } from 'next-themes';
 
 // Supported languages for execution
 const EXECUTABLE_LANGUAGES = ['python', 'javascript', 'typescript'];
@@ -31,17 +32,17 @@ const MONACO_LANGUAGE_MAP: Record<string, string> = {
   cpp: 'cpp',
 };
 
-const ExecutableCodeBlockView = ({ 
-  node, 
-  updateAttributes, 
+const ExecutableCodeBlockView = ({
+  node,
+  updateAttributes,
   editor,
   deleteNode,
 }: NodeViewProps) => {
   const { language = 'python', code = '' } = node.attrs;
-  
+
   // Generate stable ID for this code block instance
   const instanceId = useId();
-  
+
   // Get code edit context (may be undefined if not wrapped in provider)
   let codeEditContext: ReturnType<typeof useCodeEdit> | null = null;
   try {
@@ -49,7 +50,7 @@ const ExecutableCodeBlockView = ({
   } catch {
     // Context not available
   }
-  
+
   const [currentCode, setCurrentCode] = useState(code);
   const [isEditMode, setIsEditMode] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -58,17 +59,20 @@ const ExecutableCodeBlockView = ({
   const [outputError, setOutputError] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
   const [outputExpanded, setOutputExpanded] = useState(true);
-  
+
   // Snapshot of code when edit mode was entered — used for cancel/revert
   const editStartCodeRef = useRef(code);
-  
+
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
-  
+
   const normalizedLang = MONACO_LANGUAGE_MAP[language?.toLowerCase()] || language?.toLowerCase() || 'plaintext';
   const canExecute = EXECUTABLE_LANGUAGES.includes(normalizedLang);
   const isEditable = editor?.isEditable ?? true;
-  
+
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
   // Calculate editor height based on line count
   const lineCount = currentCode.split('\n').length;
   const editorHeight = Math.max(60, lineCount * 19 + 20);
@@ -79,7 +83,14 @@ const ExecutableCodeBlockView = ({
       setCurrentCode(code);
     }
   }, [code]); // isEditMode intentionally omitted — only react to external attr changes
-  
+
+  // Re-apply Monaco theme when dark mode changes
+  useEffect(() => {
+    if (monacoRef.current) {
+      monacoRef.current.editor.setTheme(isDark ? 'tiptap-codeblock-dark' : 'tiptap-codeblock-white');
+    }
+  }, [isDark]);
+
   // Report code edits to context
   useEffect(() => {
     if (codeEditContext) {
@@ -90,9 +101,9 @@ const ExecutableCodeBlockView = ({
   const handleEditorMount: OnMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
     monacoRef.current = monaco;
-    
-    // Configure Monaco theme for a clean light look
-    monaco.editor.defineTheme('tiptap-codeblock-theme', {
+
+    // Clean white theme
+    monaco.editor.defineTheme('tiptap-codeblock-white', {
       base: 'vs',
       inherit: true,
       rules: [
@@ -105,17 +116,33 @@ const ExecutableCodeBlockView = ({
         { token: 'type', foreground: '267F99' },
       ],
       colors: {
-        'editor.background': '#f4fbf7',
+        'editor.background': '#ffffff',
         'editor.foreground': '#1F2937',
-        'editor.lineHighlightBackground': '#edf7f1',
-        'editorLineNumber.foreground': '#a8c5b5',
-        'editorLineNumber.activeForeground': '#6ea88a',
-        'editor.selectionBackground': '#c8e8d8',
+        'editor.lineHighlightBackground': '#f5f5f7',
+        'editorLineNumber.foreground': '#c0c0c8',
+        'editorLineNumber.activeForeground': '#8888a0',
+        'editor.selectionBackground': '#d6e4f7',
         'editorCursor.foreground': '#374151',
       },
     });
 
-    monaco.editor.setTheme('tiptap-codeblock-theme');
+    // Dark forest theme
+    monaco.editor.defineTheme('tiptap-codeblock-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#0f1c14',
+        'editor.foreground': '#c8e2d2',
+        'editor.lineHighlightBackground': '#141f17',
+        'editorLineNumber.foreground': '#3d5e47',
+        'editorLineNumber.activeForeground': '#5d8a6a',
+        'editor.selectionBackground': '#1e3d28',
+        'editorCursor.foreground': '#5aaa82',
+      },
+    });
+
+    monaco.editor.setTheme(isDark ? 'tiptap-codeblock-dark' : 'tiptap-codeblock-white');
   };
 
   const handleCodeChange = useCallback((value: string | undefined) => {
@@ -176,7 +203,7 @@ const ExecutableCodeBlockView = ({
 
   const handleRun = async () => {
     if (!canExecute) return;
-    
+
     setIsRunning(true);
     setOutput(null);
     setOutputError(false);
@@ -236,9 +263,15 @@ const ExecutableCodeBlockView = ({
         )}
 
         {/* Main container */}
-        <div className="rounded-xl overflow-hidden" style={{ background: '#f4fbf7', border: '1px solid #c8e8d8' }}>
+        <div className={cn(
+          "rounded-xl overflow-hidden border",
+          isDark ? "bg-[#0f1c14] border-[#1e3428]" : "bg-white border-[#e4e4e9]"
+        )}>
           {/* Header row */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-1">
+          <div className={cn(
+            "flex items-center justify-between px-4 pt-2.5 pb-2 border-b",
+            isDark ? "bg-[#0f1c14] border-[#1e3428]" : "bg-white border-[#ebebef]"
+          )}>
             {/* Language label — static, no dropdown */}
             <span className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground/70">
               {language}
@@ -268,7 +301,7 @@ const ExecutableCodeBlockView = ({
                   {isRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 </Button>
               )}
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -314,7 +347,7 @@ const ExecutableCodeBlockView = ({
                 wordWrap: 'on',
                 automaticLayout: true,
               }}
-              theme="tiptap-codeblock-theme"
+              theme={isDark ? 'tiptap-codeblock-dark' : 'tiptap-codeblock-white'}
               loading={
                 <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
                   Loading...

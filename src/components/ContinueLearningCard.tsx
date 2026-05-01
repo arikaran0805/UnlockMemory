@@ -93,9 +93,9 @@ export const ContinueLearningCard = () => {
 
   if (loading) {
     return (
-      <Card className="bg-primary/5 border-primary/10">
+      <Card className="bg-muted/30 border-border/50">
         <CardContent className="p-5">
-          <div className="h-16 animate-pulse bg-primary/10 rounded-lg" />
+          <div className="h-16 animate-pulse bg-muted rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -111,14 +111,14 @@ export const ContinueLearningCard = () => {
   }
 
   return (
-    <Card className="bg-primary/5 border-primary/10 overflow-hidden">
+    <Card className="bg-white border-border/50 shadow-[0_1px_4px_rgba(0,0,0,0.04)] overflow-hidden">
       <CardContent className="p-5">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           {/* Left: Icon + Content */}
           <div className="flex items-start gap-4 flex-1">
             {/* Progress Icon */}
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Target className="h-5 w-5 text-primary" />
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <Target className="h-5 w-5 text-muted-foreground" />
             </div>
             
             {/* Text Content */}

@@ -9,90 +9,90 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 142 30% 15%;
+    --foreground: 220 18% 9%;            /* richer near-black — stronger contrast */
 
     --card: 0 0% 100%;
-    --card-foreground: 142 30% 15%;
+    --card-foreground: 220 18% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 142 30% 15%;
+    --popover-foreground: 220 18% 9%;
 
-    --primary: 142 70% 45%;
+    --primary: 152 36% 33%;              /* deeper, restrained green — buttons & actives only */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 142 70% 65%;
-    
-    --secondary: 142 45% 92%;
-    --secondary-foreground: 142 50% 20%;
+    --primary-glow: 152 36% 46%;
 
-    --muted: 142 30% 95%;
-    --muted-foreground: 142 20% 40%;
+    --secondary: 220 14% 95%;            /* neutral light grey */
+    --secondary-foreground: 220 14% 22%;
 
-    --accent: 160 60% 50%;
-    --accent-foreground: 0 0% 100%;
+    --muted: 220 16% 96%;                /* clean neutral surface */
+    --muted-foreground: 220 10% 41%;    /* slightly darker secondary text */
+
+    --accent: 220 14% 94%;               /* neutral hover surface */
+    --accent-foreground: 220 16% 16%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 142 30% 88%;
-    --input: 142 30% 88%;
-    --ring: 142 70% 45%;
+    --border: 220 14% 88%;               /* slightly crisper border */
+    --input: 220 14% 88%;
+    --ring: 152 36% 33%;
 
     --radius: 0.75rem;
-    
-    /* Semantic text tokens for mint backgrounds */
-    --text-on-mint: 142 35% 18%;
-    --text-on-mint-secondary: 142 25% 35%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(142 70% 45%), hsl(142 70% 65%));
-    --gradient-subtle: linear-gradient(180deg, hsl(140 30% 98%), hsl(140 20% 96%));
-    --gradient-dashboard: linear-gradient(180deg, hsl(140 25% 98%) 0%, hsl(140 20% 97%) 100%);
-    --gradient-mesh: radial-gradient(ellipse 80% 60% at 50% 40%, hsl(142 40% 95% / 0.6) 0px, transparent 70%);
-    
-    --shadow-elegant: 0 10px 30px -10px hsl(142 70% 45% / 0.12);
-    --shadow-glow: 0 0 40px hsl(142 70% 65% / 0.15);
-    --shadow-card: 0 2px 8px hsl(220 15% 20% / 0.06);
-    --shadow-premium: 0 8px 30px hsl(220 15% 20% / 0.06), 0 2px 8px hsl(220 15% 20% / 0.04), inset 0 1px 0 hsl(0 0% 100% / 0.7);
-    --shadow-premium-hover: 0 12px 40px hsl(220 15% 20% / 0.08), 0 4px 12px hsl(220 15% 20% / 0.05), inset 0 1px 0 hsl(0 0% 100% / 0.7);
-    
+
+    /* Semantic text tokens */
+    --text-on-mint: 152 32% 12%;
+    --text-on-mint-secondary: 152 22% 30%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(152 36% 33%), hsl(152 36% 46%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220 16% 99%), hsl(220 14% 97%));
+    --gradient-dashboard: linear-gradient(180deg, hsl(220 16% 99%) 0%, hsl(220 14% 97%) 100%);
+    --gradient-mesh: radial-gradient(ellipse 80% 60% at 50% 40%, hsl(220 14% 97% / 0.5) 0px, transparent 70%);
+
+    --shadow-elegant: 0 8px 24px -8px hsl(220 20% 15% / 0.08);
+    --shadow-glow: 0 0 32px hsl(152 36% 46% / 0.10);
+    --shadow-card: 0 1px 3px hsl(216 20% 15% / 0.06), 0 1px 2px hsl(216 20% 15% / 0.04);
+    --shadow-premium: 0 4px 16px hsl(216 20% 15% / 0.06), 0 1px 4px hsl(216 20% 15% / 0.04), inset 0 1px 0 hsl(0 0% 100% / 0.9);
+    --shadow-premium-hover: 0 8px 24px hsl(216 20% 15% / 0.08), 0 2px 8px hsl(216 20% 15% / 0.05), inset 0 1px 0 hsl(0 0% 100% / 0.9);
+
     --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-premium: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
-    --sidebar-background: 142 45% 98%;
-    --sidebar-foreground: 142 30% 20%;
-    --sidebar-primary: 142 70% 45%;
+    --sidebar-background: 220 16% 97%;   /* clean near-white neutral */
+    --sidebar-foreground: 220 16% 16%;
+    --sidebar-primary: 152 36% 33%;      /* muted green — active states only */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 45% 94%;
-    --sidebar-accent-foreground: 142 50% 25%;
-    --sidebar-border: 142 30% 90%;
-    --sidebar-ring: 142 70% 45%;
+    --sidebar-accent: 220 14% 93%;       /* neutral hover — no green tint */
+    --sidebar-accent-foreground: 220 16% 16%;
+    --sidebar-border: 220 14% 88%;
+    --sidebar-ring: 152 36% 33%;
 
     /* ── Admin UI palette (light) ─────────────────────────────────────────── */
-    --admin-bg:            #EFF3EE;
-    --admin-bg-hover:      #E2EAE1;
-    --admin-text:          #1A3A2A;
-    --admin-muted:         #6B8F71;
-    --admin-border:        #D4DDD3;
-    --admin-popup-bg:      #EFF3EE;
-    --admin-popup-muted:   #6B8F71;
-    --admin-popup-div:     #D4DDD3;
-    --admin-tooltip-bg:    #1A3A2A;
+    --admin-bg:            #F1F3F6;      /* neutral cool grey — no green tint */
+    --admin-bg-hover:      #E5E8EE;
+    --admin-text:          #111827;      /* neutral near-black */
+    --admin-muted:         #6B7280;      /* neutral medium grey */
+    --admin-border:        #D1D5DB;
+    --admin-popup-bg:      #F1F3F6;
+    --admin-popup-muted:   #6B7280;
+    --admin-popup-div:     #D1D5DB;
+    --admin-tooltip-bg:    #111827;
     --admin-card:          #ffffff;
-    --admin-card-header:   #FAFBF9;
-    --admin-card-border:   #E8EBE7;
+    --admin-card-header:   #F8F9FA;
+    --admin-card-border:   #E5E7EB;
     --admin-header-bg:     #ffffff;
-    --admin-header-border: #E2EAE1;
-    --admin-page-bg:       #f7faf7;
-    --admin-input-border:  #E8EBE7;
-    --admin-focus-border:  #1E4D3A;
-    --admin-label:         #1E1E1E;
-    --admin-label-muted:   rgba(30,30,30,0.40);
+    --admin-header-border: #E5E7EB;
+    --admin-page-bg:       #F5F6F8;      /* light neutral page bg */
+    --admin-input-border:  #D1D5DB;
+    --admin-focus-border:  #1f6440;      /* muted green for focus ring */
+    --admin-label:         #111827;
+    --admin-label-muted:   rgba(17,24,39,0.40);
 
     /* ── New semantic color variables ────────────────────────────────────── */
     /* Brand */
-    --color-primary:        #0F6E56;
-    --color-primary-hover:  #0D5E49;
-    --color-primary-active: #0A4D3C;
-    --color-primary-tint:   #E1F3EE;
+    --color-primary:        #1a5e40;     /* muted deep green */
+    --color-primary-hover:  #174f36;
+    --color-primary-active: #13422d;
+    --color-primary-tint:   #E6F0EC;     /* very muted pale green tint */
 
     /* Accent */
     --color-accent:         #F5A623;
@@ -221,7 +221,7 @@ All colors MUST be HSL.
 
   /* Premium dashboard background */
   .dashboard-bg {
-    background: linear-gradient(180deg, #F8FBF9 0%, #F3F8F5 100%);
+    background: linear-gradient(180deg, #FFFFFF 0%, #F5F6F9 100%);  /* pure white to soft neutral */
     position: relative;
     isolation: isolate;
   }
@@ -233,7 +233,7 @@ All colors MUST be HSL.
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse 55% 40% at 50% 38%, hsl(142 25% 93% / 0.5) 0px, transparent 70%);
+    background: radial-gradient(ellipse 55% 40% at 50% 38%, hsl(220 14% 96% / 0.7) 0px, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -413,12 +413,12 @@ All colors MUST be HSL.
   }
 
   .nav-item-premium:hover {
-    background: rgba(34, 197, 94, 0.08);
+    background: rgba(0, 0, 0, 0.04);
   }
 
   .nav-item-premium.active {
-    background: linear-gradient(180deg, #22C55E 0%, #16A34A 100%);
-    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+    background: linear-gradient(180deg, hsl(152 36% 33%) 0%, hsl(152 36% 27%) 100%);
+    box-shadow: 0 8px 20px hsl(152 36% 33% / 0.18);
     color: white;
     border-radius: 14px;
   }
@@ -433,7 +433,7 @@ All colors MUST be HSL.
     position: absolute;
     inset: -3px;
     border-radius: 50%;
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.08);
+    box-shadow: 0 0 0 6px hsl(152 36% 33% / 0.08);
     z-index: -1;
   }
 
@@ -447,13 +447,13 @@ All colors MUST be HSL.
   .progress-premium {
     height: 6px;
     border-radius: 999px;
-    background: #E6EFE9;
+    background: hsl(220 14% 90%);    /* neutral track — no green */
   }
 
   .progress-premium > div {
-    background: linear-gradient(90deg, #22C55E, #16A34A);
+    background: linear-gradient(90deg, hsl(152 36% 33%), hsl(152 36% 27%));
     border-radius: 999px;
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 6px hsl(152 36% 33% / 0.22);
   }
 
   /* Subtle shine animation */
@@ -548,7 +548,7 @@ All colors MUST be HSL.
 
   /* Gray bg only on dashboard tab */
   .profile-content-wrap--gray {
-    background: #f2f3f5;
+    background: #F2F3F6;    /* neutral cool grey */
   }
   .dark .profile-content-wrap--gray {
     background: hsl(150 20% 6%);
@@ -630,13 +630,13 @@ All colors MUST be HSL.
 
   .profile-icon-btn:hover:not(.active) {
     background: rgba(0, 0, 0, 0.05);
-    color: #2d5a47;
+    color: #1c2e26;
   }
 
-  /* Active: soft green rounded square */
+  /* Active: muted green rounded square */
   .profile-icon-btn.active {
-    background: rgba(34, 197, 94, 0.14);
-    color: #16803c;
+    background: hsl(152 30% 90%);     /* very light muted green — not vivid */
+    color: hsl(152 40% 24%);
   }
 
   .profile-icon-btn-icon {
@@ -655,7 +655,7 @@ All colors MUST be HSL.
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+    background: linear-gradient(135deg, hsl(152 36% 33%) 0%, hsl(152 38% 25%) 100%);  /* deep muted green */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -813,6 +813,22 @@ All colors MUST be HSL.
   .code-theme-gray .token.variable {
     color: #e6c07b !important;
   }
+}
+
+
+/* Canvas renderer — hide ALL hr elements (belt-and-suspenders over tiptap.css rule).
+   Targets the prose wrapper, canvas root, and every TipTap/ProseMirror class
+   that could appear in the rendered canvas content. */
+.canvas-renderer-root hr,
+.canvas-renderer-root .ProseMirror hr,
+.canvas-renderer-root .tiptap-renderer hr,
+.prose .canvas-renderer-root hr {
+  display: none !important;
+  visibility: hidden !important;
+  border: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* Monaco Editor Error Line Highlighting */
@@ -1098,10 +1114,10 @@ All colors MUST be HSL.
 }
 
 .co-discount {
-  color: hsl(142 70% 40%);
+  color: hsl(152 40% 30%);    /* muted green */
 }
 .dark .co-discount {
-  color: hsl(142 70% 55%);
+  color: hsl(152 40% 52%);
 }
 
 .co-total-price {
@@ -1114,14 +1130,14 @@ All colors MUST be HSL.
 .co-savings-badge {
   text-align: center;
   font-size: 13px; font-weight: 600;
-  color: hsl(152 68% 28%);
-  background: hsl(152 80% 96%);
+  color: hsl(152 38% 24%);        /* deep muted green text */
+  background: hsl(152 30% 93%);   /* very pale muted green bg */
   border-radius: 8px;
   padding: 6px 12px;
 }
 .dark .co-savings-badge {
-  color: hsl(142 70% 55%);
-  background: hsl(142 70% 45% / 0.12);
+  color: hsl(152 36% 52%);
+  background: hsl(152 36% 33% / 0.12);
 }
 
 /* Success screen */
@@ -1167,6 +1183,12 @@ All colors MUST be HSL.
 /* Hide scrollbar — utility used across horizontal scroll rows */
 .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Career board — hide native page scrollbar for distraction-free experience */
+html.career-board-active,
+body.career-board-active { scrollbar-width: none; -ms-overflow-style: none; }
+html.career-board-active::-webkit-scrollbar,
+body.career-board-active::-webkit-scrollbar { display: none; }
 
 /* Scrollbar */
 .co-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -1259,9 +1281,9 @@ All colors MUST be HSL.
   background-color: hsl(var(--background));
 }
 
-/* ── Hero section gradient — light green in light, deep forest in dark ──── */
+/* ── Hero section gradient — clean neutral in light, deep forest in dark ── */
 .hero-section-bg {
-  background: linear-gradient(180deg, #edf5ef 0%, #f4f9f5 55%, #f9fbf9 100%);
+  background: linear-gradient(180deg, #EEF2F8 0%, #F4F6FA 55%, #FAFBFD 100%);  /* cool white, no green */
 }
 .dark .hero-section-bg {
   background: linear-gradient(180deg, hsl(150 22% 7%) 0%, hsl(150 20% 8%) 55%, hsl(150 18% 9%) 100%);
@@ -1269,7 +1291,7 @@ All colors MUST be HSL.
 
 /* ── Footer background ───────────────────────────────────────────────────── */
 .footer-bg {
-  background-color: #f3f6f3;
+  background-color: #F3F4F6;   /* neutral — no green tint */
 }
 .dark .footer-bg {
   background-color: hsl(150 20% 6%);

@@ -10,6 +10,7 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatComposer } from "./ChatComposer";
 import { MessagingCollapsedBar } from "./MessagingCollapsedBar";
 import { NewConnectionContent } from "./NewConnectionModal";
+import { CourseMentorListContent } from "./CourseMentorListContent";
 import { ChatMentorProfile } from "./ChatMentorProfile";
 import { MentorPreviewContent } from "./MentorPreviewContent";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
@@ -93,6 +94,7 @@ export function MessagingPopup({
   onStartNew,
 }: MessagingPopupProps) {
   const [showNewConnection, setShowNewConnection] = useState(false);
+  const [showCourseMentors, setShowCourseMentors] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
   const [showMentorProfile, setShowMentorProfile] = useState(false);
 
@@ -246,7 +248,7 @@ export function MessagingPopup({
     onSetView("list");
   };
 
-  const showStandardHeader = view === "empty" || view === "list" || view === "mentor_preview" || showNewConnection;
+  const showStandardHeader = view === "empty" || view === "list" || view === "mentor_preview" || showNewConnection || showCourseMentors;
 
   return (
     <div
@@ -263,9 +265,13 @@ export function MessagingPopup({
       {showStandardHeader && (
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
           <div className="flex items-center gap-2.5 min-w-0">
-            {showNewConnection || view === "mentor_preview" ? (
+            {showNewConnection || showCourseMentors || view === "mentor_preview" ? (
               <button
-                onClick={() => { setShowNewConnection(false); if (view === "mentor_preview") onSetView("list"); }}
+                onClick={() => {
+                  if (showCourseMentors) { setShowCourseMentors(false); return; }
+                  setShowNewConnection(false);
+                  if (view === "mentor_preview") onSetView("list");
+                }}
                 className="p-1.5 -ml-1 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
                 aria-label="Back"
               >
@@ -278,9 +284,12 @@ export function MessagingPopup({
             )}
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-foreground truncate">
-                {showNewConnection ? "New Connection" : view === "mentor_preview" ? "Ask a Doubt" : "Messaging"}
+                {showCourseMentors ? "Course Mentors" : showNewConnection ? "New Connection" : view === "mentor_preview" ? "Ask a Doubt" : "Messaging"}
               </h3>
-              {showNewConnection && (
+              {showCourseMentors && (
+                <p className="text-xs text-muted-foreground truncate">Choose a mentor to chat with</p>
+              )}
+              {showNewConnection && !showCourseMentors && (
                 <p className="text-xs text-muted-foreground truncate">Choose who you'd like to connect</p>
               )}
             </div>
@@ -307,7 +316,7 @@ export function MessagingPopup({
         </div>
       )}
 
-      {view === "chat" && activeConnection && !showNewConnection && !showMentorProfile && (
+      {view === "chat" && activeConnection && !showNewConnection && !showMentorProfile && !showCourseMentors && (
         <ChatHeader
           connection={activeConnection}
           onBack={onBackToList}
@@ -319,7 +328,25 @@ export function MessagingPopup({
       )}
 
       <div className="flex-1 flex flex-col min-h-0">
-        {showNewConnection ? (
+        {showCourseMentors ? (
+          <CourseMentorListContent
+            courseId={courseId}
+            userId={userId}
+            lessonId={lessonId}
+            currentMentor={activeConnection ? {
+              user_id: (activeConnection as any).connected_user_id,
+              full_name: activeConnection.display_name || "Current Mentor",
+              avatar_url: activeConnection.avatar_url || null,
+              role_label: activeConnection.role_label || "Mentor",
+            } : undefined}
+            onGoToCurrentChat={() => setShowCourseMentors(false)}
+            onConnect={(connectionId, lid) => {
+              setShowCourseMentors(false);
+              onOpenChat(connectionId, lid);
+            }}
+            onFetchConnections={onFetchConnections}
+          />
+        ) : showNewConnection ? (
           <div className="flex-1 overflow-y-auto">
             <NewConnectionContent
               onConnect={handleNewConnection}
@@ -359,11 +386,11 @@ export function MessagingPopup({
                 mentor={mentorPreview.mentor}
                 context={mentorPreview.context}
                 isConnecting={isAutoConnecting}
-                onStartConversation={() => onStartMentorChat?.()}
-                onConnectOther={() => {
-                  setShowNewConnection(true);
-                  onSetView("list");
+                onStartConversation={() => {
+                  setIsAutoConnecting(true);
+                  onStartMentorChat?.();
                 }}
+                onConnectOther={() => setShowCourseMentors(true)}
               />
             )}
 
@@ -375,7 +402,7 @@ export function MessagingPopup({
                 onClose={onClose}
                 onSwitchMentor={() => {
                   setShowMentorProfile(false);
-                  setShowNewConnection(true);
+                  setShowCourseMentors(true);
                 }}
               />
             )}

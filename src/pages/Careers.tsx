@@ -4,18 +4,17 @@ import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, X } from "lucide-react";
 import { AdPlacement } from "@/components/AdPlacement";
-import PublicCareerCard, { type PublicCareerCardData } from "@/components/PublicCareerCard";
+import PublicCareerCard from "@/components/PublicCareerCard";
+import { useCareersPageData } from "@/hooks/useCareersPageData";
 
 const Careers = () => {
-  const [careers, setCareers] = useState<PublicCareerCardData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: careers = [], isLoading: loading } = useCareersPageData();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [hasAd, setHasAd] = useState(false);
 
   useEffect(() => {
     document.title = "Career Paths - UnlockMemory";
-    fetchCareers();
     supabase
       .from("ads")
       .select("id, start_date, end_date")
@@ -34,45 +33,6 @@ const Careers = () => {
       });
   }, []);
 
-  const fetchCareers = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("careers")
-      .select("id, name, description, icon, slug, career_courses(course_id, courses(id, name))")
-      .eq("status", "published")
-      .order("display_order", { ascending: true });
-
-    if (!error && data) {
-      const { data: enrollments } = await supabase
-        .from("course_enrollments")
-        .select("course_id");
-
-      const mapped: PublicCareerCardData[] = data.map((c: any) => {
-        const coursesRaw: { name: string }[] = (c.career_courses || [])
-          .filter((cc: any) => cc.courses)
-          .map((cc: any) => ({ name: cc.courses.name }));
-        const courseIds = (c.career_courses || [])
-          .filter((cc: any) => cc.courses)
-          .map((cc: any) => cc.courses.id);
-        const enrollmentCount = enrollments
-          ? enrollments.filter((e: any) => courseIds.includes(e.course_id)).length
-          : 0;
-        return {
-          id: c.id,
-          name: c.name,
-          description: c.description || null,
-          icon: c.icon || "Briefcase",
-          slug: c.slug,
-          courseCount: coursesRaw.length,
-          enrollmentCount,
-          courses: coursesRaw,
-        };
-      });
-      setCareers(mapped);
-    }
-    setLoading(false);
-  };
-
   const filteredCareers = useMemo(
     () =>
       careers.filter((career) => {
@@ -87,6 +47,8 @@ const Careers = () => {
     [careers, searchQuery]
   );
 
+
+
   const hasFilter = Boolean(searchQuery);
   const clearAll = () => setSearchQuery("");
 
@@ -100,7 +62,13 @@ const Careers = () => {
       {/* ════════════════════════════════════════════════════════
           HERO
       ════════════════════════════════════════════════════════ */}
-      <div className="border-b border-border/40 hero-section-bg">
+      <div
+        className="border-b border-border/40"
+        style={{
+          background:
+            "linear-gradient(180deg, #edf5ef 0%, #f4f9f5 50%, #f9fbf9 100%)",
+        }}
+      >
         <div className="container px-6 md:px-12 lg:px-16 xl:px-24 pt-16 pb-12">
 
           <div className={`flex flex-col lg:flex-row lg:items-stretch gap-8 ${!hasAd ? "lg:justify-center" : ""}`}>
@@ -111,13 +79,13 @@ const Careers = () => {
               <div
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-5"
                 style={{
-                  background: "rgba(34,165,93,0.07)",
-                  border: "1px solid rgba(34,165,93,0.18)",
+                  background: "hsl(var(--primary) / 0.07)",
+                  border: "1px solid hsl(var(--primary) / 0.18)",
                   alignSelf: hasAd ? "flex-start" : "center",
                 }}
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-[#22A55D]" style={{ boxShadow: "0 0 4px rgba(34,165,93,0.6)" }} />
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: "#1a9050", letterSpacing: "0.025em" }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))]" style={{ boxShadow: "0 0 4px hsl(var(--primary) / 0.6)" }} />
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: "hsl(var(--primary))", letterSpacing: "0.025em" }}>
                   Curated learning journeys
                 </span>
               </div>
@@ -174,16 +142,16 @@ const Careers = () => {
                   className="relative w-full rounded-2xl bg-card transition-all duration-200"
                   style={{
                     border: searchFocused
-                      ? "1.5px solid #22A55D"
+                      ? "1.5px solid hsl(var(--primary))"
                       : "1.5px solid hsl(var(--border) / 0.55)",
                     boxShadow: searchFocused
-                      ? "0 0 0 4px rgba(34,165,93,0.1), 0 2px 8px rgba(0,0,0,0.07)"
+                      ? "0 0 0 4px hsl(var(--primary) / 0.1), 0 2px 8px rgba(0,0,0,0.07)"
                       : "0 1px 4px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)",
                   }}
                 >
                   <Search
                     className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-200"
-                    style={{ color: searchFocused ? "#22A55D" : "hsl(var(--muted-foreground) / 0.55)" }}
+                    style={{ color: searchFocused ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.55)" }}
                   />
                   <input
                     type="text"
@@ -234,7 +202,7 @@ const Careers = () => {
             </p>
             <button
               onClick={clearAll}
-              className="text-[12px] font-semibold text-[#22A55D] hover:text-[#1a9050] transition-colors"
+              className="text-[12px] font-semibold text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] transition-colors"
             >
               Clear filters
             </button>
@@ -243,24 +211,37 @@ const Careers = () => {
 
         {/* Loading skeletons */}
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-2xl overflow-hidden"
-                style={{
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                  opacity: 1 - i * 0.08,
-                }}
-              >
-                <div className="h-52 bg-muted/40 animate-pulse" />
-                <div className="p-4 space-y-2.5 bg-card border border-t-0 border-border/40 rounded-b-2xl">
-                  <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4" />
-                  <div className="h-3 bg-muted/30 rounded animate-pulse w-1/3" />
-                  <div className="h-3 bg-muted/25 rounded animate-pulse w-1/2" />
-                </div>
+          <div className="space-y-10">
+            {/* Featured skeleton */}
+            <div className="space-y-3">
+              <div className="h-5 w-40 bg-muted/40 rounded animate-pulse" />
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                {[0, 1].map((i) => (
+                  <div key={i} className="flex rounded-2xl overflow-hidden border border-border/40" style={{ minHeight: 210, opacity: 1 - i * 0.15 }}>
+                    <div className="w-[260px] bg-muted/40 animate-pulse flex-shrink-0" />
+                    <div className="flex-1 p-5 space-y-3">
+                      <div className="h-3 w-20 bg-muted/30 rounded animate-pulse" />
+                      <div className="h-5 w-2/3 bg-muted/40 rounded animate-pulse" />
+                      <div className="h-3 w-full bg-muted/25 rounded animate-pulse" />
+                      <div className="h-3 w-4/5 bg-muted/20 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            {/* Regular grid skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)", opacity: 1 - i * 0.08 }}>
+                  <div className="h-52 bg-muted/40 animate-pulse" />
+                  <div className="p-4 space-y-2.5 bg-card border border-t-0 border-border/40 rounded-b-2xl">
+                    <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4" />
+                    <div className="h-3 bg-muted/30 rounded animate-pulse w-1/3" />
+                    <div className="h-3 bg-muted/25 rounded animate-pulse w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -269,9 +250,9 @@ const Careers = () => {
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-              style={{ background: "rgba(34,165,93,0.07)" }}
+              style={{ background: "hsl(var(--primary) / 0.07)" }}
             >
-              <Search className="h-6 w-6 text-[#22A55D]/50" />
+              <Search className="h-6 w-6 text-[hsl(var(--primary))]/50" />
             </div>
             <p className="text-[15px] font-semibold text-foreground mb-1.5">
               {searchQuery ? `No results for "${searchQuery}"` : "No career paths available"}
@@ -281,16 +262,16 @@ const Careers = () => {
             </p>
             <button
               onClick={clearAll}
-              className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[#22A55D] text-white hover:bg-[#1a9050] transition-colors"
+              className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))] transition-colors"
             >
               Clear search
             </button>
           </div>
         )}
 
-        {/* Careers grid */}
+        {/* All career paths grid */}
         {!loading && filteredCareers.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="l-card-grid--3">
             {filteredCareers.map((career, index) => (
               <PublicCareerCard key={career.id} career={career} index={index} />
             ))}
@@ -320,7 +301,7 @@ function StatCard({
       </span>
       <span
         className="font-medium"
-        style={{ fontSize: 11.5, color: "#22A55D", letterSpacing: "0.01em" }}
+        style={{ fontSize: 11.5, color: "hsl(var(--primary))", letterSpacing: "0.01em" }}
       >
         {label}
       </span>

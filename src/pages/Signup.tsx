@@ -253,7 +253,7 @@ const Signup = () => {
               </div>
             </div>
             
-            <div className="absolute -top-4 -right-8 w-20 h-20 bg-primary/20 rounded-2xl flex items-center justify-center animate-[bounce_3s_ease-in-out_infinite]">
+            <div className="absolute -top-4 -right-8 w-20 h-20 bg-muted rounded-2xl flex items-center justify-center animate-[bounce_3s_ease-in-out_infinite]">
               <span className="text-4xl">🚀</span>
             </div>
             <div className="absolute -bottom-6 -left-4 w-16 h-16 bg-accent/20 rounded-2xl flex items-center justify-center animate-[bounce_4s_ease-in-out_infinite_0.5s]">

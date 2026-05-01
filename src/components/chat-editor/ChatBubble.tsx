@@ -6,6 +6,7 @@ import { MonacoCodeBlock } from "@/components/code-block";
 import { getChatColors } from "./chatColors";
 import { ChatEditor, type ChatEditorRef } from "@/components/tiptap/ChatEditor";
 import { normalizeBubbleContent } from "@/lib/tiptapMigration";
+import { useChatColors, getDynamicChatColors } from "@/hooks/useChatColors";
 
 // Check if content contains code blocks
 const hasCodeBlock = (content: string): boolean => {
@@ -42,6 +43,8 @@ const ChatBubble = ({
   showSpeakerName = true,
 }: ChatBubbleProps) => {
   const chatEditorRef = useRef<ChatEditorRef>(null);
+  const { colors } = useChatColors();
+  const dynamicColors = getDynamicChatColors(colors, isMentor);
 
   useEffect(() => {
     if (isEditing && chatEditorRef.current) {
@@ -217,7 +220,11 @@ const ChatBubble = ({
         isMentor ? "rounded-br-md" : "rounded-bl-md",
         isDragging && "ring-2 ring-primary/50",
         hasOpenAnnotations && "ring-2 ring-amber-500 ring-offset-1 ring-offset-background"
-      )}>
+      )}
+      style={{
+        backgroundColor: dynamicColors.bubbleStyle.backgroundColor,
+        color: dynamicColors.textStyle.color,
+      }}>
         {/* Annotation indicator */}
         {hasOpenAnnotations && (
           <div className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white shadow-sm">

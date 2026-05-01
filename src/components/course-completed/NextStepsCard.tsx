@@ -36,7 +36,7 @@ const NextStepsCard = ({ recommendedCourse }: NextStepsCardProps) => {
         {/* Primary CTA - Next Course */}
         {recommendedCourse ? (
           <Link to={recommendedCourse.linkOverride || `/course/${recommendedCourse.slug}`}>
-            <div className="group p-4 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
+            <div className="group p-4 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs uppercase tracking-wide text-primary font-medium mb-1">

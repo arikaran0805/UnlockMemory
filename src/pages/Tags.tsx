@@ -134,11 +134,11 @@ const Tags = () => {
         className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-[12.5px] font-medium transition-all duration-150"
         style={{
           background: active
-            ? "linear-gradient(135deg, #22A55D 0%, #1a9050 100%)"
-            : hovered ? "rgba(34,165,93,0.08)" : "transparent",
+            ? "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%)"
+            : hovered ? "hsl(var(--primary) / 0.08)" : "transparent",
           color: active ? "#fff" : "hsl(var(--foreground) / 0.65)",
           border: active ? "none" : "1px solid hsl(var(--border) / 0.5)",
-          boxShadow: active ? "0 2px 8px rgba(34,165,93,0.25)" : "none",
+          boxShadow: active ? "0 2px 8px hsl(var(--primary) / 0.25)" : "none",
         }}
       >
         {icon}
@@ -178,9 +178,9 @@ const Tags = () => {
               <div className="flex items-center gap-3 mb-2">
                 <div
                   className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(34,165,93,0.1)" }}
+                  style={{ background: "hsl(var(--primary) / 0.1)" }}
                 >
-                  <Hash className="h-5 w-5 text-[#22A55D]" />
+                  <Hash className="h-5 w-5 text-[hsl(var(--primary))]" />
                 </div>
                 <h1
                   className="text-foreground font-bold"
@@ -201,14 +201,14 @@ const Tags = () => {
                   <span className="text-foreground font-bold leading-none" style={{ fontSize: 20, letterSpacing: "-0.03em" }}>
                     {isFiltered ? filteredTags.length : totalTags}
                   </span>
-                  <span className="font-medium" style={{ fontSize: 11, color: "#22A55D" }}>Tags</span>
+                  <span className="font-medium" style={{ fontSize: 11, color: "hsl(var(--primary))" }}>Tags</span>
                 </div>
                 <div className="w-px h-7 rounded-full bg-border/60" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-foreground font-bold leading-none" style={{ fontSize: 20, letterSpacing: "-0.03em" }}>
                     {isFiltered ? filteredPostCount : totalPosts}
                   </span>
-                  <span className="font-medium" style={{ fontSize: 11, color: "#22A55D" }}>Lessons tagged</span>
+                  <span className="font-medium" style={{ fontSize: 11, color: "hsl(var(--primary))" }}>Lessons tagged</span>
                 </div>
               </div>
             )}
@@ -307,7 +307,7 @@ const Tags = () => {
                   <Link
                     key={tag.id}
                     to={`/tag/${tag.slug}`}
-                    className="group inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all duration-150 hover:bg-[rgba(34,165,93,0.1)] hover:text-[#15803d] hover:border-[rgba(34,165,93,0.25)]"
+                    className="group inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all duration-150 hover:bg-[hsl(var(--primary) / 0.1)] hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary) / 0.25)]"
                     style={{
                       background: "hsl(var(--muted) / 0.6)",
                       color: "hsl(var(--foreground) / 0.7)",
@@ -333,16 +333,16 @@ const Tags = () => {
             className="relative w-full rounded-2xl bg-card transition-all duration-200 mb-5"
             style={{
               border: searchFocused
-                ? "1.5px solid #22A55D"
+                ? "1.5px solid hsl(var(--primary))"
                 : "1.5px solid hsl(var(--border) / 0.55)",
               boxShadow: searchFocused
-                ? "0 0 0 4px rgba(34,165,93,0.1), 0 2px 8px rgba(0,0,0,0.07)"
+                ? "0 0 0 4px hsl(var(--primary) / 0.1), 0 2px 8px rgba(0,0,0,0.07)"
                 : "0 1px 4px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)",
             }}
           >
             <Search
               className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-200"
-              style={{ color: searchFocused ? "#22A55D" : "hsl(var(--muted-foreground) / 0.55)" }}
+              style={{ color: searchFocused ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.55)" }}
             />
             <input
               type="text"
@@ -416,11 +416,11 @@ const Tags = () => {
               className="w-8 h-8 rounded-lg text-[11px] font-bold transition-all duration-150"
               style={{
                 background: selectedLetter === null
-                  ? "linear-gradient(135deg, #22A55D 0%, #1a9050 100%)"
+                  ? "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%)"
                   : "transparent",
                 color: selectedLetter === null ? "#fff" : "hsl(var(--muted-foreground) / 0.65)",
                 border: selectedLetter === null ? "none" : "1px solid hsl(var(--border) / 0.4)",
-                boxShadow: selectedLetter === null ? "0 2px 6px rgba(34,165,93,0.25)" : "none",
+                boxShadow: selectedLetter === null ? "0 2px 6px hsl(var(--primary) / 0.25)" : "none",
               }}
             >
               All
@@ -436,11 +436,11 @@ const Tags = () => {
                   className="w-8 h-8 rounded-lg text-[11.5px] font-semibold transition-all duration-150"
                   style={{
                     background: active
-                      ? "linear-gradient(135deg, #22A55D 0%, #1a9050 100%)"
+                      ? "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%)"
                       : "transparent",
                     color: active ? "#fff" : has ? "hsl(var(--foreground) / 0.7)" : "hsl(var(--muted-foreground) / 0.22)",
                     border: active ? "none" : `1px solid ${has ? "hsl(var(--border) / 0.45)" : "hsl(var(--border) / 0.18)"}`,
-                    boxShadow: active ? "0 2px 6px rgba(34,165,93,0.25)" : "none",
+                    boxShadow: active ? "0 2px 6px hsl(var(--primary) / 0.25)" : "none",
                     cursor: has ? "pointer" : "default",
                   }}
                 >
@@ -461,7 +461,7 @@ const Tags = () => {
               </p>
               <button
                 onClick={clearFilters}
-                className="text-[12px] font-semibold text-[#22A55D] hover:text-[#1a9050] transition-colors"
+                className="text-[12px] font-semibold text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] transition-colors"
               >
                 Clear filters
               </button>
@@ -496,9 +496,9 @@ const Tags = () => {
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <div
                 className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-                style={{ background: "rgba(34,165,93,0.07)" }}
+                style={{ background: "hsl(var(--primary) / 0.07)" }}
               >
-                <Tag className="h-6 w-6 text-[#22A55D]/50" />
+                <Tag className="h-6 w-6 text-[hsl(var(--primary))]/50" />
               </div>
               <p className="text-[15px] font-semibold text-foreground mb-1.5">
                 {searchQuery || selectedLetter ? "No tags found" : "No tags yet"}
@@ -511,7 +511,7 @@ const Tags = () => {
               {isFiltered && (
                 <button
                   onClick={clearFilters}
-                  className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[#22A55D] text-white hover:bg-[#1a9050] transition-colors"
+                  className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))] transition-colors"
                 >
                   Clear filters
                 </button>
@@ -530,10 +530,10 @@ const Tags = () => {
                   >
                     {/* Icon */}
                     <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[rgba(34,165,93,0.15)] transition-colors"
-                      style={{ background: "rgba(34,165,93,0.08)" }}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[hsl(var(--primary) / 0.15)] transition-colors"
+                      style={{ background: "hsl(var(--primary) / 0.08)" }}
                     >
-                      <Tag className="h-3.5 w-3.5 text-[#22A55D]" />
+                      <Tag className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                     </div>
                     {/* Name + meta */}
                     <div>
@@ -584,10 +584,10 @@ const Tags = () => {
                     className="flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-card transition-all duration-200 border border-border/50 hover:border-border/80 hover:shadow-sm"
                   >
                     <div
-                      className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[rgba(34,165,93,0.15)] transition-colors"
-                      style={{ background: "rgba(34,165,93,0.08)" }}
+                      className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[hsl(var(--primary) / 0.15)] transition-colors"
+                      style={{ background: "hsl(var(--primary) / 0.08)" }}
                     >
-                      <Tag className="h-3.5 w-3.5 text-[#22A55D]" />
+                      <Tag className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                     </div>
                     <span
                       className="flex-1 font-medium text-foreground/85 group-hover:text-foreground truncate transition-colors"
@@ -637,9 +637,9 @@ const Tags = () => {
               <div className="flex items-center gap-2.5 mb-5">
                 <div
                   className="w-7 h-7 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(34,165,93,0.1)" }}
+                  style={{ background: "hsl(var(--primary) / 0.1)" }}
                 >
-                  <TrendingUp className="h-3.5 w-3.5 text-[#22A55D]" />
+                  <TrendingUp className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                 </div>
                 <h2 className="text-[15px] font-semibold text-foreground">Tag Cloud</h2>
               </div>
@@ -654,7 +654,7 @@ const Tags = () => {
                       <Link
                         key={tag.id}
                         to={`/tag/${tag.slug}`}
-                        className="inline-flex items-center rounded-xl font-medium transition-all duration-150 hover:bg-[rgba(34,165,93,0.1)] hover:text-[#15803d] hover:border-[rgba(34,165,93,0.25)]"
+                        className="inline-flex items-center rounded-xl font-medium transition-all duration-150 hover:bg-[hsl(var(--primary) / 0.1)] hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary) / 0.25)]"
                         style={{
                           fontSize: fs,
                           height: fs > 13 ? 30 : 26,

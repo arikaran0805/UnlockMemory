@@ -1096,7 +1096,7 @@ const AdminCourseEditor = () => {
                   <Button
                     onClick={(e) => handleSubmit(e, false, formData.status)}
                     disabled={loading}
-                    className="w-full h-9 text-sm gap-2 font-semibold bg-[#16a34a] hover:bg-[#15803d] text-white"
+                    className="w-full h-9 text-sm gap-2 font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     <Save className="h-4 w-4" />
                     {id ? 'Update Course' : 'Create Course'}

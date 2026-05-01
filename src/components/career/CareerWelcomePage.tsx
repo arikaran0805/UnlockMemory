@@ -46,8 +46,8 @@ export const CareerWelcomePage = ({ career, skills, onStart }: CareerWelcomePage
       <div className="w-full max-w-3xl">
         {/* Header - Career Identity */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-6">
-            <Compass className="h-8 w-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-muted mb-6">
+            <Compass className="h-8 w-8 text-muted-foreground" />
           </div>
           
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">

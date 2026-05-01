@@ -1,8 +1,6 @@
 import { useState, useMemo, useCallback, memo } from "react";
 import { Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -13,7 +11,6 @@ import {
   Home,
   Search,
   X,
-  Award,
   Link2,
   Dumbbell,
 } from "lucide-react";
@@ -82,6 +79,8 @@ interface CourseSidebarProps {
   toggleLessonExpansion: (lessonId: string) => void;
   handleLessonClick: (post: Post) => void;
   handleHomeClick: () => void;
+  /** When provided, "Practice Problems" opens focus mode instead of navigating away */
+  onOpenPracticeFocus?: (lessonId: string) => void;
 }
 
 export const CourseSidebar = memo(({
@@ -107,6 +106,7 @@ export const CourseSidebar = memo(({
   toggleLessonExpansion,
   handleLessonClick,
   handleHomeClick,
+  onOpenPracticeFocus,
 }: CourseSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -200,164 +200,135 @@ export const CourseSidebar = memo(({
     <aside className="lg:w-[280px] bg-sidebar border-r border-sidebar-border flex-shrink-0">
       <div className={cn("sticky transition-[top] duration-200 ease-out", stickyTopClass)} style={{ height: `calc(100vh - ${heightOffset})` }}>
 
-        {/* ═══ SECTION 1: HEADER ═══ */}
-        <div className="px-4 pt-4 pb-1">
-          <div className="flex items-center justify-between">
-            {/* Label — refined tracking, tighter size */}
-            <h2 className="text-[10px] font-semibold text-muted-foreground/65 tracking-[0.14em] uppercase leading-none select-none">
-              {isAuthenticated ? "Course Progress" : "Course Outline"}
-            </h2>
+        {/* ═══ SECTION 1: HEADER — VS Code panel header ═══ */}
+        <div className="flex items-center justify-between h-[34px] px-2 border-b border-sidebar-border/70 flex-shrink-0 bg-sidebar-accent/25 select-none">
+          <h2 className="text-[11px] font-semibold text-muted-foreground/50 tracking-[0.09em] uppercase leading-none pl-1">
+            {isAuthenticated ? "Course Progress" : "Course Outline"}
+          </h2>
 
-            <div className="flex items-center gap-0.5">
-              {/* Search toggle */}
+          <div className="flex items-center gap-0.5">
+            {/* Search toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    setIsSearchFocused(!isSearchFocused);
+                    if (isSearchFocused) setSearchQuery("");
+                  }}
+                  className={cn(
+                    "h-[26px] w-[26px] flex items-center justify-center rounded-[3px] transition-all duration-150",
+                    isSearchFocused
+                      ? "text-sidebar-primary bg-sidebar-accent"
+                      : "text-muted-foreground/45 hover:text-foreground hover:bg-sidebar-accent"
+                  )}
+                  aria-label="Search lessons"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Search lessons</TooltipContent>
+            </Tooltip>
+
+            {/* Home — authenticated only */}
+            {isAuthenticated && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => {
-                      setIsSearchFocused(!isSearchFocused);
-                      if (isSearchFocused) setSearchQuery("");
-                    }}
-                    className={cn(
-                      "h-7 w-7 flex items-center justify-center rounded-xl transition-all duration-200",
-                      isSearchFocused
-                        ? "text-sidebar-primary bg-sidebar-accent"
-                        : "text-muted-foreground/60 hover:text-sidebar-primary hover:bg-sidebar-accent"
-                    )}
-                    aria-label="Search lessons"
+                    onClick={handleHomeClick}
+                    className="h-[26px] w-[26px] flex items-center justify-center rounded-[3px] text-muted-foreground/45 hover:text-foreground hover:bg-sidebar-accent transition-all duration-150"
+                    aria-label="Go to course home"
                   >
-                    <Search className="h-3.5 w-3.5" />
+                    <Home className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Search lessons</TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">Course home</TooltipContent>
               </Tooltip>
-
-              {/* Home — authenticated only */}
-              {isAuthenticated && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handleHomeClick}
-                      className="h-7 w-7 flex items-center justify-center rounded-xl text-muted-foreground/60 hover:text-sidebar-primary hover:bg-sidebar-accent transition-all duration-200"
-                      aria-label="Go to course home"
-                    >
-                      <Home className="h-3.5 w-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Course home</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
         {/* ═══ SECTION 2: SEARCH (collapsible) ═══ */}
         <div
           className={cn(
-            "overflow-hidden transition-all duration-300 ease-in-out",
-            isSearchFocused ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
+            "overflow-hidden transition-all duration-200 ease-in-out",
+            isSearchFocused ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
           )}
         >
-          <div className="px-4 pb-3">
+          <div className="px-2 py-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search lessons…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn(
-                  "w-full h-9 pl-9 pr-8 text-[13px] rounded-xl",
+                  "w-full h-[32px] pl-8 pr-7 text-[13px] rounded-[3px]",
                   "bg-background border border-sidebar-border",
-                  "placeholder:text-muted-foreground/45",
-                  "transition-colors duration-200",
-                  "focus:outline-none focus:border-sidebar-primary/45"
+                  "placeholder:text-muted-foreground/40",
+                  "transition-colors duration-150",
+                  "focus:outline-none focus:border-sidebar-primary/50"
                 )}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-[2px] text-muted-foreground/50 hover:text-foreground transition-colors"
                   aria-label="Clear search"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3 w-3" />
                 </button>
               )}
             </div>
           </div>
-          <Separator className="bg-sidebar-border" />
+          <div className="h-px bg-sidebar-border/60" />
         </div>
 
         {/* ═══ SECTION 3: PROGRESS ═══ */}
         {isAuthenticated ? (
           <>
-            <div className="px-4 pt-3 pb-4">
+            <div className="px-3 pt-2.5 pb-2.5">
               {isLoading ? (
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Skeleton className="h-3 w-20 rounded-lg" />
-                    <Skeleton className="h-4 w-8 rounded-lg" />
+                    <Skeleton className="h-2.5 w-20 rounded-[2px]" />
+                    <Skeleton className="h-3 w-8 rounded-[2px]" />
                   </div>
-                  <Skeleton className="h-1.5 w-full rounded-full" />
-                  <Skeleton className="h-3 w-28 rounded-lg" />
+                  <Skeleton className="h-[2px] w-full rounded-none" />
+                  <Skeleton className="h-2.5 w-28 rounded-[2px]" />
                 </div>
               ) : (
                 <div className="space-y-2.5">
                   {/* Stats row */}
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-muted-foreground/70">
+                    <span className="text-[13px] text-muted-foreground/60 tabular-nums font-mono">
                       {courseProgress.percentage > 0
-                        ? `${courseProgress.completedCount} / ${courseProgress.totalCount} lessons`
+                        ? `${courseProgress.completedCount}/${courseProgress.totalCount} lessons`
                         : `${courseProgress.totalCount} lesson${courseProgress.totalCount !== 1 ? "s" : ""}`}
                     </span>
-                    {/* Percentage — muted at zero, green once started */}
                     <span className={cn(
-                      "text-[15px] font-bold leading-none tabular-nums",
+                      "text-[13px] font-bold leading-none tabular-nums font-mono",
                       courseProgress.percentage === 0
-                        ? "text-muted-foreground/40"
+                        ? "text-muted-foreground/35"
                         : "text-sidebar-primary"
                     )}>
                       {courseProgress.percentage}%
                     </span>
                   </div>
 
-                  {/* Progress bar */}
-                  <Progress
-                    value={courseProgress.percentage}
-                    className="h-1.5 bg-sidebar-accent rounded-full [&>div]:bg-gradient-to-r [&>div]:from-sidebar-primary [&>div]:to-sidebar-primary/75 [&>div]:transition-all [&>div]:duration-700 [&>div]:rounded-full"
-                    aria-label={`Course progress: ${courseProgress.percentage}%`}
-                  />
-
-                  {/* Motivational row — calm dot instead of Sparkles icon */}
-                  <div className="flex items-center gap-2 text-[11.5px]">
-                    {!courseProgress.hasStarted && (
-                      <>
-                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30 flex-shrink-0" />
-                        <span className="text-muted-foreground/60">Ready when you are</span>
-                      </>
-                    )}
-                    {courseProgress.hasStarted && !courseProgress.isCompleted && courseProgress.percentage < 50 && (
-                      <>
-                        <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary/60 flex-shrink-0" />
-                        <span className="text-sidebar-accent-foreground">Great start — keep going</span>
-                      </>
-                    )}
-                    {courseProgress.hasStarted && !courseProgress.isCompleted && courseProgress.percentage >= 50 && (
-                      <>
-                        <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary flex-shrink-0" />
-                        <span className="text-sidebar-accent-foreground">You're doing amazing!</span>
-                      </>
-                    )}
-                    {courseProgress.isCompleted && (
-                      <>
-                        <Award className="h-3.5 w-3.5 text-sidebar-primary flex-shrink-0" />
-                        <span className="text-sidebar-primary font-medium">Course completed!</span>
-                      </>
-                    )}
+                  {/* Progress bar — thin flat line, tool style */}
+                  <div className="h-[2px] w-full bg-sidebar-border/80 rounded-none overflow-hidden">
+                    <div
+                      className="h-full bg-sidebar-primary transition-all duration-700 ease-out"
+                      style={{ width: `${courseProgress.percentage}%` }}
+                      aria-label={`Course progress: ${courseProgress.percentage}%`}
+                    />
                   </div>
+
                 </div>
               )}
             </div>
-            <Separator className="bg-sidebar-border" />
+            <div className="h-px bg-sidebar-border/60" />
           </>
         ) : (
           /* Guest sign-in prompt */
@@ -376,14 +347,14 @@ export const CourseSidebar = memo(({
 
         {/* ═══ SECTION 4: LESSON TREE ═══ */}
         <ScrollArea className="flex-1 h-[calc(100%-16rem)]">
-          <nav className="p-2" aria-label="Course lessons" role="region">
+          <nav className="py-1" aria-label="Course lessons" role="region">
 
             {noResults ? (
               /* No search results */
-              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <Search className="h-7 w-7 text-muted-foreground/30 mb-3" />
-                <p className="text-[13px] text-muted-foreground font-medium">No lessons found</p>
-                <p className="text-[11.5px] text-muted-foreground/50 mt-1">Try a different keyword</p>
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <Search className="h-6 w-6 text-muted-foreground/25 mb-2.5" />
+                <p className="text-[12px] text-muted-foreground/60">No lessons found</p>
+                <p className="text-[11px] text-muted-foreground/40 mt-1">Try a different keyword</p>
               </div>
 
             ) : filteredLessons.length > 0 ? (
@@ -406,12 +377,12 @@ export const CourseSidebar = memo(({
                         "transition-all duration-300 ease-out overflow-hidden",
                         isAboveExpanded
                           ? "max-h-0 opacity-0 mb-0"
-                          : "max-h-[500px] opacity-100 mb-1",
+                          : "max-h-[500px] opacity-100",
                         isTheExpanded && "relative z-10"
                       )}
                       role="presentation"
                     >
-                      {/* ── Module accordion trigger ── */}
+                      {/* ── Module accordion trigger — VS Code section row ── */}
                       <button
                         id={headerId}
                         onClick={() => toggleLessonExpansion(lesson.id)}
@@ -431,60 +402,57 @@ export const CourseSidebar = memo(({
                         aria-expanded={isExpanded}
                         aria-controls={panelId}
                       >
-                        {/* Left accent bar — editorial indicator for active module */}
+                        {/* Left accent bar — centred on active module */}
                         {hasActivePost && (
                           <div className="absolute left-0 top-[20%] bottom-[20%] w-[2.5px] bg-sidebar-primary/55 rounded-r" />
                         )}
 
-                        <div className="px-3 py-2.5 flex items-center justify-between">
-                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="pl-3 pr-2 py-[7px] flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {/* Chevron — tree disclosure */}
+                            <ChevronDown
+                              className={cn(
+                                "h-3 w-3 text-muted-foreground/50 transition-transform duration-150 flex-shrink-0",
+                                !isExpanded && "-rotate-90"
+                              )}
+                            />
                             {/* Module status icon */}
                             {isAuthenticated ? (
                               lessonProgress.isComplete ? (
-                                <CheckCircle className="h-4 w-4 text-sidebar-primary flex-shrink-0" />
+                                <CheckCircle className="h-3.5 w-3.5 text-sidebar-primary flex-shrink-0" />
                               ) : lessonProgress.completedPosts > 0 ? (
-                                <div className="h-4 w-4 rounded-full border-2 border-sidebar-primary flex items-center justify-center flex-shrink-0">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-sidebar-primary/60" />
+                                <div className="h-3.5 w-3.5 rounded-full border-[1.5px] border-sidebar-primary flex items-center justify-center flex-shrink-0">
+                                  <div className="h-1 w-1 rounded-full bg-sidebar-primary/60" />
                                 </div>
                               ) : (
-                                <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                                <Circle className="h-3.5 w-3.5 text-muted-foreground/35 flex-shrink-0" />
                               )
                             ) : (
-                              <BookOpen className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                              <BookOpen className="h-3.5 w-3.5 text-muted-foreground/35 flex-shrink-0" />
                             )}
-                            <span className="text-[13px] font-medium text-sidebar-foreground truncate">
+                            <span className="text-[14px] font-medium text-sidebar-foreground/90 truncate leading-normal">
                               {lesson.title}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {/* Module progress count */}
-                            {isAuthenticated && lessonProgress.totalPosts > 0 && (
-                              <span className="text-[10px] font-medium text-muted-foreground/50 tabular-nums">
-                                {lessonProgress.completedPosts}/{lessonProgress.totalPosts}
-                              </span>
-                            )}
-                            <ChevronDown
-                              className={cn(
-                                "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200",
-                                isExpanded && "rotate-180"
-                              )}
-                            />
-                          </div>
+                          {/* Module progress count */}
+                          {isAuthenticated && lessonProgress.totalPosts > 0 && (
+                            <span className="text-[11px] font-medium text-muted-foreground/40 tabular-nums font-mono flex-shrink-0 ml-2">
+                              {lessonProgress.completedPosts}/{lessonProgress.totalPosts}
+                            </span>
+                          )}
                         </div>
                       </button>
 
-                      {/* ── Lesson posts panel ── */}
+                      {/* ── Lesson posts — flat compact list ── */}
                       {isExpanded && (
                         <div
                           id={panelId}
                           role="region"
                           aria-labelledby={headerId}
                           className={cn(
-                            "ml-3 mt-1 border-l pl-2 space-y-0.5",
-                            hasActivePost
-                              ? "border-sidebar-primary/30"
-                              : "border-border/50"
+                            "ml-[39px] mt-0.5 border-l pl-1 pb-1",
+                            hasActivePost ? "border-sidebar-primary/30" : "border-border/50"
                           )}
                         >
                           {lessonPosts.length > 0 ? (
@@ -506,57 +474,41 @@ export const CourseSidebar = memo(({
                                         : "hover:bg-sidebar-accent/60"
                                   )}
                                 >
-                                  {/* Active accent bar */}
-
                                   {/* Share-open accent bar */}
                                   {shareOpenPostId === post.id && !isActive && (
                                     <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-sidebar-primary rounded-r" />
                                   )}
 
-                                  <div className="px-3 py-2 flex items-center gap-2">
-                                    {/* Completion status — authenticated only */}
+                                  <div className="pl-2 pr-2 py-[6px] flex items-center gap-2">
+                                    {/* Completion status */}
                                     {isAuthenticated ? (
                                       isCompleted ? (
-                                        <CheckCircle
-                                          className={cn(
-                                            "h-3 w-3 flex-shrink-0",
-                                            isActive ? "text-sidebar-primary" : "text-sidebar-primary"
-                                          )}
-                                        />
+                                        <CheckCircle className="h-3 w-3 flex-shrink-0 text-sidebar-primary" />
                                       ) : (
-                                        <Circle
-                                          className={cn(
-                                            "h-3 w-3 flex-shrink-0",
-                                            isActive
-                                              ? "text-sidebar-primary/50"
-                                              : "text-muted-foreground/30"
-                                          )}
-                                        />
+                                        <Circle className={cn(
+                                          "h-3 w-3 flex-shrink-0",
+                                          isActive ? "text-sidebar-primary/50" : "text-muted-foreground/25"
+                                        )} />
                                       )
                                     ) : null}
 
-                                    <span
-                                      className={cn(
-                                        "text-[13px] flex-1 truncate transition-colors",
-                                        isActive
-                                          ? "text-sidebar-primary font-medium"
-                                          : "text-sidebar-foreground/85 group-hover/lesson:text-sidebar-accent-foreground"
-                                      )}
-                                    >
+                                    <span className={cn(
+                                      "text-[14px] flex-1 truncate transition-colors leading-normal",
+                                      isActive
+                                        ? "text-sidebar-primary font-medium"
+                                        : "text-sidebar-foreground/80 group-hover/lesson:text-sidebar-foreground"
+                                    )}>
                                       {post.title}
                                     </span>
 
-                                    {/* Hover actions — authenticated only */}
+                                    {/* Hover actions */}
                                     {isAuthenticated && (
-                                      <div
-                                        className={cn(
-                                          "flex items-center gap-1.5 transition-opacity duration-200",
-                                          isActive || shareOpenPostId === post.id
-                                            ? "opacity-100"
-                                            : "opacity-0 group-hover/lesson:opacity-100"
-                                        )}
-                                      >
-                                        {/* Copy link */}
+                                      <div className={cn(
+                                        "flex items-center gap-1 transition-opacity duration-150",
+                                        isActive || shareOpenPostId === post.id
+                                          ? "opacity-100"
+                                          : "opacity-0 group-hover/lesson:opacity-100"
+                                      )}>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
@@ -567,14 +519,9 @@ export const CourseSidebar = memo(({
                                                 toast.success("Link copied!");
                                                 setTimeout(() => setCopiedPostId(null), 2000);
                                               }}
-                                              className={cn(
-                                                "p-0.5 rounded-lg transition-colors",
-                                                isActive
-                                                  ? "text-sidebar-primary/60 hover:text-sidebar-primary"
-                                                  : "text-muted-foreground/60 hover:text-foreground"
-                                              )}
+                                              className="p-0.5 rounded-[2px] text-muted-foreground/50 hover:text-foreground transition-colors"
                                             >
-                                              <Link2 className="h-3 w-3" />
+                                              <Link2 className="h-2.5 w-2.5" />
                                             </button>
                                           </TooltipTrigger>
                                           <TooltipContent side="top" className="text-xs">
@@ -582,7 +529,6 @@ export const CourseSidebar = memo(({
                                           </TooltipContent>
                                         </Tooltip>
 
-                                        {/* Share menu */}
                                         <LessonShareMenu
                                           postId={post.id}
                                           postTitle={post.title}
@@ -606,31 +552,55 @@ export const CourseSidebar = memo(({
                               );
                             })
                           ) : (
-                            <div className="px-3 py-3 text-[12px] text-muted-foreground/50 italic">
+                            <div className="pl-4 py-2 text-[11px] text-muted-foreground/40 italic">
                               Content coming soon…
                             </div>
                           )}
 
-                          {/* Practice problems link */}
-                          {practiceSkillSlug && lessonProblemCounts && lessonProblemCounts.get(lesson.id) ? (
-                            <Link
-                              to={`/practice/${practiceSkillSlug}/lesson/${lesson.id}`}
-                              className={cn(
-                                "flex items-center gap-2 px-3 py-2 mt-1 rounded-xl",
-                                "text-[12px] font-medium",
-                                "bg-sidebar-primary/[0.07] text-sidebar-primary/70",
-                                "hover:bg-sidebar-primary/[0.13] hover:text-sidebar-primary",
-                                "transition-all duration-200"
-                              )}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {isAuthenticated && lessonProblemsCompleted?.get(lesson.id) ? (
-                                <CheckCircle className="h-3.5 w-3.5 text-sidebar-primary flex-shrink-0" />
-                              ) : (
-                                <Dumbbell className="h-3.5 w-3.5 flex-shrink-0" />
-                              )}
-                              <span>Practice Problems</span>
-                            </Link>
+                          {/* Practice problems — focus mode in career board, link elsewhere */}
+                          {practiceSkillSlug ? (
+                            onOpenPracticeFocus ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenPracticeFocus(lesson.id);
+                                }}
+                                className={cn(
+                                  "w-full flex items-center gap-2 pl-3 pr-2 py-[5px]",
+                                  "text-[11.5px] font-medium text-left",
+                                  "text-sidebar-primary/60 hover:text-sidebar-primary hover:bg-sidebar-accent/40",
+                                  "transition-colors duration-100"
+                                )}
+                              >
+                                {isAuthenticated && lessonProblemsCompleted?.get(lesson.id) ? (
+                                  <CheckCircle className="h-3 w-3 text-sidebar-primary flex-shrink-0" />
+                                ) : (
+                                  <Dumbbell className="h-3 w-3 flex-shrink-0" />
+                                )}
+                                <span>Practice Problems</span>
+                              </button>
+                            ) : (
+                              <Link
+                                to={lessonProblemCounts?.get(lesson.id)
+                                  ? `/practice/${practiceSkillSlug}/lesson/${lesson.id}`
+                                  : `/practice/${practiceSkillSlug}`
+                                }
+                                className={cn(
+                                  "flex items-center gap-2 pl-3 pr-2 py-[5px]",
+                                  "text-[11.5px] font-medium",
+                                  "text-sidebar-primary/60 hover:text-sidebar-primary hover:bg-sidebar-accent/40",
+                                  "transition-colors duration-100"
+                                )}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {isAuthenticated && lessonProblemsCompleted?.get(lesson.id) ? (
+                                  <CheckCircle className="h-3 w-3 text-sidebar-primary flex-shrink-0" />
+                                ) : (
+                                  <Dumbbell className="h-3 w-3 flex-shrink-0" />
+                                )}
+                                <span>Practice Problems</span>
+                              </Link>
+                            )
                           ) : null}
                         </div>
                       )}
@@ -641,20 +611,20 @@ export const CourseSidebar = memo(({
 
             ) : isLoading ? (
               /* Loading skeleton */
-              <div className="space-y-1 p-1">
+              <div className="space-y-0.5 py-1">
                 {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl">
-                    <Skeleton className="h-4 w-4 rounded-full flex-shrink-0" />
-                    <Skeleton className="h-3 flex-1 rounded-lg" />
+                  <div key={i} className="flex items-center gap-2 px-3 py-[7px]">
+                    <Skeleton className="h-3 w-3 rounded-full flex-shrink-0" />
+                    <Skeleton className="h-2.5 flex-1 rounded-[2px]" />
                   </div>
                 ))}
               </div>
 
             ) : (
               /* No lessons */
-              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <BookOpen className="h-7 w-7 text-muted-foreground/30 mb-3" />
-                <p className="text-[13px] text-muted-foreground/70">No lessons yet</p>
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <BookOpen className="h-6 w-6 text-muted-foreground/25 mb-2.5" />
+                <p className="text-[12px] text-muted-foreground/60">No lessons yet</p>
               </div>
             )}
           </nav>

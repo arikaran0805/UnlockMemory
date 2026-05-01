@@ -191,11 +191,11 @@ const Checkout = () => {
                           <h2 className="font-semibold text-foreground text-lg">Account Details</h2>
                           {user ? (
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                <UserCircle className="h-5 w-5 text-primary" />
+                              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                <UserCircle className="h-5 w-5 text-muted-foreground" />
                               </div>
                               <p className="text-sm font-medium text-foreground truncate flex-1">{user.email}</p>
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground/70 bg-muted/60 px-2 py-1 rounded-full">
                                 <CheckCircle2 className="h-3 w-3" /> Logged in
                               </span>
                             </div>
@@ -243,8 +243,8 @@ const Checkout = () => {
                                 onClick={() => setSelectedPayment(method.id)}
                                 className={`flex flex-col items-center text-center p-4 rounded-lg border transition-all duration-200 ${
                                   selectedPayment === method.id
-                                    ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                                    : "border-border hover:border-primary/40 bg-card"
+                                    ? "border-foreground/40 ring-2 ring-border bg-muted/40"
+                                    : "border-border hover:border-border/80 bg-card"
                                 }`}
                               >
                                 <div className={`mb-2 transition-colors ${selectedPayment === method.id ? "text-primary" : "text-muted-foreground"}`}>
@@ -302,8 +302,8 @@ const Checkout = () => {
                           <ul className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
                             {cartData.courses.map((c) => (
                               <li key={c.id} className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                  <BookOpen className="h-4 w-4 text-primary" />
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                  <BookOpen className="h-4 w-4 text-muted-foreground" />
                                 </div>
                                 <span className="text-sm text-foreground truncate flex-1">{c.name}</span>
                                 <span className="text-sm font-medium text-foreground whitespace-nowrap shrink-0">{formatPrice(c.price)}</span>
@@ -340,8 +340,8 @@ const Checkout = () => {
                           </div>
 
                           {cartData.savings > 0 && (
-                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-primary/10">
-                              <p className="text-xs font-medium text-primary">You saved {formatPrice(cartData.savings)}</p>
+                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-muted/50 border border-border/40">
+                              <p className="text-xs font-medium text-foreground/70">You saved {formatPrice(cartData.savings)}</p>
                             </div>
                           )}
 
@@ -361,8 +361,8 @@ const Checkout = () => {
       {/* Auth Required Dialog */}
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
         <DialogContent className="max-w-sm text-center p-8">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Lock className="h-7 w-7 text-primary" />
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-7 w-7 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-bold text-foreground">Sign in to continue</h2>
           <p className="text-sm text-muted-foreground mt-1">

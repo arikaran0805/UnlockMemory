@@ -1375,7 +1375,7 @@ const Profile = () => {
                     <TooltipTrigger asChild>
                       <Badge 
                         variant="outline" 
-                        className="gap-1.5 px-3 py-1.5 text-primary border-primary/30 bg-primary/5 cursor-default"
+                        className="gap-1.5 px-3 py-1.5 text-foreground/70 border-border/40 bg-muted/50 cursor-default"
                       >
                         <Zap className="h-3.5 w-3.5" />
                         <span className="font-semibold text-sm">
@@ -1585,20 +1585,17 @@ const Profile = () => {
                       <div className="flex flex-col items-center mt-5">
                         <Button 
                           className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
-                          style={{ background: 'linear-gradient(180deg, #22C55E, #16A34A)', boxShadow: '0 10px 24px rgba(34,197,94,0.3)' }}
+                          style={{
+                            background: 'linear-gradient(180deg, hsl(var(--primary-glow)), hsl(var(--primary)))',
+                            boxShadow: '0 10px 24px hsl(var(--primary-glow) / 0.28)',
+                          }}
                           onClick={() => {
-                            if (career) {
-                              if (skills.length > 0) {
-                                const courseInfo = getCourseForSkill(career.id, skills[0].skill_name);
-                                if (courseInfo) {
-                                  navigateToCourseInCareerBoard(career.slug, courseInfo.courseSlug);
-                                  return;
-                                }
-                              }
-                              navigate(`/career-board/${career.slug}`);
-                              return;
+                            const slug = career?.slug || selectedCareer;
+                            if (slug) {
+                              navigate(`/career-board/${slug}`);
+                            } else {
+                              navigate('/careers');
                             }
-                            navigate('/careers');
                           }}
                         >
                           <LayoutDashboard className="h-4 w-4" />
@@ -1709,10 +1706,10 @@ const Profile = () => {
                 {/* Lesson Suggestion */}
                 <div
                   onClick={todaysFocus.handleContinueLearning}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 hover:border-primary/20 hover:bg-primary/[0.03] transition-all duration-200 cursor-pointer group"
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 hover:border-border/50 hover:bg-muted/40 transition-all duration-200 cursor-pointer group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0 group-hover:bg-primary/12 transition-colors">
-                    <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
+                  <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover:bg-muted/80 transition-colors">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold text-foreground">Continue Learning</p>
@@ -1868,71 +1865,80 @@ const Profile = () => {
 
       return (
         <div
-          className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-card border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+          className="group flex h-full min-h-[220px] flex-col rounded-2xl bg-card border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5"
           onClick={() => navigateToCourse(course?.slug, course?.id)}
         >
-          {/* Course icon */}
-          <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: col.bg }}
-          >
-            <IconComp className="w-[18px] h-[18px]" style={{ color: col.fg }} strokeWidth={1.8} />
+          <div className="flex items-start gap-4">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: col.bg }}
+            >
+              <IconComp className="w-[18px] h-[18px]" style={{ color: col.fg }} strokeWidth={1.8} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-semibold text-foreground tracking-tight leading-snug line-clamp-2">
+                {course?.name}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {course?.level && (
+                  <span className="flex-shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {course.level}
+                  </span>
+                )}
+                {isCompleted && (
+                  <span
+                    className="flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: 'hsl(var(--primary) / 0.10)', color: 'hsl(var(--primary))' }}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    Completed
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Main info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[14px] font-semibold text-foreground tracking-tight truncate">
-                {course?.name}
-              </span>
-              {course?.level && (
-                <span className="flex-shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                  {course.level}
-                </span>
-              )}
-              {isCompleted && (
-                <span className="flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-emerald-700" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                  <CheckCircle2 className="w-3 h-3" />
-                  Completed
-                </span>
-              )}
-            </div>
-            {/* Progress bar */}
+          <div className="mt-5 flex flex-1 flex-col">
             <div className="flex items-center gap-2.5">
               <div className="flex-1 h-1.5 rounded-full overflow-hidden progress-track">
                 <div
                   className="h-full rounded-full"
                   style={{
                     width: `${isCompleted ? 100 : pct}%`,
-                    background: isCompleted
-                      ? 'linear-gradient(90deg, #22C55E, #16A34A)'
-                      : 'linear-gradient(90deg, hsl(var(--primary)), hsl(142,76%,36%))',
+                    background: 'linear-gradient(90deg, hsl(var(--primary-glow)), hsl(var(--primary)))',
                     transition: 'width 600ms ease',
                   }}
                 />
               </div>
-              <span className="flex-shrink-0 text-[12px] font-semibold text-muted-foreground w-8 text-right">
+              <span className="flex-shrink-0 text-[12px] font-semibold text-muted-foreground w-10 text-right">
                 {isCompleted ? '100%' : `${pct}%`}
               </span>
             </div>
-            <p className="text-[12px] text-muted-foreground mt-1">
+
+            <p className="text-[12px] text-muted-foreground mt-2 leading-relaxed">
               {progress.completed} of {progress.total} lessons completed
               {!isCompleted && course?.learning_hours > 0 ? ` · ${course.learning_hours}h total` : ''}
             </p>
-          </div>
 
-          {/* CTA button */}
-          <button
-            className="flex-shrink-0 text-[13px] font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all duration-150"
-            style={isCompleted
-              ? { background: 'rgba(34,197,94,0.08)', color: '#16A34A' }
-              : { background: 'hsl(var(--primary))', color: '#fff', boxShadow: '0 2px 8px hsla(142,71%,45%,0.22)' }
-            }
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-          >
-            {isCompleted ? 'Review' : 'Continue →'}
-          </button>
+            <div className="mt-auto pt-5">
+              <button
+                className="w-full text-[13px] font-semibold px-4 py-2.5 rounded-xl border-0 cursor-pointer transition-all duration-150"
+                style={isCompleted
+                  ? { background: 'hsl(var(--primary) / 0.08)', color: 'hsl(var(--primary))' }
+                  : {
+                      background: 'linear-gradient(180deg, hsl(var(--primary-glow)), hsl(var(--primary)))',
+                      color: '#fff',
+                      boxShadow: '0 2px 8px hsl(var(--primary-glow) / 0.22)',
+                    }
+                }
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+              >
+                {isCompleted ? 'Review' : 'Continue →'}
+              </button>
+            </div>
+          </div>
         </div>
       );
     };
@@ -1994,7 +2000,7 @@ const Profile = () => {
             </span>
           </div>
           {ongoingCourses.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
               {ongoingCourses.map((enrollment, i) => (
                 <CourseRow key={enrollment.id} enrollment={enrollment} index={i} isCompleted={false} />
               ))}
@@ -2016,7 +2022,7 @@ const Profile = () => {
                 {completedCourses.length}
               </span>
             </div>
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
               {completedCourses.map((enrollment, i) => (
                 <CourseRow key={enrollment.id} enrollment={enrollment} index={i} isCompleted={true} />
               ))}

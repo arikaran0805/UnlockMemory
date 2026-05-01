@@ -4,17 +4,13 @@ import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, X } from "lucide-react";
 import { AdPlacement } from "@/components/AdPlacement";
-import PublicCourseCard, { type PublicCourseCardCourse } from "@/components/PublicCourseCard";
-
-interface CourseWithStats extends PublicCourseCardCourse {
-  excerpt: string;
-}
+import PublicCourseCard from "@/components/PublicCourseCard";
+import { useCoursesPageData } from "@/hooks/useCoursesPageData";
 
 const LEVEL_ORDER = ["Beginner", "Intermediate", "Advanced"];
 
 const Courses = () => {
-  const [courses, setCourses] = useState<CourseWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: courses = [], isLoading: loading } = useCoursesPageData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -22,7 +18,6 @@ const Courses = () => {
 
   useEffect(() => {
     document.title = "All Courses - UnlockMemory";
-    fetchCourses();
     // Check if a courses-banner ad is currently active so layout can adapt
     supabase
       .from("ads")
@@ -41,50 +36,6 @@ const Courses = () => {
         setHasAd(active);
       });
   }, []);
-
-  const fetchCourses = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("courses")
-      .select("id, name, slug, description, featured_image, level, icon, status")
-      .eq("status", "published")
-      .order("name", { ascending: true });
-
-    if (!error && data) {
-      const coursesWithStats = await Promise.all(
-        data.map(async (course: any) => {
-          const { count: enrollmentCount } = await supabase
-            .from("course_enrollments")
-            .select("*", { count: "exact", head: true })
-            .eq("course_id", course.id);
-
-          const { data: reviews } = await supabase
-            .from("course_reviews")
-            .select("rating")
-            .eq("course_id", course.id);
-
-          const averageRating =
-            reviews && reviews.length > 0
-              ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-              : 0;
-
-          return {
-            id: course.id,
-            name: course.name,
-            excerpt: course.description || "Explore this course and learn new skills",
-            slug: course.slug,
-            featured_image: course.featured_image,
-            level: course.level ?? null,
-            icon: course.icon ?? null,
-            enrollmentCount: enrollmentCount || 0,
-            averageRating,
-          };
-        })
-      );
-      setCourses(coursesWithStats);
-    }
-    setLoading(false);
-  };
 
   // Always show all difficulty levels regardless of what's in the data
   const uniqueLevels = LEVEL_ORDER;
@@ -138,13 +89,13 @@ const Courses = () => {
               <div
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-5 self-start"
                 style={{
-                  background: "rgba(34,165,93,0.07)",
-                  border: "1px solid rgba(34,165,93,0.18)",
+                  background: "hsl(var(--primary) / 0.07)",
+                  border: "1px solid hsl(var(--primary) / 0.18)",
                   ...(hasAd ? {} : { alignSelf: "center" }),
                 }}
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-[#22A55D]" style={{ boxShadow: "0 0 4px rgba(34,165,93,0.6)" }} />
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: "#1a9050", letterSpacing: "0.025em" }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))]" style={{ boxShadow: "0 0 4px hsl(var(--primary) / 0.6)" }} />
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: "hsl(var(--primary))", letterSpacing: "0.025em" }}>
                   Structured learning paths
                 </span>
               </div>
@@ -204,16 +155,16 @@ const Courses = () => {
                   className="relative flex-1 w-full rounded-2xl bg-surface-card transition-all duration-200"
                   style={{
                     border: searchFocused
-                      ? "1.5px solid #22A55D"
+                      ? "1.5px solid hsl(var(--primary))"
                       : "1.5px solid hsl(var(--border) / 0.55)",
                     boxShadow: searchFocused
-                      ? "0 0 0 4px rgba(34,165,93,0.1), 0 2px 8px rgba(0,0,0,0.07)"
+                      ? "0 0 0 4px hsl(var(--primary) / 0.1), 0 2px 8px rgba(0,0,0,0.07)"
                       : "0 1px 4px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)",
                   }}
                 >
                   <Search
                     className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-200"
-                    style={{ color: searchFocused ? "#22A55D" : "hsl(var(--muted-foreground) / 0.55)" }}
+                    style={{ color: searchFocused ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.55)" }}
                   />
                   <input
                     type="text"
@@ -287,7 +238,7 @@ const Courses = () => {
             </p>
             <button
               onClick={clearAll}
-              className="text-[12px] font-semibold text-[#22A55D] hover:text-[#1a9050] transition-colors"
+              className="text-[12px] font-semibold text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] transition-colors"
             >
               Clear filters
             </button>
@@ -322,9 +273,9 @@ const Courses = () => {
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-              style={{ background: "rgba(34,165,93,0.07)" }}
+              style={{ background: "hsl(var(--primary) / 0.07)" }}
             >
-              <Search className="h-6 w-6 text-[#22A55D]/50" />
+              <Search className="h-6 w-6 text-[hsl(var(--primary))]/50" />
             </div>
             <p className="text-[15px] font-semibold text-foreground mb-1.5">
               {searchQuery
@@ -337,7 +288,7 @@ const Courses = () => {
             </p>
             <button
               onClick={clearAll}
-              className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[#22A55D] text-white hover:bg-[#1a9050] transition-colors"
+              className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))] transition-colors"
             >
               Clear filters
             </button>
@@ -376,7 +327,7 @@ function StatCard({
       </span>
       <span
         className="font-medium"
-        style={{ fontSize: 11.5, color: "#22A55D", letterSpacing: "0.01em" }}
+        style={{ fontSize: 11.5, color: "hsl(var(--primary))", letterSpacing: "0.01em" }}
       >
         {label}
       </span>
@@ -403,16 +354,16 @@ function FilterPill({
       style={
         active
           ? {
-              background: "linear-gradient(135deg, #22A55D 0%, #1c9452 100%)",
+              background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%)",
               color: "white",
-              borderColor: "#22A55D",
-              boxShadow: "0 2px 8px rgba(34,165,93,0.28), 0 1px 2px rgba(34,165,93,0.15)",
+              borderColor: "hsl(var(--primary))",
+              boxShadow: "0 2px 8px hsl(var(--primary) / 0.28), 0 1px 2px hsl(var(--primary) / 0.15)",
             }
           : hovered
           ? {
-              background: "rgba(34,165,93,0.06)",
+              background: "hsl(var(--primary) / 0.06)",
               color: "hsl(var(--foreground))",
-              borderColor: "rgba(34,165,93,0.28)",
+              borderColor: "hsl(var(--primary) / 0.28)",
               boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
             }
           : {

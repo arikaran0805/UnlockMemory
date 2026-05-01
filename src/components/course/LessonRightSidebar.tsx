@@ -6,6 +6,7 @@ import { useLessonFlowNavigation } from "@/hooks/useLessonFlowNavigation";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useDoubtSystem, resolveOwner } from "@/hooks/useDoubtSystem";
+import { supabase } from "@/integrations/supabase/client";
 import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
 import { MessagingPopup } from "@/components/messaging/MessagingPopup";
 import { LessonNotesCard } from "./LessonNotesCard";
@@ -16,6 +17,7 @@ import {
   Play,
   HelpCircle,
   Zap,
+  Hash,
 } from "lucide-react";
 
 interface LessonRightSidebarProps {
@@ -79,20 +81,46 @@ export function LessonRightSidebar({
   const { routeDoubt } = useDoubtSystem(userId);
 
   const handleStartMentorChat = useCallback(async () => {
-    if (!messaging.mentorPreview) return;
-    const context = {
-      source_type: messaging.mentorPreview.context.source_type as any,
-      source_id: lessonId || "",
-      source_title: messaging.mentorPreview.context.source_title,
-      course_id: courseId,
-      lesson_id: lessonId,
-    };
-    const result = await routeDoubt(context);
-    if (result) {
+    if (!messaging.mentorPreview || !userId) return;
+    const mentor = messaging.mentorPreview.mentor;
+
+    // Fast path: mentor is already resolved — skip resolveOwner's 3-4 sequential DB calls
+    const { data: existing } = await supabase
+      .from("team_connections")
+      .select("id")
+      .eq("learner_id", userId)
+      .eq("connected_user_id", mentor.user_id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (existing) {
       messaging.fetchConnections();
-      messaging.openChat(result.connectionId);
+      messaging.openChat(existing.id, lessonId);
+      return;
     }
-  }, [messaging, routeDoubt, lessonId, courseId]);
+
+    const roleLabel =
+      mentor.role === "senior_moderator" ? "Course Manager"
+      : mentor.role === "super_moderator" ? "Career Manager"
+      : "Content Moderator";
+
+    const { data: newConn } = await supabase
+      .from("team_connections")
+      .insert({
+        learner_id: userId,
+        connected_user_id: mentor.user_id,
+        display_name: mentor.user_name,
+        avatar_url: mentor.avatar_url,
+        role_label: roleLabel,
+        connection_type: "doubt_auto",
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    messaging.fetchConnections();
+    if (newConn) messaging.openChat(newConn.id, lessonId);
+  }, [messaging, userId, lessonId]);
 
   // Resolve suggested mentor for current lesson
   useEffect(() => {
@@ -162,54 +190,53 @@ export function LessonRightSidebar({
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
             <nav className="space-y-1" role="navigation" aria-label="Lesson sections">
-              {LESSON_FLOW_SECTIONS.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.id;
-                const sectionData = lessonFlowSections.find(s => s.id === section.id);
-                const exists = sectionData?.exists ?? false;
-                const isDisabled = !exists;
+              {lessonFlowSections.length === 0 ? (
+                <p className="text-xs text-muted-foreground/50 px-3 py-2">No sections detected</p>
+              ) : (
+                lessonFlowSections.map((section) => {
+                  // Pick icon: known configured sections have defined icons; dynamic headings use Hash
+                  const configEntry = LESSON_FLOW_SECTIONS.find(s => s.id === section.id);
+                  const Icon = configEntry?.icon ?? Hash;
+                  const isActive = activeSection === section.id;
+                  const isDisabled = !section.exists;
 
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => !isDisabled && scrollToSection(section.id)}
-                    disabled={isDisabled}
-                    aria-current={isActive ? "location" : undefined}
-                    className={cn(
-                      // Base styles with smooth transitions
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden",
-                      "transition-all duration-200 ease-out",
-                      // Left border indicator container
-                      "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-full",
-                      "before:transition-all before:duration-200 before:ease-out",
-                      // Disabled state
-                      isDisabled && "opacity-40 cursor-not-allowed text-muted-foreground",
-                      // Active state - soft highlight with left border
-                      !isDisabled && isActive && [
-                        "bg-primary/8 text-primary font-medium",
-                        "before:h-5 before:bg-primary before:opacity-100",
-                      ],
-                      // Inactive state - subtle and calm
-                      !isDisabled && !isActive && [
-                        "text-muted-foreground hover:text-foreground hover:bg-muted/40",
-                        "before:h-0 before:bg-primary before:opacity-0",
-                      ]
-                    )}
-                  >
-                    <Icon className={cn(
-                      "h-4 w-4 flex-shrink-0 transition-colors duration-200",
-                      isActive && !isDisabled && "text-primary"
-                    )} />
-                    <span className="flex-1 truncate">
-                      {isActive && !isDisabled ? (
-                        <span><span className="text-muted-foreground font-normal">You are in:</span> {section.label}</span>
-                      ) : (
-                        section.label
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => !isDisabled && scrollToSection(section.id)}
+                      disabled={isDisabled}
+                      aria-current={isActive ? "location" : undefined}
+                      className={cn(
+                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden",
+                        "transition-all duration-200 ease-out",
+                        "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-full",
+                        "before:transition-all before:duration-200 before:ease-out",
+                        isDisabled && "opacity-40 cursor-not-allowed text-muted-foreground",
+                        !isDisabled && isActive && [
+                          "bg-primary/8 text-primary font-medium",
+                          "before:h-5 before:bg-primary before:opacity-100",
+                        ],
+                        !isDisabled && !isActive && [
+                          "text-muted-foreground hover:text-foreground hover:bg-muted/40",
+                          "before:h-0 before:bg-primary before:opacity-0",
+                        ]
                       )}
-                    </span>
-                  </button>
-                );
-              })}
+                    >
+                      <Icon className={cn(
+                        "h-4 w-4 flex-shrink-0 transition-colors duration-200",
+                        isActive && !isDisabled && "text-primary"
+                      )} />
+                      <span className="flex-1 truncate">
+                        {isActive && !isDisabled ? (
+                          <span><span className="text-muted-foreground font-normal">In:</span> {section.label}</span>
+                        ) : (
+                          section.label
+                        )}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </nav>
           </CardContent>
         </Card>
@@ -254,28 +281,28 @@ export function LessonRightSidebar({
                   className={cn(
                     "w-full flex items-start gap-3 p-2 rounded-md text-left transition-all group",
                     isActivated
-                      ? "bg-primary/10 shadow-sm"
+                      ? "bg-muted/60 shadow-sm"
                       : "hover:bg-muted/50 hover:shadow-sm"
                   )}
                 >
                   <div className={cn(
                     "p-1.5 rounded-md transition-colors",
                     isActivated
-                      ? "bg-primary/20 text-primary"
-                      : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                      ? "bg-muted text-foreground"
+                      : "bg-muted/50 text-muted-foreground group-hover:bg-muted/70 group-hover:text-foreground"
                   )}>
                     {isActivated ? <Zap className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       "text-sm font-medium truncate",
-                      isActivated ? "text-primary" : "text-foreground"
+                      isActivated ? "text-foreground" : "text-foreground"
                     )}>
                       {item.title}
                     </p>
                     <p className={cn(
                       "text-xs truncate",
-                      isActivated ? "text-primary/70" : "text-muted-foreground"
+                      isActivated ? "text-muted-foreground" : "text-muted-foreground"
                     )}>
                       {isActivated 
                         ? `Your ${editedCodeBlock?.language || 'code'} is ready to run`
@@ -311,7 +338,7 @@ export function LessonRightSidebar({
               }}
               variant="outline"
               size="sm"
-              className="w-full text-sm border-border/60 bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors duration-200"
+              className="w-full text-sm border-border/60 bg-background hover:bg-muted/60 hover:text-foreground transition-colors duration-200"
               label="Ask a Doubt"
               messaging={messaging}
             />

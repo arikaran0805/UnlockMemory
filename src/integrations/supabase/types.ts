@@ -565,6 +565,7 @@ export type Database = {
           display_order: number
           icon: string
           id: string
+          is_featured: boolean
           name: string
           slug: string
           status: string
@@ -579,6 +580,7 @@ export type Database = {
           display_order?: number
           icon?: string
           id?: string
+          is_featured?: boolean
           name: string
           slug: string
           status?: string
@@ -593,6 +595,7 @@ export type Database = {
           display_order?: number
           icon?: string
           id?: string
+          is_featured?: boolean
           name?: string
           slug?: string
           status?: string

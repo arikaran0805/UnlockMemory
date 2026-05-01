@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import {
   Settings,
   Mail,
-  Bell,
   Search,
   Shield,
   Plug,
@@ -14,7 +13,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 export type SettingsSection =
   | "general"
   | "email"
-  | "notifications"
   | "seo"
   | "social"
   | "security"
@@ -38,7 +36,6 @@ const settingsItems: {
 }[] = [
   { id: "general", label: "General", icon: Settings, seniorModeratorAllowed: true },
   { id: "email", label: "Email", icon: Mail, adminOnly: true },
-  { id: "notifications", label: "Notifications", icon: Bell, seniorModeratorAllowed: true },
   { id: "seo", label: "SEO", icon: Search, seniorModeratorAllowed: true },
   { id: "social", label: "Social Media", icon: Share2, adminOnly: true },
   { id: "security", label: "Security", icon: Shield, adminOnly: true },

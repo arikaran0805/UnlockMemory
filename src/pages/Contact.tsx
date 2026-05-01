@@ -32,10 +32,10 @@ const Contact = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Contact Info Cards */}
             <div className="space-y-4">
-              <Card className="p-6 border-2 border-primary/20 hover:border-primary/50 transition-colors shadow-card">
+              <Card className="p-6 border border-border/50 hover:border-border transition-colors shadow-card">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                    <Mail className="h-6 w-6 text-primary" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                    <Mail className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
@@ -44,10 +44,10 @@ const Contact = () => {
                 </div>
               </Card>
 
-              <Card className="p-6 border-2 border-primary/20 hover:border-primary/50 transition-colors shadow-card">
+              <Card className="p-6 border border-border/50 hover:border-border transition-colors shadow-card">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                    <Phone className="h-6 w-6 text-primary" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                    <Phone className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Phone</h3>
@@ -56,10 +56,10 @@ const Contact = () => {
                 </div>
               </Card>
 
-              <Card className="p-6 border-2 border-primary/20 hover:border-primary/50 transition-colors shadow-card">
+              <Card className="p-6 border border-border/50 hover:border-border transition-colors shadow-card">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                    <MapPin className="h-6 w-6 text-primary" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                    <MapPin className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Office</h3>

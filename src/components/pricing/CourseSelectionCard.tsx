@@ -36,8 +36,8 @@ const CourseSelectionCard = ({
       className={cn(
         "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left group",
         isSelected
-          ? "border-primary/60 bg-primary/5"
-          : "border-border bg-card hover:border-primary/30 hover:bg-muted/30"
+          ? "border-muted-foreground/35 bg-muted/40"
+          : "border-border bg-card hover:border-muted-foreground/20 hover:bg-muted/20"
       )}
     >
       <Checkbox
@@ -51,11 +51,8 @@ const CourseSelectionCard = ({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-foreground">{name}</span>
           <Badge
-            variant={type === "addon" ? "secondary" : "default"}
-            className={cn(
-              "text-[10px] px-1.5 py-0",
-              type !== "addon" ? "bg-primary/15 text-primary border-0" : ""
-            )}
+            variant="secondary"
+            className="text-[10px] px-1.5 py-0 bg-muted text-muted-foreground border-0"
           >
             {type === "default" ? "Default" : type === "included" ? "Included" : "Add-on"}
           </Badge>

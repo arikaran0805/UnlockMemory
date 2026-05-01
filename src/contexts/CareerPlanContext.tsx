@@ -44,9 +44,23 @@ interface CareerPlanContextType {
 
 const CareerPlanContext = createContext<CareerPlanContextType | undefined>(undefined);
 
+// Synchronously detect whether Supabase has a cached session in localStorage.
+// Avoids showing the loading skeleton to guests during the auth resolution delay.
+// Safe: if the check is wrong (e.g. stale token), the auth effect corrects it.
+function hasCachedSession(): boolean {
+  try {
+    return Object.keys(localStorage).some(
+      (k) => k.startsWith("sb-") && k.endsWith("-auth-token") && !!localStorage.getItem(k)
+    );
+  } catch {
+    return true; // can't read storage → assume logged-in to avoid empty flash
+  }
+}
+
 export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CareerPlanItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Start loading only if there's evidence of a session — guests get instant render
+  const [loading, setLoading] = useState(hasCachedSession);
   const [customizingCareerId, setCustomizingCareerId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const syncingRef = useRef(false);
@@ -59,12 +73,11 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
 
   const itemCount = items.length;
 
-  // Listen for auth changes
+  // Listen for auth changes.
+  // Supabase v2 fires INITIAL_SESSION immediately on subscribe — getSession() is
+  // redundant and would cause a second setUserId call (extra render + loadCart).
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
       setUserId(session?.user?.id ?? null);
     });
     return () => subscription.unsubscribe();
@@ -80,9 +93,22 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
 
     const loadCart = async () => {
       setLoading(true);
+
+      // Single joined query — eliminates the previous 2-query sequential waterfall.
+      // cart_items → careers → career_courses → courses in one round-trip.
       const { data: cartRows, error } = await supabase
         .from("cart_items")
-        .select("career_id, selected_course_ids")
+        .select(`
+          career_id,
+          selected_course_ids,
+          careers (
+            id, name, description, icon, discount_percentage,
+            career_courses (
+              course_id,
+              courses (id, name, description, original_price, discount_price)
+            )
+          )
+        `)
         .eq("user_id", userId);
 
       if (error || !cartRows || cartRows.length === 0) {
@@ -90,16 +116,10 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Fetch career + course data for each cart item
-      const careerIds = cartRows.map((r: any) => r.career_id);
-      const { data: careersData } = await supabase
-        .from("careers")
-        .select("id, name, description, icon, discount_percentage, career_courses(course_id, courses(id, name, description, original_price, discount_price))")
-        .in("id", careerIds);
-
-      if (careersData) {
-        const loadedItems: CareerPlanItem[] = careersData.map((c: any) => {
-          const cartRow = cartRows.find((r: any) => r.career_id === c.id);
+      const loadedItems: CareerPlanItem[] = (cartRows as any[])
+        .filter((row) => row.careers)
+        .map((row) => {
+          const c = row.careers;
           const coursesRaw = (c.career_courses || [])
             .filter((cc: any) => cc.courses)
             .map((cc: any) => cc.courses);
@@ -112,8 +132,8 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
             discountPrice: Number(co.discount_price) || Number(co.original_price) || 0,
           }));
           const defaultCourseIds = coursesRaw.map((co: any) => co.id);
-          const selectedCourseIds = cartRow?.selected_course_ids?.length
-            ? cartRow.selected_course_ids
+          const selectedCourseIds = row.selected_course_ids?.length
+            ? row.selected_course_ids
             : defaultCourseIds;
 
           return {
@@ -127,9 +147,9 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
             courses,
           };
         });
-        syncingRef.current = true;
-        setItems(loadedItems);
-      }
+
+      syncingRef.current = true;
+      setItems(loadedItems);
       setLoading(false);
     };
 

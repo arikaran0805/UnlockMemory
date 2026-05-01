@@ -358,7 +358,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
             className={cn(
               'relative overflow-y-auto overflow-x-hidden rounded-xl border transition-colors',
               'flex-1 min-h-[300px]',
-              isDragOver ? 'border-primary/40 bg-primary/[0.03]' : 'border-border/60 bg-neutral-100/60 dark:bg-muted/10',
+              isDragOver ? 'border-primary/40 bg-primary/[0.03]' : 'border-border/60 bg-card',
             )}
             onDoubleClick={handleDoubleClick}
             onTouchEnd={handleTouchEnd}
@@ -370,7 +370,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
             <div
               className="absolute inset-0 pointer-events-none opacity-[0.45]"
               style={{
-                backgroundImage: `radial-gradient(circle, hsl(var(--muted-foreground) / 0.4) 1px, transparent 1px)`,
+                backgroundImage: `radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)`,
                 backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
               }}
             />

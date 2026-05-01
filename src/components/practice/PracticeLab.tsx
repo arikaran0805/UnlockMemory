@@ -233,7 +233,7 @@ function ExploreCard({
           <div
             className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full"
             style={{
-              background: "rgba(34,165,93,0.90)",
+              background: "hsl(var(--primary) / 0.9)",
               backdropFilter: "blur(4px)",
               border: "1px solid rgba(255,255,255,0.2)",
             }}
@@ -260,7 +260,7 @@ function ExploreCard({
       {/* ── Progress bar ───────────────────────────────────────────── */}
       <div className="h-[3px] bg-border/30 w-full">
         <div
-          className="h-full bg-[#22A55D] transition-all duration-500"
+          className="h-full bg-[hsl(var(--primary))] transition-all duration-500"
           style={{ width: `${Math.max(progress, progress > 0 ? 4 : 0)}%` }}
         />
       </div>
@@ -310,15 +310,15 @@ function PracticeHero({
         <div
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
           style={{
-            background: "rgba(34,165,93,0.08)",
-            border: "1px solid rgba(34,165,93,0.18)",
+            background: "hsl(var(--primary) / 0.08)",
+            border: "1px solid hsl(var(--primary) / 0.18)",
           }}
         >
           <div
-            className="w-1.5 h-1.5 rounded-full bg-[#22A55D]"
-            style={{ boxShadow: "0 0 4px rgba(34,165,93,0.6)" }}
+            className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))]"
+            style={{ boxShadow: "0 0 4px hsl(var(--primary) / 0.6)" }}
           />
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#1a9050", letterSpacing: "0.025em" }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "hsl(var(--primary))", letterSpacing: "0.025em" }}>
             Hands-on skill drills
           </span>
         </div>
@@ -369,7 +369,7 @@ function HeroStat({ value, label }: { value: string | number; label: string }) {
       <span className="text-foreground font-bold leading-none" style={{ fontSize: 19, letterSpacing: "-0.025em" }}>
         {value}
       </span>
-      <span className="font-medium" style={{ fontSize: 11, color: "#22A55D", letterSpacing: "0.01em" }}>
+      <span className="font-medium" style={{ fontSize: 11, color: "hsl(var(--primary))", letterSpacing: "0.01em" }}>
         {label}
       </span>
     </div>
@@ -471,8 +471,8 @@ function EmptyState() {
               { icon: Rocket, label: "Mini Projects" },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex flex-col items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center">
-                  <Icon className="h-[18px] w-[18px] text-primary" />
+                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                  <Icon className="h-[18px] w-[18px] text-muted-foreground" />
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-snug text-center">
                   {label}

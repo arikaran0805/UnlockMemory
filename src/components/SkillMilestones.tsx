@@ -126,7 +126,7 @@ export const SkillMilestones = ({ completedCourses, readinessPercentage, compact
               View All Journey <ChevronRight className="h-3 w-3" />
             </Button>
           ) : (
-            <Badge variant="secondary" className="px-3 py-1 text-sm font-semibold bg-primary/10 text-primary border-primary/20 shadow-sm">
+            <Badge variant="secondary" className="px-3 py-1 text-sm font-semibold bg-muted text-foreground/70 border-border/40 shadow-sm">
               {unlockedMilestones.length} / {milestones.length} Unlocked
             </Badge>
           )}

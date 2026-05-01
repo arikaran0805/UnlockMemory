@@ -13,11 +13,12 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import Editor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-  Copy, Check, Play, Pencil, Loader2, X, 
-  ChevronUp, ChevronDown 
+import {
+  Copy, Check, Play, Pencil, Loader2, X,
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTheme } from 'next-themes';
 
 // Supported languages for execution
 const EXECUTABLE_LANGUAGES = ['python', 'javascript', 'typescript'];
@@ -61,14 +62,17 @@ const MonacoCodeBlock = ({
   const [outputError, setOutputError] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
   const [outputExpanded, setOutputExpanded] = useState(true);
-  
+
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
-  
+
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
   // Normalize language for Monaco
   const normalizedLang = MONACO_LANGUAGE_MAP[language?.toLowerCase()] || language?.toLowerCase() || 'plaintext';
   const canExecute = EXECUTABLE_LANGUAGES.includes(normalizedLang);
-  
+
   // Calculate editor height based on line count
   const lineCount = currentCode.split('\n').length;
   const editorHeight = Math.max(minHeight, lineCount * 19 + 16); // 19px per line + padding
@@ -81,34 +85,57 @@ const MonacoCodeBlock = ({
     }
   }, [code]); // isEditMode intentionally omitted — we only care about code changes
 
+  // Re-apply Monaco theme when dark mode changes
+  useEffect(() => {
+    if (monacoRef.current) {
+      monacoRef.current.editor.setTheme(isDark ? 'codeblock-dark' : 'codeblock-white');
+    }
+  }, [isDark]);
+
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
-    
-    // Sage-tinted theme — VS syntax colors on a soft green background
-    monaco.editor.defineTheme('codeblock-light', {
+
+    // Clean white theme — VS syntax colors on a pure white background
+    monaco.editor.defineTheme('codeblock-white', {
       base: 'vs',
       inherit: true,
       rules: [],
       colors: {
-        'editor.background': '#f4fbf7',
+        'editor.background': '#ffffff',
         'editor.foreground': '#374151',
-        'editor.lineHighlightBackground': '#edf7f1',
-        'editorLineNumber.foreground': '#a8c5b5',
-        'editorLineNumber.activeForeground': '#6ea88a',
-        'editor.selectionBackground': '#c8e8d8',
+        'editor.lineHighlightBackground': '#f5f5f7',
+        'editorLineNumber.foreground': '#c0c0c8',
+        'editorLineNumber.activeForeground': '#8888a0',
+        'editor.selectionBackground': '#d6e4f7',
         'editorCursor.foreground': '#374151',
       },
     });
-    
-    monaco.editor.setTheme('codeblock-light');
-    
+
+    // Dark forest theme
+    monaco.editor.defineTheme('codeblock-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#0f1c14',
+        'editor.foreground': '#c8e2d2',
+        'editor.lineHighlightBackground': '#141f17',
+        'editorLineNumber.foreground': '#3d5e47',
+        'editorLineNumber.activeForeground': '#5d8a6a',
+        'editor.selectionBackground': '#1e3d28',
+        'editorCursor.foreground': '#5aaa82',
+      },
+    });
+
+    monaco.editor.setTheme(isDark ? 'codeblock-dark' : 'codeblock-white');
+
     // Configure editor options
     editor.updateOptions({
       readOnly: !isEditMode,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
-              lineNumbers: 'off',
+      lineNumbers: 'off',
       lineNumbersMinChars: 2,
       lineDecorationsWidth: 8,
       folding: true,
@@ -125,7 +152,7 @@ const MonacoCodeBlock = ({
       overviewRulerBorder: false,
       contextmenu: false,
       fontSize: 14,
-              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+      fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
       padding: { top: 12, bottom: 12 },
       wordWrap: 'on',
       automaticLayout: true,
@@ -145,7 +172,7 @@ const MonacoCodeBlock = ({
       setIsEditMode(true);
       setTimeout(() => {
         if (editorRef.current) {
-          editorRef.current.updateOptions({ 
+          editorRef.current.updateOptions({
             readOnly: false,
             renderLineHighlight: 'line',
           });
@@ -164,7 +191,7 @@ const MonacoCodeBlock = ({
       setCurrentCode(originalCode);
       setIsEditMode(false);
       if (editorRef.current) {
-        editorRef.current.updateOptions({ 
+        editorRef.current.updateOptions({
           readOnly: true,
           renderLineHighlight: 'none',
         });
@@ -187,7 +214,7 @@ const MonacoCodeBlock = ({
 
   const handleRun = async () => {
     if (!canExecute) return;
-    
+
     setIsRunning(true);
     setOutput(null);
     setOutputError(false);
@@ -232,23 +259,29 @@ const MonacoCodeBlock = ({
 
   return (
     <div className={cn("w-full", className)}>
-      {/* Main code container - white background like VS Code */}
+      {/* Main code container */}
       <div
         className={cn(
           "overflow-hidden shadow-sm",
-          showOutput ? "rounded-t-xl rounded-b-none" : "rounded-xl"
+          showOutput ? "rounded-t-xl rounded-b-none" : "rounded-xl",
+          isDark ? "bg-[#0f1c14] border-[#1e3428]" : "bg-white border-[#e4e4e9]",
+          "border"
         )}
-        style={{ background: '#ffffff', border: '1px solid #c8e8d8' }}
       >
         {/* Header row */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <div
+          className={cn(
+            "flex items-center justify-between px-4 pt-2.5 pb-2",
+            isDark ? "bg-[#0f1c14] border-b border-[#1e3428]" : "bg-white border-b border-[#ebebef]"
+          )}
+        >
           {/* Language label */}
           {showLanguageLabel && (
             <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
               {language}
             </span>
           )}
-          
+
           {/* Action buttons */}
           <div className="flex items-center gap-0.5 ml-auto">
             {editable && (
@@ -275,7 +308,7 @@ const MonacoCodeBlock = ({
                 {isRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               </Button>
             )}
-            
+
             <Button
               variant="ghost"
               size="icon"
@@ -322,7 +355,7 @@ const MonacoCodeBlock = ({
               wordWrap: 'on',
               automaticLayout: true,
             }}
-            theme="codeblock-light"
+            theme={isDark ? 'codeblock-dark' : 'codeblock-white'}
             loading={
               <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">
                 Loading editor...

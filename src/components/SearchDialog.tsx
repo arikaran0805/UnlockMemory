@@ -191,7 +191,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
               >
                 <div
                   className="flex-shrink-0 w-1.5 h-1.5 rounded-full transition-colors"
-                  style={{ background: isActive ? "#22A55D" : "hsl(var(--border))" }}
+                  style={{ background: isActive ? "hsl(var(--primary))" : "hsl(var(--border))" }}
                 />
                 <span
                   className="flex-1 min-w-0 font-medium truncate"
@@ -209,7 +209,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                 )}
                 <CornerDownLeft
                   className="flex-shrink-0 h-3.5 w-3.5"
-                  style={{ color: "#22A55D", opacity: isActive ? 1 : 0, transition: "opacity 100ms" }}
+                  style={{ color: "hsl(var(--primary))", opacity: isActive ? 1 : 0, transition: "opacity 100ms" }}
                 />
               </button>
             </div>
@@ -242,7 +242,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
               height={17}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#22A55D"
+              stroke="hsl(var(--primary))"
               strokeWidth="2.4"
               strokeLinecap="round"
             >
@@ -259,7 +259,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 h-full bg-transparent border-0 outline-none focus:ring-0 placeholder:text-muted-foreground/35 text-foreground"
-            style={{ fontSize: 14.5, caretColor: "#22A55D" }}
+            style={{ fontSize: 14.5, caretColor: "hsl(var(--primary))" }}
           />
           {query && (
             <button
@@ -316,7 +316,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                     </span>
                     <CornerDownLeft
                       className="flex-shrink-0 h-3.5 w-3.5"
-                      style={{ color: "#22A55D", opacity: selectedIndex === allResults.length ? 1 : 0, transition: "opacity 100ms" }}
+                      style={{ color: "hsl(var(--primary))", opacity: selectedIndex === allResults.length ? 1 : 0, transition: "opacity 100ms" }}
                     />
                   </button>
                 </div>
@@ -329,9 +329,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
               <div
                 className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
-                style={{ background: "rgba(34,165,93,0.07)" }}
+                style={{ background: "hsl(var(--primary) / 0.07)" }}
               >
-                <Search style={{ width: 18, height: 18, color: "rgba(34,165,93,0.55)" }} />
+                <Search style={{ width: 18, height: 18, color: "hsl(var(--primary) / 0.55)" }} />
               </div>
               <p className="font-medium text-foreground/70 mb-1" style={{ fontSize: 13.5 }}>
                 Search everything
@@ -354,7 +354,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
               <button
                 onClick={goToSearch}
                 className="h-8 px-4 rounded-lg font-semibold transition-colors"
-                style={{ fontSize: 12.5, background: "rgba(34,165,93,0.1)", color: "#15803d" }}
+                style={{ fontSize: 12.5, background: "hsl(var(--primary) / 0.1)", color: "hsl(var(--primary))" }}
               >
                 Browse all courses
               </button>

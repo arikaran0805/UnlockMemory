@@ -1,38 +1,19 @@
-import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 
-const STORAGE_KEY = "um-admin-theme";
-
+/**
+ * Thin wrapper around next-themes so the admin settings toggle
+ * stays in sync with the rest of the app (ThemeToggle, etc.).
+ *
+ * Previously this hook directly mutated document.documentElement.classList
+ * and used its own localStorage key — that caused the two systems to fight
+ * and produce the dark-mode flicker. Now everything goes through next-themes.
+ */
 export function useDarkMode() {
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) return stored === "dark";
-    // fallback: respect OS preference
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+  const { resolvedTheme, setTheme } = useTheme();
 
-  // Apply / remove .dark class on <html> whenever isDark changes
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-    localStorage.setItem(STORAGE_KEY, isDark ? "dark" : "light");
-  }, [isDark]);
+  const isDark = resolvedTheme === "dark";
 
-  // Sync across tabs
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue !== null) {
-        setIsDark(e.newValue === "dark");
-      }
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, []);
+  const toggle = () => setTheme(isDark ? "light" : "dark");
 
-  const toggle = () => setIsDark((prev) => !prev);
-
-  return { isDark, toggle, setIsDark };
+  return { isDark, toggle, setIsDark: (dark: boolean) => setTheme(dark ? "dark" : "light") };
 }

@@ -16,7 +16,8 @@
  * - Restart course, enroll, progress tracking
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useParams, Link, useNavigate, useSearchParams, useOutletContext, useLocation } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams, useOutletContext } from "react-router-dom";
+import { useCourseDetailData, type Course, type CourseLesson, type Post } from "@/hooks/useCourseDetailData";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,8 @@ import ReportSuggestDialog from "@/components/ReportSuggestDialog";
 import CourseMetadataSidebar from "@/components/course/CourseMetadataSidebar";
 import LessonFooter from "@/components/course/LessonFooter";
 import { LearningCockpit } from "@/components/course/LearningCockpit";
+import { NotesFocusMode } from "@/components/notes/NotesFocusMode";
+import { PracticeFocusMode } from "@/components/practice/PracticeFocusMode";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 import {
@@ -97,6 +100,8 @@ import {
   Linkedin,
   Copy,
   ExternalLink,
+  Dumbbell,
+  PartyPopper,
 } from "lucide-react";
 import CourseSidebar from "@/components/course/CourseSidebar";
 import LessonShareMenu from "@/components/LessonShareMenu";
@@ -107,48 +112,6 @@ import { trackSocialMediaClick } from "@/lib/socialAnalytics";
 import { trackPostShare } from "@/lib/shareAnalytics";
 import { formatReadingTime, formatTotalReadingTime } from "@/lib/readingTime";
 import { z } from "zod";
-
-interface Course {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  featured_image: string | null;
-  status: string;
-  level?: string | null;
-  learning_hours?: number | null;
-  author_id?: string | null;
-  created_at?: string;
-  updated_at?: string | null;
-  prerequisites?: string[] | null;
-}
-
-interface CourseLesson {
-  id: string;
-  title: string;
-  description: string | null;
-  lesson_rank: string;
-  is_published: boolean;
-  course_id: string;
-}
-
-interface Post {
-  id: string;
-  title: string;
-  excerpt: string | null;
-  slug: string;
-  published_at: string | null;
-  updated_at: string;
-  status: string;
-  content?: string;
-  lesson_id: string | null;
-  post_rank: string | null;
-  post_type: string | null;
-  code_theme?: string | null;
-  profiles: {
-    full_name: string | null;
-  };
-}
 
 interface Comment {
   id: string;
@@ -182,46 +145,49 @@ const CareerCourseDetail = () => {
   const params = useParams<{ careerId: string; courseSlug: string }>();
   const careerIdParam = decodeURIComponent((params.careerId ?? "").split("?")[0]).trim();
   const courseSlug = decodeURIComponent((params.courseSlug ?? "").split("?")[0]).trim();
+  // Stable key for the current course — changes whenever the user navigates to a different course
+  const courseKey = courseSlug;
   const [searchParams, setSearchParams] = useSearchParams();
   const lessonSlug = searchParams.get("lesson");
   const tabParam = searchParams.get("tab");
   const isPreviewMode = searchParams.get("preview") === "true";
   const navigate = useNavigate();
-  const location = useLocation();
-  // All data passed via navigation state for instant render (zero DB queries)
-  const navState = (location.state as any) ?? {};
-  const prefetchedCourse = navState.prefetchedCourse ?? null;
-  const prefetchedPosts: Post[] | null = navState.prefetchedPosts ?? null;
-  const prefetchedLessons: CourseLesson[] | null = navState.prefetchedLessons ?? null;
-  const prefetchedStats = navState.prefetchedStats ?? null;
-  const prefetchedLessonMap: Record<string, boolean> | null = navState.prefetchedLessonMap ?? null;
 
   // Get the outlet context to update current course in parent layout
   const { setCurrentCourseSlug, isHeaderVisible, showAnnouncement } = useOutletContext<OutletContext>();
 
   // Career Board context
-  const { career, careerCourses, isLoading: careerLoading } = useCareerBoard();
+  const { career, careerCourses, isLoading: careerLoading, setDeepNotesTitle, setPracticeTitle } = useCareerBoard();
 
   // Always prefer the route param for building Career Board URLs.
   // (career can be transiently null during initialization; the param is always present.)
   const careerSlugForPath = careerIdParam || career?.slug;
 
-  // Stable identity key — changes on every course navigation
-  const courseKey = `${careerIdParam}__${courseSlug}`;
-
-  const [course, setCourse] = useState<Course | null>(prefetchedCourse ?? null);
-  // Initialize lessons/posts from navigate state if available (instant — no fetch needed)
-  const [lessons, setLessons] = useState<CourseLesson[]>(prefetchedLessons ?? []);
-  const [posts, setPosts] = useState<Post[]>(prefetchedPosts ?? []);
-  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(
-    prefetchedLessons && prefetchedLessons.length > 0 ? new Set([prefetchedLessons[0].id]) : new Set()
-  );
-  const [loading, setLoading] = useState(!prefetchedCourse);
-  // lessonsLoading only if we have prefetchedCourse but no prefetchedPosts
-  const [lessonsLoading, setLessonsLoading] = useState(!!prefetchedCourse && !prefetchedPosts);
-  const [canPreview, setCanPreview] = useState(false);
   const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
   const { isPro, isLoading: userStateLoading } = useUserState();
+
+  // Derived — no state needed
+  const showAllStatuses = isPreviewMode && (isAdmin || isModerator);
+  const canPreview = isAdmin || isModerator;
+
+  // ── React Query: course + lessons + posts (cached, instant on repeat visits) ─
+  const {
+    data: courseDetailData,
+    isLoading: loading,
+  } = useCourseDetailData(courseSlug, showAllStatuses);
+
+  const course = courseDetailData?.course ?? null;
+  const lessons = courseDetailData?.lessons ?? [];
+  const posts = courseDetailData?.posts ?? [];
+
+  // Instantly non-null when React Query has cached data for this slug (from prefetch or prior visit).
+  // Drives the fast-path skeleton logic — avoids showing stale old-course content.
+  const prefetchedCourse = courseDetailData?.course ?? null;
+  const prefetchedPosts = courseDetailData?.posts ?? null;
+  // useCourseDetailData fetches course + lessons + posts in one query; no separate lessons phase.
+  const lessonsLoading = false;
+
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [loadingPost, setLoadingPost] = useState(false);
@@ -270,9 +236,6 @@ const CareerCourseDetail = () => {
   // true on the FIRST render after navigation (before any effects run).
   const stateIsStale = committedCourseKeyRef.current !== null && committedCourseKeyRef.current !== courseKey;
 
-  // Header visibility is now consumed from CareerBoardLayout via outlet context
-  // (removed local state - isHeaderVisible and showAnnouncement come from context)
-
   // Course stats hook
   const {
     stats: courseStats,
@@ -283,11 +246,15 @@ const CareerCourseDetail = () => {
     unenroll,
     submitReview,
     deleteReview,
-  } = useCourseStats(course?.id, user, prefetchedStats ?? undefined);
+  } = useCourseStats(course?.id, user);
 
-  // Course progress hook — pass user + initial lesson map for instant render
-  const { progress, loading: progressLoading, lessonStatuses, markLessonViewed, markLessonCompleted, isLessonCompleted, refetch: refetchProgress } = useCourseProgress(course?.id, user, prefetchedLessonMap ?? undefined);
+  // Course progress hook
+  const { progress, loading: progressLoading, lessonStatuses, markLessonViewed, markLessonCompleted, isLessonCompleted, refetch: refetchProgress } = useCourseProgress(course?.id, user);
   const [markingComplete, setMarkingComplete] = useState(false);
+  const [deepNotesOpen, setDeepNotesOpen] = useState(false);
+  const [deepNotesLessonId, setDeepNotesLessonId] = useState<string | undefined>(undefined);
+  const [deepPracticeOpen, setDeepPracticeOpen] = useState(false);
+  const [deepPracticeLessonId, setDeepPracticeLessonId] = useState<string | undefined>(undefined);
 
   // Practice problems linking hooks
   const { data: practiceSkill } = usePracticeSkillByCourse(course?.id);
@@ -306,18 +273,35 @@ const CareerCourseDetail = () => {
     return () => setCurrentCourseSlug(null);
   }, [courseSlug, setCurrentCourseSlug]);
 
+  // Sync Deep Notes mode with parent header
+  useEffect(() => {
+    setDeepNotesTitle(deepNotesOpen ? (course?.name ?? null) : null);
+  }, [deepNotesOpen, course?.name, setDeepNotesTitle]);
+
+  // Clear deep notes title on unmount
+  useEffect(() => {
+    return () => setDeepNotesTitle(null);
+  }, [setDeepNotesTitle]);
+
+  // Sync Practice Focus Mode with parent header
+  useEffect(() => {
+    setPracticeTitle(deepPracticeOpen ? (course?.name ?? null) : null);
+  }, [deepPracticeOpen, course?.name, setPracticeTitle]);
+
+  // Clear practice title on unmount
+  useEffect(() => {
+    return () => setPracticeTitle(null);
+  }, [setPracticeTitle]);
+
   // Computed values for course status (includes lessons + practice problems)
   const courseProgress = useMemo(() => {
-    const completedLessons = progress.completedLessons;
-    const totalLessons = posts.length;
-    
-    // Lessons only
-    const completedCount = completedLessons;
-    const totalCount = totalLessons;
-    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const totalCount = posts.length;
+    // Cap completed against current post count — deleted posts leave stale progress rows
+    const completedCount = Math.min(progress.completedLessons, totalCount);
+    const percentage = totalCount > 0 ? Math.min(100, Math.round((completedCount / totalCount) * 100)) : 0;
     const hasStarted = completedCount > 0;
-    const isCompleted = completedCount === totalCount && totalCount > 0;
-    
+    const isCompleted = totalCount > 0 && completedCount >= totalCount;
+
     return { completedCount, totalCount, percentage, hasStarted, isCompleted };
   }, [progress.completedLessons, posts.length]);
 
@@ -340,7 +324,7 @@ const CareerCourseDetail = () => {
     }
 
     // Priority 2: If tab is specified in URL, use it
-    if (tabParam && ["details", "lessons", "notes", "certificate"].includes(tabParam)) {
+    if (tabParam && ["lessons", "certificate"].includes(tabParam)) {
       if (tabParam === "certificate") {
         if (!postsLoaded) return;
         // Career Board users don't go through explicit enrollment — use completion as proxy
@@ -356,12 +340,7 @@ const CareerCourseDetail = () => {
       return;
     }
 
-    // Priority 3: Admin / Moderator → ALWAYS Course Details
-    if (isAdmin || isModerator) {
-      setActiveTab("details");
-      setDefaultTabResolved(true);
-      return;
-    }
+    // Priority 3: Admin / Moderator → same tab logic as learners (falls through)
 
     // Bug 3 fix: removed premature setActiveTab("details") — just wait silently
     // Bug 5 fix: all progress checks are after this guard so totalCount is always accurate
@@ -390,11 +369,11 @@ const CareerCourseDetail = () => {
       return;
     }
 
-    // 0% progress → Course Details tab
-    setActiveTab("details");
+    // 0% progress → Lessons tab
+    setActiveTab("lessons");
     setDefaultTabResolved(true);
   }, [
-    courseKey,
+    courseSlug,
     defaultTabResolved,
     loading,
     progressLoading,
@@ -443,6 +422,17 @@ const CareerCourseDetail = () => {
     [lessonPostsMap],
   );
 
+  // Reverse map: postId → parent CourseLesson.id (for resolving Practice Focus pre-selection)
+  const postToLessonId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const lesson of lessons) {
+      for (const post of getPostsForLesson(lesson.id)) {
+        map.set(post.id, lesson.id);
+      }
+    }
+    return map;
+  }, [lessons, getPostsForLesson]);
+
   // Ordered flat list for prev/next navigation — recomputed only when lessons/posts change
   const orderedPosts = useMemo(() => {
     const result: Post[] = [];
@@ -489,108 +479,37 @@ const CareerCourseDetail = () => {
     document.title = course ? `${course.name} - Career Learning` : "Career Learning";
   }, [course]);
 
+  // ── Reset per-lesson UI state when slug changes ────────────────────────────
+  // React Query handles fetching automatically; we only clear volatile UI state.
   useEffect(() => {
     if (!courseSlug) return;
+    // Commit the new courseKey synchronously so stateIsStale flips to false
+    // on this very same render cycle that resets volatile UI state.
+    committedCourseKeyRef.current = courseKey;
+    setSelectedPost(null);
+    setActiveTab(null);
+    setDefaultTabResolved(false);
+    setComments([]);
+    setAllTags([]);
+    setLikeCount(0);
+    setHasLiked(false);
+    setShareOpenPostId(null);
+    setCopiedPostId(null);
+    setCareers([]);
+    setCourseCreator(null);
+    setMaintenanceTeam([]);
+    setLinkedPrerequisites([]);
+    setExpandedLessons(new Set());
+  }, [courseSlug]);
 
-    const isNewCourse = committedCourseKeyRef.current !== courseKey;
-
-    if (isNewCourse) {
-      // Mark committed state as belonging to the new courseKey IMMEDIATELY —
-      // this flips stateIsStale to false so the next render shows correct content.
-      committedCourseKeyRef.current = courseKey;
-      hasFetchedForCourseKeyRef.current = null; // reset so new course always fetches
-
-      if (prefetchedCourse && prefetchedPosts) {
-        // INSTANT PATH: all data available — apply immediately, no skeleton needed
-        setCourse(prefetchedCourse);
-        setLessons(prefetchedLessons ?? []);
-        if (prefetchedLessons && prefetchedLessons.length > 0) {
-          setExpandedLessons(new Set([prefetchedLessons[0].id]));
-        } else {
-          setExpandedLessons(new Set());
-        }
-        setPosts(prefetchedPosts);
-        setLoading(false);
-        setLessonsLoading(false);
-        setSelectedPost(null);
-        setActiveTab(null);
-        setDefaultTabResolved(false);
-        setComments([]);
-        setAllTags([]);
-        setLikeCount(0);
-        setHasLiked(false);
-        setShareOpenPostId(null);
-        setCopiedPostId(null);
-        setCareers([]);
-        setCourseCreator(null);
-        setMaintenanceTeam([]);
-        setLinkedPrerequisites([]);
-        return;
-      }
-
-      if (prefetchedCourse && !prefetchedPosts) {
-        // PARTIAL PREFETCH PATH: course known, posts need fetching
-        setCourse(prefetchedCourse);
-        setLessons(prefetchedLessons ?? []);
-        if (prefetchedLessons && prefetchedLessons.length > 0) {
-          setExpandedLessons(new Set([prefetchedLessons[0].id]));
-        } else {
-          setExpandedLessons(new Set());
-        }
-        setPosts([]);
-        setLoading(false);
-        setLessonsLoading(true);
-        setSelectedPost(null);
-        setActiveTab(null);
-        setDefaultTabResolved(false);
-        setComments([]);
-        setAllTags([]);
-        setLikeCount(0);
-        setHasLiked(false);
-        setCareers([]);
-        setCourseCreator(null);
-        setMaintenanceTeam([]);
-        setLinkedPrerequisites([]);
-        fetchLessonsAndPosts(prefetchedCourse.id);
-        return;
-      }
-
-      // NO PREFETCH PATH: need full fetch — show skeleton
-      setCourse(null);
-      setLessons([]);
-      setPosts([]);
-      setExpandedLessons(new Set());
-      setLoading(true);
-      setLessonsLoading(false);
-      setSelectedPost(null);
-      setActiveTab(null);
-      setDefaultTabResolved(false);
-      setComments([]);
-      setAllTags([]);
-      setLikeCount(0);
-      setHasLiked(false);
-      setCareers([]);
-      setCourseCreator(null);
-      setMaintenanceTeam([]);
-      setLinkedPrerequisites([]);
+  // ── Auto-expand first lesson when course data arrives / changes ───────────
+  useEffect(() => {
+    if (lessons.length > 0) {
+      setExpandedLessons(new Set([lessons[0].id]));
     }
-
-    // Always re-check preview access (role may have changed)
-    if (!roleLoading) {
-      const hasPreviewAccess = isAdmin || isModerator;
-      setCanPreview(hasPreviewAccess);
-    }
-
-    // Fetch course data if we don't have it yet.
-    // Guard on authLoading: prevents firing before JWT is ready (avoids RLS race on refresh).
-    // Guard on hasFetchedForCourseKeyRef: prevents double-fetch when isAdmin updates.
-    if (!prefetchedCourse && !roleLoading && !authLoading) {
-      if (hasFetchedForCourseKeyRef.current !== courseKey) {
-        hasFetchedForCourseKeyRef.current = courseKey;
-        fetchCourseAndLessons();
-      }
-    }
-  }, [courseKey, roleLoading, isAdmin, isModerator, authLoading]);
+  // courseDetailData reference changes whenever slug or data changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseDetailData]);
 
   useEffect(() => {
     if (!lessonSlug) {
@@ -800,155 +719,6 @@ const CareerCourseDetail = () => {
     }
   };
 
-  // Fast path: already have course from nav state — only fetch lessons + posts in parallel
-  const fetchLessonsAndPosts = useCallback(async (courseId: string) => {
-    try {
-      const [lessonsResult, postsResult] = await Promise.all([
-        supabase
-          .from("course_lessons")
-          .select("id, title, description, lesson_rank, is_published, course_id")
-          .eq("course_id", courseId)
-          .is("deleted_at", null)
-          .order("lesson_rank", { ascending: true }),
-        supabase
-          .from("posts")
-          .select("id, title, content, excerpt, slug, published_at, updated_at, lesson_id, post_rank, post_type, status, profiles:author_id (full_name)")
-          .eq("category_id", courseId)
-          .eq("status", "published")
-          .order("post_rank", { ascending: true }),
-      ]);
-
-      const typedLessons = ((lessonsResult.data || []) as unknown as CourseLesson[]);
-      setLessons(typedLessons);
-      if (typedLessons.length > 0) setExpandedLessons(new Set([typedLessons[0].id]));
-
-      const publishedLessonIds = new Set(typedLessons.filter(l => l.is_published).map(l => l.id));
-      const typedPosts = ((postsResult.data || []) as any[]).map(p => ({
-        ...p,
-        lesson_id: p.lesson_id as string | null,
-        post_rank: p.post_rank as string | null,
-        post_type: p.post_type as string | null,
-        profiles: p.profiles as { full_name: string | null },
-      })).filter((p: any) => p.lesson_id === null || publishedLessonIds.has(p.lesson_id)) as Post[];
-      setPosts(typedPosts);
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setLessonsLoading(false);
-    }
-  }, [toast]);
-
-  const fetchCourseAndLessons = useCallback(async () => {
-    let redirected = false;
-    try {
-      const showAllStatuses = isPreviewMode && (isAdmin || isModerator);
-
-      let courseQuery = supabase
-        .from("courses")
-        .select("*")
-        .eq("slug", courseSlug);
-
-      if (!showAllStatuses) {
-        courseQuery = courseQuery.eq("status", "published");
-      }
-
-      // maybeSingle() returns { data: null, error: null } for 0 rows instead of PGRST116,
-      // cleanly separating "not found" from real DB/network errors.
-      const { data: courseData, error: courseError } = await courseQuery.maybeSingle();
-
-      if (courseError) {
-        // Real DB/network error — show toast, stay on page (don't redirect)
-        throw courseError;
-      }
-
-      if (!courseData) {
-        // Genuinely not found — auth is already confirmed at the call site (Bug 1 guard)
-        redirected = true;
-        toast({
-          title: "Course not found",
-          description: "This course doesn't exist or isn't available.",
-        });
-        navigate("/careers", { replace: true });
-        return;
-      }
-
-      setCourse(courseData);
-
-      const { data: lessonsData, error: lessonsError } = await supabase
-        .from("course_lessons")
-        .select("id, title, description, lesson_rank, is_published, course_id")
-        .eq("course_id", courseData.id)
-        .is("deleted_at", null)
-        .order("lesson_rank", { ascending: true });
-
-      if (lessonsError) throw lessonsError;
-
-      const typedLessons = (lessonsData || []) as unknown as CourseLesson[];
-      setLessons(typedLessons);
-
-      if (typedLessons.length > 0) {
-        setExpandedLessons(new Set([typedLessons[0].id]));
-      }
-
-      let postsQuery = supabase
-        .from("posts")
-        .select(`
-          id,
-          title,
-          content,
-          excerpt,
-          slug,
-          published_at,
-          updated_at,
-          lesson_id,
-          post_rank,
-          post_type,
-          status,
-          profiles:author_id (full_name)
-        `)
-        .eq("category_id", courseData.id)
-        .order("post_rank", { ascending: true });
-
-      if (!showAllStatuses) {
-        postsQuery = postsQuery.eq("status", "published");
-      }
-
-      const { data: postsData, error: postsError } = await postsQuery;
-
-      if (postsError) throw postsError;
-
-      let typedPosts = (postsData || []).map(p => ({
-        ...p,
-        lesson_id: p.lesson_id as string | null,
-        post_rank: p.post_rank as string | null,
-        post_type: p.post_type as string | null,
-        profiles: p.profiles as { full_name: string | null }
-      })) as Post[];
-
-      if (!showAllStatuses) {
-        const publishedLessonIds = new Set(
-          (lessonsData || [])
-            .filter(lesson => lesson.is_published === true)
-            .map(lesson => lesson.id)
-        );
-        typedPosts = typedPosts.filter(post =>
-          post.lesson_id === null || publishedLessonIds.has(post.lesson_id)
-        );
-      }
-
-      setPosts(typedPosts);
-    } catch (error: any) {
-      toast({
-        title: "Error loading course",
-        description: error.message || "Please try refreshing the page.",
-        variant: "destructive",
-      });
-    } finally {
-      if (!redirected) {
-        setLoading(false);
-      }
-    }
-  }, [courseSlug, isPreviewMode, isAdmin, isModerator, navigate, toast]);
 
   const fetchTags = async (postId?: string) => {
     if (!postId) {
@@ -1259,17 +1029,8 @@ const CareerCourseDetail = () => {
     toast({ title: "URL copied!", description: "Course URL copied to clipboard." });
   };
 
-  // Get primary CTA button props based on user state, enrollment, progress, and role
+  // Get primary CTA button props based on user state, enrollment, and progress
   const getPrimaryCTAProps = () => {
-    // Admin / Moderator
-    if (isAdmin || isModerator) {
-      return {
-        label: "Manage Course",
-        icon: Edit,
-        onClick: () => window.open(`/admin/courses/${course?.id}`, '_blank'),
-      };
-    }
-
     // User not enrolled
     if (!courseStats.isEnrolled) {
       return {
@@ -1369,15 +1130,6 @@ const CareerCourseDetail = () => {
 
   // Get Action Reinforcement Card content based on current state
   const getActionCardContent = () => {
-    if (isAdmin || isModerator) {
-      return {
-        title: "Manage This Course",
-        message: "View and manage course settings, structure, and metadata.",
-        buttonLabel: "Manage Course",
-        icon: Edit,
-      };
-    }
-
     if (!courseStats.isEnrolled) {
       return {
         title: "Ready to Get Started?",
@@ -1429,63 +1181,122 @@ const CareerCourseDetail = () => {
   if (isPageLoading || isFastPathLoading) {
     return (
       <div className="w-full flex flex-col lg:flex-row gap-0 lg:justify-center">
-        {/* Left Sidebar Skeleton */}
+
+        {/* ── Left Sidebar Skeleton — mirrors CourseSidebar ── */}
         <aside className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
-          <div className="px-4 py-3 border-b border-sidebar-border">
-            <Skeleton className="h-4 w-28 mb-1" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-          <div className="px-4 pt-3 pb-4 border-b border-sidebar-border space-y-2.5">
+
+          {/* Header: "COURSE PROGRESS" + icon buttons */}
+          <div className="px-4 pt-4 pb-1">
             <div className="flex items-center justify-between">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-4 w-8" />
-            </div>
-            <Skeleton className="h-2 w-full" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-          <div className="space-y-1 p-2 pt-3">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="flex items-center gap-2 px-2 py-2">
-                <Skeleton className="h-4 w-4 rounded-full shrink-0" />
-                <Skeleton className="h-3 flex-1" />
+              <Skeleton className="h-2.5 w-28 rounded" />
+              <div className="flex items-center gap-0.5">
+                <Skeleton className="h-7 w-7 rounded-xl" />
+                <Skeleton className="h-7 w-7 rounded-xl" />
               </div>
-            ))}
+            </div>
+          </div>
+
+          {/* Progress block */}
+          <div className="px-4 pt-3 pb-4 border-b border-sidebar-border space-y-2">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-3 w-20 rounded" />
+              <Skeleton className="h-4 w-10 rounded" />
+            </div>
+            <Skeleton className="h-1.5 w-full rounded-full" />
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <Skeleton className="h-2 w-2 rounded-full" />
+              <Skeleton className="h-2.5 w-32 rounded" />
+            </div>
+          </div>
+
+          {/* Lesson section header */}
+          <div className="px-3 pt-3 pb-1">
+            <div className="flex items-center justify-between px-1 py-2 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5 rounded-full shrink-0" />
+                <Skeleton className="h-3.5 w-28 rounded" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-3 w-8 rounded" />
+                <Skeleton className="h-4 w-4 rounded" />
+              </div>
+            </div>
+
+            {/* Lesson items */}
+            <div className="ml-3 border-l border-sidebar-border/60 pl-2 space-y-0.5 mt-1">
+              {[72, 88, 64, 80].map((w, i) => (
+                <div key={i} className="flex items-center gap-2.5 px-2 py-2 rounded-lg">
+                  <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                  <Skeleton className={`h-3 rounded`} style={{ width: `${w}%` }} />
+                </div>
+              ))}
+            </div>
           </div>
         </aside>
-        {/* Main Content Skeleton */}
+
+        {/* ── Main Content Skeleton — mirrors course overview Card ── */}
         <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0">
-          <div className="p-6 lg:p-8">
-            <div className="text-center mb-8">
-              <Skeleton className="h-10 w-3/4 mx-auto mb-4" />
-              <div className="flex justify-center gap-4 mb-6">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
+          <div className="p-6 lg:p-8 space-y-6">
+
+            {/* Title + meta */}
+            <div className="space-y-3">
+              <Skeleton className="h-9 w-2/3 rounded-lg" />
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-3.5 w-32 rounded" />
+                <Skeleton className="h-3.5 w-24 rounded" />
               </div>
-              <Skeleton className="h-12 w-40 mx-auto rounded-md" />
             </div>
-            <div className="flex gap-4 mb-6">
-              <Skeleton className="h-10 w-32 rounded-md" />
-              <Skeleton className="h-10 w-28 rounded-md" />
-              <Skeleton className="h-10 w-20 rounded-md" />
+
+            {/* CTA button */}
+            <Skeleton className="h-10 w-44 rounded-full" />
+
+            {/* Tab bar */}
+            <div className="flex gap-1 border-b border-border/40 pb-0">
+              {[56, 52, 48, 72].map((w, i) => (
+                <Skeleton key={i} className="h-9 rounded-t-md rounded-b-none" style={{ width: w }} />
+              ))}
             </div>
-            <Skeleton className="h-6 w-40 mb-4" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-3/4" />
+
+            {/* Content body */}
+            <div className="space-y-3 pt-2">
+              <Skeleton className="h-5 w-40 rounded" />
+              <div className="space-y-2">
+                {[100, 96, 100, 88, 100, 72].map((w, i) => (
+                  <Skeleton key={i} className="h-3.5 rounded" style={{ width: `${w}%` }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Secondary content block */}
+            <div className="space-y-3 pt-2">
+              <Skeleton className="h-5 w-32 rounded" />
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-border/40">
+                    <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <Skeleton className="h-3 w-3/4 rounded" />
+                      <Skeleton className="h-2.5 w-1/2 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </main>
-        {/* Right Sidebar Skeleton */}
-        <aside className="hidden lg:block w-[300px] shrink-0 border-l border-border px-6 py-6">
-          <Skeleton className="h-5 w-24 mb-4" />
-          <div className="space-y-3">
+
+        {/* ── Right Sidebar Skeleton — mirrors LearningCockpit 56px icon strip ── */}
+        <aside className="hidden xl:flex w-14 shrink-0 flex-col border-l border-border/40 bg-background">
+          <div className="flex flex-col items-center gap-1 px-2 py-3 pt-4">
+            {/* BookOpen (active — highlighted) */}
+            <Skeleton className="h-9 w-9 rounded-lg" style={{ opacity: 0.5 }} />
+            {/* Other icons */}
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="flex justify-between">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-16" />
-              </div>
+              <Skeleton key={i} className="h-9 w-9 rounded-lg opacity-30" />
             ))}
           </div>
         </aside>
+
       </div>
     );
   }
@@ -1540,8 +1351,8 @@ const CareerCourseDetail = () => {
       {/* Main Layout - symmetric centering with equal sidebar influence */}
       <div className="w-full flex flex-col lg:flex-row gap-0 lg:justify-center">
         
-        {/* LEFT SIDEBAR - Progress & Navigation */}
-        <CourseSidebar
+        {/* LEFT SIDEBAR - Progress & Navigation (hidden when Deep Notes or Practice Focus is open) */}
+        {!deepNotesOpen && !deepPracticeOpen && <CourseSidebar
           lessons={lessons}
           posts={posts}
           selectedPost={selectedPost}
@@ -1581,10 +1392,50 @@ const CareerCourseDetail = () => {
             nextSearch.set("tab", desiredTab);
             setSearchParams(nextSearch, { replace: true });
           }}
-        />
+          onOpenPracticeFocus={(lessonId) => {
+            setDeepPracticeLessonId(lessonId);
+            setDeepPracticeOpen(true);
+          }}
+        />}
 
-        {/* MAIN CONTENT - centered between sidebars (280px left + 300px right = 580px total, offset by 10px) */}
-        <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0" data-lesson-content>
+        {/* MAIN CONTENT — full-width (no max-w) when Deep Notes or Practice Focus is open */}
+        <main
+          id="lesson-main-content"
+          className={cn(
+            "flex-1 min-w-0",
+            deepPracticeOpen
+              ? cn("px-0", showAnnouncement ? "h-[calc(100vh-5.25rem)]" : "h-[calc(100vh-3rem)]") // exact remaining height
+              : deepNotesOpen
+                  ? cn("px-0", showAnnouncement ? "h-[calc(100vh-5.25rem)]" : "h-[calc(100vh-3rem)]") // exact remaining height
+                  : "max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0" // normal lesson view
+          )}
+          data-lesson-content
+        >
+          {deepNotesOpen ? (
+            <NotesFocusMode
+              courseId={course?.id || ""}
+              userId={user?.id || ""}
+              courseName={course?.name || ""}
+              onExit={() => setDeepNotesOpen(false)}
+              switchToContext={deepNotesLessonId ? { lessonId: deepNotesLessonId, entityType: "lesson" as const } : undefined}
+              onContextSwitched={() => setDeepNotesLessonId(undefined)}
+              isStandalonePage={true}
+              hideHeader={true}
+            />
+          ) : deepPracticeOpen ? (
+            <PracticeFocusMode
+              courseId={course?.id || ""}
+              courseName={course?.name || ""}
+              courseSlug={course?.slug || ""}
+              careerId={careerSlugForPath || ""}
+              lessons={lessons.map(l => ({ id: l.id, title: l.title }))}
+              practiceSkillSlug={practiceSkill?.slug}
+              lessonProblemCounts={lessonProblemCounts}
+              lessonProblemsCompleted={lessonProblemsCompleted}
+              onExit={() => setDeepPracticeOpen(false)}
+              initialLessonId={deepPracticeLessonId}
+            />
+          ) : (
           <Card className="rounded-none border-0 shadow-none">
             <CardContent className="p-6 lg:p-8">
               {loadingPost ? (
@@ -1819,65 +1670,28 @@ const CareerCourseDetail = () => {
 
                     {/* Cheer Label */}
                     {courseStats.isEnrolled && (
-                      <p className="text-sm text-primary/70 font-medium text-center mt-3">
+                      <div className="flex items-center justify-center gap-2 mt-3">
                         {courseProgress.isCompleted ? (
-                          "🎉 You've successfully completed this course"
+                          <>
+                            <PartyPopper className="h-5 w-5 text-primary flex-shrink-0" strokeWidth={1.6} />
+                            <span className="text-sm text-muted-foreground font-medium">You've successfully completed this course</span>
+                          </>
                         ) : courseProgress.hasStarted && courseProgress.percentage > 0 ? (
-                          "💪 You're making great progress — keep going"
+                          <p className="text-sm text-muted-foreground font-medium text-center">💪 You're making great progress — keep going</p>
                         ) : (
-                          "🚀 Ready to begin — let's start building this skill"
+                          <p className="text-sm text-muted-foreground font-medium text-center">🚀 Ready to begin — let's start building this skill</p>
                         )}
-                      </p>
+                      </div>
                     )}
                   </div>
 
                   {/* TABS */}
-                  <Tabs value={activeTab ?? "details"} onValueChange={handleTabChange} className="w-full">
+                  <Tabs value={activeTab ?? "lessons"} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="mb-6 grid w-full auto-cols-fr grid-flow-col">
-                      <TabsTrigger value="details" className="w-full gap-2">
-                        <Info className="h-4 w-4" />
-                        Course Details
-                      </TabsTrigger>
                       <TabsTrigger value="lessons" className="w-full gap-2">
                         <List className="h-4 w-4" />
                         Lessons ({lessons.filter(l => l.is_published || (isPreviewMode && (isAdmin || isModerator))).length})
                       </TabsTrigger>
-                      {user && course && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            {isMobile ? (
-                              <Link
-                                to={`/courses/${course.id}/notes`}
-                                className="inline-flex w-full items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                              >
-                                <StickyNote className="h-4 w-4" />
-                                Notes
-                              </Link>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  openNotesTab({
-                                    lessonId: selectedPost?.id,
-                                  entityType: selectedPost ? 'lesson' : undefined,
-                                });
-                              }}
-                                className="inline-flex w-full items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-transparent hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                              >
-                                <StickyNote className="h-4 w-4" />
-                                Notes
-                                <ExternalLink className="h-3 w-3 opacity-50" />
-                              </button>
-                            )}
-                          </TooltipTrigger>
-                          {!isMobile && (
-                            <TooltipContent side="bottom" className="text-xs">
-                              Opens notes in a new tab
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      )}
                       
                       {/* Certificate Tab */}
                       {isPro && (
@@ -1924,13 +1738,13 @@ const CareerCourseDetail = () => {
                           return (
                             <div 
                               id="action-reinforcement-card" 
-                              className="p-5 bg-primary/5 rounded-xl border border-primary/10 transition-all duration-300"
+                              className="p-5 bg-muted/30 rounded-xl border border-border/50 transition-all duration-300"
                             >
                               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                                 {/* Left: Icon + Content */}
                                 <div className="flex items-start gap-4 flex-1">
-                                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                    <Target className="h-5 w-5 text-primary" />
+                                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                    <Target className="h-5 w-5 text-muted-foreground" />
                                   </div>
                                   <div className="flex flex-col gap-0.5">
                                     <h3 className="font-semibold text-foreground text-lg leading-tight">
@@ -2045,7 +1859,7 @@ const CareerCourseDetail = () => {
                                             key={post.id}
                                             className={cn(
                                               "relative flex items-center justify-between hover:bg-muted/30 cursor-pointer transition-colors group",
-                                              isActive && "bg-primary/5",
+                                              isActive && "bg-muted/60",
                                               shareOpenPostId === post.id && !isActive && "bg-muted/40"
                                             )}
                                             onClick={() => handleLessonClick(post)}
@@ -2118,6 +1932,30 @@ const CareerCourseDetail = () => {
                                           </div>
                                         );
                                       })}
+
+                                      {/* Practice Problems — opens Practice & Reinforce focus mode */}
+                                      {practiceSkill?.slug ? (
+                                        <button
+                                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-primary/70 hover:text-primary hover:bg-primary/5 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeepPracticeLessonId(lesson.id);
+                                            setDeepPracticeOpen(true);
+                                          }}
+                                        >
+                                          {lessonProblemsCompleted?.get(lesson.id) ? (
+                                            <CheckCircle className="h-4 w-4 text-primary" />
+                                          ) : (
+                                            <Dumbbell className="h-4 w-4" />
+                                          )}
+                                          <span>Practice Problems</span>
+                                          {lessonProblemCounts?.get(lesson.id) && (
+                                            <span className="text-xs text-muted-foreground ml-auto">
+                                              {lessonProblemCounts.get(lesson.id)} problem{(lessonProblemCounts.get(lesson.id) || 0) !== 1 ? 's' : ''}
+                                            </span>
+                                          )}
+                                        </button>
+                                      ) : null}
                                     </div>
                                   ) : (
                                     <div className="px-4 py-6 text-center bg-muted/20">
@@ -2181,8 +2019,8 @@ const CareerCourseDetail = () => {
                             !courseProgress.isCompleted && "pointer-events-none select-none"
                           )}>
                             {/* Certificate Preview */}
-                            <div className="w-full max-w-md aspect-[1.4/1] rounded-lg border-4 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                              <div className="absolute inset-3 border-2 border-primary/30 rounded pointer-events-none" />
+                            <div className="w-full max-w-md aspect-[1.4/1] rounded-lg border-4 border-border/40 bg-gradient-to-br from-muted/40 to-muted/60 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                              <div className="absolute inset-3 border-2 border-border/40 rounded pointer-events-none" />
                               
                               <div className="mb-3">
                                 <Award className="h-12 w-12 text-primary" />
@@ -2216,7 +2054,7 @@ const CareerCourseDetail = () => {
                             {/* Actions */}
                             <div className="flex flex-col gap-4 flex-1">
                               <div>
-                                <h3 className="text-xl font-semibold mb-1">🎉 Your Certificate is Ready!</h3>
+                                <h3 className="text-xl font-semibold mb-1">Your Certificate is Ready!</h3>
                                 <p className="text-sm text-muted-foreground">
                                   Download your certificate or share your achievement.
                                 </p>
@@ -2328,10 +2166,11 @@ const CareerCourseDetail = () => {
               )}
             </CardContent>
           </Card>
+          )}
         </main>
 
         {/* RIGHT SIDEBAR - Learning Cockpit (Pro feature, always shown in Career Board) */}
-        {selectedPost ? (
+        {(selectedPost || deepNotesOpen || deepPracticeOpen) ? (
           <LearningCockpit
             lessonId={selectedPost?.id}
             lessonTitle={selectedPost?.title || ""}
@@ -2344,8 +2183,22 @@ const CareerCourseDetail = () => {
             courseProgress={courseProgress}
             certificateEligible={courseProgress.isCompleted}
             onOpenNotes={() => openNotesTab()}
+            onOpenDeepNotes={(lessonId) => {
+              setDeepNotesLessonId(lessonId);
+              setDeepNotesOpen(true);
+            }}
+            isDeepNotesOpen={deepNotesOpen}
+            onReturnToLesson={() => setDeepNotesOpen(false)}
             isCareerBoard={true}
             careerId={careerSlugForPath}
+            onOpenPracticeFocus={(postId) => {
+              // postId here is selectedPost?.id — resolve to parent CourseLesson.id
+              const lessonId = postId ? postToLessonId.get(postId) : undefined;
+              setDeepPracticeLessonId(lessonId);
+              setDeepPracticeOpen(true);
+            }}
+            isPracticeFocusOpen={deepPracticeOpen}
+            onExitPractice={() => setDeepPracticeOpen(false)}
           />
         ) : (
           /* Course overview - show metadata sidebar */

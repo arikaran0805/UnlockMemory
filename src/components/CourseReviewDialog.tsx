@@ -251,7 +251,7 @@ const CourseReviewDialog = ({
                           {!r.is_anonymous && r.profiles?.avatar_url ? (
                             <AvatarImage src={r.profiles.avatar_url} />
                           ) : null}
-                          <AvatarFallback className="bg-primary/10 text-primary">
+                          <AvatarFallback className="bg-muted text-muted-foreground">
                             {getDisplayName(r)[0]?.toUpperCase() || "A"}
                           </AvatarFallback>
                         </Avatar>

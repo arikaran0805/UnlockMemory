@@ -201,7 +201,7 @@ const Footer = () => {
             <div className="lg:pl-2">
               {/* Accent bar + heading */}
               <div className="mb-5 pb-3 border-b border-border/40">
-                <div className="w-4 h-[2px] rounded-full bg-[#22A55D] mb-3" />
+                <div className="w-4 h-[2px] rounded-full bg-primary mb-3" />
                 <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-foreground/65">
                   Courses
                 </p>
@@ -222,7 +222,7 @@ const Footer = () => {
                   <Link
                     to="/courses"
                     className="inline-flex items-center gap-1 text-[12px] font-semibold
-                               text-[#22A55D] hover:text-[#1a9050] transition-colors duration-150"
+                               text-primary hover:text-primary/80 transition-colors duration-150"
                   >
                     View all <ArrowUpRight className="h-3 w-3" />
                   </Link>
@@ -233,7 +233,7 @@ const Footer = () => {
             {/* ── Careers ──────────────────────────────────────────────── */}
             <div className="lg:pl-2">
               <div className="mb-5 pb-3 border-b border-border/40">
-                <div className="w-4 h-[2px] rounded-full bg-[#22A55D] mb-3" />
+                <div className="w-4 h-[2px] rounded-full bg-primary mb-3" />
                 <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-foreground/65">
                   Careers
                 </p>
@@ -254,7 +254,7 @@ const Footer = () => {
                   <Link
                     to="/careers"
                     className="inline-flex items-center gap-1 text-[12px] font-semibold
-                               text-[#22A55D] hover:text-[#1a9050] transition-colors duration-150"
+                               text-primary hover:text-primary/80 transition-colors duration-150"
                   >
                     View all <ArrowUpRight className="h-3 w-3" />
                   </Link>
@@ -265,7 +265,7 @@ const Footer = () => {
             {/* ── Company ──────────────────────────────────────────────── */}
             <div className="lg:pl-2">
               <div className="mb-5 pb-3 border-b border-border/40">
-                <div className="w-4 h-[2px] rounded-full bg-[#22A55D] mb-3" />
+                <div className="w-4 h-[2px] rounded-full bg-primary mb-3" />
                 <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-foreground/65">
                   Company
                 </p>
@@ -306,7 +306,7 @@ const Footer = () => {
 
           {/* Center — tagline */}
           <p className="inline-flex items-center justify-center gap-1.5 text-[11.5px] text-foreground/50">
-            Crafted with <Heart className="h-2.5 w-2.5 fill-[#22A55D] text-[#22A55D]" /> for learners
+            Crafted with <Heart className="h-2.5 w-2.5 fill-primary text-primary" /> for learners
           </p>
 
           {/* Right — legal */}

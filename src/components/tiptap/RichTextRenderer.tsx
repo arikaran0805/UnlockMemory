@@ -10,7 +10,7 @@
  * ❌ No dangerouslySetInnerHTML
  */
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import type { JSONContent } from '@tiptap/react';
 import { cn } from '@/lib/utils';
@@ -99,6 +99,8 @@ export const RichTextRenderer = ({
     return json;
   }, [content]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Create read-only editor with full schema
   const editor = useEditor(
     {
@@ -113,6 +115,31 @@ export const RichTextRenderer = ({
     },
     [parsedContent]
   );
+
+  // Inject data-flow + data-flow-label attributes onto heading elements so
+  // useLessonFlowNavigation can discover them as Lesson Flow items.
+  useEffect(() => {
+    if (!editor || !containerRef.current) return;
+    const container = containerRef.current;
+    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    if (!headings.length) return;
+
+    const slugCounts: Record<string, number> = {};
+    headings.forEach((el) => {
+      const text = el.textContent?.trim() || '';
+      if (!text) return;
+      const baseSlug =
+        text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'heading';
+      const count = slugCounts[baseSlug] || 0;
+      const slug = count > 0 ? `${baseSlug}-${count}` : baseSlug;
+      slugCounts[baseSlug] = count + 1;
+
+      const flowId = `h-${slug}`;
+      el.setAttribute('data-flow', flowId);
+      el.setAttribute('data-flow-label', text);
+      el.id = flowId;
+    });
+  }, [editor]);
 
   // Apply annotation marks when annotations prop changes
   useEffect(() => {
@@ -168,7 +195,7 @@ export const RichTextRenderer = ({
   }
 
   return (
-    <div className={cn('tiptap-content', className)}>
+    <div ref={containerRef} className={cn('tiptap-content', className)}>
       <EditorContent editor={editor} />
       
       {/* Annotation tooltip - works in read-only mode */}

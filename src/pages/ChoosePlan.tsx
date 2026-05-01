@@ -88,8 +88,8 @@ const ChoosePlan = () => {
                 {freeFeatures.map((f, i) => (
                   <div key={i} className="flex items-center gap-3">
                     {f.included ? (
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Check className="h-3 w-3 text-primary" strokeWidth={3} />
+                      <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <Check className="h-3 w-3 text-foreground/60" strokeWidth={3} />
                       </div>
                     ) : (
                       <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center shrink-0">
@@ -118,7 +118,7 @@ const ChoosePlan = () => {
 
             {/* Pro Card */}
             <motion.div
-              className="relative rounded-2xl border border-primary/20 bg-card p-8 md:p-10 flex flex-col shadow-md cursor-default"
+              className="relative rounded-2xl border border-border/60 bg-card p-8 md:p-10 flex flex-col shadow-md cursor-default"
               variants={cardVariants}
               initial="initial"
               animate="animate"
@@ -128,14 +128,14 @@ const ChoosePlan = () => {
             >
               {/* Badge */}
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="inline-flex items-center bg-primary/10 text-primary text-xs font-semibold px-4 py-1.5 rounded-full tracking-wide">
+                <span className="inline-flex items-center bg-foreground text-background text-xs font-semibold px-4 py-1.5 rounded-full tracking-wide">
                   Recommended
                 </span>
               </div>
 
               {/* Icon */}
-              <div className="mx-auto mb-6 h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-                <Crown className="h-6 w-6 text-primary" />
+              <div className="mx-auto mb-6 h-14 w-14 rounded-full bg-muted flex items-center justify-center">
+                <Crown className="h-6 w-6 text-muted-foreground" />
               </div>
 
               {/* Title */}

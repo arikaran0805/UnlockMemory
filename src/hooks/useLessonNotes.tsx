@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useNotesSyncBridge } from "@/hooks/useNotesSyncBridge";
+import { appendTipTapContent } from "@/lib/tiptapMigration";
 
 interface UseLessonNotesOptions {
   lessonId: string | undefined;
@@ -305,9 +306,23 @@ export function useLessonNotes({ lessonId, courseId, userId }: UseLessonNotesOpt
     contentForLessonIdRef.current = lessonId;
   }, [lessonId]);
 
+  /**
+   * Append new content from Quick Notes scratchpad to the existing deep note.
+   * Called when the Quick Notes card collapses — each session's text is added
+   * as a new paragraph block below the previous accumulated content.
+   */
+  const appendToContent = useCallback((newContentJson: string) => {
+    if (!newContentJson) return;
+    const merged = appendTipTapContent(content, newContentJson);
+    if (merged !== content) {
+      updateContent(merged);
+    }
+  }, [content, updateContent]);
+
   return {
     content,
     updateContent,
+    appendToContent,
     isSaving,
     isSyncing,
     lastSaved,

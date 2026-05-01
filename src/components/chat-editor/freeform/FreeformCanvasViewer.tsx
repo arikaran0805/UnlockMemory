@@ -29,6 +29,7 @@ export const FreeformCanvasViewer = ({
   const [fullscreenZoom, setFullscreenZoom] = useState(1);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mainContentRect, setMainContentRect] = useState<DOMRect | null>(null);
   const [containerHeight, setContainerHeight] = useState(300);
   const [zoomPopoverOpen, setZoomPopoverOpen] = useState(false);
   const [fullscreenZoomPopoverOpen, setFullscreenZoomPopoverOpen] = useState(false);
@@ -188,19 +189,32 @@ export const FreeformCanvasViewer = ({
     return () => ro.disconnect();
   }, [fullscreenFabricCanvas, baseWidth, baseHeight, fullscreenZoom]);
 
-  // Escape key to close fullscreen
+  // Escape key + resize handler while fullscreen
   useEffect(() => {
     if (!isFullscreen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsFullscreen(false);
-      }
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+
+    const handleResize = () => {
+      const mainEl = document.getElementById("lesson-main-content");
+      if (mainEl) setMainContentRect(mainEl.getBoundingClientRect());
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", handleResize);
+    };
   }, [isFullscreen]);
+
+  const openFullscreen = () => {
+    const mainEl = document.getElementById("lesson-main-content");
+    setMainContentRect(mainEl ? mainEl.getBoundingClientRect() : null);
+    setIsFullscreen(true);
+  };
 
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
@@ -347,7 +361,7 @@ export const FreeformCanvasViewer = ({
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => setIsFullscreen(true)}
+            onClick={openFullscreen}
             title="Fullscreen"
           >
             <Fullscreen className="h-3.5 w-3.5" />
@@ -410,9 +424,21 @@ export const FreeformCanvasViewer = ({
         </div>
       </div>
 
-      {/* Fullscreen Modal */}
+      {/* Fullscreen Modal — covers only #lesson-main-content area between sidebars */}
       {isFullscreen && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
+        <div
+          className="z-50 bg-background/95 backdrop-blur-sm flex flex-col"
+          style={mainContentRect ? {
+            position: "fixed",
+            top: mainContentRect.top,
+            left: mainContentRect.left,
+            width: mainContentRect.width,
+            height: mainContentRect.height,
+          } : {
+            position: "fixed",
+            inset: 0,
+          }}
+        >
           {/* Fullscreen header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
             <div className="flex items-center gap-4">

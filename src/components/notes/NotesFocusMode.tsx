@@ -44,6 +44,8 @@ interface NotesFocusModeProps {
   onNavigateToLesson?: (lessonId: string) => void;
   /** When true, component is rendered as a standalone page (not overlay) */
   isStandalonePage?: boolean;
+  /** When true, hides the internal top bar (used when embedded inside a layout that has its own header) */
+  hideHeader?: boolean;
   /** Context to switch to (from cross-tab communication) */
   switchToContext?: {
     noteId?: string;
@@ -61,6 +63,7 @@ export function NotesFocusMode({
   onExit,
   onNavigateToLesson,
   isStandalonePage = false,
+  hideHeader = false,
   switchToContext,
   onContextSwitched,
 }: NotesFocusModeProps) {
@@ -251,7 +254,7 @@ export function NotesFocusMode({
     return (
       <div className={cn(
         "bg-surface-card dark:bg-background flex items-center justify-center",
-        isStandalonePage ? "min-h-screen" : "fixed inset-0 z-50"
+        isStandalonePage ? (hideHeader ? "h-full" : "min-h-screen") : "fixed inset-0 z-50"
       )}>
         <div className="text-center max-w-xs">
           <StickyNote className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
@@ -273,11 +276,11 @@ export function NotesFocusMode({
       transition={{ duration: 0.12 }}
       className={cn(
         "bg-surface-card dark:bg-background",
-        isStandalonePage ? "min-h-screen" : "fixed inset-0 z-50"
+        isStandalonePage ? (hideHeader ? "h-full" : "min-h-screen") : "fixed inset-0 z-50"
       )}
     >
-      {/* Top Bar — 44px, readable contrast */}
-      <header className="h-11 flex items-center px-4 border-b border-border/30">
+      {/* Top Bar — hidden when embedded in a layout with its own header */}
+      {!hideHeader && <header className="h-11 flex items-center px-4 border-b border-border/30">
         {/* Back */}
         <button
           onClick={onExit}
@@ -333,15 +336,17 @@ export function NotesFocusMode({
             </AnimatePresence>
           )}
         </div>
-      </header>
+      </header>}
 
       {/* Main Layout */}
       <div className={cn(
         "flex",
-        isStandalonePage ? "h-[calc(100vh-2.75rem)]" : "h-[calc(100vh-2.75rem)]"
+        hideHeader
+          ? "h-full"                                            // parent controls height — fills exactly
+          : isStandalonePage ? "h-[calc(100vh-2.75rem)]" : "h-[calc(100vh-2.75rem)]"
       )}>
         {/* Left Sidebar — 260px, soft tint */}
-        <aside className="w-[260px] bg-[hsl(142_20%_97%)] dark:bg-muted/10 flex-shrink-0 hidden md:flex flex-col border-r border-border/20">
+        <aside className="w-[260px] bg-sidebar dark:bg-muted/10 flex-shrink-0 hidden md:flex flex-col border-r border-border/20">
           {/* New Note — Instant creation, no lesson selection */}
           <div className="px-3 pt-3 pb-2">
             <button 
@@ -389,7 +394,7 @@ export function NotesFocusMode({
                                             className={cn(
                                               "w-full text-left px-2.5 py-2 rounded-md transition-all relative",
                                               isSelected
-                                                ? "bg-primary/12"
+                                                ? "bg-muted/70"
                                                 : "hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
                                             )}
                                           >
@@ -532,8 +537,8 @@ export function NotesFocusMode({
 function EmptyState({ onNewNote }: { onNewNote?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-6">
-      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-5">
-        <StickyNote className="h-7 w-7 text-primary/60" />
+      <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-5">
+        <StickyNote className="h-7 w-7 text-muted-foreground/60" />
       </div>
       <h2 className="text-xl font-medium text-foreground mb-2">
         Your course notes

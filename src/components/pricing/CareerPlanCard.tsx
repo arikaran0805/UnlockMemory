@@ -48,7 +48,7 @@ const CareerPlanCard = ({ career, courses, isSelected, anySelected, onSelect }: 
       <CardContent className="p-6 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+            <div className="p-2.5 rounded-xl bg-muted text-muted-foreground shrink-0">
               <Icon className="h-5 w-5" />
             </div>
             <div className="min-w-0">

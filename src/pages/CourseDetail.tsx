@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import UMLoader from "@/components/UMLoader";
+import { useCourseDetailData, type Course, type CourseLesson, type Post } from "@/hooks/useCourseDetailData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,6 +87,8 @@ import {
   Clock,
   Linkedin,
   Copy,
+  Dumbbell,
+  PartyPopper,
 } from "lucide-react";
 import CourseSidebar from "@/components/course/CourseSidebar";
 import LessonShareMenu from "@/components/LessonShareMenu";
@@ -96,48 +100,6 @@ import { trackPostShare } from "@/lib/shareAnalytics";
 import { formatReadingTime, formatTotalReadingTime } from "@/lib/readingTime";
 import { z } from "zod";
 import type { User } from "@supabase/supabase-js";
-
-interface Course {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  featured_image: string | null;
-  status: string;
-  level?: string | null;
-  learning_hours?: number | null;
-  author_id?: string | null;
-  created_at?: string;
-  updated_at?: string | null;
-  prerequisites?: string[] | null;
-}
-
-interface CourseLesson {
-  id: string;
-  title: string;
-  description: string | null;
-  lesson_rank: string;
-  is_published: boolean;
-  course_id: string;
-}
-
-interface Post {
-  id: string;
-  title: string;
-  excerpt: string | null;
-  slug: string;
-  published_at: string | null;
-  updated_at: string;
-  status: string;
-  content?: string;
-  lesson_id: string | null;
-  post_rank: string | null;
-  post_type: string | null;
-  code_theme?: string | null;
-  profiles: {
-    full_name: string | null;
-  };
-}
 
 interface Comment {
   id: string;
@@ -168,18 +130,39 @@ const CourseDetail = () => {
   const lessonSlug = searchParams.get("lesson");
   const isPreviewMode = searchParams.get("preview") === "true";
   const navigate = useNavigate();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [lessons, setLessons] = useState<CourseLesson[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [siteSettings, setSiteSettings] = useState<any>(null);
-  const [canPreview, setCanPreview] = useState(false);
   const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
+
+  // Derived — no state needed
+  const showAllStatuses = isPreviewMode && (isAdmin || isModerator);
+  const canPreview = isAdmin || isModerator;
+
+  // ── React Query: course + lessons + posts (cached, instant on repeat visits) ─
+  const {
+    data: courseDetailData,
+    isLoading: loading,
+    error: courseDetailError,
+  } = useCourseDetailData(slug, showAllStatuses);
+
+  const course = courseDetailData?.course ?? null;
+  const lessons = courseDetailData?.lessons ?? [];
+  const posts = courseDetailData?.posts ?? [];
+
+  // Site settings — shared cache with Header (30 min staleTime) → instant
+  const { data: siteSettings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("*").single();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
   const { userState, entrySource, isGuest, isLearner, isPro, shouldShowAds, shouldShowProFeatures, markAsInternal, isLoading: userStateLoading } = useUserState();
   const { openPricingDrawer } = usePricingDrawer();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [loadingPost, setLoadingPost] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   // Distinguish “auth not yet checked” vs “no user”.
   // This prevents us from resolving career state to null too early (causes header flicker).
@@ -253,16 +236,13 @@ const CourseDetail = () => {
 
   // Computed values for course status (includes lessons + practice problems)
   const courseProgress = useMemo(() => {
-    const completedLessons = progress.completedLessons;
-    const totalLessons = posts.length;
-    
-    // Lessons only
-    const completedCount = completedLessons;
-    const totalCount = totalLessons;
-    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const totalCount = posts.length;
+    // Cap completed against current post count — deleted posts leave stale progress rows
+    const completedCount = Math.min(progress.completedLessons, totalCount);
+    const percentage = totalCount > 0 ? Math.min(100, Math.round((completedCount / totalCount) * 100)) : 0;
     const hasStarted = completedCount > 0;
-    const isCompleted = completedCount === totalCount && totalCount > 0;
-    
+    const isCompleted = totalCount > 0 && completedCount >= totalCount;
+
     return { completedCount, totalCount, percentage, hasStarted, isCompleted };
   }, [progress.completedLessons, posts.length]);
 
@@ -362,14 +342,27 @@ const CourseDetail = () => {
   // NOTE: Career course navigation now uses /career-board/:careerId/course/:slug routes.
   // CourseDetail no longer fetches user career - it's ONLY for non-career courses.
 
+  // ── Reset per-lesson UI state when slug changes ────────────────────────────
+  // React Query handles the course/lessons/posts fetch automatically.
+  // We only need to clear volatile UI state here.
   useEffect(() => {
-    if (roleLoading || !slug) return;
+    if (!slug) return;
+    setSelectedPost(null);
+    setComments([]);
+    setAllTags([]);
+    setLikeCount(0);
+    setHasLiked(false);
+    setExpandedLessons(new Set());
+  }, [slug]);
 
-    const hasPreviewAccess = isAdmin || isModerator;
-    setCanPreview(hasPreviewAccess);
-    fetchCourseAndLessons();
-    fetchSiteSettings();
-  }, [slug, roleLoading, isAdmin, isModerator]);
+  // ── Auto-expand first lesson when course data arrives ─────────────────────
+  useEffect(() => {
+    if (lessons.length > 0) {
+      setExpandedLessons(new Set([lessons[0].id]));
+    }
+  // courseDetailData reference changes whenever slug or data changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseDetailData]);
 
   useEffect(() => {
     if (lessonSlug && posts.length > 0) {
@@ -439,115 +432,6 @@ const CourseDetail = () => {
     return () => window.removeEventListener("message", handleMessage);
   }, [slug, handleExternalLessonNavigation]);
 
-  const fetchSiteSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*")
-        .single();
-
-      if (error) throw error;
-      setSiteSettings(data);
-    } catch (error) {
-      console.error("Error fetching site settings:", error);
-    }
-  };
-
-  const fetchCourseAndLessons = async () => {
-    try {
-      const showAllStatuses = isPreviewMode && (isAdmin || isModerator);
-      
-      let courseQuery = supabase
-        .from("courses")
-        .select("*")
-        .eq("slug", slug);
-
-      if (!showAllStatuses) {
-        courseQuery = courseQuery.eq("status", "published");
-      }
-
-      const { data: courseData, error: courseError } = await courseQuery.single();
-
-      if (courseError) {
-        if (courseError.code === 'PGRST116') {
-          throw new Error("Course not found or not published yet");
-        }
-        throw courseError;
-      }
-      setCourse(courseData);
-
-      const { data: lessonsData, error: lessonsError } = await supabase
-        .from("course_lessons")
-        .select("id, title, description, lesson_rank, is_published, course_id")
-        .eq("course_id", courseData.id)
-        .is("deleted_at", null)
-        .order("lesson_rank", { ascending: true });
-
-      if (lessonsError) throw lessonsError;
-      
-      const typedLessons = (lessonsData || []) as unknown as CourseLesson[];
-      setLessons(typedLessons);
-
-      if (typedLessons.length > 0) {
-        setExpandedLessons(new Set([typedLessons[0].id]));
-      }
-
-      let postsQuery = supabase
-        .from("posts")
-        .select(`
-          id,
-          title,
-          excerpt,
-          slug,
-          published_at,
-          updated_at,
-          lesson_id,
-          post_rank,
-          post_type,
-          status,
-          profiles:author_id (full_name)
-        `)
-        .eq("category_id", courseData.id)
-        .order("post_rank", { ascending: true });
-
-      if (!showAllStatuses) {
-        postsQuery = postsQuery.eq("status", "published");
-      }
-
-      const { data: postsData, error: postsError } = await postsQuery;
-
-      if (postsError) throw postsError;
-      
-      let typedPosts = (postsData || []).map(p => ({
-        ...p,
-        lesson_id: p.lesson_id as string | null,
-        post_rank: p.post_rank as string | null,
-        post_type: p.post_type as string | null,
-        profiles: p.profiles as { full_name: string | null }
-      })) as Post[];
-      
-      if (!showAllStatuses) {
-        const publishedLessonIds = new Set(
-          (lessonsData || [])
-            .filter(lesson => lesson.is_published === true)
-            .map(lesson => lesson.id)
-        );
-        typedPosts = typedPosts.filter(post => 
-          post.lesson_id === null || publishedLessonIds.has(post.lesson_id)
-        );
-      }
-      
-      setPosts(typedPosts);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchTags = async (postId?: string) => {
     if (!postId) {
@@ -618,47 +502,55 @@ const CourseDetail = () => {
   };
 
   const fetchPostContent = async (post: Post) => {
-    setLoadingPost(true);
+    // 1. Optimistic UI — instantly show whatever is already in the React Query cache.
+    //    content is pre-fetched by useCourseDetailData, so this is almost always non-null.
+    setSelectedPost(post);
+
+    // 2. Fire-and-forget secondary data (doesn't block the render)
+    fetchLikeData(post.id);
+    if (user) {
+      markLessonViewed(post.id);
+    }
+
     try {
-      const { data, error } = await supabase
-        .from("posts")
-        .select(`*, profiles:author_id (full_name, avatar_url)`)
-        .eq("id", post.id)
-        .single();
-
-      if (error) throw error;
-
       const shouldUseLatestVersion = isPreviewMode && canPreview;
-      let hydratedPost: any = data;
+      // Only go to the network when we genuinely need a preview draft, or content is absent
+      const needsNetworkFetch = shouldUseLatestVersion || !post.content;
 
-      if (shouldUseLatestVersion) {
-        const { data: latestVersion, error: versionError } = await supabase
-          .from("post_versions")
-          .select("content, version_number, status")
-          .eq("post_id", post.id)
-          .order("version_number", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      if (needsNetworkFetch) {
+        let hydratedPost: any = { ...post };
 
-        if (!versionError && latestVersion?.content) {
-          hydratedPost = { ...hydratedPost, content: latestVersion.content };
+        if (!post.content) {
+          const { data, error } = await supabase
+            .from("posts")
+            .select(`*, profiles:author_id (full_name, avatar_url)`)
+            .eq("id", post.id)
+            .single();
+
+          if (!error && data) {
+            hydratedPost = { ...hydratedPost, ...data };
+          }
         }
-      }
 
-      setSelectedPost(hydratedPost);
-      await fetchLikeData(post.id);
+        if (shouldUseLatestVersion) {
+          const { data: latestVersion, error: versionError } = await supabase
+            .from("post_versions")
+            .select("content, version_number, status")
+            .eq("post_id", post.id)
+            .order("version_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-      if (user) {
-        markLessonViewed(post.id);
+          if (!versionError && latestVersion?.content) {
+            hydratedPost = { ...hydratedPost, content: latestVersion.content };
+          }
+        }
+
+        // Silently upgrade the displayed post when the background fetch completes
+        setSelectedPost(hydratedPost);
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to load lesson content",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPost(false);
+      console.error("Failed to load background lesson content", error);
     }
   };
 
@@ -874,17 +766,11 @@ const CourseDetail = () => {
     toast({ title: "URL copied!", description: "Course URL copied to clipboard." });
   };
 
-  // Get primary CTA button props based on user state, enrollment, progress, and role
+  // Get primary CTA button props based on user state, enrollment, and progress.
+  // Admins/moderators fall through to the same learner state machine — they can
+  // enroll and take the course just like regular users. Course management is done
+  // via the admin panel, not through this page's primary CTA.
   const getPrimaryCTAProps = () => {
-    // State 5: Platform Manager / Career Manager / Course Manager
-    if (isAdmin || isModerator) {
-      return {
-        label: "Manage Course",
-        icon: Edit,
-        onClick: () => window.open(`/admin/courses/${course?.id}`, '_blank'),
-      };
-    }
-
     // State 0: User not logged in
     if (!user) {
       return {
@@ -1006,16 +892,6 @@ const CourseDetail = () => {
 
   // Get Action Reinforcement Card content based on current state (mirrors Primary CTA)
   const getActionCardContent = () => {
-    // State 6: Platform Manager / Career Manager / Course Manager
-    if (isAdmin || isModerator) {
-      return {
-        title: "Manage This Course",
-        message: "View and manage course settings, structure, and metadata.",
-        buttonLabel: "Manage Course",
-        icon: Edit,
-      };
-    }
-
     // State 1: User not logged in
     if (!user) {
       return {
@@ -1065,18 +941,16 @@ const CourseDetail = () => {
     };
   };
 
-  if (loading || roleLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <div className="fixed top-0 left-0 right-0 z-[60]">
           <AnnouncementBar onVisibilityChange={handleAnnouncementVisibility} />
         </div>
-        {/* LOADING STATE: Only Global Header shows (can't determine career scope without course data) */}
         <Header announcementVisible={showAnnouncement} />
-        <div className={`container mx-auto px-4 text-center ${showAnnouncement ? 'pt-32' : 'pt-24'}`}>
-          <div className="flex flex-col items-center gap-4">
-            <UMLoader size={56} dark label="Loading…" />
-          </div>
+        {/* Vertically + horizontally centered in remaining viewport */}
+        <div className="flex-1 flex items-center justify-center">
+          <UMLoader size={56} dark label="Unlocking memory…" />
         </div>
       </div>
     );
@@ -1199,14 +1073,10 @@ const CourseDetail = () => {
           />
 
           {/* MAIN CONTENT - centered between sidebars (280px left + 260px right = 540px total, offset by 10px right) */}
-          <main className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0">
+          <main id="lesson-main-content" className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0">
             <Card className="rounded-none border-0 shadow-none">
               <CardContent className="p-6 lg:p-8">
-                {loadingPost ? (
-                  <div className="flex items-center justify-center py-20">
-                    <UMLoader size={44} label="Unlocking memory…" />
-                  </div>
-                ) : selectedPost ? (
+                {selectedPost ? (
                   /* Post Content View */
                   <>
                     {/* Post Header */}
@@ -1462,15 +1332,18 @@ const CourseDetail = () => {
                       {/* Cheer Label - subtle emotional reinforcement below CTAs */}
                       {/* Only show for enrolled users, not for preview mode */}
                       {courseStats.isEnrolled && !isPreviewMode && (
-                        <p className="text-sm text-primary/70 font-medium text-center mt-3">
+                        <div className="flex items-center justify-center gap-2 mt-3">
                           {courseProgress.isCompleted ? (
-                            "🎉 You've successfully completed this course"
+                            <>
+                              <PartyPopper className="h-5 w-5 text-primary flex-shrink-0" strokeWidth={1.6} />
+                              <span className="text-sm text-muted-foreground font-medium">You've successfully completed this course</span>
+                            </>
                           ) : courseProgress.hasStarted && courseProgress.percentage > 0 ? (
-                            "💪 You're making great progress — keep going"
+                            <p className="text-sm text-muted-foreground font-medium text-center">💪 You're making great progress — keep going</p>
                           ) : (
-                            "🚀 Ready to begin — let's start building this skill"
+                            <p className="text-sm text-muted-foreground font-medium text-center">🚀 Ready to begin — let's start building this skill</p>
                           )}
-                        </p>
+                        </div>
                       )}
                     </div>
 
@@ -1536,7 +1409,7 @@ const CourseDetail = () => {
                                             key={post.id}
                                             className={cn(
                                               "relative flex items-center justify-between hover:bg-muted/30 cursor-pointer transition-colors group",
-                                              isActive && "bg-primary/5",
+                                              isActive && "bg-muted/60",
                                               shareOpenPostId === post.id && !isActive && "bg-muted/40"
                                             )}
                                             onClick={() => handleLessonClick(post)}
@@ -1609,6 +1482,30 @@ const CourseDetail = () => {
                                           </div>
                                         );
                                       })}
+
+                                      {/* Practice Problems link */}
+                                      {practiceSkill?.slug ? (
+                                        <Link
+                                          to={lessonProblemCounts?.get(lesson.id)
+                                            ? `/practice/${practiceSkill.slug}/lesson/${lesson.id}`
+                                            : `/practice/${practiceSkill.slug}`
+                                          }
+                                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-primary/70 hover:text-primary hover:bg-primary/5 transition-colors"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {lessonProblemsCompleted?.get(lesson.id) ? (
+                                            <CheckCircle className="h-4 w-4 text-primary" />
+                                          ) : (
+                                            <Dumbbell className="h-4 w-4" />
+                                          )}
+                                          <span>Practice Problems</span>
+                                          {lessonProblemCounts?.get(lesson.id) && (
+                                            <span className="text-xs text-muted-foreground ml-auto">
+                                              {lessonProblemCounts.get(lesson.id)} problem{(lessonProblemCounts.get(lesson.id) || 0) !== 1 ? 's' : ''}
+                                            </span>
+                                          )}
+                                        </Link>
+                                      ) : null}
                                     </div>
                                   ) : (
                                     <div className="px-4 py-6 text-center bg-muted/20">

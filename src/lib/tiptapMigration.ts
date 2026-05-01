@@ -481,6 +481,46 @@ export const normalizeBubbleContent = (content: string): string => {
 };
 
 /**
+ * Append new TipTap JSON content after existing content.
+ * Used by Quick Notes to accumulate entries in Deep Notes.
+ * Each Quick Notes session becomes a new paragraph block below the previous ones.
+ */
+export const appendTipTapContent = (
+  existingJson: string | null | undefined,
+  newJson: string
+): string => {
+  const newDoc = parseContent(newJson);
+  if (isContentEmpty(newDoc)) return existingJson || '';
+
+  // Nothing existing yet — just use the new content directly
+  if (!existingJson || !existingJson.trim()) {
+    return newJson;
+  }
+
+  const existingDoc = parseContent(existingJson);
+  let existingNodes: JSONContent[] = existingDoc?.content ?? [];
+  const newNodes: JSONContent[] = newDoc?.content ?? [];
+
+  // Trim trailing empty paragraphs from existing content for clean joining
+  while (existingNodes.length > 0) {
+    const last = existingNodes[existingNodes.length - 1];
+    if (last.type === 'paragraph' && (!last.content || last.content.length === 0)) {
+      existingNodes = existingNodes.slice(0, -1);
+    } else {
+      break;
+    }
+  }
+
+  return serializeContent({
+    type: 'doc',
+    content: [
+      ...existingNodes,
+      ...newNodes,
+    ],
+  });
+};
+
+/**
  * Migration helper for batch processing
  * Returns statistics about the migration
  */

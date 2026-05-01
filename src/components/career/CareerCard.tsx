@@ -94,7 +94,7 @@ export function CareerCard({
         {/* Header: Icon + Title + Description */}
         <div className="space-y-2.5 mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-primary/6 text-primary shrink-0 transition-colors duration-200 group-hover:bg-primary/10">
+            <div className="p-2.5 rounded-2xl bg-muted text-muted-foreground shrink-0 transition-colors duration-200 group-hover:bg-muted/80">
               <Icon className="h-5 w-5" />
             </div>
             <h2 className="text-[1.15rem] font-bold text-foreground tracking-tight leading-snug group-hover:text-primary transition-colors duration-200">
@@ -186,7 +186,7 @@ export function CareerCard({
 
           {/* Just-added state */}
           {wasJustAdded && (
-            <div className="rounded-xl bg-primary/5 border border-primary/12 p-3.5 space-y-2.5 animate-fade-in">
+            <div className="rounded-xl bg-muted/40 border border-border/40 p-3.5 space-y-2.5 animate-fade-in">
               <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
                 <Check className="h-4 w-4" />
                 Added to your plan

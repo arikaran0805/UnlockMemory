@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FileText, HelpCircle, Loader2, MessageCircle, User, Users, CheckCircle2 } from "lucide-react";
+import { BookOpen, FileText, HelpCircle, MessageCircle, User, Users, CheckCircle2 } from "lucide-react";
+import UMLoader from "@/components/UMLoader";
 import { supabase } from "@/integrations/supabase/client";
 import { useConnectionPresence, formatLastSeen } from "@/hooks/useConnectionPresence";
 import type { ResolvedOwner } from "@/hooks/useDoubtSystem";
@@ -169,10 +170,10 @@ export function MentorPreviewContent({ mentor, context, isConnecting, onStartCon
           size="sm"
         >
           {isConnecting ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-              Connecting...
-            </>
+            <span className="flex items-center gap-2">
+              <UMLoader size={16} dark />
+              Connecting…
+            </span>
           ) : (
             <>
               <MessageCircle className="h-3.5 w-3.5 mr-2" />

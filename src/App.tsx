@@ -13,6 +13,8 @@ import { ViewAsRoleProvider } from "@/contexts/ViewAsRoleContext";
 import { PricingDrawerProvider } from "@/contexts/PricingDrawerContext";
 import { CareerPlanProvider } from "@/contexts/CareerPlanContext";
 import { supabase } from "@/integrations/supabase/client";
+import { NAV_COURSES_KEY, fetchNavCourses } from "@/hooks/useNavCourses";
+import { NAV_CAREERS_KEY, fetchNavCareers } from "@/hooks/useNavCareers";
 
 
 
@@ -22,7 +24,29 @@ import "@/styles/tiptap.css";
 // Route Compositions
 import { AdminRoutes, SuperModeratorRoutes, SeniorModeratorRoutes, ModeratorRoutes, CareerBoardRoutes, publicRoutes } from "@/routes";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Data stays fresh for 5 minutes — no refetch on every mount
+      staleTime: 5 * 60 * 1000,
+      // Keep cache for 10 minutes after component unmounts
+      gcTime: 10 * 60 * 1000,
+      // Never refetch just because the user switched tabs and came back
+      refetchOnWindowFocus: false,
+      // Don't hammer the server on reconnect for catalog/nav data
+      refetchOnReconnect: false,
+      // One retry is enough for transient errors
+      retry: 1,
+    },
+  },
+});
+
+// Fire nav data prefetch immediately at module load — before any React component
+// mounts. By the time the Header renders and calls useNavCourses/useNavCareers,
+// the data is already in-flight (or fully cached), making the secondary header
+// and nav dropdowns appear instantly with zero perceived delay.
+queryClient.prefetchQuery({ queryKey: NAV_COURSES_KEY, queryFn: fetchNavCourses, staleTime: 15 * 60 * 1000 });
+queryClient.prefetchQuery({ queryKey: NAV_CAREERS_KEY, queryFn: fetchNavCareers, staleTime: 15 * 60 * 1000 });
 
 const AppContent = () => {
   usePageTracking();
@@ -122,7 +146,7 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>

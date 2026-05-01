@@ -46,6 +46,14 @@ interface CareerBoardContextValue {
   currentCourseSlug: string | null;
   /** Set the current course slug (for CareerScopedHeader highlighting) */
   setCurrentCourseSlug: (slug: string | null) => void;
+  /** When set, CareerScopedHeader shows "Notes — {deepNotesTitle}" instead of course nav */
+  deepNotesTitle: string | null;
+  /** Signal that Deep Notes is open for the given course name (null to clear) */
+  setDeepNotesTitle: (title: string | null) => void;
+  /** When set, CareerScopedHeader shows "Practice — {practiceTitle}" instead of course nav */
+  practiceTitle: string | null;
+  /** Signal that Practice Focus Mode is open for the given course name (null to clear) */
+  setPracticeTitle: (title: string | null) => void;
 }
 
 const CareerBoardContext = createContext<CareerBoardContextValue | null>(null);
@@ -78,6 +86,8 @@ export const CareerBoardProvider = ({ children }: CareerBoardProviderProps) => {
   const { careers, getCareerBySlug, getCareerCourses, loading: careersLoading, refetch: refetchCareers } = useCareers();
   
   const [currentCourseSlug, setCurrentCourseSlug] = useState<string | null>(null);
+  const [deepNotesTitle, setDeepNotesTitle] = useState<string | null>(null);
+  const [practiceTitle, setPracticeTitle] = useState<string | null>(null);
   const [career, setCareer] = useState<Career | null>(null);
   const [isReady, setIsReady] = useState(false);
   
@@ -199,6 +209,10 @@ export const CareerBoardProvider = ({ children }: CareerBoardProviderProps) => {
     isCoursesReady,
     currentCourseSlug,
     setCurrentCourseSlug,
+    deepNotesTitle,
+    setDeepNotesTitle,
+    practiceTitle,
+    setPracticeTitle,
   };
 
   return (

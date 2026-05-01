@@ -192,7 +192,7 @@ const LessonFooter = ({
                 <Link
                   key={tag.id}
                   to={`/tag/${tag.slug}`}
-                  className="text-[12.5px] font-medium text-primary/90 bg-primary/[0.08] px-3 py-1 rounded-full hover:bg-primary/[0.15] hover:text-primary transition-colors whitespace-nowrap"
+                  className="text-[12.5px] font-medium text-foreground/70 bg-muted/60 border border-border/40 px-3 py-1 rounded-full hover:bg-muted hover:text-foreground transition-colors whitespace-nowrap"
                 >
                   {tag.name}
                 </Link>
@@ -319,10 +319,7 @@ const LessonFooter = ({
               }
             }}
           >
-            <div className="text-right min-w-0">
-              <div className="text-xs opacity-80">🎉 Complete</div>
-              <div className="font-medium">Finish Course</div>
-            </div>
+            <span className="font-medium whitespace-nowrap">Completed - Finish Course</span>
             <ChevronRight className="h-5 w-5 flex-shrink-0" />
           </Button>
         ) : nextLesson ? (

@@ -63,7 +63,7 @@ export const NonCareerCourseNudge = ({
       </button>
 
       <div className="flex items-start gap-3 pr-6">
-        <div className="flex-shrink-0 p-1.5 rounded-md bg-primary/10 text-primary">
+        <div className="flex-shrink-0 p-1.5 rounded-md bg-muted text-muted-foreground">
           <Compass className="h-4 w-4" />
         </div>
         <div className="space-y-1.5">

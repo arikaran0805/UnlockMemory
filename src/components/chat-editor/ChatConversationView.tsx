@@ -8,15 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { renderCourseIcon } from "./utils";
 import { MonacoCodeBlock } from "@/components/code-block";
 import { getChatColors, getDynamicStyles, DynamicChatColors } from "./chatColors";
-import { Copy, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { isTipTapJSON, normalizeBubbleContent } from "@/lib/tiptapMigration";
 import { RichTextRenderer } from "@/components/tiptap/RichTextRenderer";
 
 // Lazy load the freeform canvas viewer to avoid loading fabric.js until needed
-const FreeformCanvasViewer = lazy(() => 
+const FreeformCanvasViewer = lazy(() =>
   import("./freeform/FreeformCanvasViewer").then(m => ({ default: m.FreeformCanvasViewer }))
 );
 
@@ -105,7 +103,7 @@ const parseConversation = (content: string, allowSingle?: boolean): ChatMessage[
     if (s.speaker === "TAKEAWAY" || takeawayMatch) {
       const icon = takeawayMatch?.[1] || "🧠";
       const title = takeawayMatch?.[2] || "One-Line Takeaway for Learners";
-      const actualContent = takeawayMatch 
+      const actualContent = takeawayMatch
         ? s.content.replace(TAKEAWAY_REGEX, "").trim()
         : s.content;
       return {
@@ -163,87 +161,46 @@ const extractCodeBlocksFromHtml = (html: string): {
   return { processedHtml, codeBlocks };
 };
 
-// Inline takeaway block with copy functionality
-const TakeawayInlineBlock = ({ 
-  icon, 
-  title, 
-  content, 
-  staggerDelay 
-}: { 
-  icon: string; 
-  title: string; 
-  content: string; 
+// Inline takeaway block — minimal: vertical accent line + label + content only
+const TakeawayInlineBlock = ({
+  content,
+  staggerDelay
+}: {
+  icon: string;
+  title: string;
+  content: string;
   staggerDelay: number;
 }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ 
-        duration: 0.5, 
-        ease: [0.22, 1, 0.36, 1],
-        delay: 0.1 + staggerDelay 
-      }}
-      className={cn(
-        "group my-4 rounded-xl overflow-hidden",
-        "border-t border-b border-border/50",
-        "bg-gradient-to-r from-muted/20 to-muted/10"
-      )}
+      initial={{ opacity: 0, x: -6 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.08 + staggerDelay }}
+      className="my-4 flex gap-3"
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
-        <motion.span 
-          className="text-xl"
-          initial={{ scale: 0.5, rotate: -10 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 300, 
-            damping: 15,
-            delay: 0.2 + staggerDelay 
-          }}
-        >
-          {icon}
-        </motion.span>
-        <span className="flex-1 font-semibold text-sm text-foreground">{title}</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={handleCopy}
-        >
-          {copied ? (
-            <Check className="w-3.5 h-3.5 text-green-500" />
-          ) : (
-            <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-          )}
-        </Button>
-      </div>
+      {/* Vertical accent line */}
+      <motion.div
+        className="flex-shrink-0 w-[3px] rounded-full self-stretch"
+        style={{ background: "rgba(0, 0, 0, 0.18)", originY: 0 }}
+        initial={{ scaleY: 0 }}
+        animate={{ scaleY: 1 }}
+        transition={{ duration: 0.3, delay: 0.14 + staggerDelay, ease: "easeOut" }}
+      />
 
-      {/* Content */}
-      <div className="px-4 py-3 pl-6 relative">
-        <motion.div
-          className="absolute left-4 top-3 bottom-3 w-0.5 bg-muted-foreground/25 rounded-full"
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: 1 }}
-          transition={{ 
-            duration: 0.4, 
-            delay: 0.3 + staggerDelay,
-            ease: "easeOut"
-          }}
-          style={{ originY: 0 }}
-        />
-        <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+      {/* Label + content */}
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span
+          className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+          style={{ color: "rgba(0, 0, 0, 0.38)" }}
+        >
+          One-Line Takeaway
+        </span>
+        <p
+          className="text-[13.5px] leading-relaxed"
+          style={{ color: "rgba(30, 25, 10, 0.80)" }}
+        >
           {content}
-        </div>
+        </p>
       </div>
     </motion.div>
   );
@@ -291,11 +248,11 @@ const ChatConversationView = ({
           course_avatar_gradient_to
         `).limit(1).maybeSingle()
       ]);
-      
+
       if (!coursesResult.error && coursesResult.data) {
         setCourses(coursesResult.data);
       }
-      
+
       if (!settingsResult.error && settingsResult.data) {
         const data = settingsResult.data as any;
         setDynamicColors({
@@ -362,14 +319,14 @@ const ChatConversationView = ({
   // Parse inline markdown formatting (bold, italic, inline code)
   const parseInlineMarkdown = (text: string, baseKey: string, isMentorBubble: boolean): React.ReactNode[] => {
     const segments: React.ReactNode[] = [];
-    
+
     // Combined regex for all inline formatting
     // Order matters: bold first, then italic
     const markdownRegex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`([^`]+)`)/g;
-    
+
     let lastIdx = 0;
     let match;
-    
+
     while ((match = markdownRegex.exec(text)) !== null) {
       // Add text before match
       if (match.index > lastIdx) {
@@ -379,7 +336,7 @@ const ChatConversationView = ({
           </span>
         );
       }
-      
+
       if (match[1]) {
         // Bold: **text**
         segments.push(
@@ -409,10 +366,10 @@ const ChatConversationView = ({
           </code>
         );
       }
-      
+
       lastIdx = match.index + match[0].length;
     }
-    
+
     // Add remaining text
     if (lastIdx < text.length) {
       segments.push(
@@ -421,7 +378,7 @@ const ChatConversationView = ({
         </span>
       );
     }
-    
+
     return segments.length > 0 ? segments : [<span key={baseKey} className="whitespace-pre-wrap">{text}</span>];
   };
 
@@ -429,10 +386,10 @@ const ChatConversationView = ({
   const parseLineMarkdown = (text: string, baseKey: string, isMentorBubble: boolean): React.ReactNode[] => {
     const lines = text.split('\n');
     const result: React.ReactNode[] = [];
-    
+
     lines.forEach((line, lineIdx) => {
       const lineKey = `${baseKey}-line-${lineIdx}`;
-      
+
       // Heading: ## text
       if (line.match(/^##\s+(.+)$/)) {
         const headingContent = line.replace(/^##\s+/, '');
@@ -491,7 +448,7 @@ const ChatConversationView = ({
         result.push(<br key={lineKey} />);
       }
     });
-    
+
     return result;
   };
 
@@ -549,37 +506,37 @@ const ChatConversationView = ({
         )}
       >
         {showHeader && (
-          <div className="flex items-center justify-between pl-0 pr-6 py-3 border-b border-black/[0.045]">
+          <div className="flex items-center justify-between pl-0 pr-6 py-3 border-b" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
             <div className="flex items-center gap-3">
-              <div className="flex -space-x-1.5">
+              <div className="flex -space-x-2">
                 {/* Mentor (Karan) avatar */}
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-bold ring-2 ring-white dark:ring-card transition-colors z-10"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold ring-[2.5px] ring-white dark:ring-card z-10"
                   style={{
-                    background: "linear-gradient(135deg, #c8e8d8, #9dcdb4)",
-                    color: "#2a5c40",
-                    boxShadow: "0 1px 3px rgba(80,150,100,0.14)",
+                    background: "linear-gradient(140deg, #86c9a4, #4da876)",
+                    color: "#fff",
+                    boxShadow: "0 2px 6px rgba(55,140,90,0.22)",
                   }}
                 >
                   K
                 </div>
                 {/* Course avatar */}
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-bold ring-2 ring-white dark:ring-card transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold ring-[2.5px] ring-white dark:ring-card"
                   style={{
-                    background: "linear-gradient(135deg, #94a3b8, #64748b)",
+                    background: "linear-gradient(140deg, #94a3b8, #5c6b82)",
                     color: "#fff",
-                    boxShadow: "0 1px 4px rgba(100,116,139,0.25)",
+                    boxShadow: "0 2px 6px rgba(80,100,130,0.22)",
                   }}
                 >
                   {courseCharacter.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
               </div>
-              <div className="flex flex-col gap-0">
-                <div className="text-[12.5px] font-semibold text-[#1e1e1e] tracking-tight leading-tight">
+              <div className="flex flex-col gap-0.5">
+                <div className="text-[13px] font-semibold tracking-tight leading-tight" style={{ color: "#1a1a1a" }}>
                   Karan {'&'} {courseCharacter.name}
                 </div>
-                <div className="text-[11px] text-[#9A9A9A] leading-tight mt-0.5">
+                <div className="text-[11px] leading-tight" style={{ color: "rgba(100,100,110,0.75)" }}>
                   Interactive Lesson
                 </div>
               </div>
@@ -589,8 +546,6 @@ const ChatConversationView = ({
 
         {/* Messages */}
         <div className="relative pl-0 pr-6 py-6">
-          {/* Conversation spine — aligns with left avatar center (p-6=24px + w-7/2=14px = 38px) */}
-          <div className="pointer-events-none absolute bottom-6 left-[16px] top-6 w-px bg-muted-foreground/[0.1]" />
           {/* Empty state when no messages */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -635,7 +590,7 @@ const ChatConversationView = ({
               const icon = message.takeawayIcon || "🧠";
               const title = message.takeawayTitle || "One-Line Takeaway for Learners";
               const staggerDelay = index * 0.12;
-              
+
               return (
                 <TakeawayInlineBlock
                   key={message.id}
@@ -668,30 +623,30 @@ const ChatConversationView = ({
               <div
                 key={message.id}
                 className={cn(
-                  "relative flex items-end gap-2 animate-in fade-in-0 slide-in-from-bottom-2",
-                  isLastInRun ? "mb-7" : "mb-2.5 mt-0",
+                  "relative flex items-end gap-2.5 animate-in fade-in-0 slide-in-from-bottom-2",
+                  isLastInRun ? "mb-8" : "mb-1.5",
                   isMentorBubble ? "flex-row-reverse" : "flex-row"
                 )}
-                style={{ animationDelay: `${index * 100}ms`, animationFillMode: "backwards" }}
+                style={{ animationDelay: `${index * 80}ms`, animationFillMode: "backwards" }}
               >
                 {/* Avatar — only on the LAST bubble of a consecutive run (iMessage pattern) */}
                 <div
                   className={cn(
-                    "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold ring-2 ring-white dark:ring-card transition-opacity duration-150",
+                    "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[13px] font-bold ring-[2.5px] ring-white dark:ring-card transition-opacity duration-150",
                     isLastInRun ? "opacity-100" : "opacity-0 pointer-events-none",
                   )}
                   style={
                     isMentorBubble
                       ? {
-                          background: "linear-gradient(135deg, #a7d9be, #6db899)",
-                          color: "#1a4a30",
-                          boxShadow: "0 1px 4px rgba(80,160,110,0.20)",
-                        }
+                        background: "linear-gradient(140deg, #b2dcc5, #82bfa5)",
+                        color: "#3a7a5a",
+                        boxShadow: "0 2px 6px rgba(55,140,90,0.15)",
+                      }
                       : {
-                          background: "linear-gradient(135deg, #94a3b8, #64748b)",
-                          color: "#fff",
-                          boxShadow: "0 1px 4px rgba(100,116,139,0.22)",
-                        }
+                        background: "linear-gradient(140deg, #adbcce, #8298b0)",
+                        color: "#3d5068",
+                        boxShadow: "0 2px 6px rgba(80,100,130,0.15)",
+                      }
                   }
                 >
                   {isMentorBubble ? (
@@ -704,30 +659,36 @@ const ChatConversationView = ({
                 {/* Bubble */}
                 <div
                   className={cn(
-                    "relative px-[14px] py-2.5 rounded-xl transition-colors duration-200",
+                    "relative px-[15px] py-[11px] rounded-2xl transition-colors duration-200",
                     hasCodeBlock(message.content) ? "w-[75%] max-w-[75%] min-w-[360px]" : "max-w-[75%]"
                   )}
                   style={{
                     backgroundColor: dynamicStyle
                       ? dynamicStyle.bubbleStyle.backgroundColor
                       : isMentorBubble
-                        ? "#EDF8F2"
-                        : "#F4F5F6",
+                        ? "#E8F5EE"
+                        : "#F5F6F9",
                     border: isMentorBubble
-                      ? "1px solid rgba(140, 200, 168, 0.45)"
-                      : "1px solid rgba(0, 0, 0, 0.07)",
+                      ? "1px solid rgba(110, 185, 145, 0.50)"
+                      : "1px solid rgba(0, 0, 0, 0.082)",
+                    boxShadow: isMentorBubble
+                      ? "0 2px 8px rgba(50, 130, 80, 0.10), 0 1px 2px rgba(50, 130, 80, 0.06)"
+                      : "0 2px 8px rgba(0, 0, 0, 0.065), 0 1px 2px rgba(0, 0, 0, 0.04)",
                     ...(dynamicStyle ? dynamicStyle.textStyle : undefined),
                   }}
                 >
                   {/* Speaker label — only on first bubble in a run */}
                   {isFirstInRun && (
-                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#888888]">
+                    <div
+                      className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.07em]"
+                      style={{ color: isMentorBubble ? "rgba(35, 115, 70, 0.65)" : "rgba(65, 80, 105, 0.60)" }}
+                    >
                       {character.name}
                     </div>
                   )}
 
                   {/* Content */}
-                  <div className="text-[14px] leading-[1.65] text-inherit">
+                  <div className="text-[13.5px] leading-[1.7] text-inherit">
                     {renderContent(message.content, isMentorBubble)}
                   </div>
                 </div>
@@ -756,8 +717,8 @@ const ChatConversationView = ({
 
       {/* Explanation section (if present) - Cause & Effect Section */}
       {explanation && (
-        <div 
-          id="lesson-cause-effect" 
+        <div
+          id="lesson-cause-effect"
           data-flow="cause"
           className="prose prose-sm dark:prose-invert max-w-none p-6 rounded-xl bg-muted/30 border border-border/50"
         >
@@ -768,8 +729,8 @@ const ChatConversationView = ({
           {/* ✅ TipTap JSON: Use RichTextRenderer with full schema support */}
           {isExplanationTipTapJSON ? (
             <div className="leading-relaxed text-foreground/90">
-              <RichTextRenderer 
-                content={explanation} 
+              <RichTextRenderer
+                content={explanation}
                 emptyPlaceholder=""
                 annotations={explanationAnnotations}
                 isAdmin={isAdmin}

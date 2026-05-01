@@ -5,140 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLandingCourses } from "@/hooks/useLandingCourses";
+import { useLandingCareers } from "@/hooks/useLandingCareers";
 import PublicCourseCard from "@/components/PublicCourseCard";
+import PublicCareerCard from "@/components/PublicCareerCard";
 
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
-
-
-const DataIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" className="l-career-icon">
-    <ellipse cx="12" cy="5" rx="9" ry="3" />
-    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-  </svg>
-);
-
-const RouteIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" className="l-career-icon">
-    <circle cx="6" cy="19" r="3" />
-    <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
-    <circle cx="18" cy="5" r="3" />
-  </svg>
-);
-
-const BarChartIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" className="l-career-icon">
-    <line x1="18" y1="20" x2="18" y2="10" />
-    <line x1="12" y1="20" x2="12" y2="4" />
-    <line x1="6" y1="20" x2="6" y2="14" />
-    <line x1="2" y1="20" x2="22" y2="20" />
-  </svg>
-);
-
-const MLIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" className="l-career-icon">
-    <circle cx="12" cy="12" r="3" />
-    <circle cx="4" cy="6" r="2" />
-    <circle cx="20" cy="6" r="2" />
-    <circle cx="4" cy="18" r="2" />
-    <circle cx="20" cy="18" r="2" />
-    <line x1="6" y1="6" x2="10" y2="10" />
-    <line x1="18" y1="6" x2="14" y2="10" />
-    <line x1="6" y1="18" x2="10" y2="14" />
-    <line x1="18" y1="18" x2="14" y2="14" />
-  </svg>
-);
-
-const NLPIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" className="l-career-icon">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    <line x1="9" y1="10" x2="15" y2="10" />
-    <line x1="9" y1="14" x2="13" y2="14" />
-  </svg>
-);
-
-const CloudIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" className="l-career-icon">
-    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-  </svg>
-);
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-const CAREERS = [
-  {
-    icon: <DataIcon />,
-    title: "Data Scientist",
-    desc: "Build models, derive insights, and communicate findings with statistical rigour.",
-    steps: [true, true, true, false, false, false],
-    gradient: "linear-gradient(145deg, #0b1a3a 0%, #142e62 35%, #1e4490 65%, #2558b0 100%)",
-    level: "Intermediate",
-    duration: "3 months",
-    enrolledLabel: "2.4k learners",
-    price: "₹3,499",
-    skills: ["Python", "Statistics", "Pandas", "Sklearn"],
-  },
-  {
-    icon: <MLIcon />,
-    title: "ML Engineer",
-    desc: "Deploy and scale machine learning systems in production environments.",
-    steps: [true, true, false, false, false, false],
-    gradient: "linear-gradient(145deg, #140720 0%, #2c1054 35%, #5228a8 65%, #7840d4 100%)",
-    level: "Advanced",
-    duration: "2 months",
-    enrolledLabel: "1.8k learners",
-    price: "₹4,199",
-    skills: ["PyTorch", "Docker", "MLflow", "FastAPI"],
-  },
-  {
-    icon: <BarChartIcon />,
-    title: "Data Analyst",
-    desc: "Turn raw data into decisions using SQL, dashboards, and statistical analysis.",
-    steps: [true, true, true, true, false, false],
-    gradient: "linear-gradient(145deg, #02201a 0%, #044838 35%, #076e56 65%, #0a8868 100%)",
-    level: "Beginner",
-    duration: "4 months",
-    enrolledLabel: "5.1k learners",
-    price: "₹2,999",
-    skills: ["SQL", "Excel", "Tableau", "Python"],
-  },
-  {
-    icon: <RouteIcon />,
-    title: "AI Product Manager",
-    desc: "Define strategy and roadmaps for AI-powered products with technical fluency.",
-    steps: [true, false, false, false, false, false],
-    gradient: "linear-gradient(145deg, #160e02 0%, #462808 35%, #824010 65%, #a85214 100%)",
-    level: "Beginner",
-    duration: "1 month",
-    enrolledLabel: "980+ learners",
-    price: "₹1,999",
-    skills: ["Strategy", "Roadmapping", "LLMs", "Metrics"],
-  },
-  {
-    icon: <NLPIcon />,
-    title: "NLP Engineer",
-    desc: "Build language models, text pipelines, and production-grade NLP systems.",
-    steps: [true, true, false, false, false, false],
-    gradient: "linear-gradient(145deg, #071c30 0%, #0a3860 35%, #125c96 65%, #1878b8 100%)",
-    level: "Advanced",
-    duration: "2 months",
-    enrolledLabel: "1.2k learners",
-    price: "₹4,499",
-    skills: ["Transformers", "HuggingFace", "NLTK", "RAG"],
-  },
-  {
-    icon: <CloudIcon />,
-    title: "MLOps Engineer",
-    desc: "Automate model deployment, monitoring, and retraining pipelines at scale.",
-    steps: [true, true, true, false, false, false],
-    gradient: "linear-gradient(145deg, #0a2012 0%, #123c22 35%, #1a5c36 65%, #1e7448 100%)",
-    level: "Intermediate",
-    duration: "3 months",
-    enrolledLabel: "760+ learners",
-    price: "₹3,799",
-    skills: ["Kubernetes", "Airflow", "Prometheus", "CI/CD"],
-  },
-];
 
 
 // ─── Dashboard Illustration ───────────────────────────────────────────────────
@@ -173,8 +43,8 @@ const LoggedOutIllustration = () => (
         <stop offset="0%" stopColor="#BE123C" /><stop offset="100%" stopColor="#FB7185" />
       </linearGradient>
       <radialGradient id="lo-center-glow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#22A55D" stopOpacity="0.12" />
-        <stop offset="100%" stopColor="#22A55D" stopOpacity="0" />
+        <stop offset="0%" stopColor="hsl(152, 36%, 33%)" stopOpacity="0.12" />
+        <stop offset="100%" stopColor="hsl(152, 36%, 33%)" stopOpacity="0" />
       </radialGradient>
       <filter id="lo-shadow">
         <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#000000" floodOpacity="0.13" />
@@ -188,12 +58,12 @@ const LoggedOutIllustration = () => (
     <ellipse cx="170" cy="120" rx="100" ry="92" fill="url(#lo-center-glow)" />
 
     {/* Concentric orbit rings */}
-    <circle cx="170" cy="120" r="40" stroke="#22A55D" strokeWidth="0.7" fill="none" strokeOpacity="0.20" strokeDasharray="3 4" />
-    <circle cx="170" cy="120" r="70" stroke="#22A55D" strokeWidth="0.7" fill="none" strokeOpacity="0.13" strokeDasharray="3 6" />
-    <circle cx="170" cy="120" r="96" stroke="#22A55D" strokeWidth="0.7" fill="none" strokeOpacity="0.07" />
+    <circle cx="170" cy="120" r="40" stroke="hsl(152, 36%, 33%)" strokeWidth="0.7" fill="none" strokeOpacity="0.20" strokeDasharray="3 4" />
+    <circle cx="170" cy="120" r="70" stroke="hsl(152, 36%, 33%)" strokeWidth="0.7" fill="none" strokeOpacity="0.13" strokeDasharray="3 6" />
+    <circle cx="170" cy="120" r="96" stroke="hsl(152, 36%, 33%)" strokeWidth="0.7" fill="none" strokeOpacity="0.07" />
 
     {/* Connector lines — center → each node */}
-    <line x1="170" y1="120" x2="170" y2="38" stroke="#22A55D" strokeWidth="0.9" strokeDasharray="4 5" strokeOpacity="0.22" />
+    <line x1="170" y1="120" x2="170" y2="38" stroke="hsl(152, 36%, 33%)" strokeWidth="0.9" strokeDasharray="4 5" strokeOpacity="0.22" />
     <line x1="170" y1="120" x2="248" y2="95" stroke="#8B5CF6" strokeWidth="0.9" strokeDasharray="4 5" strokeOpacity="0.20" />
     <line x1="170" y1="120" x2="218" y2="188" stroke="#F59E0B" strokeWidth="0.9" strokeDasharray="4 5" strokeOpacity="0.18" />
     <line x1="170" y1="120" x2="122" y2="188" stroke="#0EA5E9" strokeWidth="0.9" strokeDasharray="4 5" strokeOpacity="0.18" />
@@ -241,8 +111,8 @@ const LoggedOutIllustration = () => (
     <text x="85" y="96" textAnchor="middle" fill="white" fontSize="11.5" fontWeight="700" fontFamily="DM Sans, sans-serif">ST</text>
 
     {/* Ambient sparkle dots */}
-    <circle cx="153" cy="36" r="2.5" fill="#22A55D" fillOpacity="0.3" />
-    <circle cx="187" cy="36" r="2" fill="#22A55D" fillOpacity="0.25" />
+    <circle cx="153" cy="36" r="2.5" fill="hsl(152, 36%, 33%)" fillOpacity="0.3" />
+    <circle cx="187" cy="36" r="2" fill="hsl(152, 36%, 33%)" fillOpacity="0.25" />
     <circle cx="267" cy="80" r="2" fill="#8B5CF6" fillOpacity="0.3" />
     <circle cx="73" cy="80" r="2" fill="#F43F5E" fillOpacity="0.3" />
     <circle cx="109" cy="188" r="1.5" fill="#0EA5E9" fillOpacity="0.3" />
@@ -320,13 +190,13 @@ const LoggedInIllustration = () => (
     <rect x="4" y="4" width="332" height="54" rx="16" fill="url(#li-hdr)" />
     <rect x="4" y="42" width="332" height="16" fill="url(#li-hdr)" />
     {/* Avatar */}
-    <circle cx="30" cy="31" r="16" fill="#22A55D" />
+    <circle cx="30" cy="31" r="16" fill="hsl(152, 36%, 33%)" />
     <text x="30" y="36" textAnchor="middle" fill="white" fontSize="10" fontWeight="700" fontFamily="DM Sans, sans-serif">AK</text>
     {/* Name */}
     <text x="52" y="24" fill="#1D1D1F" fontSize="12.5" fontWeight="700" letterSpacing="-0.02em" fontFamily="DM Sans, sans-serif">Alex Kim</text>
     {/* Career — two tspans in one text element */}
     <text x="52" y="40" fontSize="10" fontFamily="DM Sans, sans-serif">
-      <tspan fill="#6E6E73">Aspiring </tspan><tspan fill="#22A55D" fontWeight="600">Data Analyst</tspan>
+      <tspan fill="#6E6E73">Aspiring </tspan><tspan fill="hsl(152, 36%, 33%)" fontWeight="600">Data Analyst</tspan>
     </text>
     {/* Streak pill — right side */}
     <rect x="256" y="18" width="72" height="26" rx="13" fill="url(#li-flame)" />
@@ -360,8 +230,8 @@ const LoggedInIllustration = () => (
     <text x="170" y="141" textAnchor="middle" fill="#1D1D1F" fontSize="28" fontWeight="800" fontFamily="DM Sans, sans-serif" letterSpacing="-0.03em">68%</text>
     <text x="170" y="159" textAnchor="middle" fill="#6E6E73" fontSize="9.5" fontFamily="DM Sans, sans-serif">Career Ready</text>
     {/* Badge under percentage */}
-    <rect x="143" y="165" width="54" height="15" rx="7.5" fill="#22A55D" fillOpacity="0.10" />
-    <text x="170" y="176" textAnchor="middle" fill="#22A55D" fontSize="8" fontWeight="600" fontFamily="DM Sans, sans-serif">⚡ Skill Builder</text>
+    <rect x="143" y="165" width="54" height="15" rx="7.5" fill="hsl(152, 36%, 33%)" fillOpacity="0.10" />
+    <text x="170" y="176" textAnchor="middle" fill="hsl(152, 36%, 33%)" fontSize="8" fontWeight="600" fontFamily="DM Sans, sans-serif">⚡ Skill Builder</text>
 
     {/* ── Bottom stats — 3 columns ── */}
     <line x1="12" y1="222" x2="328" y2="222" stroke="#f0f0f0" strokeWidth="0.8" />
@@ -369,21 +239,21 @@ const LoggedInIllustration = () => (
     {/* Col 1 — Activity bars (x=16–118) */}
     <text x="16" y="237" fill="#3d3d3d" fontSize="9" fontWeight="600" fontFamily="DM Sans, sans-serif">ACTIVITY</text>
     {/* 7 bars anchored at y=272, max height 24px */}
-    <rect x="16"  y="270" width="9" height="4"  rx="1.5" fill="#e5e7eb" />
-    <rect x="29"  y="258" width="9" height="16" rx="1.5" fill="#22A55D" fillOpacity="0.38" />
-    <rect x="42"  y="249" width="9" height="25" rx="1.5" fill="#22A55D" />
-    <text x="46"  y="247" textAnchor="middle" fill="#F59E0B" fontSize="6.5">★</text>
-    <rect x="55"  y="255" width="9" height="19" rx="1.5" fill="#22A55D" fillOpacity="0.55" />
-    <rect x="68"  y="265" width="9" height="9"  rx="1.5" fill="#22A55D" fillOpacity="0.28" />
-    <rect x="81"  y="252" width="9" height="22" rx="1.5" fill="#22A55D" fillOpacity="0.48" />
-    <rect x="94"  y="258" width="9" height="16" rx="1.5" fill="#22A55D" fillOpacity="0.72" />
-    <text x="20"  y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">S</text>
-    <text x="33"  y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">M</text>
-    <text x="46"  y="282" textAnchor="middle" fill="#22A55D" fontSize="6.5" fontWeight="700">T</text>
-    <text x="59"  y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">W</text>
-    <text x="72"  y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">T</text>
-    <text x="85"  y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">F</text>
-    <text x="98"  y="282" textAnchor="middle" fill="#22A55D" fontSize="6.5" fontWeight="600">S</text>
+    <rect x="16" y="270" width="9" height="4" rx="1.5" fill="#e5e7eb" />
+    <rect x="29" y="258" width="9" height="16" rx="1.5" fill="hsl(152, 36%, 33%)" fillOpacity="0.38" />
+    <rect x="42" y="249" width="9" height="25" rx="1.5" fill="hsl(152, 36%, 33%)" />
+    <text x="46" y="247" textAnchor="middle" fill="#F59E0B" fontSize="6.5">★</text>
+    <rect x="55" y="255" width="9" height="19" rx="1.5" fill="hsl(152, 36%, 33%)" fillOpacity="0.55" />
+    <rect x="68" y="265" width="9" height="9" rx="1.5" fill="hsl(152, 36%, 33%)" fillOpacity="0.28" />
+    <rect x="81" y="252" width="9" height="22" rx="1.5" fill="hsl(152, 36%, 33%)" fillOpacity="0.48" />
+    <rect x="94" y="258" width="9" height="16" rx="1.5" fill="hsl(152, 36%, 33%)" fillOpacity="0.72" />
+    <text x="20" y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">S</text>
+    <text x="33" y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">M</text>
+    <text x="46" y="282" textAnchor="middle" fill="hsl(152, 36%, 33%)" fontSize="6.5" fontWeight="700">T</text>
+    <text x="59" y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">W</text>
+    <text x="72" y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">T</text>
+    <text x="85" y="282" textAnchor="middle" fill="#9ca3af" fontSize="6.5">F</text>
+    <text x="98" y="282" textAnchor="middle" fill="hsl(152, 36%, 33%)" fontSize="6.5" fontWeight="600">S</text>
 
     {/* Divider */}
     <line x1="118" y1="228" x2="118" y2="282" stroke="#f0f0f0" strokeWidth="0.8" />
@@ -433,6 +303,7 @@ function HeroSection() {
   const navigate = useNavigate();
   useAuth();
   const { data: courses = [] } = useLandingCourses();
+  const { data: careers = [] } = useLandingCareers();
 
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
@@ -485,11 +356,11 @@ function HeroSection() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Build unified search index from live courses + static careers
+  // Build unified search index from live courses + live careers
   const searchIndex = useMemo<SearchItem[]>(() => [
     ...courses.map(c => ({ title: c.name, category: "Course", href: `/course/${c.slug}` })),
-    ...CAREERS.map(c => ({ title: c.title, category: "Career Path", href: "/careers" })),
-  ], [courses]);
+    ...careers.map(c => ({ title: c.name, category: "Career Path", href: "/careers" })),
+  ], [courses, careers]);
 
   // Filter to matching results
   const results = useMemo<SearchItem[]>(() => {
@@ -535,105 +406,105 @@ function HeroSection() {
   return (
     <>
       <section className="l-hs-section">
-      <div className="l-hs-inner">
+        <div className="l-hs-inner">
 
-        {/* Headline */}
-        <h1 className="l-hs-headline text-foreground">
-          <span className="l-hs-headline-line">Learn deeply.</span>
-          <span className="l-hs-headline-accent l-hs-headline-line">Remember forever.</span>
-        </h1>
+          {/* Headline */}
+          <h1 className="l-hs-headline text-foreground">
+            <span className="l-hs-headline-line">Learn deeply.</span>
+            <span className="l-hs-headline-accent l-hs-headline-line">Remember forever.</span>
+          </h1>
 
 
-        {/* Search + dropdown wrapper */}
-        <div className="l-hs-search-wrap">
-          {/* Input box */}
-          <div className={`l-hs-input-box${isEmptyQuery || showDropdown ? " l-hs-input-box--open" : ""}${focused ? " l-hs-input-box--focused" : ""}`}>
-            <input
-              ref={inputRef}
-              className="l-hs-input"
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={focused ? "" : placeholderText}
-              value={query}
-              onChange={e => { setQuery(e.target.value); setActiveIdx(-1); }}
-              onFocus={() => { setFocused(true); focusedRef.current = true; }}
-              onBlur={() => setTimeout(() => { setFocused(false); focusedRef.current = false; }, 160)}
-              onKeyDown={handleKeyDown}
-              aria-label="Search courses and career paths"
-              aria-autocomplete="list"
-              aria-expanded={showDropdown}
-            />
+          {/* Search + dropdown wrapper */}
+          <div className="l-hs-search-wrap">
+            {/* Input box */}
+            <div className={`l-hs-input-box${isEmptyQuery || showDropdown ? " l-hs-input-box--open" : ""}${focused ? " l-hs-input-box--focused" : ""}`}>
+              <input
+                ref={inputRef}
+                className="l-hs-input"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={focused ? "" : placeholderText}
+                value={query}
+                onChange={e => { setQuery(e.target.value); setActiveIdx(-1); }}
+                onFocus={() => { setFocused(true); focusedRef.current = true; }}
+                onBlur={() => setTimeout(() => { setFocused(false); focusedRef.current = false; }, 160)}
+                onKeyDown={handleKeyDown}
+                aria-label="Search courses and career paths"
+                aria-autocomplete="list"
+                aria-expanded={showDropdown}
+              />
 
-            {/* Arrow submit button */}
-            <button
-              className="l-hs-arrow-btn"
-              aria-label="Search"
-              onMouseDown={e => {
-                e.preventDefault();
-                if (activeIdx >= 0) selectItem(results[activeIdx]);
-                else if (results.length > 0) selectItem(results[0]);
-              }}
+              {/* Arrow submit button */}
+              <button
+                className="l-hs-arrow-btn"
+                aria-label="Search"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  if (activeIdx >= 0) selectItem(results[activeIdx]);
+                  else if (results.length > 0) selectItem(results[0]);
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Results dropdown — only when typing */}
+            {focused && !isEmptyQuery && results.length > 0 && (
+              <div className="l-hs-dropdown" role="listbox">
+                {results.map((item, i) => (
+                  <div
+                    key={`${item.category}-${item.title}`}
+                    className={`l-hs-dropdown-item${i === activeIdx ? " l-hs-dropdown-item--active" : ""}`}
+                    role="option"
+                    aria-selected={i === activeIdx}
+                    onMouseDown={() => selectItem(item)}
+                    onMouseEnter={() => setActiveIdx(i)}
+                  >
+                    <span className="l-hs-item-title">
+                      <Highlight text={item.title} query={query} />
+                    </span>
+                    <span className="l-hs-item-tag">{item.category}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Explore row — visible only when no query */}
+            {isEmptyQuery && <div
+              className="l-hs-explore-row"
+              onClick={() => navigate("/careers")}
+              role="button"
+              tabIndex={-1}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </button>
+              <span className="l-hs-explore-row-text">Find your path. Start with a career.</span>
+            </div>}
           </div>
 
-          {/* Results dropdown — only when typing */}
-          {focused && !isEmptyQuery && results.length > 0 && (
-            <div className="l-hs-dropdown" role="listbox">
-              {results.map((item, i) => (
-                <div
-                  key={`${item.category}-${item.title}`}
-                  className={`l-hs-dropdown-item${i === activeIdx ? " l-hs-dropdown-item--active" : ""}`}
-                  role="option"
-                  aria-selected={i === activeIdx}
-                  onMouseDown={() => selectItem(item)}
-                  onMouseEnter={() => setActiveIdx(i)}
+          {/* Quick-access course pills */}
+          {courses.length > 0 && (
+            <div className="l-hs-chips">
+              {courses.slice(0, 3).map((course) => (
+                <button
+                  key={course.id}
+                  className="l-hs-chip"
+                  onClick={() => {
+                    setQuery(course.name);
+                    setActiveIdx(-1);
+                    inputRef.current?.focus();
+                  }}
                 >
-                  <span className="l-hs-item-title">
-                    <Highlight text={item.title} query={query} />
-                  </span>
-                  <span className="l-hs-item-tag">{item.category}</span>
-                </div>
+                  {course.name}
+                </button>
               ))}
             </div>
           )}
 
-          {/* Explore row — visible only when no query */}
-          {isEmptyQuery && <div
-            className="l-hs-explore-row"
-            onClick={() => navigate("/careers")}
-            role="button"
-            tabIndex={-1}
-          >
-            <span className="l-hs-explore-row-text">Find your path. Start with a career.</span>
-          </div>}
         </div>
-
-        {/* Quick-access course pills */}
-        {courses.length > 0 && (
-          <div className="l-hs-chips">
-            {courses.slice(0, 3).map((course) => (
-              <button
-                key={course.id}
-                className="l-hs-chip"
-                onClick={() => {
-                  setQuery(course.name);
-                  setActiveIdx(-1);
-                  inputRef.current?.focus();
-                }}
-              >
-                {course.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-      </div>
 
 
 
@@ -671,7 +542,7 @@ function HeroSection() {
             <path d="M 149,224 Q 175,198 201,224" stroke="#94A3A0" strokeWidth="1.3" strokeLinecap="round" fill="none" opacity="0.25" />
             <line x1="175" y1="206" x2="175" y2="228" stroke="#3D4F4A" strokeWidth="1.8" strokeLinecap="round" />
             {/* Green accent — base dot only */}
-            <circle cx="175" cy="233" r="5" fill="#22A55D" />
+            <circle cx="175" cy="233" r="5" fill="hsl(152, 36%, 33%)" />
             {/* Labels */}
             <text x="175" y="294" textAnchor="middle" fontSize="15" fontWeight="700" className="l-hs-node-label">Learn deeply</text>
             <text x="175" y="313" textAnchor="middle" fontSize="13" fontWeight="500" className="l-hs-node-sub">Structured knowledge paths</text>
@@ -679,7 +550,7 @@ function HeroSection() {
             {/* ══ NODE 2 — PRACTICE (featured) ══ */}
             <text x="500" y="178" textAnchor="middle" fill="#3D4F4A" fontSize="10" fontWeight="700" letterSpacing="2.5" opacity="0.85">02</text>
             {/* Subtle halo — marks this as the focal step */}
-            <circle cx="500" cy="221" r="46" fill="#22A55D" fillOpacity="0.025" stroke="#22A55D" strokeWidth="0.8" strokeOpacity="0.07" />
+            <circle cx="500" cy="221" r="46" fill="hsl(152, 36%, 33%)" fillOpacity="0.025" stroke="hsl(152, 36%, 33%)" strokeWidth="0.8" strokeOpacity="0.07" />
             {/* Terminal frame — slightly larger, more contrast */}
             <rect x="462" y="195" width="76" height="52" rx="7" stroke="#3D4F4A" strokeWidth="1.6" fill="#3D4F4A" fillOpacity="0.05" />
             {/* Traffic dots */}
@@ -692,7 +563,7 @@ function HeroSection() {
             <line x1="482" y1="225" x2="521" y2="225" stroke="#6B7B74" strokeWidth="1.6" strokeLinecap="round" />
             <line x1="482" y1="235" x2="506" y2="235" stroke="#94A3A0" strokeWidth="1.6" strokeLinecap="round" opacity="0.45" />
             {/* Green accent — cursor only */}
-            <rect x="522.5" y="219.5" width="3.5" height="12" rx="0.5" fill="#22A55D" />
+            <rect x="522.5" y="219.5" width="3.5" height="12" rx="0.5" fill="hsl(152, 36%, 33%)" />
             {/* Labels */}
             <text x="500" y="294" textAnchor="middle" fontSize="15" fontWeight="700" className="l-hs-node-label">Practice with code</text>
             <text x="500" y="313" textAnchor="middle" fontSize="13" fontWeight="500" className="l-hs-node-sub">Real-world problems</text>
@@ -700,12 +571,12 @@ function HeroSection() {
             {/* ══ NODE 3 — RETAIN ══ */}
             <text x="825" y="178" textAnchor="middle" fill="#6B7B74" fontSize="10" fontWeight="600" letterSpacing="2.5" opacity="0.7">03</text>
             {/* Network — neutral satellites, green core */}
-            <circle cx="807" cy="206" r="4"   fill="#6B7B74" opacity="0.65" />
-            <circle cx="843" cy="206" r="4"   fill="#6B7B74" opacity="0.65" />
-            <circle cx="807" cy="230" r="4"   fill="#6B7B74" opacity="0.65" />
-            <circle cx="843" cy="230" r="4"   fill="#6B7B74" opacity="0.65" />
-            <circle cx="825" cy="198" r="3"   fill="#94A3A0" opacity="0.45" />
-            <circle cx="825" cy="238" r="3"   fill="#94A3A0" opacity="0.45" />
+            <circle cx="807" cy="206" r="4" fill="#6B7B74" opacity="0.65" />
+            <circle cx="843" cy="206" r="4" fill="#6B7B74" opacity="0.65" />
+            <circle cx="807" cy="230" r="4" fill="#6B7B74" opacity="0.65" />
+            <circle cx="843" cy="230" r="4" fill="#6B7B74" opacity="0.65" />
+            <circle cx="825" cy="198" r="3" fill="#94A3A0" opacity="0.45" />
+            <circle cx="825" cy="238" r="3" fill="#94A3A0" opacity="0.45" />
             {/* Spokes */}
             <line x1="820" y1="213" x2="810" y2="208" stroke="#6B7B74" strokeWidth="1.4" opacity="0.55" />
             <line x1="830" y1="213" x2="840" y2="208" stroke="#6B7B74" strokeWidth="1.4" opacity="0.55" />
@@ -713,12 +584,12 @@ function HeroSection() {
             <line x1="830" y1="224" x2="840" y2="228" stroke="#6B7B74" strokeWidth="1.4" opacity="0.55" />
             <line x1="825" y1="212" x2="825" y2="201" stroke="#94A3A0" strokeWidth="1.4" opacity="0.38" />
             <line x1="825" y1="225" x2="825" y2="235" stroke="#94A3A0" strokeWidth="1.4" opacity="0.38" />
-            <line x1="810" y1="204" x2="823" y2="200" stroke="#94A3A0" strokeWidth="1"   opacity="0.28" />
-            <line x1="840" y1="204" x2="827" y2="200" stroke="#94A3A0" strokeWidth="1"   opacity="0.28" />
-            <line x1="810" y1="232" x2="823" y2="236" stroke="#94A3A0" strokeWidth="1"   opacity="0.28" />
-            <line x1="840" y1="232" x2="827" y2="236" stroke="#94A3A0" strokeWidth="1"   opacity="0.28" />
+            <line x1="810" y1="204" x2="823" y2="200" stroke="#94A3A0" strokeWidth="1" opacity="0.28" />
+            <line x1="840" y1="204" x2="827" y2="200" stroke="#94A3A0" strokeWidth="1" opacity="0.28" />
+            <line x1="810" y1="232" x2="823" y2="236" stroke="#94A3A0" strokeWidth="1" opacity="0.28" />
+            <line x1="840" y1="232" x2="827" y2="236" stroke="#94A3A0" strokeWidth="1" opacity="0.28" />
             {/* Green accent — core node only */}
-            <circle cx="825" cy="218" r="7" fill="#22A55D" />
+            <circle cx="825" cy="218" r="7" fill="hsl(152, 36%, 33%)" />
             {/* Labels */}
             <text x="825" y="294" textAnchor="middle" fontSize="15" fontWeight="700" className="l-hs-node-label">Retain long-term</text>
             <text x="825" y="313" textAnchor="middle" fontSize="13" fontWeight="500" className="l-hs-node-sub">Spaced repetition system</text>
@@ -755,11 +626,11 @@ function CourseCardsSection() {
       <div className="l-card-grid">
         {isLoading
           ? Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="l-course-card l-course-skeleton" />
-            ))
+            <div key={i} className="l-course-card l-course-skeleton" />
+          ))
           : courses.map((course, i) => (
-              <PublicCourseCard key={course.id} course={course} index={i} />
-            ))}
+            <PublicCourseCard key={course.id} course={course} index={i} />
+          ))}
       </div>
     </section>
   );
@@ -767,67 +638,110 @@ function CourseCardsSection() {
 
 // ─── CTA Section ─────────────────────────────────────────────────────────────
 
+const CTA_AVATARS = [
+  { bg: "linear-gradient(135deg,#7c3aed,#a78bfa)", letter: "A" },
+  { bg: "linear-gradient(135deg,#0891b2,#38bdf8)", letter: "M" },
+  { bg: "linear-gradient(135deg,#d97706,#fbbf24)", letter: "S" },
+  { bg: "linear-gradient(135deg,#dc2626,#fb7185)", letter: "R" },
+  { bg: "linear-gradient(135deg,#059669,#34d399)", letter: "J" },
+  { bg: "linear-gradient(135deg,#9333ea,#c084fc)", letter: "L" },
+];
+
 function CTASection() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   return (
-    <section className="l-why bg-background">
+    <section className="l-cta-section l-why bg-background">
       <div className="l-container">
-        <div className="l-cta-section">
-          <div className="l-cta-split-card bg-card border-border">
+        <div className="l-cta-banner">
 
-            {/* ── Left: copy + auth CTAs ── */}
-            <div className="l-cta-left">
-              <span className="l-eyebrow-badge" style={{ marginBottom: 16, alignSelf: "flex-start" }}>
-                {user ? "Welcome back" : "Get started free"}
-              </span>
-              <h2 className="l-cta-title text-foreground">
-                {user ? (
-                  "Continue your journey"
-                ) : (
-                  <>Your profile.<br />Your progress.</>
-                )}
-              </h2>
-              <p className="l-cta-sub text-muted-foreground">
-                {user
-                  ? "Pick up where you left off — all your streaks, XP, and course progress are waiting."
-                  : "Track every lesson, build streaks, earn XP and unlock badges — everything in one dashboard. Free to start, no credit card needed."
-                }
-              </p>
-              <div className="l-cta-actions">
-                {user ? (
-                  <button className="l-cta-primary-btn" onClick={() => navigate("/profile")}>
-                    Go to my profile
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  </button>
-                ) : (
-                  <>
-                    <button className="l-cta-primary-btn" onClick={() => navigate("/signup")}>
-                      Create free account
-                    </button>
-                    <button className="l-cta-secondary-btn" onClick={() => navigate("/login")}>
-                      Sign in
-                    </button>
-                  </>
-                )}
-              </div>
-              {!user && (
-                <p className="l-cta-footnote text-muted-foreground">
-                  No credit card required.
-                </p>
+          {/* ── LEFT: avatar stack + bold headline ── */}
+          <div className="l-cta-banner-left">
+            <div className="l-cta-avatars">
+              {CTA_AVATARS.map(({ bg, letter }, i) => (
+                <div key={i} className="l-cta-avatar" style={{ background: bg }}>
+                  {letter}
+                </div>
+              ))}
+            </div>
+            <h2 className="l-cta-banner-headline">
+              {user ? (
+                <>Welcome back.<br />Keep building.</>
+              ) : (
+                <>Join 50,000+ learners<br />mastering data & AI.</>
               )}
-            </div>
-
-            {/* ── Right: conditional illustration ── */}
-            <div className="l-cta-right">
-              {user ? <LoggedInIllustration /> : <LoggedOutIllustration />}
-            </div>
-
+            </h2>
           </div>
+
+          {/* ── RIGHT: description + CTA button + link ── */}
+          <div className="l-cta-banner-right">
+            <p className="l-cta-banner-desc">
+              {user
+                ? "Your streaks, XP, and course progress are waiting — pick up exactly where you left off."
+                : "Build real skills, get certified, and grow fast in the AI-powered world. Ready to stand out?"
+              }
+            </p>
+            {user ? (
+              <>
+                <button className="l-cta-banner-btn" onClick={() => navigate("/profile")}>
+                  Continue learning
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+                <button className="l-cta-banner-link" onClick={() => navigate("/courses")}>
+                  Browse all courses
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="l-cta-banner-btn" onClick={() => navigate("/signup")}>
+                  Get started free
+                </button>
+                <button className="l-cta-banner-link" onClick={() => navigate("/login")}>
+                  Already have an account? Sign in
+                </button>
+              </>
+            )}
+          </div>
+
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Career Cards Section ─────────────────────────────────────────────────────
+
+function CareerCardsSection() {
+  const { data: careers = [], isLoading } = useLandingCareers();
+
+  return (
+    <section className="l-section">
+      <div className="l-section-hd-row">
+        <div className="l-section-hd">
+          <span className="l-eyebrow-badge">Career Paths</span>
+          <h2 className="l-section-title text-foreground">Know exactly what to learn next</h2>
+          <p className="l-section-sub text-muted-foreground">
+            Role-based roadmaps built with hiring managers — every skill maps to real job requirements.
+          </p>
+        </div>
+        <Link to="/careers" className="l-view-all-link">
+          View all careers
+          <svg className="l-view-all-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+          </svg>
+        </Link>
+      </div>
+      <div className="l-card-grid--3">
+        {isLoading
+          ? Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="l-course-card l-course-skeleton" />
+          ))
+          : careers.map((career, i) => (
+            <PublicCareerCard key={career.id} career={career} index={i} />
+          ))}
       </div>
     </section>
   );
@@ -852,109 +766,7 @@ export default function Landing() {
           <CourseCardsSection />
 
           {/* ── Career Paths ─────────────────────────────────────────────────── */}
-          <section className="l-section">
-            <div className="l-section-hd-row">
-              <div className="l-section-hd">
-                <span className="l-eyebrow-badge">Career Paths</span>
-                <h2 className="l-section-title text-foreground">Know exactly what to learn next</h2>
-                <p className="l-section-sub text-muted-foreground">
-                  Role-based roadmaps built with hiring managers — every skill maps to real job requirements.
-                </p>
-              </div>
-              <Link to="/careers" className="l-view-all-link">
-                View all careers
-                <svg className="l-view-all-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
-            </div>
-            <div className="l-card-grid--3">
-              {CAREERS.map((c) => (
-                <div className="l-course-card lcc-card" key={c.title}>
-
-                  {/* ── Thumbnail ────────────────────────────────────────── */}
-                  <div className="lcc-thumb lcc-cp-thumb" style={{ background: c.gradient }}>
-                    {/* Noise texture overlay */}
-                    <div className="lcc-cp-pattern" />
-                    {/* Top-left radial light for depth */}
-                    <div className="lcc-cp-light" />
-
-                    {/* Level badge — top left */}
-                    <span className="lcc-cp-badge">{c.level}</span>
-
-                    {/* Large faded icon — top right */}
-                    <div className="lcc-cp-icon-tr">
-                      {c.icon}
-                    </div>
-
-                    {/* Bottom skill pills */}
-                    <div className="lcc-cp-skills">
-                      {c.skills.slice(0, 3).map((s) => (
-                        <span key={s} className="lcc-cp-skill-pill">{s}</span>
-                      ))}
-                      {c.skills.length > 3 && (
-                        <span className="lcc-cp-skill-pill lcc-cp-skill-pill--more">
-                          +{c.skills.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ── Body ─────────────────────────────────────────────── */}
-                  <div className="lcc-body">
-
-                    {/* Title + course count (mimics title + star rating) */}
-                    <div className="lcc-title-row">
-                      <p className="lcc-title">{c.title}</p>
-                      <div className="lcc-cp-count">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22A55D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                        </svg>
-                        <span>{c.steps.filter(Boolean).length}</span>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="lcc-desc">{c.desc}</p>
-
-                    {/* Expert row — mirrors instructor row from course card */}
-                    <div className="lcc-instructor">
-                      <div className="lcc-avatar lcc-cp-av">UM</div>
-                      <div className="lcc-instructor-info">
-                        <span className="lcc-instructor-name">UnlockMemory</span>
-                        <span className="lcc-instructor-sub">Career Track Curator</span>
-                      </div>
-                    </div>
-
-                    {/* Footer: learners · duration + level badge */}
-                    <div className="lcc-footer">
-                      <div className="lcc-meta">
-                        <span className="lcc-meta-item">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                          </svg>
-                          {c.enrolledLabel}
-                        </span>
-                        <span className="lcc-meta-item">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
-                          {c.duration}
-                        </span>
-                      </div>
-                      <span className="lcc-cp-price">{c.price}</span>
-                    </div>
-
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+          <CareerCardsSection />
         </div>
 
         {/* ── CTA Card ─────────────────────────────────────────────────────── */}

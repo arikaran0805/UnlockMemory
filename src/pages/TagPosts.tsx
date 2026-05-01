@@ -283,13 +283,13 @@ const TagPosts = () => {
         className="h-8 px-3.5 rounded-xl text-[12.5px] font-medium transition-all duration-150"
         style={{
           background: active
-            ? "linear-gradient(135deg, #22A55D 0%, #1a9050 100%)"
+            ? "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%)"
             : hovered
-            ? "rgba(34,165,93,0.08)"
+            ? "hsl(var(--primary) / 0.08)"
             : "transparent",
           color: active ? "#fff" : "hsl(var(--foreground) / 0.65)",
           border: active ? "none" : "1px solid hsl(var(--border) / 0.5)",
-          boxShadow: active ? "0 2px 8px rgba(34,165,93,0.25)" : "none",
+          boxShadow: active ? "0 2px 8px hsl(var(--primary) / 0.25)" : "none",
         }}
       >
         {children}
@@ -333,16 +333,16 @@ const TagPosts = () => {
               <div
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-5"
                 style={{
-                  background: "rgba(34,165,93,0.07)",
-                  border: "1px solid rgba(34,165,93,0.18)",
+                  background: "hsl(var(--primary) / 0.07)",
+                  border: "1px solid hsl(var(--primary) / 0.18)",
                   alignSelf: hasAd ? "flex-start" : "center",
                 }}
               >
                 <div
-                  className="w-1.5 h-1.5 rounded-full bg-[#22A55D]"
-                  style={{ boxShadow: "0 0 4px rgba(34,165,93,0.6)" }}
+                  className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))]"
+                  style={{ boxShadow: "0 0 4px hsl(var(--primary) / 0.6)" }}
                 />
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: "#1a9050", letterSpacing: "0.025em" }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: "hsl(var(--primary))", letterSpacing: "0.025em" }}>
                   Topic Tag
                 </span>
               </div>
@@ -418,16 +418,16 @@ const TagPosts = () => {
                     className="relative w-full rounded-2xl bg-surface-card transition-all duration-200"
                     style={{
                       border: searchFocused
-                        ? "1.5px solid #22A55D"
+                        ? "1.5px solid hsl(var(--primary))"
                         : "1.5px solid hsl(var(--border) / 0.55)",
                       boxShadow: searchFocused
-                        ? "0 0 0 4px rgba(34,165,93,0.1), 0 2px 8px rgba(0,0,0,0.07)"
+                        ? "0 0 0 4px hsl(var(--primary) / 0.1), 0 2px 8px rgba(0,0,0,0.07)"
                         : "0 1px 4px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)",
                     }}
                   >
                     <Search
                       className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-200"
-                      style={{ color: searchFocused ? "#22A55D" : "hsl(var(--muted-foreground) / 0.55)" }}
+                      style={{ color: searchFocused ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.55)" }}
                     />
                     <input
                       type="text"
@@ -517,7 +517,7 @@ const TagPosts = () => {
                 </p>
                 <button
                   onClick={clearAll}
-                  className="text-[12px] font-semibold text-[#22A55D] hover:text-[#1a9050] transition-colors"
+                  className="text-[12px] font-semibold text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] transition-colors"
                 >
                   Clear filters
                 </button>
@@ -559,9 +559,9 @@ const TagPosts = () => {
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-                  style={{ background: "rgba(34,165,93,0.07)" }}
+                  style={{ background: "hsl(var(--primary) / 0.07)" }}
                 >
-                  <Tag className="h-6 w-6 text-[#22A55D]/50" />
+                  <Tag className="h-6 w-6 text-[hsl(var(--primary))]/50" />
                 </div>
                 <p className="text-[15px] font-semibold text-foreground mb-1.5">
                   No content for this tag yet
@@ -571,7 +571,7 @@ const TagPosts = () => {
                 </p>
                 <Link
                   to="/courses"
-                  className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[#22A55D] text-white hover:bg-[#1a9050] transition-colors inline-flex items-center"
+                  className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))] transition-colors inline-flex items-center"
                 >
                   Browse Courses
                 </Link>
@@ -588,9 +588,9 @@ const TagPosts = () => {
                     <div className="flex items-center gap-2.5 mb-5">
                       <div
                         className="w-7 h-7 rounded-xl flex items-center justify-center"
-                        style={{ background: "rgba(34,165,93,0.1)" }}
+                        style={{ background: "hsl(var(--primary) / 0.1)" }}
                       >
-                        <BookOpen className="h-3.5 w-3.5 text-[#22A55D]" />
+                        <BookOpen className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                       </div>
                       <h2 className="text-[15px] font-semibold text-foreground">Lessons</h2>
                       <span className="text-[12.5px] text-muted-foreground/50 font-medium">
@@ -616,7 +616,7 @@ const TagPosts = () => {
                               <div
                                 className="flex items-center justify-between px-4 py-2.5"
                                 style={{
-                                  background: "rgba(34,165,93,0.04)",
+                                  background: "hsl(var(--primary) / 0.04)",
                                   borderBottom: "1px solid hsl(var(--border) / 0.4)",
                                 }}
                               >
@@ -626,9 +626,9 @@ const TagPosts = () => {
                                 >
                                   <div
                                     className="w-1 h-4 rounded-full flex-shrink-0"
-                                    style={{ background: "#22A55D" }}
+                                    style={{ background: "hsl(var(--primary))" }}
                                   />
-                                  <span className="text-[13px] font-semibold text-foreground/80 group-hover:text-[#22A55D] transition-colors truncate">
+                                  <span className="text-[13px] font-semibold text-foreground/80 group-hover:text-[hsl(var(--primary))] transition-colors truncate">
                                     {course.name}
                                   </span>
                                   {course.level && (
@@ -657,7 +657,7 @@ const TagPosts = () => {
                             {courseLessons.length > 3 && (
                               <button
                                 onClick={() => toggleCourseExpansion(courseId)}
-                                className="w-full flex items-center justify-center gap-1.5 py-2.5 text-[12.5px] font-medium text-muted-foreground/70 hover:text-[#22A55D] hover:bg-[rgba(34,165,93,0.04)] transition-colors bg-surface-card"
+                                className="w-full flex items-center justify-center gap-1.5 py-2.5 text-[12.5px] font-medium text-muted-foreground/70 hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary) / 0.04)] transition-colors bg-surface-card"
                                 style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}
                               >
                                 {isExpanded ? (
@@ -680,9 +680,9 @@ const TagPosts = () => {
                     <div className="flex items-center gap-2.5 mb-5">
                       <div
                         className="w-7 h-7 rounded-xl flex items-center justify-center"
-                        style={{ background: "rgba(34,165,93,0.1)" }}
+                        style={{ background: "hsl(var(--primary) / 0.1)" }}
                       >
-                        <GraduationCap className="h-3.5 w-3.5 text-[#22A55D]" />
+                        <GraduationCap className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                       </div>
                       <h2 className="text-[15px] font-semibold text-foreground">Courses</h2>
                       <span className="text-[12.5px] text-muted-foreground/50 font-medium">
@@ -707,9 +707,9 @@ const TagPosts = () => {
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-                      style={{ background: "rgba(34,165,93,0.07)" }}
+                      style={{ background: "hsl(var(--primary) / 0.07)" }}
                     >
-                      <Search className="h-5 w-5 text-[#22A55D]/50" />
+                      <Search className="h-5 w-5 text-[hsl(var(--primary))]/50" />
                     </div>
                     <p className="text-[14px] font-semibold text-foreground mb-1.5">
                       {searchQuery ? `No results for "${searchQuery}"` : "No content matches the selected filters"}
@@ -719,7 +719,7 @@ const TagPosts = () => {
                     </p>
                     <button
                       onClick={clearAll}
-                      className="h-8 px-4 rounded-xl text-[12.5px] font-semibold bg-[#22A55D] text-white hover:bg-[#1a9050] transition-colors"
+                      className="h-8 px-4 rounded-xl text-[12.5px] font-semibold bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))] transition-colors"
                     >
                       Clear filters
                     </button>
@@ -743,7 +743,7 @@ const TagPosts = () => {
                         <Link
                           key={tag.id}
                           to={`/tag/${tag.slug}`}
-                          className="inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all duration-150 hover:bg-[rgba(34,165,93,0.1)] hover:text-[#15803d] hover:border-[rgba(34,165,93,0.25)]"
+                          className="inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all duration-150 hover:bg-[hsl(var(--primary) / 0.1)] hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary) / 0.25)]"
                           style={{
                             background: "hsl(var(--muted) / 0.6)",
                             color: "hsl(var(--foreground) / 0.7)",
@@ -815,7 +815,7 @@ const TagPosts = () => {
                           to={`/tag/${tag.slug}`}
                           className={cn(
                             "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors duration-100",
-                            isActive ? "bg-[rgba(34,165,93,0.08)]" : "hover:bg-muted/60"
+                            isActive ? "bg-[hsl(var(--primary) / 0.08)]" : "hover:bg-muted/60"
                           )}
                         >
                           {rankStyle ? (
@@ -830,7 +830,7 @@ const TagPosts = () => {
                           )}
                           <span
                             className="flex-1 min-w-0 truncate text-[13px] font-medium"
-                            style={{ color: isActive ? "#15803d" : "hsl(var(--foreground) / 0.8)" }}
+                            style={{ color: isActive ? "hsl(var(--primary))" : "hsl(var(--foreground) / 0.8)" }}
                           >
                             {tag.name}
                           </span>
@@ -850,11 +850,11 @@ const TagPosts = () => {
                 >
                   <Link
                     to="/tags"
-                    className="w-full flex items-center justify-center gap-2 h-9 rounded-xl text-[12.5px] font-semibold transition-colors hover:bg-[rgba(34,165,93,0.12)]"
+                    className="w-full flex items-center justify-center gap-2 h-9 rounded-xl text-[12.5px] font-semibold transition-colors hover:bg-[hsl(var(--primary) / 0.12)]"
                     style={{
-                      background: "rgba(34,165,93,0.07)",
-                      color: "#15803d",
-                      border: "1px solid rgba(34,165,93,0.15)",
+                      background: "hsl(var(--primary) / 0.07)",
+                      color: "hsl(var(--primary))",
+                      border: "1px solid hsl(var(--primary) / 0.15)",
                     }}
                   >
                     <Tag className="h-3.5 w-3.5" />
@@ -889,7 +889,7 @@ function StatCard({ value, label }: { value: string | number; label: string }) {
       >
         {value}
       </span>
-      <span className="font-medium" style={{ fontSize: 11.5, color: "#22A55D", letterSpacing: "0.01em" }}>
+      <span className="font-medium" style={{ fontSize: 11.5, color: "hsl(var(--primary))", letterSpacing: "0.01em" }}>
         {label}
       </span>
     </div>
@@ -904,10 +904,10 @@ const LessonCard = ({ lesson }: { lesson: Lesson }) => {
       className="group flex items-center gap-3.5 px-4 py-3 hover:bg-muted/30 transition-colors"
     >
       <div
-        className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[rgba(34,165,93,0.15)] transition-colors"
-        style={{ background: "rgba(34,165,93,0.08)" }}
+        className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center group-hover:bg-[hsl(var(--primary) / 0.15)] transition-colors"
+        style={{ background: "hsl(var(--primary) / 0.08)" }}
       >
-        <Play className="h-3.5 w-3.5 text-[#22A55D]" style={{ marginLeft: 1 }} />
+        <Play className="h-3.5 w-3.5 text-[hsl(var(--primary))]" style={{ marginLeft: 1 }} />
       </div>
       <div className="flex-1 min-w-0">
         <span className="block text-[13.5px] font-medium text-foreground/85 group-hover:text-foreground truncate transition-colors">
@@ -931,12 +931,12 @@ const CourseCard = ({ course, lessonCount }: { course: Course; lessonCount: numb
     >
       <div
         className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center"
-        style={{ background: "rgba(34,165,93,0.08)" }}
+        style={{ background: "hsl(var(--primary) / 0.08)" }}
       >
         {course.featured_image ? (
           <img src={course.featured_image} alt={course.name} className="w-full h-full object-cover" />
         ) : (
-          <GraduationCap className="h-6 w-6 text-[#22A55D]/60" />
+          <GraduationCap className="h-6 w-6 text-[hsl(var(--primary))]/60" />
         )}
       </div>
 

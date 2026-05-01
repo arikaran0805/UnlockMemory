@@ -31,7 +31,7 @@ interface FeaturedCourse {
 const HeroVisual = () => (
   <div className="relative w-full max-w-md mx-auto select-none">
     {/* Soft glow behind the card stack */}
-    <div className="absolute inset-8 bg-primary/20 rounded-3xl blur-3xl pointer-events-none" />
+    <div className="absolute inset-8 bg-muted/70 rounded-3xl blur-3xl pointer-events-none" />
 
     {/* Background card */}
     <div className="absolute top-6 left-6 right-0 bottom-0 rounded-2xl border border-border bg-card/60 rotate-[3deg] shadow-sm" />
@@ -46,7 +46,7 @@ const HeroVisual = () => (
             Python Fundamentals
           </span>
         </div>
-        <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
           Beginner
         </span>
       </div>
@@ -73,7 +73,7 @@ const HeroVisual = () => (
             <div
               key={lesson.label}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-[12px] font-medium transition-colors ${lesson.done
-                  ? "border-primary/20 bg-primary/[0.04] text-foreground/60 line-through"
+                  ? "border-border/40 bg-muted/30 text-foreground/50 line-through"
                   : "border-border bg-muted/30 text-foreground"
                 }`}
             >
@@ -116,8 +116,8 @@ const HeroVisual = () => (
 
     {/* Floating streak badge */}
     <div className="absolute -bottom-4 -left-4 flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 shadow-lg">
-      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-        <Zap className="h-3.5 w-3.5 text-primary" />
+      <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+        <Zap className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
       <div>
         <p className="text-[10px] font-bold text-foreground leading-tight">7-Day Streak</p>
@@ -251,10 +251,10 @@ const Index = () => {
         >
           {/* Subtle grid */}
           <div className="absolute inset-0 bg-[linear-gradient(hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:60px_60px] opacity-40 pointer-events-none" />
-          {/* Green glow — bottom-left */}
-          <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] bg-primary/8 rounded-full blur-3xl pointer-events-none" />
-          {/* Green glow — top-right */}
-          <div className="absolute -top-24 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+          {/* Subtle neutral glow — bottom-left */}
+          <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] bg-muted/50 rounded-full blur-3xl pointer-events-none" />
+          {/* Subtle neutral glow — top-right */}
+          <div className="absolute -top-24 right-0 w-[400px] h-[400px] bg-muted/30 rounded-full blur-3xl pointer-events-none" />
 
           <div className="container px-6 lg:px-12 xl:px-20 mx-auto relative z-10">
             <div
@@ -314,7 +314,7 @@ const Index = () => {
               <div className="hidden lg:flex items-center justify-center py-8">
                 <div className="relative w-full max-w-md mx-auto select-none">
                   {/* Soft glow behind mascot */}
-                  <div className="absolute inset-12 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute inset-12 bg-muted/60 rounded-full blur-3xl pointer-events-none" />
                   <img
                     src="/Hero_Ant.svg"
                     alt="UnlockMemory mascot"
@@ -341,7 +341,7 @@ const Index = () => {
                   {["A", "K", "M", "R", "S"].map((initial, i) => (
                     <div
                       key={i}
-                      className="w-8 h-8 rounded-full border-2 border-background bg-primary/20 flex items-center justify-center text-[11px] font-bold text-primary"
+                      className="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[11px] font-bold text-muted-foreground"
                     >
                       {initial}
                     </div>
@@ -494,11 +494,11 @@ const Index = () => {
                   style={{
                     transitionDelay: featuresAnimation.isVisible ? `${i * 60}ms` : "0ms",
                   }}
-                  className={`group p-6 rounded-2xl border border-border/60 bg-card hover:border-primary/30 hover:shadow-[0_4px_24px_hsl(var(--primary)/0.07)] transition-all duration-200 ${featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                  className={`group p-6 rounded-2xl border border-border/60 bg-card hover:border-border hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all duration-200 ${featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                     }`}
                 >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center mb-4 group-hover:bg-muted/80 transition-colors">
+                    <Icon className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <h3 className="text-[15px] font-bold text-foreground mb-2">{title}</h3>
                   <p className="text-[13.5px] text-muted-foreground leading-relaxed">{description}</p>

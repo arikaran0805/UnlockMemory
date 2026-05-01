@@ -151,8 +151,8 @@ const Pricing = () => {
       {/* Auth Required Dialog */}
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
         <DialogContent className="max-w-sm text-center p-8">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Lock className="h-7 w-7 text-primary" />
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-7 w-7 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-bold text-foreground">Sign in to continue</h2>
           <p className="text-sm text-muted-foreground mt-1">

@@ -253,7 +253,7 @@ const ConversationDetail = () => {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-primary">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 text-sm font-semibold text-muted-foreground">
                   {thread.learner_name?.charAt(0)?.toUpperCase() || "?"}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -291,7 +291,7 @@ const ConversationDetail = () => {
                     <span className="text-[11px] text-muted-foreground/40">›</span>
                   )}
                   {doubtContext.lessonTitle && (
-                    <span className="text-[11px] text-foreground/70 font-medium bg-primary/8 px-2 py-0.5 rounded-full">{doubtContext.lessonTitle}</span>
+                    <span className="text-[11px] text-foreground/70 font-medium bg-muted/80 px-2 py-0.5 rounded-full">{doubtContext.lessonTitle}</span>
                   )}
                 </div>
               )}

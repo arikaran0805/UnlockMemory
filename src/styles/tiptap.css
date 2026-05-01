@@ -243,6 +243,12 @@
   letter-spacing: 0.2px;
 }
 
+/* Hide <hr> dividers inside canvas renderer — block spacing provides separation.
+   Use !important to override Tailwind prose plugin which also targets hr. */
+.canvas-renderer-root hr {
+  display: none !important;
+}
+
 .content-renderer-article p,
 .content-renderer-article .tiptap-content p,
 .content-renderer-article .ProseMirror p,

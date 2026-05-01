@@ -310,7 +310,7 @@ const AcceptInvite = () => {
           </Link>
 
           <div className="text-center space-y-6">
-            <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
               <Shield className="h-10 w-10 text-primary" />
             </div>
 
@@ -375,8 +375,8 @@ const AcceptInvite = () => {
 
         <div className="space-y-6">
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Shield className="h-8 w-8 text-primary" />
+            <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-muted-foreground" />
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">Join as {ROLE_LABELS[invitation!.role]}</h1>
             <p className="text-muted-foreground">

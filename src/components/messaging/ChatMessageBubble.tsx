@@ -90,7 +90,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
     const icon = (() => {
       switch (deliveryStatus) {
         case "seen":
-          return <CheckCheck className="h-3 w-3 text-[#34B7F1] transition-colors duration-300" />;
+          return <CheckCheck className="h-3 w-3 text-primary transition-colors duration-300" />;
         case "delivered":
           return <CheckCheck className="h-3 w-3 text-content-muted transition-colors duration-300" />;
         case "sent":
@@ -148,7 +148,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
             onClick={() => setShowLightbox(true)}
           />
           {message.message_text && (
-            <p className="whitespace-pre-wrap break-words mt-1.5">{message.message_text}</p>
+            <p className="whitespace-pre-wrap break-words mt-1.5 font-[400]">{message.message_text}</p>
           )}
           {showLightbox && (
             <ImageLightbox
@@ -179,15 +179,15 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
         >
           <div className={cn(
             "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
-            isOwn ? "bg-black/10 dark:bg-white/20" : "bg-primary/10"
+            isOwn ? "bg-black/10 dark:bg-white/20" : "bg-muted/60"
           )}>
             <Icon className={cn("h-4 w-4", isOwn ? "text-content-secondary dark:text-content-inverse" : "text-primary")} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={cn("text-xs font-medium truncate", isOwn ? "text-content-primary dark:text-content-inverse" : "text-foreground")}>
+            <p className={cn("text-[12.5px] font-medium truncate tracking-[-0.005em]", isOwn ? "text-content-primary dark:text-content-inverse" : "text-foreground")}>
               {message.attachment_name || "File"}
             </p>
-            <p className={cn("text-[10px]", isOwn ? "text-content-muted dark:text-content-muted" : "text-muted-foreground")}>
+            <p className={cn("text-[10.5px] font-medium tabular-nums opacity-60", isOwn ? "text-content-muted dark:text-content-muted" : "text-muted-foreground")}>
               {ext} {formatSize((message as any).attachment_size)}
             </p>
           </div>
@@ -226,7 +226,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="w-full bg-background/80 text-foreground text-sm rounded-lg px-2 py-1.5 border border-border/40 resize-none focus:outline-none focus:ring-1 focus:ring-primary/30"
+            className="w-full bg-background/80 text-foreground text-[13px] leading-[1.52] tracking-[-0.008em] rounded-lg px-2 py-1.5 border border-border/40 resize-none focus:outline-none focus:ring-1 focus:ring-primary/30"
             rows={2}
             autoFocus
           />
@@ -255,7 +255,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
 
     // Plain text
     return message.message_text ? (
-      <p className="whitespace-pre-wrap break-words">{message.message_text}</p>
+      <p className="whitespace-pre-wrap break-words font-[400]">{message.message_text}</p>
     ) : null;
   };
 
@@ -289,16 +289,17 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
 
       <div
         className={cn(
-          "max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed",
+          "max-w-[80%] px-3.5 py-2.5 rounded-2xl",
+          "text-[13px] leading-[1.52] tracking-[-0.008em]",
           "transition-shadow duration-200",
           isOwn
-            ? "bg-[#DCF8C6] dark:bg-[#005C4B] text-content-primary dark:text-content-inverse rounded-br-lg"
+            ? "bg-primary/[0.18] dark:bg-primary/[0.32] text-foreground rounded-br-lg"
             : "bg-muted/50 text-foreground rounded-bl-lg border border-border/20",
           isImage && "p-1.5"
         )}
       >
         {!isOwn && senderName && (
-          <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">{senderName}</p>
+          <p className="text-[10.5px] font-semibold tracking-[0.03em] text-muted-foreground/80 mb-1 leading-none">{senderName}</p>
         )}
         {renderContent()}
 
@@ -308,7 +309,7 @@ export function ChatMessageBubble({ message, isOwn, senderName, onEdit, onDelete
           isOwn ? "text-content-muted" : "text-muted-foreground",
           isImage && "px-2"
         )}>
-          <span className="text-[10px]">{time}</span>
+          <span className="text-[10.5px] font-medium tabular-nums tracking-[0.01em] opacity-70">{time}</span>
           {renderStatusIcon()}
         </div>
       </div>

@@ -24,9 +24,7 @@ import { useCareers } from "@/hooks/useCareers";
 import { CareerScopedHeader } from "@/components/course/CareerScopedHeader";
 import { CareerWelcomePage } from "@/components/career/CareerWelcomePage";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
-import Header from "@/components/Header";
 import BackToTop from "@/components/BackToTop";
-import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +51,7 @@ const CareerBoardSkeleton = () => (
 );
 
 export const CareerBoardLayout = () => {
-  const { career, careerCourses, isLoading: careerContextLoading, isReady, currentCourseSlug, setCurrentCourseSlug } = useCareerBoard();
+  const { career, careerCourses, isLoading: careerContextLoading, isReady, currentCourseSlug, setCurrentCourseSlug, deepNotesTitle, practiceTitle } = useCareerBoard();
   const { isPro } = useUserState();
   const { getCareerSkills, loading: careersLoading } = useCareers();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,12 +68,15 @@ export const CareerBoardLayout = () => {
   // Track if we've completed initial shell load - prevents skeleton on tab refocus
   const [hasShellLoaded, setHasShellLoaded] = useState(false);
 
-  // Track header visibility for sticky positioning
-  const { isHeaderVisible } = useScrollDirection({
-    threshold: 10,
-    showOnlyAtTop: true,
-    enabled: true,
-  });
+  // Hide native scrollbar while in career board (premium, distraction-free experience)
+  useEffect(() => {
+    document.documentElement.classList.add("career-board-active");
+    document.body.classList.add("career-board-active");
+    return () => {
+      document.documentElement.classList.remove("career-board-active");
+      document.body.classList.remove("career-board-active");
+    };
+  }, []);
 
   const handleAnnouncementVisibility = useCallback((visible: boolean) => {
     setShowAnnouncement(visible);
@@ -189,36 +190,26 @@ export const CareerBoardLayout = () => {
         <AnnouncementBar onVisibilityChange={handleAnnouncementVisibility} />
       </div>
 
-      {/* Primary Header - Auto-hides on scroll (same as CourseDetail) */}
-      <Header 
-        announcementVisible={showAnnouncement}
-        autoHideOnScroll={true}
-        showCourseSecondaryHeader={false} // NEVER show normal secondary header
-      />
-
-      {/* CareerScopedHeader - ALWAYS RENDERED (Architecture Guarantee) */}
+      {/* CareerScopedHeader - ALWAYS RENDERED, no primary header above it */}
       <CareerScopedHeader
         currentCourse={currentCourse || undefined}
         career={career}
         careerCourses={careerCourses}
-        isHeaderVisible={isHeaderVisible}
+        isHeaderVisible={false}
         announcementVisible={showAnnouncement}
-        isLoading={false} // Never show loading state - we already handled it above
+        isLoading={false}
+        deepNotesTitle={deepNotesTitle}
+        practiceTitle={practiceTitle}
       />
 
-      {/* Main Content Area */}
-      <main 
+      {/* Main Content Area — only CareerScopedHeader (48px) above, no primary header */}
+      <main
         className={cn(
           "flex-1 transition-[padding-top] duration-200 ease-out",
-          // Dynamic padding based on header visibility (matches CourseDetail pattern)
-          // Header visible: Primary (64px) + CareerScoped (48px) + optional Announcement (36px)
-          // Header hidden: CareerScoped (48px) + optional Announcement (36px)
-          isHeaderVisible
-            ? (showAnnouncement ? 'pt-[9.25rem]' : 'pt-28')   // 148px / 112px
-            : (showAnnouncement ? 'pt-[5.25rem]' : 'pt-12')   // 84px / 48px
+          showAnnouncement ? 'pt-[5.25rem]' : 'pt-12'   // 84px / 48px
         )}
       >
-        <Outlet context={{ setCurrentCourseSlug, isHeaderVisible, showAnnouncement }} />
+        <Outlet context={{ setCurrentCourseSlug, isHeaderVisible: false, showAnnouncement }} />
       </main>
 
       {/* Back to top button */}

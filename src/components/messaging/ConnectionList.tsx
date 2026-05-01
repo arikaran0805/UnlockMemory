@@ -1,4 +1,4 @@
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,14 +23,20 @@ export function ConnectionList({ connections, isLoading, currentUserId, onSelect
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return connections;
+    // Exclude the suggested mentor — they're already shown in the banner above
+    const suggestedUserId = suggestedMentor?.mentor?.user_id;
+    const base = suggestedUserId
+      ? connections.filter((c) => (c as any).connected_user_id !== suggestedUserId)
+      : connections;
+
+    if (!search.trim()) return base;
     const q = search.toLowerCase();
-    return connections.filter(
+    return base.filter(
       (c) =>
         c.display_name.toLowerCase().includes(q) ||
         c.role_label.toLowerCase().includes(q)
     );
-  }, [connections, search]);
+  }, [connections, search, suggestedMentor]);
 
   return (
     <div className="flex flex-col h-full">
@@ -47,17 +53,6 @@ export function ConnectionList({ connections, isLoading, currentUserId, onSelect
         </div>
       </div>
 
-      {/* New connection */}
-      <button
-        onClick={onNewConnection}
-        className="mx-4 mb-2 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/5 transition-colors"
-      >
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Plus className="h-4 w-4" />
-        </div>
-        New Connection
-      </button>
-
       {/* Suggested mentor for current lesson */}
       {suggestedMentor && onAskSuggestedMentor && (
         <SuggestedMentorBanner
@@ -73,7 +68,7 @@ export function ConnectionList({ connections, isLoading, currentUserId, onSelect
         <div className="space-y-0.5 px-1 pb-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
-              <UMLoader size={44} label="Unlocking memory…" />
+              <UMLoader size={44} dark label="Unlocking chats…" />
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-8">

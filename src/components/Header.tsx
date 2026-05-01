@@ -1,4 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { courseDetailKey, fetchCourseDetail } from "@/hooks/useCourseDetailData";
 import {
   Search, Menu, User, LogOut, Shield, UserCircle, LayoutDashboard,
   BookOpen, Bookmark, Gamepad2, FlaskConical, Settings,
@@ -19,6 +21,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavCourses } from "@/hooks/useNavCourses";
+import { useNavCareers } from "@/hooks/useNavCareers";
 import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { useUserState } from "@/hooks/useUserState";
 import { ThemeToggle } from "./ThemeToggle";
@@ -45,14 +50,11 @@ const Header = ({
   showCourseSecondaryHeader: showCourseSecondaryHeaderOverride,
 }: HeaderProps) => {
   const location = useLocation();
-  const [courses, setCourses] = useState<any[]>([]);
-  const [careers, setCareers] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
   const [isSeniorModerator, setIsSeniorModerator] = useState(false);
   const [isSuperModerator, setIsSuperModerator] = useState(false);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ site_name: "UnlockMemory" });
   const [isScrolled, setIsScrolled] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [careersOpen, setCareersOpen] = useState(false);
@@ -67,6 +69,37 @@ const Header = ({
   const { toast } = useToast();
   const { isPro } = useUserState();
   const { itemCount } = useCareerPlan();
+  const queryClient = useQueryClient();
+
+  // Prefetch course data on hover so clicking is instant
+  const prefetchCourse = (slug: string) => {
+    queryClient.prefetchQuery({
+      queryKey: courseDetailKey(slug, false),
+      queryFn: () => fetchCourseDetail(slug, false),
+      staleTime: 5 * 60 * 1000,
+    });
+  };
+
+  // Nav data — React Query with 15-min stale time; served from cache on every
+  // subsequent page navigation so the secondary header and dropdowns are instant.
+  const { data: courses = [] } = useNavCourses();
+  const { data: careers = [] } = useNavCareers();
+  const { data: siteSettings = { site_name: "UnlockMemory", logo_url: undefined } } = useQuery<SiteSettings>({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("site_name, logo_url")
+        .limit(1)
+        .maybeSingle();
+      return {
+        site_name: data?.site_name || "UnlockMemory",
+        logo_url: data?.logo_url || undefined,
+      };
+    },
+    staleTime: 30 * 60 * 1000, // site settings almost never change
+    gcTime: 60 * 60 * 1000,
+  });
 
   const isProfilePage = location.pathname === "/profile";
   const hideOnPages = ["/choose-plan", "/careers", "/plan", "/checkout"].includes(location.pathname);
@@ -126,37 +159,6 @@ const Header = ({
       }
     });
 
-    const fetchSiteSettings = async () => {
-      const { data } = await supabase
-        .from("site_settings")
-        .select("site_name, logo_url")
-        .limit(1)
-        .maybeSingle();
-      if (data) setSiteSettings({ site_name: data.site_name || "UnlockMemory", logo_url: data.logo_url || undefined });
-    };
-
-    const fetchCourses = async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, name, slug, icon, level")
-        .eq("status", "published")
-        .order("created_at", { ascending: false });
-      if (!error && data) setCourses(data);
-    };
-
-    const fetchCareers = async () => {
-      const { data } = await supabase
-        .from("careers")
-        .select("id, name, slug, icon")
-        .eq("status", "published")
-        .order("display_order", { ascending: true })
-        .limit(6);
-      if (data) setCareers(data);
-    };
-
-    fetchSiteSettings();
-    fetchCourses();
-    fetchCareers();
     return () => subscription.unsubscribe();
   }, []);
 
@@ -194,7 +196,7 @@ const Header = ({
   };
 
   const NAV_PALETTE = [
-    { bg: "rgba(34,165,93,0.09)",  text: "#15803d" },
+    { bg: "hsl(var(--primary) / 0.09)",  text: "hsl(var(--primary))" },
     { bg: "rgba(59,130,246,0.09)", text: "#1d4ed8" },
     { bg: "rgba(168,85,247,0.09)", text: "#7c3aed" },
     { bg: "rgba(245,158,11,0.09)", text: "#b45309" },
@@ -204,7 +206,7 @@ const Header = ({
 
   const CAREER_PALETTE = [
     { bg: "rgba(14,116,144,0.09)",  text: "#0e7490" },
-    { bg: "rgba(34,165,93,0.09)",   text: "#15803d" },
+    { bg: "hsl(var(--primary) / 0.09)",   text: "hsl(var(--primary))" },
     { bg: "rgba(124,58,237,0.09)",  text: "#6d28d9" },
     { bg: "rgba(245,158,11,0.09)",  text: "#b45309" },
     { bg: "rgba(239,68,68,0.09)",   text: "#b91c1c" },
@@ -308,8 +310,8 @@ const Header = ({
                         Browse Courses
                       </span>
                       <span style={{
-                        fontSize: 10.5, fontWeight: 600, color: "#22A55D",
-                        background: "rgba(34,165,93,0.08)", border: "1px solid rgba(34,165,93,0.16)",
+                        fontSize: 10.5, fontWeight: 600, color: "hsl(var(--primary))",
+                        background: "hsl(var(--primary) / 0.08)", border: "1px solid hsl(var(--primary) / 0.16)",
                         borderRadius: 100, padding: "1px 8px",
                       }}>
                         {courses.length} courses
@@ -323,6 +325,7 @@ const Header = ({
                           key={course.id}
                           to={`/course/${course.slug}`}
                           onClick={() => setCoursesOpen(false)}
+                          onMouseEnter={() => prefetchCourse(course.slug)}
                           className="group flex items-center gap-2 mx-2 px-3 py-2 rounded-xl hover:bg-muted/70 transition-colors duration-100"
                         >
                           <span className="flex-1 text-[13px] font-medium text-foreground/85 group-hover:text-foreground transition-colors truncate leading-snug">
@@ -338,12 +341,12 @@ const Header = ({
                       <Link
                         to="/courses"
                         onClick={() => setCoursesOpen(false)}
-                        className="group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl bg-[#22A55D]/[0.07] hover:bg-[#22A55D]/[0.12] border border-[#22A55D]/[0.12] hover:border-[#22A55D]/20 transition-all duration-150"
+                        className="group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl bg-primary/[0.07] hover:bg-primary/[0.12] border border-primary/[0.12] hover:border-primary/20 transition-all duration-150"
                       >
-                        <span className="text-[12.5px] font-semibold text-[#15803d]">All Courses</span>
+                        <span className="text-[12.5px] font-semibold text-primary">All Courses</span>
                         <div className="flex items-center gap-1">
-                          <span className="text-[11px] text-[#22A55D]/60">{courses.length} total</span>
-                          <ChevronRight className="h-3.5 w-3.5 text-[#22A55D] group-hover:translate-x-0.5 transition-transform duration-150" />
+                          <span className="text-[11px] text-primary/60">{courses.length} total</span>
+                          <ChevronRight className="h-3.5 w-3.5 text-primary group-hover:translate-x-0.5 transition-transform duration-150" />
                         </div>
                       </Link>
                     </div>
@@ -391,8 +394,8 @@ const Header = ({
                       </span>
                       {careers.length > 0 && (
                         <span style={{
-                          fontSize: 10.5, fontWeight: 600, color: "#22A55D",
-                          background: "rgba(34,165,93,0.08)", border: "1px solid rgba(34,165,93,0.16)",
+                          fontSize: 10.5, fontWeight: 600, color: "hsl(var(--primary))",
+                          background: "hsl(var(--primary) / 0.08)", border: "1px solid hsl(var(--primary) / 0.16)",
                           borderRadius: 100, padding: "1px 8px",
                         }}>
                           {careers.length} paths
@@ -422,10 +425,10 @@ const Header = ({
                       <Link
                         to="/careers"
                         onClick={() => setCareersOpen(false)}
-                        className="group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl bg-[#22A55D]/[0.07] hover:bg-[#22A55D]/[0.12] border border-[#22A55D]/[0.12] hover:border-[#22A55D]/20 transition-all duration-150"
+                        className="group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl bg-primary/[0.07] hover:bg-primary/[0.12] border border-primary/[0.12] hover:border-primary/20 transition-all duration-150"
                       >
-                        <span className="text-[12.5px] font-semibold text-[#15803d]">All Career Paths</span>
-                        <ChevronRight className="h-3.5 w-3.5 text-[#22A55D] group-hover:translate-x-0.5 transition-transform duration-150" />
+                        <span className="text-[12.5px] font-semibold text-primary">All Career Paths</span>
+                        <ChevronRight className="h-3.5 w-3.5 text-primary group-hover:translate-x-0.5 transition-transform duration-150" />
                       </Link>
                     </div>
                   </div>
@@ -480,7 +483,7 @@ const Header = ({
                           label: "Practice Lab",
                           sub: "Interactive coding exercises",
                           to: user ? "/practice-lab" : "/login",
-                          palette: { bg: "rgba(34,165,93,0.09)", text: "#15803d" },
+                          palette: { bg: "hsl(var(--primary) / 0.09)", text: "hsl(var(--primary))" },
                         },
                         {
                           icon: BookOpen,
@@ -657,7 +660,7 @@ const Header = ({
                 ) : (
                   <Link
                     to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-                    className="hidden md:inline-flex items-center h-9 px-5 ml-1 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-all duration-150 shadow-[0_2px_12px_hsl(var(--primary)/0.30)]"
+                    className="hidden md:inline-flex items-center h-9 px-5 ml-1 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-all duration-150 shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
                   >
                     Get Started
                   </Link>
@@ -682,7 +685,7 @@ const Header = ({
                       <nav className="flex-1 overflow-y-auto py-4 px-3">
                         {(isAdmin || isModerator) && (
                           <div className="mb-3 px-2">
-                            <Badge className="bg-primary/15 text-primary border-0 text-[11px]">
+                            <Badge className="bg-muted text-muted-foreground border-0 text-[11px]">
                               {isAdmin ? "Platform Manager" : "Content Moderator"}
                             </Badge>
                           </div>
@@ -697,7 +700,7 @@ const Header = ({
                             className={cn(
                               "flex items-center px-3 py-2.5 text-[13.5px] font-medium rounded-lg transition-colors duration-150 mb-0.5",
                               activeCourseSlug === course.slug
-                                ? "bg-primary/10 text-primary"
+                                ? "bg-muted text-foreground font-semibold"
                                 : "text-foreground/75 hover:text-foreground hover:bg-muted",
                             )}
                           >
@@ -706,7 +709,7 @@ const Header = ({
                         ))}
                         <Link
                           to="/courses"
-                          className="flex items-center gap-1.5 px-3 py-2.5 text-[13.5px] font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg transition-colors duration-150 mt-1"
+                          className="flex items-center gap-1.5 px-3 py-2.5 text-[13.5px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors duration-150 mt-1"
                         >
                           All Courses
                           <ChevronRight className="h-3.5 w-3.5" />
@@ -781,15 +784,16 @@ const Header = ({
                       <Link
                         key={course.id}
                         to={`/course/${course.slug}`}
+                        onMouseEnter={() => prefetchCourse(course.slug)}
                         className={cn(
                           "relative shrink-0 px-3 py-1 text-[12.5px] font-medium rounded-md whitespace-nowrap transition-all duration-150",
                           isActive
-                            ? "text-primary bg-primary/10"
+                            ? "text-foreground bg-muted font-semibold"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted",
                         )}
                       >
                         {isActive && (
-                          <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-primary/60" />
+                          <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-primary" />
                         )}
                         {course.name}
                       </Link>

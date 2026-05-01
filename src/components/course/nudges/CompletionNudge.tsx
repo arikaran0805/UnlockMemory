@@ -48,7 +48,7 @@ export const CompletionNudge = ({
   }
 
   return (
-    <div className={`bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 ${className}`}>
+    <div className={`bg-muted/50 border border-border/50 rounded-lg px-4 py-3 ${className}`}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Rocket className="h-5 w-5 text-primary flex-shrink-0" />
@@ -61,10 +61,10 @@ export const CompletionNudge = ({
             </p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex-shrink-0 border-primary/30 hover:bg-primary/10"
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-shrink-0 border-border/60 hover:bg-muted/70"
           onClick={() => {
             setDismissed(true);
             onUpgrade?.();

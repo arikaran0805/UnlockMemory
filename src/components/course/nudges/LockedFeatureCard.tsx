@@ -70,7 +70,7 @@ export const LockedSidebarSection = ({
       <Button 
         variant="outline" 
         size="sm" 
-        className="w-full mt-3 border-primary/30 hover:bg-primary/10"
+        className="w-full mt-3 border-border/60 hover:bg-muted/60"
         onClick={onUpgrade}
       >
         <Sparkles className="h-3.5 w-3.5 mr-1.5" />

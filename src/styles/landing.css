@@ -148,9 +148,9 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 1.1px;
-  color: #22A55D;
-  background: rgba(34, 165, 93, 0.08);
-  border: 1px solid rgba(34, 165, 93, 0.22);
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(var(--primary) / 0.22);
   border-radius: 100px;
   padding: 3px 10px;
   margin-bottom: 10px;
@@ -225,24 +225,24 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 12.5px;
   font-weight: 600;
-  color: #22A55D;
+  color: hsl(var(--primary));
   text-decoration: none;
   white-space: nowrap;
   padding: 7px 16px 7px 18px;
-  border: 1.5px solid rgba(34, 165, 93, 0.5);
+  border: 1.5px solid hsl(var(--primary) / 0.4);
   border-radius: 100px;
   margin-top: 28px;
   background: transparent;
-  box-shadow: 0 1px 3px rgba(34, 165, 93, 0.06);
+  box-shadow: 0 1px 3px hsl(var(--primary) / 0.06);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease,
               box-shadow 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .l-view-all-link:hover {
-  background: #22A55D;
+  background: hsl(var(--primary));
   color: #fff;
-  border-color: #22A55D;
-  box-shadow: 0 4px 14px rgba(34, 165, 93, 0.28), 0 1px 4px rgba(34, 165, 93, 0.18);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 4px 14px hsl(var(--primary) / 0.28), 0 1px 4px hsl(var(--primary) / 0.18);
   transform: translateY(-2px);
 }
 
@@ -476,7 +476,7 @@ a.l-course-card {
 }
 
 .l-course-card:hover .l-course-explore {
-  color: #22A55D;
+  color: hsl(var(--primary));
 }
 
 .l-course-card:hover .l-course-explore-arrow {
@@ -584,7 +584,7 @@ a.l-course-card {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #22A55D;
+  background: hsl(var(--primary));
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -644,7 +644,7 @@ a.l-course-card {
 .lcc-level-badge {
   font-size: 10.5px;
   font-weight: 600;
-  color: #16803c;
+  color: hsl(var(--primary));
   background: rgba(34,197,94,0.10);
   border: 0.5px solid rgba(34,197,94,0.25);
   padding: 2px 8px;
@@ -808,6 +808,36 @@ a.l-course-card {
   box-shadow: none;
 }
 
+/* Stats strip — bottom of thumbnail (replaces skill pills) */
+.lcc-cp-thumb-stats {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
+  z-index: 3;
+}
+
+.lcc-cp-thumb-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 0.01em;
+}
+
+.lcc-cp-thumb-stat-sep {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1;
+}
+
 /* Body padding — generous, consistent 8px scale */
 .lcc-card .lcc-body {
   padding: 16px 18px 18px;
@@ -867,7 +897,7 @@ a.l-course-card {
   gap: 4px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #22A55D;
+  color: hsl(var(--primary));
   white-space: nowrap;
   flex-shrink: 0;
   padding-top: 1px;
@@ -887,15 +917,319 @@ a.l-course-card {
 }
 
 .lcc-card:hover .lcc-cp-price {
-  color: #22A55D;
+  color: hsl(var(--primary));
 }
 
 /* UnlockMemory avatar (green gradient, "UM" text) */
 .lcc-cp-av {
-  background: linear-gradient(135deg, #22A55D, #16803c) !important;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary))) !important;
   font-size: 9px !important;
   font-weight: 800 !important;
   letter-spacing: 0.2px;
+}
+
+/* ── Discount badge — regular career card footer ─────────────────────────── */
+.lcc-cp-discount-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: hsl(var(--primary));
+  background: rgba(34, 165, 93, 0.09);
+  border: 1px solid rgba(34, 165, 93, 0.22);
+  padding: 2px 6px;
+  border-radius: 100px;
+  line-height: 1;
+}
+
+/* ── Career card price block ──────────────────────────────────────────────── */
+.lcc-cp-price-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.lcc-cp-price-original {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground) / 0.65);
+  text-decoration: line-through;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.lcc-cp-price-final {
+  font-size: 20px;
+  font-weight: 800;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.03em;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.lcc-card:hover .lcc-cp-price-final {
+  color: hsl(var(--primary));
+}
+
+.lcc-card:hover .lcc-cp-price-original {
+  color: hsl(var(--muted-foreground) / 0.45);
+}
+
+/* ── Career card "Free" label ─────────────────────────────────────────────── */
+.lcc-cp-price-free {
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(var(--primary));
+  letter-spacing: -0.01em;
+}
+
+/* ── Career card Add to Cart button ──────────────────────────────────────── */
+.lcc-cp-cart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 1.5px solid rgba(34, 165, 93, 0.35);
+  background: transparent;
+  color: hsl(var(--primary));
+  box-shadow: none;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease,
+              transform 0.12s ease, box-shadow 0.18s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lcc-cp-cart-btn:hover {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(34, 165, 93, 0.35), 0 1px 3px rgba(34, 165, 93, 0.2);
+  transform: translateY(-1px);
+}
+
+.lcc-cp-cart-btn:active {
+  transform: scale(0.96) translateY(0);
+  box-shadow: 0 1px 4px rgba(34, 165, 93, 0.2);
+}
+
+.lcc-cp-cart-btn--active {
+  background: transparent;
+  border-color: hsl(var(--foreground) / 0.3);
+  color: hsl(var(--foreground));
+  box-shadow: none;
+}
+
+.lcc-cp-cart-btn--active:hover {
+  background: hsl(var(--foreground));
+  border-color: hsl(var(--foreground));
+  color: hsl(var(--background));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Featured Career Card ─────────────────────────────────────────────────── */
+
+/* Wrapper — horizontal flex */
+.lcc-featured-wrap {
+  display: flex;
+  flex-direction: row;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--card));
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.04);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  min-height: 210px;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+}
+
+.lcc-featured-wrap:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.11), 0 24px 48px rgba(0,0,0,0.08);
+}
+
+/* Left: gradient thumbnail */
+.lcc-featured-thumb {
+  width: 260px;
+  min-width: 260px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Bottom scrim — lifts pills off gradient */
+.lcc-featured-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,0.52) 0%, transparent 52%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Hover: icon floats up */
+.lcc-featured-wrap:hover .lcc-featured-thumb .lcc-cp-icon-tr {
+  opacity: 0.62;
+  transform: translate(-50%, calc(-50% - 12px)) scale(1.07);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+/* Star badge — top-right of thumbnail */
+.lcc-featured-star-badge {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 100px;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.38);
+  color: #fbbf24;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Right: body content */
+.lcc-featured-body {
+  flex: 1;
+  padding: 20px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* "★ Featured Path" eyebrow */
+.lcc-featured-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #d97706;
+  margin-bottom: 6px;
+}
+
+/* Career name */
+.lcc-featured-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  color: hsl(var(--foreground));
+  margin: 0 0 7px;
+}
+
+/* Description */
+.lcc-featured-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* Meta pill row */
+.lcc-featured-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.lcc-featured-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.lcc-featured-meta-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: hsl(var(--border));
+  flex-shrink: 0;
+}
+
+/* Discount badge inside featured card */
+.lcc-featured-discount-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--primary));
+  background: rgba(34, 165, 93, 0.09);
+  border: 1px solid rgba(34, 165, 93, 0.22);
+  padding: 3px 8px;
+  border-radius: 100px;
+  line-height: 1;
+}
+
+/* Footer row: curator + CTA */
+.lcc-featured-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid hsl(var(--border) / 0.6);
+  margin-top: auto;
+}
+
+/* "Explore Path →" CTA */
+.lcc-featured-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: hsl(var(--primary));
+  transition: gap 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.lcc-featured-wrap:hover .lcc-featured-cta {
+  gap: 8px;
+  color: hsl(var(--primary));
+}
+
+/* Responsive: stack vertically on narrow viewports */
+@media (max-width: 640px) {
+  .lcc-featured-wrap {
+    flex-direction: column;
+  }
+  .lcc-featured-thumb {
+    width: 100%;
+    min-width: 0;
+    height: 160px;
+  }
 }
 
 /* ─── Legacy career card styles (kept for safety) ───────────────────────────── */
@@ -986,115 +1320,163 @@ a.l-course-card {
 
 /* ─── CTA Section ───────────────────────────────────────────────────────────── */
 .l-cta-section {
-  padding: 72px 0;
+  padding: 44px 0 80px;
 }
 
-/* Split card: left = text/CTAs, right = dashboard illustration */
-.l-cta-split-card {
-  max-width: 900px;
-  margin: 0 auto;
-  border: 0.5px solid;
-  border-radius: var(--l-r-lg);
-  overflow: hidden;
+/* ── Dark banner — premium hero-weight CTA ── */
+.l-cta-banner {
+  background:
+    linear-gradient(160deg, hsl(152, 35%, 8%) 0%, hsl(148, 24%, 12%) 55%, hsl(152, 30%, 9%) 100%);
+  border: 1px solid hsl(152, 28%, 18%);
+  border-radius: 24px;
+  min-height: 410px;
+  padding: 72px 72px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 72px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 hsl(152, 40%, 20%) inset,
+    0 24px 64px rgba(0, 0, 0, 0.28);
 }
 
-.l-cta-left {
-  padding: 52px 52px 52px 52px;
+/* Large diffuse glow — top-left corner, adds depth */
+.l-cta-banner::before {
+  content: "";
+  position: absolute;
+  top: -100px;
+  left: -80px;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.14) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* Faint bottom-right accent glow */
+.l-cta-banner::after {
+  content: "";
+  position: absolute;
+  bottom: -80px;
+  right: -60px;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, hsl(152, 50%, 18%) 0%, transparent 65%);
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* Left column */
+.l-cta-banner-left {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.l-cta-right {
-  background: linear-gradient(145deg, #f0fdf6 0%, #f3f6f3 55%, #eef1ef 100%);
+/* Avatar stack */
+.l-cta-avatars {
+  display: flex;
+  align-items: center;
+  margin-bottom: 36px;
+}
+
+.l-cta-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2.5px solid hsl(152, 30%, 9%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 36px 40px;
-  border-left: 0.5px solid hsl(var(--border) / 0.6);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  margin-left: -10px;
+  flex-shrink: 0;
 }
 
-.l-cta-title {
+.l-cta-avatar:first-child {
+  margin-left: 0;
+}
+
+/* Headline */
+.l-cta-banner-headline {
   font-family: 'DM Serif Display', serif;
-  font-size: 30px;
+  font-size: 52px;
   font-weight: 400;
-  line-height: 1.18;
-  letter-spacing: -0.4px;
-  margin: 0 0 14px 0;
+  line-height: 1.10;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.22);
 }
 
-.l-cta-sub {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 1.68;
-  margin: 0 0 28px 0;
-}
-
-/* Auth action buttons */
-.l-cta-actions {
+/* Right column */
+.l-cta-banner-right {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.l-cta-primary-btn {
-  height: 42px;
-  padding: 0 24px;
-  border: none;
-  border-radius: var(--l-r-md);
+.l-cta-banner-desc {
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.80;
+  color: rgba(255, 255, 255, 0.62);
+  margin: 0 0 36px 0;
+  letter-spacing: 0.015em;
+}
+
+.l-cta-banner-btn {
+  width: 100%;
+  height: 50px;
+  background: hsl(var(--primary));
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  background: #22A55D;
-  color: white;
-  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-  white-space: nowrap;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 7px;
+  margin-bottom: 16px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  letter-spacing: 0.01em;
 }
 
-.l-cta-primary-btn:hover {
-  background: #1a9050;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(34, 165, 93, 0.30);
+.l-cta-banner-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px hsl(var(--primary) / 0.40);
 }
 
-.l-cta-secondary-btn {
-  height: 42px;
-  padding: 0 22px;
-  border-radius: var(--l-r-md);
+.l-cta-banner-link {
+  text-align: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
+  color: rgba(255, 255, 255, 0.30);
+  background: none;
+  border: none;
   cursor: pointer;
-  background: transparent;
-  border: 0.5px solid hsl(var(--border));
-  color: hsl(var(--foreground) / 0.60);
-  transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
-  white-space: nowrap;
+  transition: color 0.15s ease;
+  letter-spacing: 0.01em;
 }
 
-.l-cta-secondary-btn:hover {
-  border-color: hsl(var(--foreground) / 0.30);
-  color: hsl(var(--foreground));
-  transform: translateY(-1px);
+.l-cta-banner-link:hover {
+  color: rgba(255, 255, 255, 0.60);
 }
 
-.l-cta-footnote {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 300;
-  opacity: 0.50;
-  margin: 0;
-}
-
-/* Illustration SVG sizing */
+/* Illustration SVG sizing (kept for existing SVG components) */
 .l-cta-illustration {
   width: 100%;
   max-width: 360px;
@@ -1102,10 +1484,15 @@ a.l-course-card {
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.10));
 }
 
-@media (max-width: 720px) {
-  .l-cta-split-card { grid-template-columns: 1fr; }
-  .l-cta-right      { display: none; }
-  .l-cta-left       { padding: 40px 32px; }
+@media (max-width: 820px) {
+  .l-cta-banner {
+    grid-template-columns: 1fr;
+    min-height: unset;
+    gap: 36px;
+    padding: 52px 36px 48px;
+  }
+  .l-cta-banner-headline { font-size: 34px; line-height: 1.14; letter-spacing: -0.3px; }
+  .l-cta-banner-btn      { height: 46px; font-size: 14px; }
 }
 
 /* ─── Search Hero ────────────────────────────────────────────────────────────── */
@@ -1156,7 +1543,10 @@ a.l-course-card {
 }
 
 .l-hs-headline-accent {
-  color: #22A55D;
+  background: linear-gradient(120deg, hsl(152, 68%, 20%) 0%, hsl(148, 52%, 34%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .l-hs-sub {
@@ -1192,7 +1582,7 @@ a.l-course-card {
 }
 
 .l-hs-input-box--focused {
-  border-color: #22A55D;
+  border-color: hsl(var(--primary));
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 
@@ -1217,7 +1607,7 @@ a.l-course-card {
   font-size: 15px;
   font-weight: 500;
   color: hsl(var(--foreground) / 0.92);
-  caret-color: #22A55D;
+  caret-color: hsl(var(--primary));
 }
 
 .l-hs-input::placeholder {
@@ -1253,7 +1643,7 @@ a.l-course-card {
 }
 
 .l-hs-arrow-btn:hover svg {
-  color: #22A55D;
+  color: hsl(var(--primary));
   opacity: 1;
 }
 
@@ -1263,7 +1653,7 @@ a.l-course-card {
   left: 0;
   right: 0;
   background: hsl(var(--background));
-  border: 1.5px solid #22A55D;
+  border: 1.5px solid hsl(var(--primary));
   border-top: none;
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
@@ -1308,7 +1698,7 @@ a.l-course-card {
 
 .l-hs-mark {
   background: transparent;
-  color: #22A55D;
+  color: hsl(var(--primary));
   font-weight: 700;
 }
 
@@ -1347,7 +1737,7 @@ a.l-course-card {
 /* Match green border when input is focused */
 .l-hs-input-box--focused ~ .l-hs-explore-row,
 .l-hs-search-wrap:has(.l-hs-input-box--focused) .l-hs-explore-row {
-  border-color: #22A55D;
+  border-color: hsl(var(--primary));
 }
 
 .l-hs-explore-row:hover {
@@ -1365,12 +1755,12 @@ a.l-course-card {
 .l-hs-explore-icon {
   display: flex;
   align-items: center;
-  color: #22A55D;
+  color: hsl(var(--primary));
   flex-shrink: 0;
 }
 
 .l-hs-item-tag--explore {
-  color: #22A55D;
+  color: hsl(var(--primary));
   background: rgba(34, 165, 93, 0.08);
   border-color: rgba(34, 165, 93, 0.25);
 }

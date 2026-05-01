@@ -317,7 +317,7 @@ const Login = () => {
                   </Button>
                 </form>
               ) : (
-                <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 text-center space-y-3">
+                <div className="bg-muted/40 border border-border/50 rounded-xl p-6 text-center space-y-3">
                   <div className="text-4xl mb-2">📧</div>
                   <p className="text-foreground font-medium">Email sent!</p>
                   <p className="text-sm text-muted-foreground">Check your inbox and spam folder.</p>

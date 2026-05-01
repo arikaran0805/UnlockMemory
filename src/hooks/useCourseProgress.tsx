@@ -149,8 +149,12 @@ export const useCourseProgress = (
       }
 
       const progressData = (progressResult as any).data || [];
-      const viewedLessons = progressData.length;
-      const completedLessons = progressData.filter((p: any) => p.completed).length;
+      // Cap against totalLessons — progress rows for deleted posts must not inflate counts
+      const viewedLessons = Math.min(progressData.length, totalLessons);
+      const completedLessons = Math.min(
+        progressData.filter((p: any) => p.completed).length,
+        totalLessons,
+      );
       const percentage = totalLessons > 0
         ? Math.min(100, Math.round((completedLessons / totalLessons) * 100))
         : 0;

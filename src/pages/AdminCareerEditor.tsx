@@ -102,9 +102,10 @@ const SortableSkillItem = ({ skill, colorStyle, getIcon }: SortableSkillItemProp
   };
 
   const hasCourses = skill.courses.length > 0;
-  const avgContribution = skill.courses.length > 0 
-    ? Math.round(skill.courses.reduce((sum, c) => sum + c.contribution, 0) / skill.courses.length)
-    : 0;
+  const totalContribution = skill.courses.reduce((sum, c) => sum + c.contribution, 0);
+  const isBalanced = totalContribution === skill.weight;
+  // Progress = how much of skill weight is covered (capped at 100%)
+  const coveragePct = skill.weight > 0 ? Math.min(100, Math.round((totalContribution / skill.weight) * 100)) : 0;
 
   return (
     <div
@@ -130,15 +131,19 @@ const SortableSkillItem = ({ skill, colorStyle, getIcon }: SortableSkillItemProp
           {skill.weight}%
         </Badge>
       </div>
-      
-      <Progress 
-        value={hasCourses ? avgContribution : 0} 
-        className="h-1.5 mb-2" 
+
+      <Progress
+        value={hasCourses ? coveragePct : 0}
+        className="h-1.5 mb-2"
       />
-      
+
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{skill.courses.length} course(s)</span>
-        {hasCourses && <span>Avg: {avgContribution}%</span>}
+        {hasCourses && (
+          <span className={isBalanced ? "text-green-600 dark:text-green-400 font-semibold" : "text-amber-600 dark:text-amber-400 font-semibold"}>
+            {totalContribution}% / {skill.weight}%
+          </span>
+        )}
       </div>
     </div>
   );
@@ -202,6 +207,7 @@ const AdminCareerEditor = () => {
   const [careerColor, setCareerColor] = useState(careerColorOptions[0].value);
   const [displayOrder, setDisplayOrder] = useState(0);
   const [careerStatus, setCareerStatus] = useState("draft");
+  const [isFeatured, setIsFeatured] = useState(false);
   const [careerDiscount, setCareerDiscount] = useState(0);
   const [originalAuthorId, setOriginalAuthorId] = useState<string | null>(null);
   
@@ -345,6 +351,7 @@ const AdminCareerEditor = () => {
       setCareerColor(career.color);
       setDisplayOrder(career.display_order);
       setCareerStatus(career.status || "draft");
+      setIsFeatured(career.is_featured ?? false);
       setCareerDiscount(Number(career.discount_percentage) || 0);
 
       // Convert skills to nodes with positions
@@ -497,9 +504,11 @@ const AdminCareerEditor = () => {
 
   // Multi-course add functions
   const openAddCoursesDialog = (skillId: string) => {
+    const skill = skillNodes.find(s => s.id === skillId);
     setAddCoursesSkillId(skillId);
     setSelectedCoursesToAdd([]);
-    setSharedContribution(50);
+    // Default to skill weight so one course gets the full allocation by default
+    setSharedContribution(skill ? skill.weight : 50);
     setUseSharedContribution(true);
     setAddCoursesDialogOpen(true);
   };
@@ -517,6 +526,33 @@ const AdminCareerEditor = () => {
   const applySharedContributionToAll = (value?: number) => {
     const contrib = value ?? sharedContribution;
     setSelectedCoursesToAdd(prev => prev.map(c => ({ ...c, contribution: contrib })));
+  };
+
+  // Distribute skill.weight evenly across the courses being added in the dialog
+  const autoDistributeAddingContributions = () => {
+    const skill = skillNodes.find(s => s.id === addCoursesSkillId);
+    if (!skill || selectedCoursesToAdd.length === 0) return;
+    const n = selectedCoursesToAdd.length;
+    const perCourse = Math.floor(skill.weight / n);
+    const remainder = skill.weight - perCourse * n;
+    setSelectedCoursesToAdd(prev =>
+      prev.map((c, i) => ({ ...c, contribution: i === 0 ? perCourse + remainder : perCourse }))
+    );
+  };
+
+  // Distribute skill.weight evenly across already-mapped courses in Edit Skill dialog
+  const autoDistributeSkillCourses = (skillId: string) => {
+    const skill = skillNodes.find(s => s.id === skillId);
+    if (!skill || skill.courses.length === 0) return;
+    const n = skill.courses.length;
+    const perCourse = Math.floor(skill.weight / n);
+    const remainder = skill.weight - perCourse * n;
+    const newCourses = skill.courses.map((c, i) => ({
+      ...c,
+      contribution: i === 0 ? perCourse + remainder : perCourse,
+    }));
+    setSkillNodes(prev => prev.map(s => s.id === skillId ? { ...s, courses: newCourses } : s));
+    setEditingSkill(prev => prev ? { ...prev, courses: newCourses } : null);
   };
 
   const updateSelectedCourseContribution = (courseId: string, contribution: number) => {
@@ -648,25 +684,46 @@ const AdminCareerEditor = () => {
   };
 
   // Validation
-  const getValidationErrors = () => {
+  // Draft: only name + slug required (save anytime)
+  // Published: full strict validation
+  const getValidationErrors = (forPublish = careerStatus === "published") => {
     const errors: string[] = [];
-    
-    if (!careerName.trim()) {
-      errors.push("Career name is required");
+
+    if (!careerName.trim()) errors.push("Career name is required");
+    if (!careerSlug.trim()) errors.push("Career slug is required");
+
+    if (forPublish) {
+      if (skillNodes.length === 0) {
+        errors.push("Add at least 1 skill before publishing");
+      }
+      if (skillNodes.length > 0 && getTotalWeight() !== 100) {
+        errors.push(`Skill weights must total 100% (currently ${getTotalWeight()}%)`);
+      }
+      const skillsWithoutCourses = skillNodes.filter(s => s.courses.length === 0);
+      if (skillsWithoutCourses.length > 0) {
+        errors.push(`${skillsWithoutCourses.length} skill(s) have no courses mapped: ${skillsWithoutCourses.map(s => s.name).join(", ")}`);
+      }
+      const unbalancedSkills = skillNodes.filter(s =>
+        s.courses.length > 0 &&
+        s.courses.reduce((sum, c) => sum + c.contribution, 0) !== s.weight
+      );
+      if (unbalancedSkills.length > 0) {
+        errors.push(`${unbalancedSkills.length} skill(s) have course contributions that don't add up to their weight: ${unbalancedSkills.map(s => s.name).join(", ")}`);
+      }
     }
-    if (!careerSlug.trim()) {
-      errors.push("Career slug is required");
-    }
-    if (skillNodes.length > 0 && getTotalWeight() !== 100) {
-      errors.push(`Skill weights must total 100% (currently ${getTotalWeight()}%)`);
-    }
-    const skillsWithoutCourses = skillNodes.filter(s => s.courses.length === 0);
-    if (skillsWithoutCourses.length > 0) {
-      errors.push(`${skillsWithoutCourses.length} skill(s) have no courses mapped: ${skillsWithoutCourses.map(s => s.name).join(", ")}`);
-    }
-    
+
     return errors;
   };
+
+  // Publish readiness checks (used in Publishing card UI)
+  const getPublishReadiness = () => [
+    { done: !!careerName.trim(), label: "Career name set" },
+    { done: !!careerSlug.trim(), label: "URL slug set" },
+    { done: skillNodes.length > 0, label: `Skills added (${skillNodes.length})` },
+    { done: skillNodes.length > 0 && getTotalWeight() === 100, label: `Weights balanced at 100% (${getTotalWeight()}%)` },
+    { done: skillNodes.length > 0 && skillNodes.every(s => s.courses.length > 0), label: "All skills have courses mapped" },
+    { done: skillNodes.length > 0 && skillNodes.filter(s => s.courses.length > 0).every(s => s.courses.reduce((sum, c) => sum + c.contribution, 0) === s.weight), label: "All course contributions balanced" },
+  ];
 
   const isValid = () => getValidationErrors().length === 0;
 
@@ -677,13 +734,17 @@ const AdminCareerEditor = () => {
     
     try {
       const errors = getValidationErrors();
-      
+
       if (errors.length > 0) {
-        toast({ 
-          title: "Cannot save career", 
-          description: errors[0],
-          variant: "destructive" 
+        toast({
+          title: careerStatus === "published" ? "Cannot publish career" : "Cannot save career",
+          description: careerStatus === "published"
+            ? `Complete all requirements first: ${errors[0]}`
+            : errors[0],
+          variant: "destructive",
         });
+        // Switch to Settings tab so user can see the publish checklist
+        if (careerStatus === "published") setActiveTab("settings");
         return;
       }
       
@@ -718,6 +779,7 @@ const AdminCareerEditor = () => {
             display_order: displayOrder,
             discount_percentage: careerDiscount,
             status: careerStatus,
+            is_featured: isFeatured,
           })
           .eq("id", id);
 
@@ -762,6 +824,7 @@ const AdminCareerEditor = () => {
             display_order: displayOrder,
             discount_percentage: careerDiscount,
             status: careerStatus,
+            is_featured: isFeatured,
           })
           .select()
           .single();
@@ -1185,24 +1248,24 @@ const AdminCareerEditor = () => {
                       </h3>
                     </div>
                     {skillNodes.length >= 3 ? (
-                      <ChartContainer config={chartConfig} className="h-[220px] w-full">
-                        <RadarChart data={getSkillRadarData()}>
+                      <ChartContainer config={chartConfig} className="h-[380px] w-full">
+                        <RadarChart data={getSkillRadarData()} outerRadius="72%" margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                           <PolarGrid className="stroke-border" />
-                          <PolarAngleAxis dataKey="skill" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                          <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
                           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
                           <Radar
                             name="Weight"
                             dataKey="value"
                             stroke="hsl(var(--primary))"
                             fill="hsl(var(--primary))"
-                            fillOpacity={0.15}
-                            strokeWidth={2}
+                            fillOpacity={0.18}
+                            strokeWidth={2.5}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                         </RadarChart>
                       </ChartContainer>
                     ) : (
-                      <div className="h-[220px] flex flex-col items-center justify-center text-center">
+                      <div className="h-[380px] flex flex-col items-center justify-center text-center">
                         <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center mb-3">
                           <TrendingUp className="h-5 w-5 text-muted-foreground/40" />
                         </div>
@@ -1550,8 +1613,8 @@ const AdminCareerEditor = () => {
                           <p className="text-sm font-semibold text-foreground">Publish Status</p>
                           <p className="text-[12px] text-muted-foreground">
                             {careerStatus === "published"
-                              ? "This career path is visible to students on the public site."
-                              : "This career path is hidden from students. Toggle to make it live."}
+                              ? "This career path is visible to students on the public site. All requirements below must be met to save."
+                              : "This career path is hidden from students. You can save at any time — even incomplete."}
                           </p>
                         </div>
                         <div className="flex items-center gap-3 ml-6 flex-shrink-0">
@@ -1560,9 +1623,81 @@ const AdminCareerEditor = () => {
                           </span>
                           <Switch
                             checked={careerStatus === "published"}
-                            onCheckedChange={(checked) => setCareerStatus(checked ? "published" : "draft")}
+                            onCheckedChange={(checked) => {
+                              setCareerStatus(checked ? "published" : "draft");
+                              if (!checked) setIsFeatured(false); // can't be featured in draft
+                            }}
                             className="data-[state=checked]:bg-green-500"
                           />
+                        </div>
+                      </div>
+
+                      {/* Publish readiness checklist — shown when Live is toggled on */}
+                      {careerStatus === "published" && (() => {
+                        const checks = getPublishReadiness();
+                        const allDone = checks.every(c => c.done);
+                        return (
+                          <div className={`rounded-xl border p-4 space-y-2.5 ${allDone ? "bg-green-500/6 border-green-500/20" : "bg-amber-500/6 border-amber-500/20"}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              {allDone
+                                ? <Icons.CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                : <Icons.AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
+                              <p className={`text-xs font-bold uppercase tracking-wide ${allDone ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-400"}`}>
+                                {allDone ? "Ready to publish" : "Required before saving as Live"}
+                              </p>
+                            </div>
+                            {checks.map(({ done, label }, i) => (
+                              <div key={i} className="flex items-center gap-2.5 text-xs">
+                                <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-green-500 text-white" : "bg-border text-muted-foreground"}`}>
+                                  {done
+                                    ? <Icons.Check className="h-2.5 w-2.5" />
+                                    : <span className="text-[9px] font-bold">{i + 1}</span>}
+                                </div>
+                                <span className={done ? "text-foreground/70 line-through" : "text-foreground/90 font-medium"}>{label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Featured toggle */}
+                      <div className="pt-4 border-t border-border/50">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">Featured Career</p>
+                              {isFeatured && careerStatus === "published" && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/15 text-amber-600 dark:text-amber-400 border border-amber-400/25">
+                                  <Icons.Star className="h-2.5 w-2.5 fill-current" />
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[12px] text-muted-foreground">
+                              {careerStatus !== "published"
+                                ? "Publish this career first to enable featured status."
+                                : isFeatured
+                                  ? "Highlighted on the Careers page as a top pick."
+                                  : "Promote this career on the Careers page as a top pick."}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 ml-6 flex-shrink-0">
+                            {careerStatus !== "published" && (
+                              <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
+                                <Icons.Lock className="h-3 w-3" />
+                                Publish first
+                              </span>
+                            )}
+                            <Switch
+                              checked={isFeatured && careerStatus === "published"}
+                              onCheckedChange={(checked) => {
+                                if (careerStatus !== "published") return;
+                                setIsFeatured(checked);
+                              }}
+                              disabled={careerStatus !== "published"}
+                              className="data-[state=checked]:bg-amber-500 disabled:opacity-40"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -1723,10 +1858,10 @@ const AdminCareerEditor = () => {
                                 <Input
                                   type="number"
                                   min={0}
-                                  max={100}
+                                  max={editingSkill.weight}
                                   value={contribution}
                                   onChange={(e) => {
-                                    const v = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                    const v = Math.min(editingSkill.weight, Math.max(0, parseInt(e.target.value) || 0));
                                     updateCourseContribution(editingSkill.id, courseId, v);
                                     setEditingSkill(prev => prev ? {
                                       ...prev,
@@ -1752,6 +1887,34 @@ const AdminCareerEditor = () => {
                             </div>
                           );
                         })}
+
+                        {/* Total contribution vs skill weight indicator */}
+                        {(() => {
+                          const total = editingSkill.courses.reduce((s, c) => s + c.contribution, 0);
+                          const isOk = total === editingSkill.weight;
+                          return (
+                            <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs ${
+                              isOk
+                                ? "bg-green-500/8 text-green-700 dark:text-green-400"
+                                : "bg-amber-500/8 text-amber-700 dark:text-amber-400"
+                            }`}>
+                              <span>
+                                Total: <strong>{total}%</strong> / <strong>{editingSkill.weight}%</strong> skill weight
+                                {!isOk && (
+                                  <span className="ml-1 opacity-70">
+                                    ({total > editingSkill.weight ? `${total - editingSkill.weight}% over` : `${editingSkill.weight - total}% under`})
+                                  </span>
+                                )}
+                              </span>
+                              <button
+                                onClick={() => autoDistributeSkillCourses(editingSkill.id)}
+                                className="text-xs font-semibold underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity ml-3 flex-shrink-0"
+                              >
+                                Auto-balance
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className={`py-5 rounded-xl border-2 border-dashed text-center ${colorStyle.border}`}>
@@ -1865,27 +2028,60 @@ const AdminCareerEditor = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-foreground/80">Contribution %</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Set default for new selections · click <span className="font-semibold text-primary">Apply All</span> to update already-selected
+                  Slider sets default · <span className="font-semibold text-primary">Apply All</span> overwrites selected · <span className="font-semibold text-foreground/70">Auto</span> splits skill weight evenly
                 </p>
               </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Slider
                   value={[sharedContribution]}
                   onValueChange={([v]) => setSharedContribution(v)}
                   max={100}
                   step={5}
-                  className="w-28"
+                  className="w-24"
                 />
                 <span className="text-sm font-bold text-foreground w-10 text-right">{sharedContribution}%</span>
                 <button
-                  onClick={() => applySharedContributionToAll()}
+                  onClick={() => applySharedContributionToAll(sharedContribution)}
                   disabled={selectedCoursesToAdd.length === 0}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Apply All
                 </button>
+                <button
+                  onClick={autoDistributeAddingContributions}
+                  disabled={selectedCoursesToAdd.length === 0}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted text-foreground border border-border hover:bg-muted/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Distribute skill weight evenly across selected courses"
+                >
+                  Auto
+                </button>
               </div>
             </div>
+
+            {/* Live total indicator */}
+            {selectedCoursesToAdd.length > 0 && (() => {
+              const skill = skillNodes.find(s => s.id === addCoursesSkillId);
+              const total = selectedCoursesToAdd.reduce((s, c) => s + c.contribution, 0);
+              const target = skill?.weight ?? 100;
+              const isOk = total === target;
+              return (
+                <div className={`mt-2.5 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg ${
+                  isOk
+                    ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                }`}>
+                  <span className="font-bold">{isOk ? "✓" : "⚠"}</span>
+                  <span>
+                    Selected total: <strong>{total}%</strong> / target <strong>{target}%</strong> (skill weight)
+                    {!isOk && (
+                      <span className="ml-1 opacity-70">
+                        — {total > target ? `${total - target}% over` : `${target - total}% under`}. Click <strong>Auto</strong> to fix.
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Search */}

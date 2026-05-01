@@ -13,7 +13,8 @@
  *   media      → MediaBlock                    (renders URL as <img> / <video>)
  */
 
-import { useMemo, useState, lazy, Suspense } from 'react';
+import { useMemo, lazy, Suspense } from 'react';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import {
   parseCanvasContent,
@@ -23,7 +24,7 @@ import { RichTextRenderer } from '@/components/tiptap';
 import { ChatConversationView } from '@/components/chat-editor';
 import { InlineCheckpointRenderer } from './checkpoint';
 import { parseTakeawayContent } from './TakeawayCanvasEditor';
-import { Copy, Check, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 // ─── Lazy-load fabric.js-backed viewer ───────────────────────────────────────
 const FreeformCanvasViewer = lazy(() =>
@@ -48,136 +49,49 @@ const CanvasLoadingFallback = ({ className }: { className?: string }) => (
 );
 
 // ─── TakeawayBlockCard ────────────────────────────────────────────────────────
-// Renders a standalone `takeaway` canvas block whose content is JSON { title, icon, body }.
+// Minimal: vertical accent line + "One-Line Takeaway" label + body text only.
 const TakeawayBlockCard = ({ content }: { content: string }) => {
   const data = parseTakeawayContent(content);
-  const [copied, setCopied] = useState(false);
-  const [copyHovered, setCopyHovered] = useState(false);
-  const [cardHovered, setCardHovered] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   if (!data.body && !data.title) return null;
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(data.body);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* ignore */ }
-  };
-
   return (
-    <div
-      onMouseEnter={() => setCardHovered(true)}
-      onMouseLeave={() => setCardHovered(false)}
-      style={{
-        borderRadius: 16,
-        overflow: 'hidden',
-        background: '#ffffff',
-        border: '1px solid #e2e2e6',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
-      }}
-    >
-      {/* ── Top accent strip ── */}
-      <div style={{ height: 3, background: 'linear-gradient(90deg, #C8920A 0%, #D4A843 55%, #EDD07A 100%)' }} />
+    <div style={{ display: 'flex', gap: 12, margin: '4px 0' }}>
+      {/* Vertical accent line */}
+      <div style={{
+        width: 3,
+        borderRadius: 999,
+        background: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.18)',
+        flexShrink: 0,
+        alignSelf: 'stretch',
+        minHeight: 20,
+      }} />
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '18px 22px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-          {/* Icon badge */}
-          <div style={{
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            background: '#FEF3DC',
-            border: '1px solid #F2D98C',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 19,
-            flexShrink: 0,
-            userSelect: 'none',
-          }}>
-            {data.icon || '🧠'}
-          </div>
-
-          {/* Label + title stack */}
-          <div style={{ paddingTop: 2 }}>
-            <p style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: '0.13em',
-              textTransform: 'uppercase',
-              color: '#A87800',
-              margin: 0,
-              marginBottom: data.title ? 5 : 0,
-            }}>
-              Key Takeaway
-            </p>
-            {data.title && (
-              <p style={{ fontSize: 16.5, fontWeight: 700, color: '#111118', lineHeight: 1.4, margin: 0 }}>
-                {data.title}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Copy button — reveals on card hover */}
-        <button
-          onClick={handleCopy}
-          onMouseEnter={() => setCopyHovered(true)}
-          onMouseLeave={() => setCopyHovered(false)}
-          aria-label="Copy takeaway"
-          style={{
-            opacity: cardHovered ? 1 : 0,
-            transition: 'opacity 0.15s ease',
-            padding: '6px 8px',
-            borderRadius: 8,
-            border: 'none',
-            cursor: 'pointer',
-            background: copyHovered ? '#F2F2F4' : 'transparent',
-            color: copied ? '#5aaa82' : '#9090A0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            marginTop: 2,
-          }}
-        >
-          {copied
-            ? <Check style={{ width: 14, height: 14 }} />
-            : <Copy style={{ width: 14, height: 14 }} />
-          }
-        </button>
+      {/* Label + content */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(0, 0, 0, 0.38)',
+        }}>
+          One-Line Takeaway
+        </span>
+        <p style={{
+          fontFamily: 'Georgia, "Times New Roman", Times, serif',
+          fontSize: 18,
+          lineHeight: 1.8,
+          letterSpacing: '0.2px',
+          color: isDark ? '#c8e2d2' : '#242424',
+          whiteSpace: 'pre-wrap',
+          margin: 0,
+        }}>
+          {data.body || data.title}
+        </p>
       </div>
-
-      {/* ── Inset divider ── */}
-      {data.body && (
-        <div style={{ height: 1, background: '#EAEAEE', margin: '0 22px' }} />
-      )}
-
-      {/* ── Body ── */}
-      {data.body && (
-        <div style={{ display: 'flex', gap: 16, padding: '18px 22px' }}>
-          {/* Left accent bar */}
-          <div style={{
-            width: 3,
-            borderRadius: 999,
-            background: 'linear-gradient(to bottom, #C8920A, #D4A843)',
-            flexShrink: 0,
-            alignSelf: 'stretch',
-            minHeight: 20,
-          }} />
-          <p style={{
-            fontSize: 15,
-            color: '#4B4B56',
-            lineHeight: 1.75,
-            whiteSpace: 'pre-wrap',
-            margin: 0,
-          }}>
-            {data.body}
-          </p>
-        </div>
-      )}
     </div>
   );
 };
@@ -272,7 +186,7 @@ const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRen
   }
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('canvas-renderer-root space-y-6', className)}>
       {blocks.map((block) => (
         <div
           key={block.id}

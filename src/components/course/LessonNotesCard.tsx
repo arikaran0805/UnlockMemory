@@ -1,12 +1,17 @@
 /**
- * LessonNotesCard - Quick Notes (Inline)
- * 
- * A lightweight, inline note-taking card for lessons.
- * Uses a minimal rich-text editor for proper formatting.
- * Content is stored as TipTap JSON, never shown raw to users.
+ * LessonNotesCard - Quick Notes (Scratchpad)
+ *
+ * Behavior:
+ *  - Always opens with a fresh/empty editor — it is an ephemeral scratchpad.
+ *  - On collapse (blur / close), non-empty content is APPENDED to the deep note
+ *    via the `appendContent` prop. The editor is then cleared.
+ *  - Re-opening always gives a blank slate.
+ *  - The collapsed preview shows the accumulated deep-notes content so the user
+ *    can see their history and knows they're adding to it.
+ *  - On unmount while expanded (page navigation), any pending scratch is flushed.
  */
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useRef, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { StickyNote, Loader2, Check, ExternalLink, Bold, Italic, Link2, Code } from "lucide-react";
@@ -16,33 +21,35 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
-import { getTextPreview, parseContent, serializeContent } from "@/lib/tiptapMigration";
+import { getTextPreview, serializeContent } from "@/lib/tiptapMigration";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useNotesTabOpener } from "@/hooks/useNotesTabManager";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import "@/styles/tiptap.css";
 
 interface LessonNotesCardProps {
+  /** Accumulated deep-notes content — used only for collapsed preview + save status */
   content: string;
+  /** Direct setter — kept as fallback if appendContent is not provided */
   updateContent: (content: string) => void;
+  /** Append-only updater: called with the scratch JSON when Quick Notes closes */
+  appendContent?: (newContent: string) => void;
   isSaving: boolean;
   isSyncing?: boolean;
   lastSavedText: string | null;
   isLoading: boolean;
   courseId?: string;
-  /** The current lesson ID - needed for Deep Notes context switching */
   lessonId?: string;
-  /** Career slug - needed so Deep Notes "Back to course" goes to the right page */
   careerId?: string;
+  onOpenDeepNotes?: () => void;
 }
 
-// Create lowlight instance for syntax highlighting
 const lowlight = createLowlight(common);
 
-// Quick notes extensions with code block support
 const getQuickNotesExtensions = () => [
   StarterKit.configure({
     heading: false,
-    codeBlock: false, // Disable default, use CodeBlockLowlight instead
+    codeBlock: false,
     blockquote: false,
     horizontalRule: false,
   }),
@@ -66,9 +73,12 @@ const getQuickNotesExtensions = () => [
   }),
 ];
 
+const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] } as const;
+
 export function LessonNotesCard({
   content,
   updateContent,
+  appendContent,
   isSaving,
   isSyncing = false,
   lastSavedText,
@@ -76,97 +86,112 @@ export function LessonNotesCard({
   courseId,
   lessonId,
   careerId,
+  onOpenDeepNotes,
 }: LessonNotesCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [deepNotesHovered, setDeepNotesHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  // Prevent programmatic hydration from triggering updateContent (and therefore autosave)
-  const applyingExternalValueRef = useRef(false);
 
-  // Use tab manager to prevent duplicate notes tabs
-  const { openNotesTab } = useNotesTabOpener(courseId, careerId);
+  // Keep stable refs to callbacks so the unmount cleanup never captures stale values
+  const appendContentRef = useRef(appendContent);
+  appendContentRef.current = appendContent;
+  const updateContentRef = useRef(updateContent);
+  updateContentRef.current = updateContent;
 
-  // Parse content for preview
-  const textPreview = useMemo(() => {
-    if (!content) return "";
-    return getTextPreview(content, 100);
-  }, [content]);
+  const navigate = useNavigate();
 
-  const hasContent = textPreview.trim().length > 0;
+  // Collapsed preview: plain text of the accumulated deep-notes content
+  const textPreview = useMemo(() => getTextPreview(content, 100), [content]);
+  const hasDeepNotes = textPreview.trim().length > 0;
 
-  // Initialize editor
+  // ── TipTap editor ────────────────────────────────────────────────────────────
+  // Always initialised EMPTY — the editor is a scratchpad, not a mirror of the DB.
   const editor = useEditor({
     extensions: getQuickNotesExtensions(),
-    content: parseContent(content),
+    content: EMPTY_DOC,
     editable: true,
     autofocus: false,
-    onUpdate: ({ editor }) => {
-      if (applyingExternalValueRef.current) return;
-      const json = editor.getJSON();
-      updateContent(serializeContent(json));
-    },
+    // onUpdate intentionally omitted — we don't autosave on every keystroke.
+    // Content is flushed to deep notes only when the card collapses.
     editorProps: {
       attributes: {
-        class: "quick-notes-editor outline-none text-sm leading-relaxed min-h-[80px] max-h-[200px] overflow-y-auto",
+        class:
+          "quick-notes-editor outline-none text-sm leading-relaxed min-h-[80px] max-h-[200px] overflow-y-auto",
       },
     },
   });
 
-  // Sync content when it changes externally - MUST handle empty content
-  useEffect(() => {
-    if (!editor) return;
-    
-    const currentContent = serializeContent(editor.getJSON());
-    // Handle both empty and non-empty content to prevent stale data
-    if (currentContent !== content) {
-      const parsed = parseContent(content);
-      // CRITICAL: Do not emit an update during hydration/sync, otherwise the parent
-      // may interpret the intermediate empty doc as user input and auto-save it.
-      applyingExternalValueRef.current = true;
-      // TipTap supports setContent(content, { emitUpdate: false })
-      editor.commands.setContent(parsed, { emitUpdate: false });
-      // Use microtask (Promise) instead of macrotask (setTimeout) so the flag
-      // clears AFTER TipTap's synchronous onUpdate callbacks but BEFORE the
-      // next React render cycle that could fire updateContent.
-      Promise.resolve().then(() => {
-        applyingExternalValueRef.current = false;
-      });
+  // ── Flush scratch → deep notes ───────────────────────────────────────────────
+  const flushAndClear = useCallback(() => {
+    if (!editor || editor.isDestroyed || editor.isEmpty) return;
+    const scratchJson = serializeContent(editor.getJSON());
+    if (appendContentRef.current) {
+      appendContentRef.current(scratchJson);
+    } else {
+      updateContentRef.current(scratchJson);
     }
-  }, [content, editor]);
+    // Clear the scratchpad without emitting an update
+    editor.commands.setContent(EMPTY_DOC, false);
+  }, [editor]);
 
-  // Focus editor when expanded
+  // ── Unmount: flush any unsaved scratch (e.g. page navigation) ────────────────
   useEffect(() => {
-    if (isExpanded && editor) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        editor.commands.focus("end");
-      }, 50);
+    return () => {
+      if (editor && !editor.isDestroyed && !editor.isEmpty) {
+        const scratchJson = serializeContent(editor.getJSON());
+        if (appendContentRef.current) {
+          appendContentRef.current(scratchJson);
+        } else {
+          updateContentRef.current(scratchJson);
+        }
+      }
+    };
+  }, [editor]);
+
+  // ── Expand: clear editor to fresh state, then focus ──────────────────────────
+  const handleExpand = useCallback(() => {
+    if (!isExpanded) {
+      if (editor && !editor.isDestroyed) {
+        editor.commands.setContent(EMPTY_DOC, false);
+      }
+      setIsExpanded(true);
     }
   }, [isExpanded, editor]);
 
-  const handleExpand = useCallback(() => {
-    if (!isExpanded) {
-      setIsExpanded(true);
+  // Focus after expand animation
+  useEffect(() => {
+    if (isExpanded && editor) {
+      setTimeout(() => editor.commands.focus("end"), 50);
     }
-  }, [isExpanded]);
+  }, [isExpanded, editor]);
 
-  const handleBlur = useCallback((e: React.FocusEvent) => {
-    // Check if focus is moving to another element within the card
-    if (cardRef.current?.contains(e.relatedTarget as Node)) {
-      return;
-    }
-    setIsExpanded(false);
-  }, []);
+  // ── Collapse: flush scratch then hide editor ──────────────────────────────────
+  const handleBlur = useCallback(
+    (e: React.FocusEvent) => {
+      if (cardRef.current?.contains(e.relatedTarget as Node)) return;
+      flushAndClear();
+      setIsExpanded(false);
+    },
+    [flushAndClear]
+  );
 
-  // Open Deep Notes in new tab (uses tab manager to prevent duplicates)
-  // Passes lessonId for context switching
-  const handleOpenDeepNotes = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    openNotesTab({
-      lessonId,
-      entityType: lessonId ? 'lesson' : undefined,
-    });
-  }, [openNotesTab, lessonId]);
+  // ── Deep Notes navigation ────────────────────────────────────────────────────
+  const handleOpenDeepNotes = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onOpenDeepNotes) {
+        onOpenDeepNotes();
+        return;
+      }
+      if (!courseId) return;
+      const params = new URLSearchParams();
+      if (careerId) params.set("careerId", careerId);
+      if (lessonId) params.set("lessonId", lessonId);
+      const query = params.toString();
+      navigate(`/courses/${courseId}/notes${query ? `?${query}` : ""}`);
+    },
+    [onOpenDeepNotes, navigate, courseId, careerId, lessonId]
+  );
 
   return (
     <Card
@@ -185,7 +210,7 @@ export function LessonNotesCard({
             Quick Notes
           </CardTitle>
           <div className="flex items-center gap-2">
-            {/* Save status */}
+            {/* Save status reflects the deep-notes autosave */}
             {isSyncing ? (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -202,14 +227,17 @@ export function LessonNotesCard({
                 <span className="hidden sm:inline">{lastSavedText}</span>
               </span>
             ) : null}
-            
+
             {/* Open Deep Notes */}
-            {courseId && isExpanded && (
-              <Tooltip>
+            {courseId && (
+              <Tooltip open={deepNotesHovered}>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    onMouseEnter={() => setDeepNotesHovered(true)}
+                    onMouseLeave={() => setDeepNotesHovered(false)}
                     onMouseDown={(e) => {
+                      setDeepNotesHovered(false);
                       e.preventDefault();
                       e.stopPropagation();
                       handleOpenDeepNotes(e);
@@ -234,13 +262,10 @@ export function LessonNotesCard({
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
         ) : isExpanded ? (
-          // Expanded: Rich text editor
-          <div 
-            ref={editorContainerRef}
-            className="rounded-md border border-border/50 bg-background/50 p-2 transition-all duration-200"
-          >
+          // Expanded: fresh scratchpad editor
+          <div className="rounded-md border border-border/50 bg-background/50 p-2 transition-all duration-200">
             <EditorContent editor={editor} />
-            
+
             {/* Formatting toolbar */}
             <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-1">
               <button
@@ -277,9 +302,7 @@ export function LessonNotesCard({
                   e.preventDefault();
                   e.stopPropagation();
                   const url = window.prompt("Enter URL:");
-                  if (url) {
-                    editor?.chain().focus().setLink({ href: url }).run();
-                  }
+                  if (url) editor?.chain().focus().setLink({ href: url }).run();
                 }}
                 className={cn(
                   "p-1.5 rounded hover:bg-muted transition-colors",
@@ -304,13 +327,13 @@ export function LessonNotesCard({
               </button>
             </div>
           </div>
-        ) : hasContent ? (
-          // Collapsed with content: preview (plain text, no JSON)
+        ) : hasDeepNotes ? (
+          // Collapsed with accumulated notes: show preview so user sees their history
           <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
             {textPreview}
           </p>
         ) : (
-          // Collapsed empty: placeholder
+          // Collapsed, no notes yet: blank slate prompt
           <p className="text-sm text-muted-foreground/60 italic">
             Jot down a quick note…
           </p>

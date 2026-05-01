@@ -4,6 +4,8 @@ export interface LessonFlowSection {
   id: string;
   label: string;
   exists: boolean;
+  /** true if auto-discovered from DOM (e.g., a TipTap heading) */
+  isDynamic?: boolean;
 }
 
 interface UseLessonFlowNavigationOptions {
@@ -32,6 +34,8 @@ export function useLessonFlowNavigation(
 
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
   const [sectionStates, setSectionStates] = useState<Record<string, boolean>>({});
+  const [dynamicSections, setDynamicSections] = useState<Array<{ id: string; label: string }>>([]);
+  const dynamicSectionsRef = useRef<Array<{ id: string; label: string }>>([]);
 
   // Track intersection ratios for all sections - single source of truth
   const ratioMap = useRef<Map<string, number>>(new Map());
@@ -141,14 +145,26 @@ export function useLessonFlowNavigation(
         foundStates[s.id] = false;
       });
 
+      const configIds = new Set(sectionConfig.map((s) => s.id));
+      const newDynamic: Array<{ id: string; label: string }> = [];
+
       elements.forEach((el) => {
         const flowId = el.getAttribute("data-flow");
-        if (flowId && !observedElements.current.has(el)) {
+        if (!flowId) return;
+
+        if (!observedElements.current.has(el)) {
           observerRef.current?.observe(el);
           observedElements.current.add(el);
+        }
+
+        if (configIds.has(flowId)) {
           foundStates[flowId] = true;
-        } else if (flowId) {
-          foundStates[flowId] = true;
+        } else {
+          // Dynamic section (e.g., heading from TipTap renderer)
+          const label = el.getAttribute("data-flow-label");
+          if (label) {
+            newDynamic.push({ id: flowId, label });
+          }
         }
       });
 
@@ -159,6 +175,19 @@ export function useLessonFlowNavigation(
       if (hasChanged) {
         sectionStatesRef.current = foundStates;
         setSectionStates(foundStates);
+      }
+
+      // Update dynamic sections if changed
+      const dynamicChanged =
+        newDynamic.length !== dynamicSectionsRef.current.length ||
+        newDynamic.some(
+          (d, i) =>
+            d.id !== dynamicSectionsRef.current[i]?.id ||
+            d.label !== dynamicSectionsRef.current[i]?.label
+        );
+      if (dynamicChanged) {
+        dynamicSectionsRef.current = newDynamic;
+        setDynamicSections(newDynamic);
       }
 
       // Set initial active if none set and sections exist
@@ -205,12 +234,26 @@ export function useLessonFlowNavigation(
     };
   }, [sectionConfig, scheduleUpdate]); // scheduleUpdate is stable now
 
-  // Build enriched sections with existence state
-  const sections: LessonFlowSection[] = sectionConfig.map((section) => ({
+  // Build enriched sections: configured (with greyed-out support) + dynamic headings
+  const configuredSections: LessonFlowSection[] = sectionConfig.map((section) => ({
     id: section.id,
     label: section.label,
     exists: sectionStates[section.id] ?? false,
+    isDynamic: false,
   }));
+
+  const discoveredSections: LessonFlowSection[] = dynamicSections.map((s) => ({
+    id: s.id,
+    label: s.label,
+    exists: true,
+    isDynamic: true,
+  }));
+
+  // If dynamic heading sections exist, suppress greyed-out configured sections
+  // so a TipTap lesson doesn't show disabled Chat Bubbles / Cause & Effect items.
+  const sections: LessonFlowSection[] = discoveredSections.length > 0
+    ? [...configuredSections.filter((s) => s.exists), ...discoveredSections]
+    : configuredSections;
 
   // Scroll to section with offset
   const scrollToSection = useCallback(

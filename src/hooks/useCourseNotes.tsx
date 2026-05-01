@@ -56,14 +56,11 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
    */
   const isTransitioningRef = useRef(false);
 
-  // Keep ref in sync with state to avoid stale closure issues
-  useEffect(() => {
-    selectedNoteIdRef.current = selectedNoteId;
-  }, [selectedNoteId]);
-
-  useEffect(() => {
-    isLoadingRef.current = isLoading;
-  }, [isLoading]);
+  // Sync refs on every render (no useEffect delay).
+  // CRITICAL: Must be synchronous so that BroadcastChannel message handlers
+  // and other async callbacks always see the latest values without a render-lag.
+  selectedNoteIdRef.current = selectedNoteId;
+  isLoadingRef.current = isLoading;
 
   /**
    * CRITICAL: Hard reset all autosave refs when selectedNoteId changes.

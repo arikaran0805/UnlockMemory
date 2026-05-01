@@ -157,7 +157,7 @@ export function CourseNotesTab({
                         className={cn(
                           "w-full text-left p-3 rounded-lg border transition-all",
                           isSelected
-                            ? "border-primary bg-primary/5 shadow-sm"
+                            ? "border-border bg-muted/50 shadow-sm"
                             : "border-border/50 hover:border-border hover:bg-muted/30"
                         )}
                       >

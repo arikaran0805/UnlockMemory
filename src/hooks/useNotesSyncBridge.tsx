@@ -75,7 +75,13 @@ export function useNotesSyncBridge({
   const localTimestampRef = useRef<string>('');
   const tabId = getTabId();
 
-  // Keep refs in sync with latest values to avoid stale closures
+  // Keep refs in sync with latest values to avoid stale closures in the
+  // BroadcastChannel message handler (which is set up once, in a useEffect).
+  // CRITICAL: Update synchronously on every render — NOT via useEffect.
+  // Using useEffect causes a one-render lag that creates a window where a
+  // BroadcastChannel message can arrive after a note switch but before the
+  // refs have updated, causing the handler to match the OLD note and corrupt
+  // the new note's content.
   const noteIdRef = useRef(noteId);
   const lessonIdRef = useRef(lessonId);
   const courseIdRef = useRef(courseId);
@@ -84,16 +90,14 @@ export function useNotesSyncBridge({
   const onNoteCreatedRef = useRef(onNoteCreated);
   const onNoteDeletedRef = useRef(onNoteDeleted);
 
-  // Update refs when values change
-  useEffect(() => {
-    noteIdRef.current = noteId;
-    lessonIdRef.current = lessonId;
-    courseIdRef.current = courseId;
-    userIdRef.current = userId;
-    onRemoteUpdateRef.current = onRemoteUpdate;
-    onNoteCreatedRef.current = onNoteCreated;
-    onNoteDeletedRef.current = onNoteDeleted;
-  }, [noteId, lessonId, courseId, userId, onRemoteUpdate, onNoteCreated, onNoteDeleted]);
+  // Sync refs on every render (no useEffect delay)
+  noteIdRef.current = noteId;
+  lessonIdRef.current = lessonId;
+  courseIdRef.current = courseId;
+  userIdRef.current = userId;
+  onRemoteUpdateRef.current = onRemoteUpdate;
+  onNoteCreatedRef.current = onNoteCreated;
+  onNoteDeletedRef.current = onNoteDeleted;
 
   /**
    * CRITICAL: Track when we last saved locally to prevent applying
