@@ -57,7 +57,7 @@ export function useLessonFlowNavigation(
   // Fix 4: ref to detect when sectionConfig actually changes by value
   const prevConfigRef = useRef<Array<{ id: string; label: string }>>([]);
 
-  // Fix 5: guaranteed hysteresis cleanup on unmount
+  // Guaranteed hysteresis cleanup on unmount
   useEffect(() => {
     return () => {
       if (hysteresisTimer.current) {
@@ -66,21 +66,43 @@ export function useLessonFlowNavigation(
     };
   }, []);
 
-  // Resolve dominant section by highest ratio
+  // Scroll listener — drives active section as the user scrolls.
+  // IntersectionObserver only fires when elements cross viewport boundaries;
+  // it won't update while scrolling *between* two headings. The scroll listener
+  // fills that gap by calling scheduleUpdate on every scroll frame.
+  useEffect(() => {
+    let rafPending = false;
+    const onScroll = () => {
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => {
+        scheduleUpdate();
+        rafPending = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [scheduleUpdate]);
+
+  // Resolve active section by scroll position — "last [data-flow] element whose
+  // top edge is at or above the reading line".  This is the standard TOC algorithm
+  // (Claude docs, MDN, etc.) and is far more reliable than IntersectionObserver
+  // ratio comparison, which breaks whenever a large block element (e.g. the Chat
+  // Bubbles container) scores higher than the small heading currently in view.
   const resolveDominant = useCallback((): string | null => {
-    let maxRatio = 0;
-    let dominantId: string | null = null;
+    const elements = Array.from(document.querySelectorAll("[data-flow]"));
+    if (elements.length === 0) return null;
 
-    ratioMap.current.forEach((ratio, id) => {
-      if (ratio > maxRatio) {
-        maxRatio = ratio;
-        dominantId = id;
+    let activeId: string | null = null;
+    for (const el of elements) {
+      const top = (el as HTMLElement).getBoundingClientRect().top;
+      if (top <= scrollOffset + 20) {
+        activeId = el.getAttribute("data-flow");
       }
-    });
-
-    // Require minimum 10% visibility to avoid switching on edges
-    return maxRatio >= 0.1 ? dominantId : null;
-  }, []);
+    }
+    // Nothing above the reading line yet → first section
+    return activeId ?? elements[0].getAttribute("data-flow");
+  }, [scrollOffset]);
 
   // Update active flow with hysteresis — uses ref, NOT captured activeFlow state
   const scheduleUpdate = useCallback(() => {
@@ -118,38 +140,54 @@ export function useLessonFlowNavigation(
     // Create single observer
     // rootMargin: "0px 0px -40% 0px" — top of viewport triggers, bottom 40% excluded
     // This ensures the last section at the bottom of a page is still detected
+    // IntersectionObserver is kept for section existence detection only.
+    // Active section is now driven by the scroll listener + resolveDominant
+    // (scroll-position based), so we no longer need ratio tracking here.
     observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const flowId = entry.target.getAttribute("data-flow");
-          if (flowId) {
-            ratioMap.current.set(
-              flowId,
-              entry.isIntersecting ? entry.intersectionRatio : 0
-            );
-          }
-        });
-        scheduleUpdate();
-      },
+      () => { scheduleUpdate(); },
       {
-        root: null, // viewport
-        rootMargin: "0px 0px -40% 0px", // Top half+ of viewport triggers
-        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
+        root: null,
+        rootMargin: "0px 0px -40% 0px",
+        threshold: [0, 0.25, 0.5, 1],
       }
     );
 
     // Find and observe all [data-flow] elements
     const observeFlowElements = () => {
-      // ── Stamp h1/h2/h3 headings inside TipTap editor body only ────────────
-      // Scoped to .ProseMirror so the post title (outside TipTap) is excluded.
-      const tiptapRoot = document.querySelector(".ProseMirror");
-      if (tiptapRoot) {
-        // Only h2/h3 — h1 is the post title level and should never appear in the TOC
-        const rawHeadings = tiptapRoot.querySelectorAll(
-          "h2:not([data-flow]), h3:not([data-flow])"
+      // ── Clean up stale entries from previous lesson navigation ─────────────
+      Array.from(observedElements.current).forEach((el) => {
+        if (!document.contains(el)) {
+          observerRef.current?.unobserve(el);
+          observedElements.current.delete(el);
+        }
+      });
+
+      // ── Stamp h2/h3 in ALL visible TipTap roots ───────────────────────────
+      // querySelectorAll catches every .ProseMirror — canvas lessons have one
+      // per text block.  offsetParent !== null excludes hidden editors (Notes
+      // panel stays mounted but display:none after lazy-mount).
+      let allRoots = Array.from(
+        document.querySelectorAll("[data-lesson-content] .ProseMirror")
+      ).filter((el) => (el as HTMLElement).offsetParent !== null);
+
+      if (allRoots.length === 0) {
+        allRoots = Array.from(document.querySelectorAll(".ProseMirror")).filter(
+          (el) => (el as HTMLElement).offsetParent !== null
         );
-        const usedIds = new Set<string>();
-        rawHeadings.forEach((el) => {
+      }
+
+      allRoots.forEach((root) => {
+        root.querySelectorAll("h1[data-flow]").forEach((h1) => {
+          h1.removeAttribute("data-flow");
+          h1.removeAttribute("data-flow-label");
+          h1.removeAttribute("data-flow-level");
+        });
+      });
+
+      // Shared usedIds across all roots — no slug collisions between canvas blocks
+      const usedIds = new Set<string>();
+      allRoots.forEach((tiptapRoot) => {
+        tiptapRoot.querySelectorAll("h2:not([data-flow]), h3:not([data-flow])").forEach((el) => {
           const text = (el.textContent || "").trim();
           if (!text) return;
           const slug = text
@@ -167,8 +205,8 @@ export function useLessonFlowNavigation(
           el.setAttribute("data-flow-level", String(lvl));
           if (!el.id) el.id = flowId;
         });
-      }
-      // ───────────────────────────────────────────────────────────────────────
+      });
+      // ─────────────────────────────────────────────────────────────────────
 
       const elements = document.querySelectorAll("[data-flow]");
       const foundStates: Record<string, boolean> = {};
@@ -245,12 +283,17 @@ export function useLessonFlowNavigation(
     const contentRoot =
       document.querySelector("[data-lesson-content]") ?? document.body;
 
-    // Debounce mutations — avoids calling observeFlowElements on every keystroke
-    // or animation frame. 200ms is fast enough to catch dynamically rendered content.
+    // Debounce mutations. Two passes: 200 ms catches React-rendered content;
+    // +400 ms is a safety net for lessons that async-load their body.
     let mutationTimer: number | null = null;
+    let mutationTimer2: number | null = null;
     const mutationObserver = new MutationObserver(() => {
       if (mutationTimer) clearTimeout(mutationTimer);
-      mutationTimer = window.setTimeout(observeFlowElements, 200);
+      if (mutationTimer2) clearTimeout(mutationTimer2);
+      mutationTimer = window.setTimeout(() => {
+        observeFlowElements();
+        mutationTimer2 = window.setTimeout(observeFlowElements, 400);
+      }, 200);
     });
 
     // Watch childList only — NOT attributes/attributeFilter["data-flow"].
@@ -264,6 +307,7 @@ export function useLessonFlowNavigation(
     return () => {
       cancelAnimationFrame(rafId);
       if (mutationTimer) clearTimeout(mutationTimer);
+      if (mutationTimer2) clearTimeout(mutationTimer2);
       if (hysteresisTimer.current) {
         clearTimeout(hysteresisTimer.current);
       }
@@ -296,28 +340,34 @@ export function useLessonFlowNavigation(
     ? [...configuredSections.filter((s) => s.exists), ...discoveredSections]
     : configuredSections;
 
-  // Scroll to section with offset
+  // Scroll to section — fast 250 ms cubic ease-out (browser "smooth" is ~1 s)
   const scrollToSection = useCallback(
     (flowId: string) => {
       const element = document.querySelector(`[data-flow="${flowId}"]`);
       if (!element) return;
 
       const rect = element.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
+      const targetY = window.scrollY + rect.top - scrollOffset;
+      const startY = window.scrollY;
+      const distance = targetY - startY;
 
-      // Check if already visible in the reading zone
-      const isVisible = rect.top >= scrollOffset && rect.bottom <= viewportHeight;
-
-      if (!isVisible) {
-        const absoluteTop = window.scrollY + rect.top;
-        window.scrollTo({
-          top: absoluteTop - scrollOffset,
-          behavior: "smooth",
-        });
-      }
-
-      // Immediately set active for responsiveness
+      // Immediately set active for snappy visual feedback
+      activeFlowRef.current = flowId;
       setActiveFlow(flowId);
+
+      if (Math.abs(distance) < 2) return;
+
+      const DURATION = 250;
+      const startTime = performance.now();
+      const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+      const tick = (now: number) => {
+        const progress = Math.min((now - startTime) / DURATION, 1);
+        window.scrollTo(0, startY + distance * easeOutCubic(progress));
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+
+      requestAnimationFrame(tick);
     },
     [scrollOffset]
   );
