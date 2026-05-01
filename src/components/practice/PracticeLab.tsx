@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import {
   Play,
+  Lock,
   Zap, Rocket, BookOpen,
   Code2, Brain, Database, Bug, BarChart3,
   Lightbulb, Target, Cpu, Globe, Terminal,
@@ -9,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { usePublishedPracticeSkills } from "@/hooks/usePracticeSkills";
 import { useSkillsProgress } from "@/hooks/useSkillsProgress";
 import { useActiveLabsProgress } from "@/hooks/useActiveLabsProgress";
+import { useUserState } from "@/hooks/useUserState";
+import { usePricingDrawer } from "@/contexts/PricingDrawerContext";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +56,8 @@ const gradientFor = (index: number) => GRADIENTS[index % GRADIENTS.length];
 
 export function PracticeLab({ enrolledCourses, userId }: PracticeLabProps) {
   const navigate = useNavigate();
+  const { isPro } = useUserState();
+  const { openPricingDrawer } = usePricingDrawer();
 
   /* Skills — only published (Live) skills are shown to users */
   const { data: skills, isLoading: skillsLoading } = usePublishedPracticeSkills();
@@ -141,6 +146,8 @@ export function PracticeLab({ enrolledCourses, userId }: PracticeLabProps) {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {skills.map((skill, idx) => {
               const sp = progressMap?.get(skill.id);
+              // Course-connected skills require a Pro subscription
+              const locked = !!skill.course_id && !isPro;
               return (
                 <ExploreCard
                   key={skill.id}
@@ -148,9 +155,14 @@ export function PracticeLab({ enrolledCourses, userId }: PracticeLabProps) {
                   title={skill.name}
                   gradient={gradientFor(idx + 1)}
                   items={sp?.totalProblems ?? 0}
-                  progress={sp?.percentage ?? 0}
-                  solved={sp?.solvedProblems ?? 0}
-                  onClick={() => navigate(`/practice/${skill.slug}`)}
+                  progress={locked ? 0 : (sp?.percentage ?? 0)}
+                  solved={locked ? 0 : (sp?.solvedProblems ?? 0)}
+                  locked={locked}
+                  onClick={
+                    locked
+                      ? () => openPricingDrawer("practice-lab")
+                      : () => navigate(`/practice/${skill.slug}`)
+                  }
                 />
               );
             })}
@@ -181,6 +193,8 @@ interface ExploreCardProps {
   solved?: number;
   /** show "Continue" badge on this card */
   continueBadge?: boolean;
+  /** card is locked behind Pro */
+  locked?: boolean;
   onClick: () => void;
 }
 
@@ -192,6 +206,7 @@ function ExploreCard({
   items,
   progress,
   continueBadge,
+  locked,
   onClick,
 }: ExploreCardProps) {
   return (
@@ -229,7 +244,7 @@ function ExploreCard({
         <span className="absolute right-4 top-10 w-16 h-16 rounded-full bg-white/[0.04] pointer-events-none" />
 
         {/* Continue badge */}
-        {continueBadge && (
+        {continueBadge && !locked && (
           <div
             className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full"
             style={{
@@ -243,8 +258,36 @@ function ExploreCard({
           </div>
         )}
 
+        {/* Lock overlay for Pro-only cards */}
+        {locked && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.62)", backdropFilter: "blur(2px)" }}>
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{
+                  background: "rgba(255,255,255,0.10)",
+                  border: "1.5px solid rgba(255,255,255,0.22)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+                }}
+              >
+                <Lock className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
+              </div>
+              <div
+                className="px-2.5 py-0.5 rounded-full"
+                style={{
+                  background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                  boxShadow: "0 1px 6px rgba(217,119,6,0.5)",
+                }}
+              >
+                <span className="text-[9px] font-black text-white tracking-[0.14em] uppercase">Pro</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
-        <div className="relative z-10 p-3 h-full flex flex-col">
+        <div className={cn("relative z-10 p-3 h-full flex flex-col", locked && "opacity-50")}>
           {/* Category label */}
           <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/50 leading-none mb-1.5">
             {category}
@@ -277,16 +320,16 @@ function ExploreCard({
       </div>
 
       {/* ── KPI strip ──────────────────────────────────────────────── */}
-      <div className="bg-background px-3 py-3 flex items-center gap-0">
+      <div className={cn("bg-background px-3 py-3 flex items-center gap-0", locked && "opacity-40 select-none")}>
         {chapters !== undefined && (
           <>
-            <StatCol value={chapters} label="Chapters" />
+            <StatCol value={locked ? "—" : chapters} label="Chapters" />
             <StatDivider />
           </>
         )}
-        <StatCol value={items} label="Items" />
+        <StatCol value={locked ? "—" : items} label="Items" />
         <StatDivider />
-        <StatCol value={`${progress}%`} label="Done" />
+        <StatCol value={locked ? "—" : `${progress}%`} label="Done" />
       </div>
     </div>
   );
