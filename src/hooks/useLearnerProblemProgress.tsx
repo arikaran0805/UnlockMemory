@@ -29,6 +29,7 @@ export function useLearnerProgress(userId: string | undefined) {
       return data as LearnerProblemProgress[];
     },
     enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
   });
 }
 

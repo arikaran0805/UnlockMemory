@@ -153,19 +153,30 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
 
       if (skillError || !skill) return [];
 
-      // Get sub-topics for this skill with lesson info
-      const { data: subTopics } = await supabase
-        .from("sub_topics")
-        .select(`
-          id,
-          title,
-          lesson_id,
-          display_order,
-          course_lessons!inner(id, title, lesson_rank, lesson_order)
-        `)
-        .eq("skill_id", skill.id)
-        .order("display_order", { ascending: true });
-      
+      // Step 2 + step 4 in parallel: sub-topics and direct problems both only need skill.id
+      const [subTopicsResult, directProblemsResult] = await Promise.all([
+        supabase
+          .from("sub_topics")
+          .select(`
+            id,
+            title,
+            lesson_id,
+            display_order,
+            course_lessons!inner(id, title, lesson_rank, lesson_order)
+          `)
+          .eq("skill_id", skill.id)
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("practice_problems")
+          .select("*")
+          .eq("skill_id", skill.id)
+          .eq("status", "published")
+          .order("display_order", { ascending: true }),
+      ]);
+
+      const subTopics = subTopicsResult.data;
+      const directProblems = directProblemsResult.data;
+
       // Sort sub-topics by lesson_order then by sub-topic display_order
       const sortedSubTopics = (subTopics || []).sort((a, b) => {
         const lessonA = a.course_lessons as any;
@@ -178,61 +189,62 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
 
       // Get problem mappings for these sub-topics
       const subTopicIds = sortedSubTopics.map(st => st.id);
-      
+
       let problemsWithMappings: ProblemWithMapping[] = [];
-      
+
       if (subTopicIds.length > 0) {
-        // Fetch regular problem mappings
-        const { data: mappings } = await supabase
-          .from("problem_mappings")
-          .select(`
-            problem_id,
-            sub_topic_id,
-            display_order,
-            practice_problems!inner(*)
-          `)
-          .in("sub_topic_id", subTopicIds)
-          .eq("practice_problems.status", "published")
-          .order("display_order", { ascending: true });
-
-        // Fetch predict output mappings
-        const { data: predictMappings } = await supabase
-          .from("predict_output_mappings")
-          .select(`
-            predict_output_problem_id,
-            sub_topic_id,
-            display_order,
-            predict_output_problems!inner(*)
-          `)
-          .in("sub_topic_id", subTopicIds)
-          .eq("predict_output_problems.status", "published")
-          .order("display_order", { ascending: true });
-
-        // Fetch fix error mappings
-        const { data: fixErrorMappings } = await supabase
-          .from("fix_error_mappings")
-          .select(`
-            fix_error_problem_id,
-            sub_topic_id,
-            display_order,
-            fix_error_problems!inner(*)
-          `)
-          .in("sub_topic_id", subTopicIds)
-          .eq("fix_error_problems.status", "published")
-          .order("display_order", { ascending: true });
-
-        // Fetch eliminate wrong mappings
-        const { data: eliminateWrongMappings } = await supabase
-          .from("eliminate_wrong_mappings")
-          .select(`
-            eliminate_wrong_problem_id,
-            sub_topic_id,
-            display_order,
-            eliminate_wrong_problems!inner(*)
-          `)
-          .in("sub_topic_id", subTopicIds)
-          .eq("eliminate_wrong_problems.status", "published")
-          .order("display_order", { ascending: true });
+        // Fetch all 4 mapping tables in parallel
+        const [
+          { data: mappings },
+          { data: predictMappings },
+          { data: fixErrorMappings },
+          { data: eliminateWrongMappings },
+        ] = await Promise.all([
+          supabase
+            .from("problem_mappings")
+            .select(`
+              problem_id,
+              sub_topic_id,
+              display_order,
+              practice_problems!inner(*)
+            `)
+            .in("sub_topic_id", subTopicIds)
+            .eq("practice_problems.status", "published")
+            .order("display_order", { ascending: true }),
+          supabase
+            .from("predict_output_mappings")
+            .select(`
+              predict_output_problem_id,
+              sub_topic_id,
+              display_order,
+              predict_output_problems!inner(*)
+            `)
+            .in("sub_topic_id", subTopicIds)
+            .eq("predict_output_problems.status", "published")
+            .order("display_order", { ascending: true }),
+          supabase
+            .from("fix_error_mappings")
+            .select(`
+              fix_error_problem_id,
+              sub_topic_id,
+              display_order,
+              fix_error_problems!inner(*)
+            `)
+            .in("sub_topic_id", subTopicIds)
+            .eq("fix_error_problems.status", "published")
+            .order("display_order", { ascending: true }),
+          supabase
+            .from("eliminate_wrong_mappings")
+            .select(`
+              eliminate_wrong_problem_id,
+              sub_topic_id,
+              display_order,
+              eliminate_wrong_problems!inner(*)
+            `)
+            .in("sub_topic_id", subTopicIds)
+            .eq("eliminate_wrong_problems.status", "published")
+            .order("display_order", { ascending: true }),
+        ]);
         
         if (sortedSubTopics) {
           // Create a map of sub-topic info with lesson order for sorting
@@ -374,15 +386,7 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
         }
       }
 
-      // Also get problems directly linked via skill_id (fallback for unmapped problems)
-      const { data: directProblems } = await supabase
-        .from("practice_problems")
-        .select("*")
-        .eq("skill_id", skill.id)
-        .eq("status", "published")
-        .order("display_order", { ascending: true });
-
-      // Add direct problems that aren't already mapped
+      // Add direct problems that aren't already mapped (fetched in parallel with sub-topics above)
       const mappedProblemIds = new Set(problemsWithMappings.map(p => p.id));
       
       if (directProblems) {
@@ -401,6 +405,7 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
       return problemsWithMappings;
     },
     enabled: !!skillSlug,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
