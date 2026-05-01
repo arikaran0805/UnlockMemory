@@ -25,13 +25,20 @@ export function useActiveLabsProgress(
     queryFn: async () => {
       if (!userId || courseIds.length === 0) return new Map<string, LabProgress>();
 
-      // 1. Get total published lessons per course from course_lessons
-      const { data: courseLessons } = await supabase
-        .from("course_lessons" as any)
-        .select("id, course_id")
-        .in("course_id", courseIds)
-        .eq("is_published", true)
-        .is("deleted_at", null);
+      // 1 & 2: Fetch lessons and progress in parallel (independent queries)
+      const [{ data: courseLessons }, { data: progressData }] = await Promise.all([
+        supabase
+          .from("course_lessons" as any)
+          .select("id, course_id")
+          .in("course_id", courseIds)
+          .eq("is_published", true)
+          .is("deleted_at", null),
+        supabase
+          .from("lesson_progress")
+          .select("course_id, completed, viewed_at")
+          .eq("user_id", userId)
+          .in("course_id", courseIds),
+      ]);
 
       // Count lessons per course
       const totalByCourseLessons: Record<string, number> = {};
@@ -39,13 +46,6 @@ export function useActiveLabsProgress(
         totalByCourseLessons[lesson.course_id] =
           (totalByCourseLessons[lesson.course_id] || 0) + 1;
       });
-
-      // 2. Get user's lesson_progress for these courses
-      const { data: progressData } = await supabase
-        .from("lesson_progress")
-        .select("course_id, completed, viewed_at")
-        .eq("user_id", userId)
-        .in("course_id", courseIds);
 
       // Count completed lessons per course + track latest viewed_at
       const completedByCourse: Record<string, number> = {};
@@ -82,6 +82,6 @@ export function useActiveLabsProgress(
 
       return result;
     },
-    staleTime: 30_000,
+    staleTime: 2 * 60 * 1000,
   });
 }

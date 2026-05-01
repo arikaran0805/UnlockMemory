@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import UMLoader from "@/components/UMLoader";
 import { useCourseNavigation } from "@/hooks/useCourseNavigation";
@@ -561,12 +562,10 @@ const Profile = () => {
   const [isFreezingStreak, setIsFreezingStreak] = useState(false);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [resendingVerification, setResendingVerification] = useState(false);
-  const [userComments, setUserComments] = useState<any[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
   const [expandedComment, setExpandedComment] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [submittingReply, setSubmittingReply] = useState(false);
-  const [commentReplies, setCommentReplies] = useState<Record<string, any[]>>({});
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -632,15 +631,44 @@ const Profile = () => {
     checkUser();
   }, []);
 
-  // Fetch user's comments for Discussions tab
-  useEffect(() => {
-    const fetchUserComments = async () => {
-      if (!userId) return;
+  // Fetch user's comments for Discussions tab — cached so tab switches are instant
+  const { data: discussionsData, isLoading: commentsLoading } = useQuery({
+    queryKey: ['user-discussions', userId],
+    queryFn: async () => {
+      if (!userId) return { comments: [] as any[], repliesMap: {} as Record<string, any[]> };
 
-      setCommentsLoading(true);
-      try {
-        // Fetch user's comments (excluding replies they made)
-        const { data: comments, error } = await supabase
+      const { data: comments, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          is_anonymous,
+          display_name,
+          parent_id,
+          status,
+          post_id,
+          posts!inner (
+            id,
+            title,
+            slug,
+            category_id,
+            courses:category_id (
+              name,
+              slug
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .is('parent_id', null)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const repliesMap: Record<string, any[]> = {};
+      if (comments && comments.length > 0) {
+        const commentIds = comments.map((c: any) => c.id);
+        const { data: replies } = await supabase
           .from('comments')
           .select(`
             id,
@@ -649,70 +677,31 @@ const Profile = () => {
             is_anonymous,
             display_name,
             parent_id,
-            status,
-            post_id,
-            posts!inner (
-              id,
-              title,
-              slug,
-              category_id,
-              courses:category_id (
-                name,
-                slug
-              )
+            user_id,
+            profiles:user_id (
+              full_name,
+              avatar_url
             )
           `)
-          .eq('user_id', userId)
-          .is('parent_id', null)
-          .order('created_at', { ascending: false });
+          .in('parent_id', commentIds)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: true });
 
-        if (error) throw error;
-
-        // Fetch replies to user's comments
-        if (comments && comments.length > 0) {
-          const commentIds = comments.map(c => c.id);
-          const { data: replies } = await supabase
-            .from('comments')
-            .select(`
-              id,
-              content,
-              created_at,
-              is_anonymous,
-              display_name,
-              parent_id,
-              user_id,
-              profiles:user_id (
-                full_name,
-                avatar_url
-              )
-            `)
-            .in('parent_id', commentIds)
-            .eq('status', 'approved')
-            .order('created_at', { ascending: true });
-
-          // Group replies by parent_id
-          const repliesMap: Record<string, any[]> = {};
-          replies?.forEach(reply => {
-            if (reply.parent_id) {
-              if (!repliesMap[reply.parent_id]) {
-                repliesMap[reply.parent_id] = [];
-              }
-              repliesMap[reply.parent_id].push(reply);
-            }
-          });
-          setCommentReplies(repliesMap);
-        }
-
-        setUserComments(comments || []);
-      } catch (error) {
-        console.error('Error fetching user comments:', error);
-      } finally {
-        setCommentsLoading(false);
+        (replies || []).forEach((reply: any) => {
+          if (reply.parent_id) {
+            if (!repliesMap[reply.parent_id]) repliesMap[reply.parent_id] = [];
+            repliesMap[reply.parent_id].push(reply);
+          }
+        });
       }
-    };
 
-    fetchUserComments();
-  }, [userId]);
+      return { comments: comments || [], repliesMap };
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const userComments = discussionsData?.comments ?? [];
+  const commentReplies = discussionsData?.repliesMap ?? {};
 
   const toDayKey = (d: Date) => {
     const safe = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
@@ -1801,12 +1790,11 @@ const Profile = () => {
       const col = iconColors[index % iconColors.length];
       const IconComp = getIcon(course?.icon, BookOpen);
 
-      const [nextLesson, setNextLesson] = useState<{ title: string; order: number } | null>(null);
-
-      useEffect(() => {
-        if (isCompleted || !course?.id || !userId) return;
-
-        const fetchNextLesson = async () => {
+      // Cached per-course — survives tab switches and page re-navigation
+      const { data: nextLesson = null } = useQuery<{ title: string; order: number } | null>({
+        queryKey: ['next-lesson', course?.id, userId],
+        queryFn: async () => {
+          if (!course?.id || !userId) return null;
           try {
             const [lessonsData, postsData, progressData] = await Promise.all([
               (supabase
@@ -1830,10 +1818,9 @@ const Profile = () => {
                 .eq('completed', true),
             ]);
 
-            const completedIds = new Set(progressData.data?.map(l => l.lesson_id) || []);
+            const completedIds = new Set(progressData.data?.map((l: any) => l.lesson_id) || []);
             const allPosts = postsData.data || [];
-            
-            // Sort posts primarily by their parent lesson's rank, then by post's own post_rank
+
             const lessonRanks = new Map((lessonsData.data || []).map((l, i) => [l.id, i]));
             allPosts.sort((a: any, b: any) => {
               const rankA = lessonRanks.get(a.lesson_id) ?? 999;
@@ -1847,117 +1834,107 @@ const Profile = () => {
               const parentLesson = (lessonsData.data || []).find(l => l.id === nextPost.lesson_id);
               const lessonOrder = parentLesson ? (lessonsData.data || []).indexOf(parentLesson) + 1 : 1;
               const lessonTitle = parentLesson?.title || 'Chapter';
-              setNextLesson({ 
-                title: `${lessonTitle} > ${nextPost.title}`, 
-                order: lessonOrder 
-              });
+              return { title: `${lessonTitle} > ${nextPost.title}`, order: lessonOrder };
             }
+            return null;
           } catch (e) {
             console.error("Failed to fetch next lesson", e);
+            return null;
           }
-        };
-
-        fetchNextLesson();
-      }, [course?.id, isCompleted]);
+        },
+        enabled: !isCompleted && !!course?.id && !!userId,
+        staleTime: 2 * 60 * 1000,
+      });
 
       return (
         <div
-          className="group flex flex-col sm:flex-row w-full overflow-hidden cursor-pointer bg-card border border-border/40"
+          className="group flex flex-col sm:flex-row w-full overflow-hidden cursor-pointer bg-card border border-border/50"
           style={{
-            borderRadius: '16px',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02)',
-            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            borderRadius: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)',
+            transition: 'box-shadow 0.2s ease, transform 0.2s ease',
             minHeight: '140px',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-3px)';
-            e.currentTarget.style.boxShadow = '0 12px 36px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)';
-            e.currentTarget.style.borderColor = 'hsl(var(--border) / 0.8)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02)';
-            e.currentTarget.style.borderColor = 'hsl(var(--border) / 0.4)';
+            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)';
           }}
           onClick={() => navigateToCourse(course?.slug, course?.id)}
         >
-          {/* Left block (Green Gradient) */}
+          {/* Left: primary green panel */}
           <div
-            className="sm:w-[170px] shrink-0 p-5 flex flex-col justify-center relative overflow-hidden"
-            style={{ 
-              background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))',
-              borderRight: '1px solid rgba(0,0,0,0.04)'
-            }}
+            className="sm:w-[170px] shrink-0 px-5 py-5 flex flex-col justify-between relative overflow-hidden"
+            style={{ background: 'hsl(var(--primary))' }}
           >
             <div className="relative z-10">
-              <span className="text-primary-foreground/75 text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5 block drop-shadow-sm">
+              <span className="text-white/60 text-[9px] font-bold tracking-[0.18em] uppercase mb-2 block">
                 Course
               </span>
-              <h3 className="text-primary-foreground text-[19px] font-semibold leading-snug line-clamp-2 tracking-tight drop-shadow-sm">
+              <h3 className="text-white text-[16px] font-semibold leading-snug line-clamp-3 tracking-tight">
                 {course?.name}
               </h3>
             </div>
-            <div className="relative z-10 flex items-center text-primary-foreground/80 text-[11px] font-semibold mt-4 group-hover:text-primary-foreground transition-colors">
+            <div className="relative z-10 flex items-center text-white/70 text-[11px] font-medium mt-4 group-hover:text-white transition-colors duration-150">
               {isCompleted ? 'Review course' : 'View all chapters'}
-              <ChevronRight className="w-3.5 h-3.5 ml-0.5 opacity-80 transition-transform group-hover:translate-x-1" />
+              <ChevronRight className="w-3 h-3 ml-0.5 transition-transform duration-150 group-hover:translate-x-0.5" />
             </div>
-
-            {/* Decorative subtle background overlay */}
-            <div
-              className="absolute inset-0 opacity-30 pointer-events-none mix-blend-overlay"
-              style={{ background: 'radial-gradient(circle at top right, rgba(255,255,255,0.4) 0%, transparent 60%)' }}
-            />
+            {/* Subtle top-right highlight */}
+            <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none opacity-[0.12]"
+              style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)', transform: 'translate(20%, -20%)' }} />
           </div>
 
-          {/* Right block (White) */}
-          <div className="flex-1 p-5 flex flex-col justify-between bg-card relative min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div className="mt-1 flex-1 min-w-0">
-                <span className="text-muted-foreground/80 text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5 block">
-                  {isCompleted ? 'Status' : 'In Progress'}
-                </span>
-                <h4 className="text-foreground/90 text-[11px] font-bold tracking-wider uppercase truncate">
-                  {isCompleted ? 'Course Completed' : 'Continue Learning'}
-                </h4>
-              </div>
+          {/* Right: white info panel */}
+          <div className="flex-1 px-5 py-4 flex flex-col justify-between bg-card min-w-0">
 
-              {/* Progress area */}
-              <div className="flex flex-col sm:items-end shrink-0 sm:w-[110px] pt-1">
-                <div className="w-full h-2 bg-muted/60 rounded-full overflow-hidden mb-2 shadow-inner border border-black/5 dark:border-white/5">
-                  <div
-                    className="h-full rounded-full transition-all duration-700 ease-out relative"
-                    style={{
-                      width: `${isCompleted ? 100 : pct}%`,
-                      background: 'linear-gradient(90deg, hsl(var(--primary)/0.8), hsl(var(--primary)))'
-                    }}
-                  >
-                    <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent)] animate-[shimmer_2s_infinite]" />
-                  </div>
-                </div>
-                <span className="text-[11px] font-medium text-muted-foreground/90">
-                  {isCompleted ? (
-                    <span className="flex items-center gap-1.5 text-primary"><CheckCircle2 className="w-3.5 h-3.5" /> Done</span>
-                  ) : (
-                    `${progress.completed}/${progress.total} Lessons`
-                  )}
+            {/* Top: status + lesson count */}
+            <div className="flex items-center justify-between gap-2">
+              {isCompleted ? (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Completed
                 </span>
-              </div>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  In Progress
+                </span>
+              )}
+              <span className="text-[11px] font-medium text-muted-foreground tabular-nums shrink-0">
+                {isCompleted ? (
+                  <span className="text-primary font-semibold">100%</span>
+                ) : (
+                  `${progress.completed}/${progress.total} Lessons`
+                )}
+              </span>
             </div>
 
-            {/* Bottom CTA */}
-            <div className="flex justify-start sm:justify-end mt-4 sm:mt-0 min-w-0">
+            {/* Progress bar — full width */}
+            <div className="mt-2.5 w-full h-[3px] bg-muted/70 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${isCompleted ? 100 : pct}%`, background: 'hsl(var(--primary))' }}
+              />
+            </div>
+
+            {/* Next lesson / done state */}
+            <div className="mt-3 flex items-center justify-between min-w-0">
               <button
-                className="text-[13px] font-semibold text-muted-foreground hover:text-primary transition-all duration-200 flex items-center group/btn truncate max-w-full px-3 py-1.5 -mr-3 rounded-lg hover:bg-primary/[0.04] active:scale-[0.98]"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateToCourse(course?.slug, course?.id);
-                }}
+                className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-primary transition-colors duration-150 truncate group/cta"
+                onClick={(e) => { e.stopPropagation(); navigateToCourse(course?.slug, course?.id); }}
               >
                 <span className="truncate">
-                  {isCompleted ? 'Review course' : (nextLesson ? nextLesson.title : 'Continue course')}
+                  {isCompleted
+                    ? 'Review course'
+                    : (nextLesson ? nextLesson.title : 'Start course')}
                 </span>
+                <ChevronRight className="w-3 h-3 shrink-0 opacity-50 transition-transform duration-150 group-hover/cta:translate-x-0.5" />
               </button>
             </div>
+
           </div>
         </div>
       );
@@ -2382,10 +2359,13 @@ const Profile = () => {
 
         if (error) throw error;
 
-        // Add the new reply to the replies map
-        setCommentReplies(prev => ({
-          ...prev,
-          [parentId]: [...(prev[parentId] || []), data]
+        // Add the new reply to the cached discussions map
+        queryClient.setQueryData(['user-discussions', userId], (old: any) => ({
+          ...old,
+          repliesMap: {
+            ...(old?.repliesMap ?? {}),
+            [parentId]: [...(old?.repliesMap?.[parentId] ?? []), data],
+          },
         }));
 
         setReplyContent("");

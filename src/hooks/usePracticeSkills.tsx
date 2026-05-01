@@ -97,6 +97,7 @@ export function usePublishedPracticeSkills() {
       if (error) throw error;
       return data as PracticeSkill[];
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 

@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Bookmark {
   id: string;
@@ -28,66 +30,55 @@ interface Bookmark {
   } | null;
 }
 
+const BOOKMARK_SELECT = `
+  *,
+  courses:course_id (
+    id,
+    name,
+    slug,
+    description,
+    featured_image,
+    level
+  ),
+  posts:post_id (
+    id,
+    title,
+    slug,
+    excerpt,
+    category_id,
+    courses:category_id (
+      slug
+    )
+  )
+`;
+
+const bookmarksKey = (userId: string) => ['bookmarks', userId];
+
 export const useBookmarks = () => {
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUserId(session?.user?.id || null);
-      if (session?.user?.id) {
-        fetchBookmarks(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  const fetchBookmarks = async (uid: string) => {
-    try {
+  const { data: bookmarks = [], isLoading: loading } = useQuery<Bookmark[]>({
+    queryKey: bookmarksKey(userId ?? ''),
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('bookmarks')
-        .select(`
-          *,
-          courses:course_id (
-            id,
-            name,
-            slug,
-            description,
-            featured_image,
-            level
-          ),
-          posts:post_id (
-            id,
-            title,
-            slug,
-            excerpt,
-            category_id,
-            courses:category_id (
-              slug
-            )
-          )
-        `)
-        .eq('user_id', uid)
+        .select(BOOKMARK_SELECT)
+        .eq('user_id', userId!)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-      setBookmarks(data || []);
-    } catch (error: any) {
-      console.error('Error fetching bookmarks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return (data ?? []) as Bookmark[];
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const isBookmarked = useCallback((courseId?: string, postId?: string): boolean => {
     if (!userId) return false;
-    return bookmarks.some(b => 
-      (courseId && b.course_id === courseId) || 
+    return bookmarks.some(b =>
+      (courseId && b.course_id === courseId) ||
       (postId && b.post_id === postId)
     );
   }, [bookmarks, userId]);
@@ -102,14 +93,13 @@ export const useBookmarks = () => {
       return false;
     }
 
-    const existingBookmark = bookmarks.find(b => 
-      (courseId && b.course_id === courseId) || 
+    const existingBookmark = bookmarks.find(b =>
+      (courseId && b.course_id === courseId) ||
       (postId && b.post_id === postId)
     );
 
     try {
       if (existingBookmark) {
-        // Remove bookmark
         const { error } = await supabase
           .from('bookmarks')
           .delete()
@@ -117,14 +107,12 @@ export const useBookmarks = () => {
 
         if (error) throw error;
 
-        setBookmarks(prev => prev.filter(b => b.id !== existingBookmark.id));
-        toast({
-          title: "Removed",
-          description: "Bookmark removed successfully.",
-        });
+        queryClient.setQueryData<Bookmark[]>(bookmarksKey(userId), (old) =>
+          (old ?? []).filter(b => b.id !== existingBookmark.id)
+        );
+        toast({ title: "Removed", description: "Bookmark removed successfully." });
         return false;
       } else {
-        // Add bookmark
         const { data, error } = await supabase
           .from('bookmarks')
           .insert({
@@ -132,51 +120,26 @@ export const useBookmarks = () => {
             course_id: courseId || null,
             post_id: postId || null,
           })
-          .select(`
-            *,
-            courses:course_id (
-              id,
-              name,
-              slug,
-              description,
-              featured_image,
-              level
-            ),
-            posts:post_id (
-              id,
-              title,
-              slug,
-              excerpt,
-              category_id,
-              courses:category_id (
-                slug
-              )
-            )
-          `)
+          .select(BOOKMARK_SELECT)
           .single();
 
         if (error) throw error;
 
-        setBookmarks(prev => [data, ...prev]);
-        toast({
-          title: "Saved",
-          description: "Added to your bookmarks.",
-        });
+        queryClient.setQueryData<Bookmark[]>(bookmarksKey(userId), (old) =>
+          [data as Bookmark, ...(old ?? [])]
+        );
+        toast({ title: "Saved", description: "Added to your bookmarks." });
         return true;
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
       return isBookmarked(courseId, postId);
     }
   };
 
   const refreshBookmarks = async () => {
     if (userId) {
-      await fetchBookmarks(userId);
+      await queryClient.invalidateQueries({ queryKey: bookmarksKey(userId) });
     }
   };
 

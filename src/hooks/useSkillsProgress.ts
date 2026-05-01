@@ -19,23 +19,23 @@ export function useSkillsProgress(userId: string | undefined, skillIds: string[]
     queryFn: async () => {
       if (!userId || skillIds.length === 0) return new Map<string, SkillProgress>();
 
-      // 1. Get all published problems with their skill_id
-      const { data: directProblems } = await supabase
-        .from("practice_problems")
-        .select("id, skill_id")
-        .in("skill_id", skillIds)
-        .eq("status", "published");
-
-      // 2. Get problems mapped via sub_topics for these skills
-      const { data: mappedProblems } = await supabase
-        .from("problem_mappings")
-        .select(`
-          problem_id,
-          sub_topics!inner(skill_id),
-          practice_problems!inner(id, status)
-        `)
-        .in("sub_topics.skill_id", skillIds)
-        .eq("practice_problems.status", "published");
+      // 1 & 2: Fetch direct problems and mapped problems in parallel (independent queries)
+      const [{ data: directProblems }, { data: mappedProblems }] = await Promise.all([
+        supabase
+          .from("practice_problems")
+          .select("id, skill_id")
+          .in("skill_id", skillIds)
+          .eq("status", "published"),
+        supabase
+          .from("problem_mappings")
+          .select(`
+            problem_id,
+            sub_topics!inner(skill_id),
+            practice_problems!inner(id, status)
+          `)
+          .in("sub_topics.skill_id", skillIds)
+          .eq("practice_problems.status", "published"),
+      ]);
 
       // Build a map: skillId -> Set of problem IDs
       const skillProblemMap = new Map<string, Set<string>>();
@@ -96,5 +96,6 @@ export function useSkillsProgress(userId: string | undefined, skillIds: string[]
       return result;
     },
     enabled: !!userId && skillIds.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 }
