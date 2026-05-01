@@ -572,8 +572,8 @@ All colors MUST be HSL.
     height: 100%;
     background: var(--background);
     border: none;
-    border-right: 1px solid rgba(0, 0, 0, 0.07);
-    box-shadow: none;
+    border-right: 1px solid hsl(var(--border));
+    box-shadow: 2px 0 12px hsl(var(--primary) / 0.04);
     border-radius: 0;
     display: flex;
     flex-direction: column;
@@ -597,7 +597,7 @@ All colors MUST be HSL.
   .profile-icon-sep {
     width: 28px;
     height: 1px;
-    background: rgba(0, 0, 0, 0.08);
+    background: hsl(var(--border));
     margin: 10px 0;
     flex-shrink: 0;
   }
@@ -623,20 +623,21 @@ All colors MUST be HSL.
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #7a9189;
-    transition: background 140ms ease, color 140ms ease;
+    color: hsl(var(--muted-foreground) / 0.65);
+    transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
     flex-shrink: 0;
   }
 
   .profile-icon-btn:hover:not(.active) {
-    background: rgba(0, 0, 0, 0.05);
-    color: #1c2e26;
+    background: hsl(var(--primary) / 0.07);
+    color: hsl(var(--primary) / 0.85);
   }
 
-  /* Active: muted green rounded square */
+  /* Active: tinted primary green rounded square */
   .profile-icon-btn.active {
-    background: hsl(152 30% 90%);     /* very light muted green — not vivid */
-    color: hsl(152 40% 24%);
+    background: hsl(var(--primary) / 0.12);
+    color: hsl(var(--primary));
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.16);
   }
 
   .profile-icon-btn-icon {
@@ -655,7 +656,7 @@ All colors MUST be HSL.
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: linear-gradient(135deg, hsl(152 36% 33%) 0%, hsl(152 38% 25%) 100%);  /* deep muted green */
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.75) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -663,13 +664,15 @@ All colors MUST be HSL.
     margin-top: 10px;
     flex-shrink: 0;
     cursor: pointer;
-    border: none;
-    transition: opacity 140ms ease, transform 140ms ease;
+    border: 2px solid hsl(var(--primary) / 0.25);
+    box-shadow: 0 2px 10px hsl(var(--primary) / 0.22);
+    transition: opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   }
 
   .profile-icon-avatar:hover {
-    opacity: 0.88;
-    transform: scale(1.04);
+    opacity: 0.9;
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px hsl(var(--primary) / 0.32);
   }
 
   .profile-icon-avatar-img {
