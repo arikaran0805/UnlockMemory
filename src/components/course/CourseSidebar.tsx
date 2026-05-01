@@ -13,6 +13,7 @@ import {
   X,
   Link2,
   Dumbbell,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -81,6 +82,8 @@ interface CourseSidebarProps {
   handleHomeClick: () => void;
   /** When provided, "Practice Problems" opens focus mode instead of navigating away */
   onOpenPracticeFocus?: (lessonId: string) => void;
+  /** When provided, clicking Practice Problems will trigger this instead of navigating */
+  onPracticeLockedClick?: () => void;
 }
 
 export const CourseSidebar = memo(({
@@ -107,6 +110,7 @@ export const CourseSidebar = memo(({
   handleLessonClick,
   handleHomeClick,
   onOpenPracticeFocus,
+  onPracticeLockedClick,
 }: CourseSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -559,7 +563,24 @@ export const CourseSidebar = memo(({
 
                           {/* Practice problems — focus mode in career board, link elsewhere */}
                           {practiceSkillSlug ? (
-                            onOpenPracticeFocus ? (
+                            onPracticeLockedClick ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onPracticeLockedClick();
+                                }}
+                                className={cn(
+                                  "w-full flex items-center gap-2 pl-3 pr-2 py-[5px]",
+                                  "text-[11.5px] font-medium text-left",
+                                  "text-muted-foreground hover:bg-sidebar-accent/40",
+                                  "transition-colors duration-100"
+                                )}
+                              >
+                                <Dumbbell className="h-3 w-3 flex-shrink-0 opacity-50" />
+                                <span>Practice Problems</span>
+                                <Lock className="h-2.5 w-2.5 text-muted-foreground/60 ml-auto" />
+                              </button>
+                            ) : onOpenPracticeFocus ? (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();

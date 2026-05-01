@@ -14,7 +14,7 @@ import {
   Copy, Check, Play, Loader2, X, Pencil,
   ChevronUp, ChevronDown
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { executeCode } from '@/lib/pistonClient';
 import { useCodeEdit } from '@/contexts/CodeEditContext';
 import { useTheme } from 'next-themes';
 
@@ -211,28 +211,13 @@ const ExecutableCodeBlockView = ({
     setOutputExpanded(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('execute-code', {
-        body: { code: currentCode, language: normalizedLang },
-      });
-
-      if (error) {
-        // Try to extract the actual error message from the response body
-        let msg = error.message || 'Execution failed';
-        try {
-          if (error.context instanceof Response) {
-            const body = await error.context.json();
-            if (body?.error) msg = body.error;
-          }
-        } catch { /* ignore parse failure */ }
-        setOutput(msg);
-        setOutputError(true);
-      } else if (data?.error) {
-        setOutput(data.error);
-        setOutputError(true);
-      } else {
-        setOutput(data?.output || 'No output');
-        setOutputError(false);
-      }
+      const result = await executeCode(normalizedLang, currentCode);
+      const isError = (result.code !== 0 && result.code !== null) || result.signal !== null;
+      const output = isError
+        ? (result.stderr || result.stdout || 'Runtime error').trim()
+        : [result.stdout, result.stderr].filter(Boolean).join('\n').trim() || 'No output';
+      setOutput(output);
+      setOutputError(isError);
     } catch (err: any) {
       setOutput(err.message || 'Failed to execute code');
       setOutputError(true);

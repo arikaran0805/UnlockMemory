@@ -255,6 +255,10 @@ const CareerCourseDetail = () => {
   const [deepNotesLessonId, setDeepNotesLessonId] = useState<string | undefined>(undefined);
   const [deepPracticeOpen, setDeepPracticeOpen] = useState(false);
   const [deepPracticeLessonId, setDeepPracticeLessonId] = useState<string | undefined>(undefined);
+  // Track whether each mode has been opened at least once — used for lazy-first-mount pattern.
+  // Once true, the component stays mounted forever (hidden via CSS) for instant re-entry.
+  const [notesEverOpened, setNotesEverOpened] = useState(false);
+  const [practiceEverOpened, setPracticeEverOpened] = useState(false);
 
   // Practice problems linking hooks
   const { data: practiceSkill } = usePracticeSkillByCourse(course?.id);
@@ -1411,31 +1415,40 @@ const CareerCourseDetail = () => {
           )}
           data-lesson-content
         >
-          {deepNotesOpen ? (
-            <NotesFocusMode
-              courseId={course?.id || ""}
-              userId={user?.id || ""}
-              courseName={course?.name || ""}
-              onExit={() => setDeepNotesOpen(false)}
-              switchToContext={deepNotesLessonId ? { lessonId: deepNotesLessonId, entityType: "lesson" as const } : undefined}
-              onContextSwitched={() => setDeepNotesLessonId(undefined)}
-              isStandalonePage={true}
-              hideHeader={true}
-            />
-          ) : deepPracticeOpen ? (
-            <PracticeFocusMode
-              courseId={course?.id || ""}
-              courseName={course?.name || ""}
-              courseSlug={course?.slug || ""}
-              careerId={careerSlugForPath || ""}
-              lessons={lessons.map(l => ({ id: l.id, title: l.title }))}
-              practiceSkillSlug={practiceSkill?.slug}
-              lessonProblemCounts={lessonProblemCounts}
-              lessonProblemsCompleted={lessonProblemsCompleted}
-              onExit={() => setDeepPracticeOpen(false)}
-              initialLessonId={deepPracticeLessonId}
-            />
-          ) : (
+          {/* Deep Notes — lazy-first-mount, kept alive for instant re-entry */}
+          {notesEverOpened && (
+            <div className={cn("h-full w-full", !deepNotesOpen && "hidden")}>
+              <NotesFocusMode
+                courseId={course?.id || ""}
+                userId={user?.id || ""}
+                courseName={course?.name || ""}
+                onExit={() => setDeepNotesOpen(false)}
+                switchToContext={deepNotesLessonId ? { lessonId: deepNotesLessonId, entityType: "lesson" as const } : undefined}
+                onContextSwitched={() => setDeepNotesLessonId(undefined)}
+                isStandalonePage={true}
+                hideHeader={true}
+              />
+            </div>
+          )}
+          {/* Practice — lazy-first-mount, kept alive for instant re-entry */}
+          {practiceEverOpened && (
+            <div className={cn("h-full w-full", !deepPracticeOpen && "hidden")}>
+              <PracticeFocusMode
+                courseId={course?.id || ""}
+                courseName={course?.name || ""}
+                courseSlug={course?.slug || ""}
+                careerId={careerSlugForPath || ""}
+                lessons={lessons.map(l => ({ id: l.id, title: l.title }))}
+                practiceSkillSlug={practiceSkill?.slug}
+                lessonProblemCounts={lessonProblemCounts}
+                lessonProblemsCompleted={lessonProblemsCompleted}
+                onExit={() => setDeepPracticeOpen(false)}
+                initialLessonId={deepPracticeLessonId}
+              />
+            </div>
+          )}
+          {/* Lesson content — always mounted, hidden when a focus mode is active */}
+          <div className={cn((deepNotesOpen || deepPracticeOpen) && "hidden")}>
           <Card className="rounded-none border-0 shadow-none">
             <CardContent className="p-6 lg:p-8">
               {loadingPost ? (
@@ -2166,7 +2179,7 @@ const CareerCourseDetail = () => {
               )}
             </CardContent>
           </Card>
-          )}
+          </div>
         </main>
 
         {/* RIGHT SIDEBAR - Learning Cockpit (Pro feature, always shown in Career Board) */}
@@ -2184,6 +2197,7 @@ const CareerCourseDetail = () => {
             certificateEligible={courseProgress.isCompleted}
             onOpenNotes={() => openNotesTab()}
             onOpenDeepNotes={(lessonId) => {
+              setNotesEverOpened(true);
               setDeepNotesLessonId(lessonId);
               setDeepNotesOpen(true);
             }}
@@ -2194,6 +2208,7 @@ const CareerCourseDetail = () => {
             onOpenPracticeFocus={(postId) => {
               // postId here is selectedPost?.id — resolve to parent CourseLesson.id
               const lessonId = postId ? postToLessonId.get(postId) : undefined;
+              setPracticeEverOpened(true);
               setDeepPracticeLessonId(lessonId);
               setDeepPracticeOpen(true);
             }}

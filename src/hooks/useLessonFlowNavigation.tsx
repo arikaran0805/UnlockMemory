@@ -6,6 +6,8 @@ export interface LessonFlowSection {
   exists: boolean;
   /** true if auto-discovered from DOM (e.g., a TipTap heading) */
   isDynamic?: boolean;
+  /** heading depth: 1=h1, 2=h2, 3=h3 (only set for isDynamic sections) */
+  level?: number;
 }
 
 interface UseLessonFlowNavigationOptions {
@@ -34,8 +36,8 @@ export function useLessonFlowNavigation(
 
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
   const [sectionStates, setSectionStates] = useState<Record<string, boolean>>({});
-  const [dynamicSections, setDynamicSections] = useState<Array<{ id: string; label: string }>>([]);
-  const dynamicSectionsRef = useRef<Array<{ id: string; label: string }>>([]);
+  const [dynamicSections, setDynamicSections] = useState<Array<{ id: string; label: string; level: number }>>([]);
+  const dynamicSectionsRef = useRef<Array<{ id: string; label: string; level: number }>>([]);
 
   // Track intersection ratios for all sections - single source of truth
   const ratioMap = useRef<Map<string, number>>(new Map());
@@ -138,6 +140,36 @@ export function useLessonFlowNavigation(
 
     // Find and observe all [data-flow] elements
     const observeFlowElements = () => {
+      // ── Stamp h1/h2/h3 headings inside TipTap editor body only ────────────
+      // Scoped to .ProseMirror so the post title (outside TipTap) is excluded.
+      const tiptapRoot = document.querySelector(".ProseMirror");
+      if (tiptapRoot) {
+        // Only h2/h3 — h1 is the post title level and should never appear in the TOC
+        const rawHeadings = tiptapRoot.querySelectorAll(
+          "h2:not([data-flow]), h3:not([data-flow])"
+        );
+        const usedIds = new Set<string>();
+        rawHeadings.forEach((el) => {
+          const text = (el.textContent || "").trim();
+          if (!text) return;
+          const slug = text
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40) || "heading";
+          let flowId = `h-${slug}`;
+          let n = 1;
+          while (usedIds.has(flowId)) flowId = `h-${slug}-${n++}`;
+          usedIds.add(flowId);
+          const lvl = parseInt(el.tagName[1], 10);
+          el.setAttribute("data-flow", flowId);
+          el.setAttribute("data-flow-label", text);
+          el.setAttribute("data-flow-level", String(lvl));
+          if (!el.id) el.id = flowId;
+        });
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
       const elements = document.querySelectorAll("[data-flow]");
       const foundStates: Record<string, boolean> = {};
 
@@ -146,7 +178,7 @@ export function useLessonFlowNavigation(
       });
 
       const configIds = new Set(sectionConfig.map((s) => s.id));
-      const newDynamic: Array<{ id: string; label: string }> = [];
+      const newDynamic: Array<{ id: string; label: string; level: number }> = [];
 
       elements.forEach((el) => {
         const flowId = el.getAttribute("data-flow");
@@ -162,8 +194,9 @@ export function useLessonFlowNavigation(
         } else {
           // Dynamic section (e.g., heading from TipTap renderer)
           const label = el.getAttribute("data-flow-label");
+          const levelAttr = el.getAttribute("data-flow-level");
           if (label) {
-            newDynamic.push({ id: flowId, label });
+            newDynamic.push({ id: flowId, label, level: levelAttr ? parseInt(levelAttr, 10) : 1 });
           }
         }
       });
@@ -183,7 +216,8 @@ export function useLessonFlowNavigation(
         newDynamic.some(
           (d, i) =>
             d.id !== dynamicSectionsRef.current[i]?.id ||
-            d.label !== dynamicSectionsRef.current[i]?.label
+            d.label !== dynamicSectionsRef.current[i]?.label ||
+            d.level !== dynamicSectionsRef.current[i]?.level
         );
       if (dynamicChanged) {
         dynamicSectionsRef.current = newDynamic;
@@ -207,23 +241,29 @@ export function useLessonFlowNavigation(
       observeFlowElements();
     });
 
-    // Fix 1: scope MutationObserver to lesson content container, not document.body
+    // Scope MutationObserver to lesson content container
     const contentRoot =
       document.querySelector("[data-lesson-content]") ?? document.body;
 
+    // Debounce mutations — avoids calling observeFlowElements on every keystroke
+    // or animation frame. 200ms is fast enough to catch dynamically rendered content.
+    let mutationTimer: number | null = null;
     const mutationObserver = new MutationObserver(() => {
-      observeFlowElements();
+      if (mutationTimer) clearTimeout(mutationTimer);
+      mutationTimer = window.setTimeout(observeFlowElements, 200);
     });
 
+    // Watch childList only — NOT attributes/attributeFilter["data-flow"].
+    // We are the ones stamping data-flow, so watching for it creates a feedback loop
+    // that pegs the CPU (each stamp fires the observer, which re-stamps, repeat).
     mutationObserver.observe(contentRoot, {
       childList: true,
       subtree: true,
-      attributes: true,
-      attributeFilter: ["data-flow"],
     });
 
     return () => {
       cancelAnimationFrame(rafId);
+      if (mutationTimer) clearTimeout(mutationTimer);
       if (hysteresisTimer.current) {
         clearTimeout(hysteresisTimer.current);
       }
@@ -247,6 +287,7 @@ export function useLessonFlowNavigation(
     label: s.label,
     exists: true,
     isDynamic: true,
+    level: s.level,
   }));
 
   // If dynamic heading sections exist, suppress greyed-out configured sections

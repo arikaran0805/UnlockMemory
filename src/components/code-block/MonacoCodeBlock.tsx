@@ -17,7 +17,7 @@ import {
   Copy, Check, Play, Pencil, Loader2, X,
   ChevronUp, ChevronDown
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { executeCode } from '@/lib/pistonClient';
 import { useTheme } from 'next-themes';
 
 // Supported languages for execution
@@ -222,28 +222,13 @@ const MonacoCodeBlock = ({
     setOutputExpanded(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('execute-code', {
-        body: { code: currentCode, language: normalizedLang },
-      });
-
-      if (error) {
-        // Try to extract the actual error message from the response body
-        let msg = error.message || 'Execution failed';
-        try {
-          if (error.context instanceof Response) {
-            const body = await error.context.json();
-            if (body?.error) msg = body.error;
-          }
-        } catch { /* ignore parse failure */ }
-        setOutput(msg);
-        setOutputError(true);
-      } else if (data?.error) {
-        setOutput(data.error);
-        setOutputError(true);
-      } else {
-        setOutput(data?.output || 'No output');
-        setOutputError(false);
-      }
+      const result = await executeCode(normalizedLang, currentCode);
+      const isError = (result.code !== 0 && result.code !== null) || result.signal !== null;
+      const output = isError
+        ? (result.stderr || result.stdout || 'Runtime error').trim()
+        : [result.stdout, result.stderr].filter(Boolean).join('\n').trim() || 'No output';
+      setOutput(output);
+      setOutputError(isError);
     } catch (err: any) {
       setOutput(err.message || 'Failed to execute code');
       setOutputError(true);

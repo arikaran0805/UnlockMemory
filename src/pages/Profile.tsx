@@ -40,13 +40,13 @@ import { LightEditor } from "@/components/tiptap";
 import { useWeeklyActivity } from "@/hooks/useWeeklyActivity";
 import { z } from "zod";
 import { icons, RotateCcw, Code2, Play, CheckCircle2, AlertCircle, Mail, HelpCircle, Code } from "lucide-react";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Bookmark, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Bookmark,
   BookmarkX,
-  MessageSquare, 
-  Settings, 
+  MessageSquare,
+  Settings,
   Award,
   Clock,
   TrendingUp,
@@ -116,13 +116,13 @@ const accountItems = [
 ];
 
 // OngoingCourseCard component for the learnings section (Library-style)
-const OngoingCourseCard = ({ 
-  course, 
-  userId, 
+const OngoingCourseCard = ({
+  course,
+  userId,
   onClick,
   onResetProgress
-}: { 
-  course: any; 
+}: {
+  course: any;
   userId: string | null;
   onClick: () => void;
   onResetProgress?: () => void;
@@ -180,14 +180,14 @@ const OngoingCourseCard = ({
     fetchProgress();
   }, [course?.id, userId]);
 
-  const progressPercent = progress.total > 0 
+  const progressPercent = progress.total > 0
     ? Math.round((progress.completed / progress.total) * 100)
     : 0;
 
   const handleResetProgress = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!course?.id || !userId || isResetting) return;
-    
+
     setIsResetting(true);
     try {
       const { error } = await supabase
@@ -225,128 +225,82 @@ const OngoingCourseCard = ({
 
   return (
     <div
-      className="cursor-pointer group relative"
+      className="cursor-pointer group flex flex-row w-full overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(0,0,0,0.05)',
-        borderRadius: '28px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)',
-        transition: 'all 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-        overflow: 'hidden',
+        background: '#ffffff',
+        borderRadius: '12px',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        minHeight: '160px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)';
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.06)';
       }}
       onClick={onClick}
     >
-      {/* Subtle top-left glass sheen */}
-      <div 
-        className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top left, rgba(255,255,255,0.6) 0%, transparent 70%)' }}
-      />
+      {/* Left side: Green block */}
+      <div
+        className="w-[280px] shrink-0 p-6 flex flex-col justify-center"
+        style={{ background: 'hsl(var(--primary))' }}
+      >
+        <div>
+          <span className="text-white/60 text-[10px] font-bold tracking-widest uppercase mb-2 block">
+            Course
+          </span>
+          <h3 className="text-white text-xl font-medium leading-tight line-clamp-3">
+            {course?.name}
+          </h3>
+        </div>
+        <div className="flex items-center text-white/80 text-sm font-medium mt-6 group-hover:text-white transition-colors">
+          View all chapters <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+        </div>
+      </div>
 
-      <div className="relative p-6">
-        {/* Top row: Icon badge + metadata */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05))' }}
-            >
-              <IconComponent className="h-5 w-5 text-primary" strokeWidth={1.8} />
-            </div>
-            <div>
-              <h3 className="text-[15px] font-semibold text-foreground leading-snug tracking-[-0.01em] line-clamp-2">
-                {course?.name}
-              </h3>
-              <span className="text-xs text-muted-foreground mt-0.5 block">
-                {course?.level || "Beginner"} · {progress.total} lessons
-              </span>
-            </div>
+      {/* Right side: White block */}
+      <div className="flex-1 p-6 flex flex-col justify-center relative">
+        <div className="flex items-start justify-between gap-4">
+          <div className="mt-2">
+            <span className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase mb-2 block">
+              {nextLesson ? `CHAPTER ${nextLesson.order}` : `UP NEXT`}
+            </span>
+            <h4 className="text-foreground text-2xl font-medium line-clamp-2">
+              {nextLesson ? nextLesson.title : "Course Overview"}
+            </h4>
           </div>
-          {/* Progress percentage pill */}
-          <span 
-            className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 tabular-nums"
-            style={{ 
-              background: progressPercent >= 75 ? 'rgba(34,197,94,0.1)' : 'rgba(0,0,0,0.04)',
-              color: progressPercent >= 75 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+
+          {/* Progress area on the right */}
+          <div className="flex flex-col items-end shrink-0 w-[140px] pt-1">
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-2">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${progressPercent}%`,
+                  background: 'hsl(var(--primary))'
+                }}
+              />
+            </div>
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              {progress.completed}/{progress.total} Lessons
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom right button */}
+        <div className="flex justify-end mt-4">
+          <button
+            className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-6 py-2 rounded-full text-sm font-medium shadow-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
             }}
           >
-            {progressPercent}%
-          </span>
-        </div>
-
-        {/* Description line */}
-        {course?.description && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1 mb-4">
-            {course.description.replace(/<[^>]*>/g, '').slice(0, 120)}
-          </p>
-        )}
-
-        {/* Progress bar */}
-        <div className="mb-3">
-          <div className="w-full overflow-hidden" style={{ height: '4px', borderRadius: '999px', background: 'rgba(0,0,0,0.04)' }}>
-            <div 
-              className="h-full transition-all duration-500"
-              style={{ 
-                width: `${progressPercent}%`, 
-                background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(142, 76%, 36%))',
-                borderRadius: '999px',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Next lesson */}
-        {nextLesson && (
-          <div className="flex items-center gap-2 mb-4">
-            <Play className="h-3 w-3 text-primary fill-primary shrink-0" />
-            <span className="text-xs text-muted-foreground">Up next:</span>
-            <span className="text-xs font-medium text-foreground truncate">{nextLesson.title}</span>
-          </div>
-        )}
-
-        {/* Bottom: time remaining + CTAs */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <span className="flex items-center gap-1 text-xs">
-              <Clock className="h-3.5 w-3.5" />
-              ~{estimatedRemainingHours}h left
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span 
-              className="text-xs font-medium text-muted-foreground hidden sm:inline-flex items-center gap-0.5 group-hover:text-foreground transition-colors duration-200"
-            >
-              View roadmap
-              <ChevronRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </span>
-            <button 
-              className="text-xs font-semibold text-white border-0 cursor-pointer flex items-center gap-1.5"
-              style={{ 
-                background: 'linear-gradient(180deg, hsl(var(--primary)), hsl(142, 76%, 36%))',
-                borderRadius: '999px',
-                padding: '8px 18px',
-                boxShadow: '0 4px 14px hsla(142, 71%, 45%, 0.25)',
-                transition: 'all 220ms ease',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px hsla(142, 71%, 45%, 0.35)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px hsla(142, 71%, 45%, 0.25)'; }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              Continue
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
+            Continue
+          </button>
         </div>
       </div>
     </div>
@@ -354,10 +308,10 @@ const OngoingCourseCard = ({
 };
 
 // CompletedCourseCard component - premium unified surface
-const CompletedCourseCard = ({ 
-  course, 
-  onClick 
-}: { 
+const CompletedCourseCard = ({
+  course,
+  onClick
+}: {
   course: any;
   onClick: () => void;
 }) => {
@@ -366,95 +320,81 @@ const CompletedCourseCard = ({
 
   return (
     <div
-      className="cursor-pointer group relative"
+      className="cursor-pointer group flex flex-row w-full overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(0,0,0,0.05)',
-        borderRadius: '28px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)',
-        transition: 'all 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-        overflow: 'hidden',
+        background: '#ffffff',
+        borderRadius: '12px',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        minHeight: '160px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)';
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.06)';
       }}
       onClick={onClick}
     >
-      {/* Subtle top-left glass sheen */}
-      <div 
-        className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top left, rgba(255,255,255,0.6) 0%, transparent 70%)' }}
-      />
-
-      <div className="relative p-6">
-        {/* Top row: Icon badge + completed status */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.05))' }}
-            >
-              <IconComponent className="h-5 w-5 text-primary" strokeWidth={1.8} />
-            </div>
-            <div>
-              <h3 className="text-[15px] font-semibold text-foreground leading-snug tracking-[-0.01em] line-clamp-2">
-                {course?.name}
-              </h3>
-              <span className="text-xs text-muted-foreground mt-0.5 block">
-                {course?.level || "Beginner"} · {course?.learning_hours > 0 ? `${course.learning_hours}h` : '—'}
-              </span>
-            </div>
-          </div>
-          {/* Completed badge */}
-          <span 
-            className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
-            style={{ background: 'rgba(34,197,94,0.1)', color: 'hsl(var(--primary))' }}
-          >
-            <CheckCircle2 className="h-3 w-3" />
-            Done
+      {/* Left side: Green block */}
+      <div
+        className="w-[280px] shrink-0 p-6 flex flex-col justify-center"
+        style={{ background: 'hsl(var(--primary))' }}
+      >
+        <div>
+          <span className="text-white/60 text-[10px] font-bold tracking-widest uppercase mb-2 block">
+            Course
           </span>
+          <h3 className="text-white text-xl font-medium leading-tight line-clamp-3">
+            {course?.name}
+          </h3>
+        </div>
+        <div className="flex items-center text-white/80 text-sm font-medium mt-6 group-hover:text-white transition-colors">
+          Review course <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+        </div>
+      </div>
+
+      {/* Right side: White block */}
+      <div className="flex-1 p-6 flex flex-col justify-center relative">
+        <div className="flex items-start justify-between gap-4">
+          <div className="mt-2">
+            <span className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase mb-2 block">
+              STATUS
+            </span>
+            <h4 className="text-foreground text-2xl font-medium line-clamp-2">
+              Course Completed
+            </h4>
+          </div>
+
+          {/* Progress area on the right */}
+          <div className="flex flex-col items-end shrink-0 w-[140px] pt-1">
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-2">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `100%`,
+                  background: 'hsl(var(--primary))'
+                }}
+              />
+            </div>
+            <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Done
+            </span>
+          </div>
         </div>
 
-        {/* Full progress bar */}
-        <div className="mb-4">
-          <div className="w-full overflow-hidden" style={{ height: '4px', borderRadius: '999px', background: 'rgba(0,0,0,0.04)' }}>
-            <div 
-              className="h-full"
-              style={{ width: '100%', background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(142, 76%, 36%))', borderRadius: '999px' }}
-            />
-          </div>
-        </div>
-
-        {/* Bottom: CTAs */}
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Award className="h-3.5 w-3.5" />
-            Course completed
-          </span>
-          <button 
-            className="text-xs font-semibold border-0 cursor-pointer flex items-center gap-1.5"
-            style={{ 
-              background: 'rgba(34,197,94,0.08)',
-              color: 'hsl(var(--primary))',
-              padding: '8px 18px',
-              borderRadius: '999px',
-              transition: 'all 220ms ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.14)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.08)'; }}
+        {/* Bottom right button */}
+        <div className="flex justify-end mt-4">
+          <button
+            className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-6 py-2 rounded-full text-sm font-medium shadow-sm"
             onClick={(e) => {
               e.stopPropagation();
               onClick();
             }}
           >
             Review
-            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -463,11 +403,11 @@ const CompletedCourseCard = ({
 };
 
 // FeaturedCourseCard - premium editorial card with soft gradient
-const FeaturedCourseCard = ({ 
-  course, 
+const FeaturedCourseCard = ({
+  course,
   gradient,
-  onClick 
-}: { 
+  onClick
+}: {
   course: any;
   gradient: string;
   onClick: () => void;
@@ -486,15 +426,15 @@ const FeaturedCourseCard = ({
     fetchLessonCount();
   }, [course?.id]);
 
-  const displayHours = course.learning_hours > 0 
-    ? course.learning_hours 
+  const displayHours = course.learning_hours > 0
+    ? course.learning_hours
     : Math.max(1, Math.round((lessonCount * 15) / 60));
 
   const iconName = course?.icon || 'BookOpen';
   const IconComponent = getIcon(iconName, BookOpen);
 
   return (
-    <div 
+    <div
       className="cursor-pointer group relative"
       style={{
         background: gradient,
@@ -514,11 +454,11 @@ const FeaturedCourseCard = ({
       onClick={onClick}
     >
       {/* Glass sheen overlay */}
-      <div 
+      <div
         className="absolute top-0 left-0 w-full h-full pointer-events-none"
         style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)' }}
       />
-      
+
       {/* Watermark icon */}
       <div className="absolute -right-6 -bottom-6 pointer-events-none transition-transform duration-300 group-hover:scale-110" style={{ opacity: 0.08 }}>
         <IconComponent className="h-36 w-36 text-white" />
@@ -527,18 +467,18 @@ const FeaturedCourseCard = ({
       <div className="relative p-7 flex flex-col justify-between h-[220px]">
         <div>
           {/* Badge */}
-          <span 
+          <span
             className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full mb-3"
             style={{ background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
           >
             <IconComponent className="h-3 w-3" />
             Course
           </span>
-          
+
           <h4 className="text-lg font-semibold text-white leading-snug tracking-[-0.01em] line-clamp-2">
             {course.name}
           </h4>
-          
+
           {course.description && (
             <p className="text-xs leading-relaxed line-clamp-1 mt-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
               {course.description.replace(/<[^>]*>/g, '').slice(0, 80)}
@@ -565,9 +505,9 @@ const FeaturedCourseCard = ({
 
           {/* CTA row */}
           <div className="flex items-center justify-between">
-            <button 
+            <button
               className="text-xs font-semibold border-0 cursor-pointer flex items-center gap-1.5"
-              style={{ 
+              style={{
                 background: 'rgba(255,255,255,0.2)',
                 backdropFilter: 'blur(8px)',
                 color: '#fff',
@@ -585,7 +525,7 @@ const FeaturedCourseCard = ({
               Explore
               <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </button>
-            <span 
+            <span
               className="text-xs font-medium hidden sm:inline-flex items-center gap-0.5 transition-colors duration-200"
               style={{ color: 'rgba(255,255,255,0.5)' }}
             >
@@ -669,7 +609,7 @@ const Profile = () => {
   // This uses the Career Board route for guaranteed CareerScopedHeader rendering
   const handleSkillClick = async (skillName: string) => {
     if (!career) return;
-    
+
     const courseInfo = getCourseForSkill(career.id, skillName);
     if (courseInfo) {
       // Navigate inside Career Board shell - guaranteed CareerScopedHeader
@@ -696,7 +636,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchUserComments = async () => {
       if (!userId) return;
-      
+
       setCommentsLoading(true);
       try {
         // Fetch user's comments (excluding replies they made)
@@ -725,9 +665,9 @@ const Profile = () => {
           .eq('user_id', userId)
           .is('parent_id', null)
           .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
-        
+
         // Fetch replies to user's comments
         if (comments && comments.length > 0) {
           const commentIds = comments.map(c => c.id);
@@ -749,7 +689,7 @@ const Profile = () => {
             .in('parent_id', commentIds)
             .eq('status', 'approved')
             .order('created_at', { ascending: true });
-          
+
           // Group replies by parent_id
           const repliesMap: Record<string, any[]> = {};
           replies?.forEach(reply => {
@@ -762,7 +702,7 @@ const Profile = () => {
           });
           setCommentReplies(repliesMap);
         }
-        
+
         setUserComments(comments || []);
       } catch (error) {
         console.error('Error fetching user comments:', error);
@@ -859,7 +799,7 @@ const Profile = () => {
   const checkUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         navigate("/auth");
         return;
@@ -989,7 +929,7 @@ const Profile = () => {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const validated = profileSchema.parse({
         full_name: fullName,
@@ -1087,7 +1027,7 @@ const Profile = () => {
 
   const handleResendVerification = async () => {
     if (resendingVerification || !email) return;
-    
+
     setResendingVerification(true);
     try {
       const { error } = await supabase.auth.resend({
@@ -1121,7 +1061,7 @@ const Profile = () => {
     setIsFreezingStreak(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -1152,7 +1092,7 @@ const Profile = () => {
 
   const handleCareerSelect = async (careerSlug: string) => {
     setSelectedCareer(careerSlug);
-    
+
     // Save to database
     if (userId) {
       const { error } = await supabase
@@ -1212,46 +1152,46 @@ const Profile = () => {
   // Get career course slugs from database
   const career = getCareerBySlug(selectedCareer);
   const careerRelatedSlugs = career ? getCareerCourseSlugs(career.id) : [];
-  
+
   const enrolledInCareer = enrolledCourses.filter(e =>
     careerRelatedSlugs.includes(e.courses?.slug)
   ).length;
-  
-  const recommendedCourses = allCourses.filter(course => 
-    careerRelatedSlugs.includes(course.slug) && 
+
+  const recommendedCourses = allCourses.filter(course =>
+    careerRelatedSlugs.includes(course.slug) &&
     !enrolledCourses.some(e => e.courses?.id === course.id)
   );
 
-  const careerEnrolledCourses = enrolledCourses.filter(e => 
+  const careerEnrolledCourses = enrolledCourses.filter(e =>
     careerRelatedSlugs.includes(e.courses?.slug)
   );
 
   // Calculate completed courses for the career path
-  const careerCompletedSlugs = completedCourseSlugs.filter(slug => 
+  const careerCompletedSlugs = completedCourseSlugs.filter(slug =>
     careerRelatedSlugs.includes(slug)
   );
   const completedInCareer = careerCompletedSlugs.length;
-  const avgMinutesPerDay = weeklyActivityData.activeDays > 0 
-    ? Math.round((weeklyActivityData.totalSeconds / 60) / weeklyActivityData.activeDays) 
+  const avgMinutesPerDay = weeklyActivityData.activeDays > 0
+    ? Math.round((weeklyActivityData.totalSeconds / 60) / weeklyActivityData.activeDays)
     : 0;
 
   // Get skills and calculate actual skill values from database
   const skills = career ? getCareerSkills(career.id) : [];
-  
+
   // Calculate skill values based on lesson completion within courses
   const calculateSkillValues = () => {
     if (!career || skills.length === 0) return {};
-    
+
     const skillValues: Record<string, number> = {};
-    
+
     skills.forEach(skill => {
       let skillValue = 0;
-      
+
       // For each course in this career path, calculate partial contribution based on lesson progress
       careerRelatedSlugs.forEach(courseSlug => {
         const contributions = getSkillContributionsForCourse(career.id, courseSlug);
         const contribution = contributions.find(c => c.skill_name === skill.skill_name);
-        
+
         if (contribution) {
           // Get the course's lesson progress
           const progress = courseProgressMap[courseSlug];
@@ -1262,33 +1202,33 @@ const Profile = () => {
           }
         }
       });
-      
+
       // Cap at 100
       skillValues[skill.skill_name] = Math.min(Math.round(skillValue), 100);
     });
-    
+
     return skillValues;
   };
-  
+
   const skillValues = calculateSkillValues();
-  
+
   // Calculate weighted career readiness percentage
   const calculateWeightedReadiness = () => {
     if (!skills.length) return 0;
-    
+
     let weightedSum = 0;
     let totalWeight = 0;
-    
+
     skills.forEach(skill => {
       const value = skillValues[skill.skill_name] || 0;
       const weight = skill.weight || 25; // Default to 25 if no weight set
       weightedSum += value * weight;
       totalWeight += weight;
     });
-    
+
     return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
   };
-  
+
   const readinessPercentage = calculateWeightedReadiness();
 
   // Determine focus message and active course based on progress
@@ -1298,7 +1238,7 @@ const Profile = () => {
       const progress = courseProgressMap[e.courses?.slug];
       return progress && progress.completed < progress.total;
     });
-    
+
     if (incompleteCourse) {
       const progress = courseProgressMap[incompleteCourse.courses?.slug];
       const remaining = progress ? progress.total - progress.completed : 0;
@@ -1312,7 +1252,7 @@ const Profile = () => {
         activeCourseName: incompleteCourse.courses?.name as string | undefined,
       };
     }
-    
+
     if (readinessPercentage < 30) {
       return {
         message: "Build your foundation",
@@ -1323,7 +1263,7 @@ const Profile = () => {
         activeCourseName: undefined,
       };
     }
-    
+
     if (readinessPercentage < 75) {
       return {
         message: "Strengthen your skills",
@@ -1334,7 +1274,7 @@ const Profile = () => {
         activeCourseName: undefined,
       };
     }
-    
+
     return {
       message: "Keep the momentum",
       subtext: "You're doing great!",
@@ -1344,7 +1284,7 @@ const Profile = () => {
       activeCourseName: undefined,
     };
   };
-  
+
   const focusContent = getFocusContent();
 
   const renderDashboard = () => (
@@ -1373,8 +1313,8 @@ const Profile = () => {
                   {/* Readiness Level Badge with Tooltip */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className="gap-1.5 px-3 py-1.5 text-foreground/70 border-border/40 bg-muted/50 cursor-default"
                       >
                         <Zap className="h-3.5 w-3.5" />
@@ -1396,19 +1336,19 @@ const Profile = () => {
                   {skills.map((skill, index) => {
                     // Get actual skill value from our calculation
                     const skillProgress = skillValues[skill.skill_name] || 0;
-                    
+
                     // Get icon from database
                     const renderSkillIcon = (iconName: string) => {
                       const IconComp = getIcon(iconName, Code2);
                       return <IconComp className="h-5 w-5" />;
                     };
-                    
-                      return (
-                        <div 
-                          key={skill.id} 
-                          className="group cursor-pointer hover:bg-muted/40 rounded-xl p-3.5 -m-1 transition-all duration-200 border border-transparent hover:border-border/40"
-                          onClick={() => handleSkillClick(skill.skill_name)}
-                        >
+
+                    return (
+                      <div
+                        key={skill.id}
+                        className="group cursor-pointer hover:bg-muted/40 rounded-xl p-3.5 -m-1 transition-all duration-200 border border-transparent hover:border-border/40"
+                        onClick={() => handleSkillClick(skill.skill_name)}
+                      >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
                             <div className="text-primary/70 transition-transform duration-200 group-hover:scale-110">
@@ -1421,14 +1361,14 @@ const Profile = () => {
                             <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
                           </div>
                         </div>
-                        <Progress 
-                          value={skillProgress} 
+                        <Progress
+                          value={skillProgress}
                           className="h-[6px] rounded-full progress-animate [&]:bg-muted/60 [&>div]:rounded-full [&>div]:bg-primary"
                         />
                       </div>
                     );
                   })}
-                  
+
                   {skills.length === 0 && (
                     <div className="text-center text-muted-foreground py-4">
                       <p>No skills defined for this career path.</p>
@@ -1440,22 +1380,22 @@ const Profile = () => {
                 {/* Circular Progress Gauge - Modern Design */}
                 {/* Check if close to next level threshold (within 5%) */}
                 {(() => {
-                  const isCloseToNextLevel = 
+                  const isCloseToNextLevel =
                     (readinessPercentage >= 15 && readinessPercentage < 20) ||
                     (readinessPercentage >= 45 && readinessPercentage < 50) ||
                     (readinessPercentage >= 75 && readinessPercentage < 80);
-                  
+
                   return (
                     <div className="flex flex-col items-center justify-center">
                       <div className={`relative w-44 h-44 ${isCloseToNextLevel ? 'animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]' : ''}`}>
                         {/* Outer glow ring */}
-                        <div 
+                        <div
                           className={`absolute inset-0 rounded-full opacity-20 blur-xl transition-opacity duration-500 ${isCloseToNextLevel ? 'opacity-40' : ''}`}
                           style={{
                             background: `conic-gradient(from 0deg, hsl(var(--primary)) ${readinessPercentage}%, transparent ${readinessPercentage}%)`
                           }}
                         />
-                        
+
                         <svg className="w-44 h-44 transform -rotate-90" viewBox="0 0 208 208">
                           {/* Background track with segments */}
                           <circle
@@ -1467,7 +1407,7 @@ const Profile = () => {
                             fill="none"
                             opacity="0.3"
                           />
-                          
+
                           {/* Inner background circle */}
                           <circle
                             cx="104"
@@ -1478,7 +1418,7 @@ const Profile = () => {
                             fill="none"
                             opacity="0.2"
                           />
-                          
+
                           {/* Progress gradient arc */}
                           <defs>
                             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1494,7 +1434,7 @@ const Profile = () => {
                               </feMerge>
                             </filter>
                           </defs>
-                          
+
                           {/* Main progress arc with glow */}
                           <circle
                             cx="104"
@@ -1508,7 +1448,7 @@ const Profile = () => {
                             className="transition-all duration-1000 ease-out"
                             filter="url(#arcGlow)"
                           />
-                          
+
                           {/* Decorative milestone dots on the track */}
                           {[0, 25, 50, 75, 100].map((percent, i) => {
                             const angle = (percent / 100) * 360 - 90;
@@ -1527,7 +1467,7 @@ const Profile = () => {
                               />
                             );
                           })}
-                          
+
                           {/* Current progress indicator dot */}
                           {readinessPercentage > 0 && (() => {
                             const progressAngle = (readinessPercentage / 100) * 360 - 90;
@@ -1550,7 +1490,7 @@ const Profile = () => {
                             );
                           })()}
                         </svg>
-                        
+
                         {/* Center content */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <div className="relative">
@@ -1571,9 +1511,9 @@ const Profile = () => {
                           const minValue = skillValues[min.skill_name] || 0;
                           return currentValue < minValue ? skill : min;
                         }, skills[0]);
-                        const nextThreshold = readinessPercentage < 20 ? 20 : 
-                                             readinessPercentage < 50 ? 50 : 
-                                             readinessPercentage < 80 ? 80 : 100;
+                        const nextThreshold = readinessPercentage < 20 ? 20 :
+                          readinessPercentage < 50 ? 50 :
+                            readinessPercentage < 80 ? 80 : 100;
                         return (
                           <p className="text-xs text-primary/70 mt-3 text-center max-w-[200px] leading-relaxed">
                             Next focus: <span className="font-medium">{lowestSkill.skill_name}</span> to reach {nextThreshold}% readiness
@@ -1583,7 +1523,7 @@ const Profile = () => {
 
                       {/* Bottom CTA */}
                       <div className="flex flex-col items-center mt-5">
-                        <Button 
+                        <Button
                           className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
                           style={{
                             background: 'linear-gradient(180deg, hsl(var(--primary-glow)), hsl(var(--primary)))',
@@ -1701,7 +1641,7 @@ const Profile = () => {
                   <p className="text-xs font-medium text-muted-foreground">Recommended for you today</p>
                 </div>
               </div>
-              
+
               <div className="space-y-3">
                 {/* Lesson Suggestion */}
                 <div
@@ -1727,11 +1667,10 @@ const Profile = () => {
                 {/* MCQ Suggestion */}
                 <div
                   onClick={todaysFocus.handleDailyQuiz}
-                  className={`flex items-center gap-3 p-3.5 rounded-xl border border-border/30 transition-all duration-200 group ${
-                    todaysFocus.hasCompletedLessons
-                      ? 'hover:border-amber-300/40 hover:bg-amber-50/30 cursor-pointer'
-                      : 'opacity-45 cursor-default'
-                  }`}
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border border-border/30 transition-all duration-200 group ${todaysFocus.hasCompletedLessons
+                    ? 'hover:border-amber-300/40 hover:bg-amber-50/30 cursor-pointer'
+                    : 'opacity-45 cursor-default'
+                    }`}
                 >
                   <div className="w-9 h-9 rounded-xl bg-amber-500/8 flex items-center justify-center shrink-0">
                     <HelpCircle className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
@@ -1750,11 +1689,10 @@ const Profile = () => {
                 {/* Debug & Practice Suggestion */}
                 <div
                   onClick={todaysFocus.handleDebugPractice}
-                  className={`flex items-center gap-3 p-3.5 rounded-xl border border-border/30 transition-all duration-200 group ${
-                    todaysFocus.nextLesson
-                      ? 'hover:border-slate-300/50 hover:bg-slate-50/40 cursor-pointer'
-                      : 'opacity-45 cursor-default'
-                  }`}
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border border-border/30 transition-all duration-200 group ${todaysFocus.nextLesson
+                    ? 'hover:border-slate-300/50 hover:bg-slate-50/40 cursor-pointer'
+                    : 'opacity-45 cursor-default'
+                    }`}
                 >
                   <div className="w-9 h-9 rounded-xl bg-slate-500/8 flex items-center justify-center shrink-0">
                     <Code className="h-4 w-4 text-slate-500" strokeWidth={1.8} />
@@ -1848,7 +1786,7 @@ const Profile = () => {
     });
 
     const iconColors = [
-      { bg: 'rgba(34,197,94,0.1)',  fg: '#16A34A' },
+      { bg: 'rgba(34,197,94,0.1)', fg: '#16A34A' },
       { bg: 'rgba(59,130,246,0.1)', fg: '#2563EB' },
       { bg: 'rgba(168,85,247,0.1)', fg: '#9333EA' },
       { bg: 'rgba(249,115,22,0.1)', fg: '#EA580C' },
@@ -1863,79 +1801,161 @@ const Profile = () => {
       const col = iconColors[index % iconColors.length];
       const IconComp = getIcon(course?.icon, BookOpen);
 
+      const [nextLesson, setNextLesson] = useState<{ title: string; order: number } | null>(null);
+
+      useEffect(() => {
+        if (isCompleted || !course?.id || !userId) return;
+
+        const fetchNextLesson = async () => {
+          try {
+            const [lessonsData, postsData, progressData] = await Promise.all([
+              (supabase
+                .from('course_lessons' as any)
+                .select('id, title, lesson_rank')
+                .eq('course_id', course.id)
+                .eq('is_published', true)
+                .is('deleted_at', null)
+                .order('lesson_rank', { ascending: true }) as unknown as Promise<{ data: { id: string; title: string; lesson_rank: string | null }[] | null }>),
+              supabase
+                .from('posts')
+                .select('id, title, lesson_id, post_rank')
+                .eq('category_id', course.id)
+                .eq('status', 'published')
+                .order('post_rank', { ascending: true }),
+              supabase
+                .from('lesson_progress')
+                .select('lesson_id')
+                .eq('course_id', course.id)
+                .eq('user_id', userId)
+                .eq('completed', true),
+            ]);
+
+            const completedIds = new Set(progressData.data?.map(l => l.lesson_id) || []);
+            const allPosts = postsData.data || [];
+            
+            // Sort posts primarily by their parent lesson's rank, then by post's own post_rank
+            const lessonRanks = new Map((lessonsData.data || []).map((l, i) => [l.id, i]));
+            allPosts.sort((a: any, b: any) => {
+              const rankA = lessonRanks.get(a.lesson_id) ?? 999;
+              const rankB = lessonRanks.get(b.lesson_id) ?? 999;
+              if (rankA !== rankB) return rankA - rankB;
+              return String(a.post_rank || '').localeCompare(String(b.post_rank || ''));
+            });
+
+            const nextPost = allPosts.find((post: any) => !completedIds.has(post.id));
+            if (nextPost) {
+              const parentLesson = (lessonsData.data || []).find(l => l.id === nextPost.lesson_id);
+              const lessonOrder = parentLesson ? (lessonsData.data || []).indexOf(parentLesson) + 1 : 1;
+              const lessonTitle = parentLesson?.title || 'Chapter';
+              setNextLesson({ 
+                title: `${lessonTitle} > ${nextPost.title}`, 
+                order: lessonOrder 
+              });
+            }
+          } catch (e) {
+            console.error("Failed to fetch next lesson", e);
+          }
+        };
+
+        fetchNextLesson();
+      }, [course?.id, isCompleted]);
+
       return (
         <div
-          className="group flex h-full min-h-[220px] flex-col rounded-2xl bg-card border border-border/60 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5"
+          className="group flex flex-col sm:flex-row w-full overflow-hidden cursor-pointer bg-card border border-border/40"
+          style={{
+            borderRadius: '16px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02)',
+            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            minHeight: '140px',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = '0 12px 36px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)';
+            e.currentTarget.style.borderColor = 'hsl(var(--border) / 0.8)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02)';
+            e.currentTarget.style.borderColor = 'hsl(var(--border) / 0.4)';
+          }}
           onClick={() => navigateToCourse(course?.slug, course?.id)}
         >
-          <div className="flex items-start gap-4">
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: col.bg }}
-            >
-              <IconComp className="w-[18px] h-[18px]" style={{ color: col.fg }} strokeWidth={1.8} />
+          {/* Left block (Green Gradient) */}
+          <div
+            className="sm:w-[170px] shrink-0 p-5 flex flex-col justify-center relative overflow-hidden"
+            style={{ 
+              background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))',
+              borderRight: '1px solid rgba(0,0,0,0.04)'
+            }}
+          >
+            <div className="relative z-10">
+              <span className="text-primary-foreground/75 text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5 block drop-shadow-sm">
+                Course
+              </span>
+              <h3 className="text-primary-foreground text-[19px] font-semibold leading-snug line-clamp-2 tracking-tight drop-shadow-sm">
+                {course?.name}
+              </h3>
+            </div>
+            <div className="relative z-10 flex items-center text-primary-foreground/80 text-[11px] font-semibold mt-4 group-hover:text-primary-foreground transition-colors">
+              {isCompleted ? 'Review course' : 'View all chapters'}
+              <ChevronRight className="w-3.5 h-3.5 ml-0.5 opacity-80 transition-transform group-hover:translate-x-1" />
             </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-semibold text-foreground tracking-tight leading-snug line-clamp-2">
-                {course?.name}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {course?.level && (
-                  <span className="flex-shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    {course.level}
-                  </span>
-                )}
-                {isCompleted && (
-                  <span
-                    className="flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: 'hsl(var(--primary) / 0.10)', color: 'hsl(var(--primary))' }}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    Completed
-                  </span>
-                )}
-              </div>
-            </div>
+            {/* Decorative subtle background overlay */}
+            <div
+              className="absolute inset-0 opacity-30 pointer-events-none mix-blend-overlay"
+              style={{ background: 'radial-gradient(circle at top right, rgba(255,255,255,0.4) 0%, transparent 60%)' }}
+            />
           </div>
 
-          <div className="mt-5 flex flex-1 flex-col">
-            <div className="flex items-center gap-2.5">
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden progress-track">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${isCompleted ? 100 : pct}%`,
-                    background: 'linear-gradient(90deg, hsl(var(--primary-glow)), hsl(var(--primary)))',
-                    transition: 'width 600ms ease',
-                  }}
-                />
+          {/* Right block (White) */}
+          <div className="flex-1 p-5 flex flex-col justify-between bg-card relative min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="mt-1 flex-1 min-w-0">
+                <span className="text-muted-foreground/80 text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5 block">
+                  {isCompleted ? 'Status' : 'In Progress'}
+                </span>
+                <h4 className="text-foreground/90 text-[11px] font-bold tracking-wider uppercase truncate">
+                  {isCompleted ? 'Course Completed' : 'Continue Learning'}
+                </h4>
               </div>
-              <span className="flex-shrink-0 text-[12px] font-semibold text-muted-foreground w-10 text-right">
-                {isCompleted ? '100%' : `${pct}%`}
-              </span>
+
+              {/* Progress area */}
+              <div className="flex flex-col sm:items-end shrink-0 sm:w-[110px] pt-1">
+                <div className="w-full h-2 bg-muted/60 rounded-full overflow-hidden mb-2 shadow-inner border border-black/5 dark:border-white/5">
+                  <div
+                    className="h-full rounded-full transition-all duration-700 ease-out relative"
+                    style={{
+                      width: `${isCompleted ? 100 : pct}%`,
+                      background: 'linear-gradient(90deg, hsl(var(--primary)/0.8), hsl(var(--primary)))'
+                    }}
+                  >
+                    <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent)] animate-[shimmer_2s_infinite]" />
+                  </div>
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground/90">
+                  {isCompleted ? (
+                    <span className="flex items-center gap-1.5 text-primary"><CheckCircle2 className="w-3.5 h-3.5" /> Done</span>
+                  ) : (
+                    `${progress.completed}/${progress.total} Lessons`
+                  )}
+                </span>
+              </div>
             </div>
 
-            <p className="text-[12px] text-muted-foreground mt-2 leading-relaxed">
-              {progress.completed} of {progress.total} lessons completed
-              {!isCompleted && course?.learning_hours > 0 ? ` · ${course.learning_hours}h total` : ''}
-            </p>
-
-            <div className="mt-auto pt-5">
+            {/* Bottom CTA */}
+            <div className="flex justify-start sm:justify-end mt-4 sm:mt-0 min-w-0">
               <button
-                className="w-full text-[13px] font-semibold px-4 py-2.5 rounded-xl border-0 cursor-pointer transition-all duration-150"
-                style={isCompleted
-                  ? { background: 'hsl(var(--primary) / 0.08)', color: 'hsl(var(--primary))' }
-                  : {
-                      background: 'linear-gradient(180deg, hsl(var(--primary-glow)), hsl(var(--primary)))',
-                      color: '#fff',
-                      boxShadow: '0 2px 8px hsl(var(--primary-glow) / 0.22)',
-                    }
-                }
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                className="text-[13px] font-semibold text-muted-foreground hover:text-primary transition-all duration-200 flex items-center group/btn truncate max-w-full px-3 py-1.5 -mr-3 rounded-lg hover:bg-primary/[0.04] active:scale-[0.98]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateToCourse(course?.slug, course?.id);
+                }}
               >
-                {isCompleted ? 'Review' : 'Continue →'}
+                <span className="truncate">
+                  {isCompleted ? 'Review course' : (nextLesson ? nextLesson.title : 'Continue course')}
+                </span>
               </button>
             </div>
           </div>
@@ -2000,7 +2020,7 @@ const Profile = () => {
             </span>
           </div>
           {ongoingCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 mt-3">
               {ongoingCourses.map((enrollment, i) => (
                 <CourseRow key={enrollment.id} enrollment={enrollment} index={i} isCompleted={false} />
               ))}
@@ -2128,9 +2148,9 @@ const Profile = () => {
     const isLoading = bookmarksLoading || problemBookmarksLoading;
 
     const diffMap: Record<string, { bg: string; fg: string }> = {
-      Easy:   { bg: 'rgba(34,197,94,0.1)',   fg: '#16A34A' },
-      Medium: { bg: 'rgba(234,179,8,0.1)',    fg: '#A16207' },
-      Hard:   { bg: 'rgba(239,68,68,0.1)',    fg: '#DC2626' },
+      Easy: { bg: 'rgba(34,197,94,0.1)', fg: '#16A34A' },
+      Medium: { bg: 'rgba(234,179,8,0.1)', fg: '#A16207' },
+      Hard: { bg: 'rgba(239,68,68,0.1)', fg: '#DC2626' },
     };
 
     const RowWrap = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
@@ -2293,10 +2313,10 @@ const Profile = () => {
   const renderDiscussions = () => {
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
       });
     };
 
@@ -2319,22 +2339,22 @@ const Profile = () => {
 
     const handleSubmitReply = async (parentId: string, postId: string) => {
       if (!replyContent || !userId) return;
-      
+
       // Check if content is empty TipTap doc
       try {
         const parsed = JSON.parse(replyContent);
-        const isEmpty = !parsed?.content?.some((node: any) => 
+        const isEmpty = !parsed?.content?.some((node: any) =>
           node.content?.some((c: any) => c.text?.trim())
         );
         if (isEmpty) return;
       } catch {
         if (!replyContent.trim()) return;
       }
-      
+
       setSubmittingReply(true);
       try {
         const contentJson = replyContent;
-        
+
         const { data, error } = await supabase
           .from('comments')
           .insert({
@@ -2359,15 +2379,15 @@ const Profile = () => {
             )
           `)
           .single();
-        
+
         if (error) throw error;
-        
+
         // Add the new reply to the replies map
         setCommentReplies(prev => ({
           ...prev,
           [parentId]: [...(prev[parentId] || []), data]
         }));
-        
+
         setReplyContent("");
         toast({
           title: "Reply posted",

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useDoubtSystem, resolveOwner } from "@/hooks/useDoubtSystem";
+import { resolveOwner } from "@/hooks/useDoubtSystem";
 import { cn } from "@/lib/utils";
 import { useLessonNotes } from "@/hooks/useLessonNotes";
 import { AskDoubtButton } from "@/components/doubt/AskDoubtButton";
@@ -21,6 +21,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useCodeEdit } from "@/contexts/CodeEditContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LearningCockpitProps {
   lessonId: string | undefined;
@@ -92,7 +93,6 @@ export const LearningCockpit = ({
   onExitPractice,
 }: LearningCockpitProps) => {
   const messaging = useMessaging(userId);
-  const { routeDoubt } = useDoubtSystem(userId);
   const [activePanel, setActivePanel] = useState<PanelId>(null);
 
   // Code edit context (optional — may not be available on every lesson)
@@ -101,21 +101,48 @@ export const LearningCockpit = ({
   const hasEditedCode = codeEditContext?.hasEditedCode ?? false;
   const editedCodeBlock = codeEditContext?.editedCodeBlock ?? null;
 
+  // Fast path: mentor is already resolved in mentorPreview — skip routeDoubt's
+  // 3-4 sequential DB calls and go directly to connection check/create (1-2 calls).
   const handleStartMentorChat = useCallback(async () => {
-    if (!messaging.mentorPreview) return;
-    const context = {
-      source_type: messaging.mentorPreview.context.source_type as any,
-      source_id: lessonId || "",
-      source_title: messaging.mentorPreview.context.source_title,
-      course_id: courseId,
-      lesson_id: lessonId,
-    };
-    const result = await routeDoubt(context);
-    if (result) {
+    if (!messaging.mentorPreview || !userId) return;
+    const mentor = messaging.mentorPreview.mentor;
+
+    const { data: existing } = await supabase
+      .from("team_connections")
+      .select("id")
+      .eq("learner_id", userId)
+      .eq("connected_user_id", mentor.user_id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (existing) {
       messaging.fetchConnections();
-      messaging.openChat(result.connectionId);
+      messaging.openChat(existing.id, lessonId);
+      return;
     }
-  }, [messaging, routeDoubt, lessonId, courseId]);
+
+    const roleLabel =
+      mentor.role === "senior_moderator" ? "Course Manager"
+      : mentor.role === "super_moderator" ? "Career Manager"
+      : "Content Moderator";
+
+    const { data: newConn } = await supabase
+      .from("team_connections")
+      .insert({
+        learner_id: userId,
+        connected_user_id: mentor.user_id,
+        display_name: mentor.user_name,
+        avatar_url: mentor.avatar_url,
+        role_label: roleLabel,
+        connection_type: "doubt_auto",
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    messaging.fetchConnections();
+    if (newConn) messaging.openChat(newConn.id, lessonId);
+  }, [messaging, userId, lessonId]);
 
   useEffect(() => {
     if (!lessonId || !courseId) return;
@@ -274,36 +301,84 @@ export const LearningCockpit = ({
                   <GitBranch className="h-3.5 w-3.5 text-primary" />
                   <span className="text-[13px] font-semibold text-foreground">Lesson Flow</span>
                 </div>
-                <nav className="px-3 py-2.5 space-y-0.5" role="navigation" aria-label="Lesson sections">
-                  {LESSON_FLOW_SECTIONS.map((section) => {
-                    const Icon = section.icon;
-                    const isActive = activeSection === section.id;
-                    const sectionData = lessonFlowSections.find((s) => s.id === section.id);
-                    const isDisabled = !(sectionData?.exists ?? false);
-                    return (
-                      <button
-                        key={section.id}
-                        onClick={() => { if (!isDisabled) { scrollToSection(section.id); setActivePanel(null); } }}
-                        disabled={isDisabled}
-                        aria-current={isActive ? "location" : undefined}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden",
-                          "transition-all duration-150",
-                          "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-full before:transition-all before:duration-150",
-                          isDisabled && "opacity-35 cursor-not-allowed text-muted-foreground",
-                          !isDisabled && isActive && "bg-muted/70 text-foreground font-medium before:h-5 before:bg-primary",
-                          !isDisabled && !isActive && "text-muted-foreground hover:text-foreground hover:bg-muted/40 before:h-0"
-                        )}
-                      >
-                        <Icon className={cn("h-4 w-4 flex-shrink-0", isActive && !isDisabled && "text-primary")} />
-                        <span className="flex-1 truncate">
-                          {isActive && !isDisabled
-                            ? <span><span className="font-normal text-muted-foreground">In: </span>{section.label}</span>
-                            : section.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <nav className="px-3 py-2.5" role="navigation" aria-label="Lesson sections">
+                  {lessonFlowSections.length === 0 ? (
+                    <p className="text-xs text-muted-foreground/50 px-3 py-2">No sections detected</p>
+                  ) : (
+                    <>
+                      {/* ── Configured sections (Chat Bubbles, Cause & Effect) ── */}
+                      <div className="space-y-0.5">
+                        {lessonFlowSections.filter((s) => !s.isDynamic).map((section) => {
+                          const configEntry = LESSON_FLOW_SECTIONS.find((s) => s.id === section.id)!;
+                          const Icon = configEntry.icon;
+                          const isActive = activeSection === section.id;
+                          const isDisabled = !section.exists;
+                          return (
+                            <button
+                              key={section.id}
+                              onClick={() => { if (!isDisabled) scrollToSection(section.id); }}
+                              disabled={isDisabled}
+                              aria-current={isActive ? "location" : undefined}
+                              className={cn(
+                                "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden",
+                                "transition-all duration-150",
+                                "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-full before:transition-all before:duration-150",
+                                isDisabled && "opacity-35 cursor-not-allowed text-muted-foreground",
+                                !isDisabled && isActive && "bg-muted/70 text-foreground font-medium before:h-5 before:bg-primary",
+                                !isDisabled && !isActive && "text-muted-foreground hover:text-foreground hover:bg-muted/40 before:h-0"
+                              )}
+                            >
+                              <Icon className={cn("h-4 w-4 flex-shrink-0", isActive && !isDisabled && "text-primary")} />
+                              <span className="flex-1 truncate">
+                                {isActive && !isDisabled
+                                  ? <span><span className="font-normal text-muted-foreground">In: </span>{section.label}</span>
+                                  : section.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* ── TipTap heading TOC ── */}
+                      {lessonFlowSections.some((s) => s.isDynamic) && (
+                        <>
+                          <div className="flex items-center gap-2 px-1 mt-3 mb-1.5">
+                            <div className="h-px flex-1 bg-border/40" />
+                            <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-widest">Cause & Effect</span>
+                            <div className="h-px flex-1 bg-border/40" />
+                          </div>
+                          <div className="space-y-0.5">
+                            {lessonFlowSections.filter((s) => s.isDynamic).map((section) => {
+                              const isActive = activeSection === section.id;
+                              const level = section.level ?? 1;
+                              return (
+                                <button
+                                  key={section.id}
+                                  onClick={() => scrollToSection(section.id)}
+                                  aria-current={isActive ? "location" : undefined}
+                                  className={cn(
+                                    "w-full flex items-center px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden",
+                                    "transition-all duration-150",
+                                    "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-full before:transition-all before:duration-150",
+                                    level === 2 && "pl-6",
+                                    level >= 3 && "pl-9",
+                                    isActive && "bg-muted/70 text-foreground font-medium before:h-5 before:bg-primary",
+                                    !isActive && "text-muted-foreground hover:text-foreground hover:bg-muted/40 before:h-0"
+                                  )}
+                                >
+                                  <span className="flex-1 truncate">
+                                    {isActive
+                                      ? <span><span className="font-normal text-muted-foreground">In: </span>{section.label}</span>
+                                      : section.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </nav>
               </PopoverContent>
             </Popover>

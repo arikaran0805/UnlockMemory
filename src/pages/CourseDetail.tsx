@@ -1070,6 +1070,7 @@ const CourseDetail = () => {
               nextSearch.delete("tab");
               setSearchParams(nextSearch, { replace: true });
             }}
+            onPracticeLockedClick={() => openPricingDrawer("practice_problems")}
           />
 
           {/* MAIN CONTENT - centered between sidebars (280px left + 260px right = 540px total, offset by 10px right) */}
@@ -1485,26 +1486,25 @@ const CourseDetail = () => {
 
                                       {/* Practice Problems link */}
                                       {practiceSkill?.slug ? (
-                                        <Link
-                                          to={lessonProblemCounts?.get(lesson.id)
-                                            ? `/practice/${practiceSkill.slug}/lesson/${lesson.id}`
-                                            : `/practice/${practiceSkill.slug}`
-                                          }
-                                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-primary/70 hover:text-primary hover:bg-primary/5 transition-colors"
-                                          onClick={(e) => e.stopPropagation()}
+                                        <button
+                                          type="button"
+                                          className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted/30 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openPricingDrawer("practice_problems");
+                                          }}
                                         >
-                                          {lessonProblemsCompleted?.get(lesson.id) ? (
-                                            <CheckCircle className="h-4 w-4 text-primary" />
-                                          ) : (
-                                            <Dumbbell className="h-4 w-4" />
-                                          )}
+                                          <Dumbbell className="h-4 w-4 opacity-50" />
                                           <span>Practice Problems</span>
-                                          {lessonProblemCounts?.get(lesson.id) && (
-                                            <span className="text-xs text-muted-foreground ml-auto">
-                                              {lessonProblemCounts.get(lesson.id)} problem{(lessonProblemCounts.get(lesson.id) || 0) !== 1 ? 's' : ''}
-                                            </span>
-                                          )}
-                                        </Link>
+                                          <div className="ml-auto flex items-center gap-2">
+                                            {lessonProblemCounts?.get(lesson.id) && (
+                                              <span className="text-xs text-muted-foreground">
+                                                {lessonProblemCounts.get(lesson.id)} problem{(lessonProblemCounts.get(lesson.id) || 0) !== 1 ? 's' : ''}
+                                              </span>
+                                            )}
+                                            <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                                          </div>
+                                        </button>
                                       ) : null}
                                     </div>
                                   ) : (
