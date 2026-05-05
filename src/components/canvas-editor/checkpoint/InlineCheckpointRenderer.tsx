@@ -70,8 +70,8 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
       style={{
         borderRadius: 18,
         overflow: 'hidden',
-        border: '1px solid #1e3428',
-        background: '#0f1c14',
+        border: '1px solid #2a4535',
+        background: '#172318',
       }}
     >
       {/* ── Title ── */}
@@ -81,35 +81,35 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
           alignItems: 'flex-start',
           justifyContent: 'center',
           gap: 8,
-          padding: '20px 20px 4px',
+          padding: '22px 24px 6px',
         }}
       >
         <span style={{
-          fontSize: 22,
+          fontSize: 24,
           fontWeight: 700,
-          color: '#e2e8f0',
-          letterSpacing: '-0.01em',
+          color: '#f0f7f2',
+          letterSpacing: '-0.02em',
           paddingBottom: 6,
         }}>
           Exercise
         </span>
         <span style={{
-          width: 18,
-          height: 18,
+          width: 20,
+          height: 20,
           borderRadius: '50%',
           background: '#2a4535',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          marginTop: 2,
+          marginTop: 3,
         }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 }}>?</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#a8ccb8', lineHeight: 1 }}>?</span>
         </span>
       </div>
 
       {/* ── Body ── */}
-      <div style={{ padding: '12px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '14px 24px 26px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Question */}
         {data.questionType === 'code' ? (
@@ -123,11 +123,15 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
             wordBreak: 'break-words',
             overflow: 'auto',
             textAlign: 'center',
+            background: '#0f1c14',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 10,
+            padding: '16px 20px',
           }}>
             <code>{data.question}</code>
           </pre>
         ) : (
-          <p style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.5, color: '#d4ead9', margin: 0, textAlign: 'center' }}>
+          <p style={{ fontSize: 15.5, fontWeight: 600, lineHeight: 1.55, color: '#e2f0e8', margin: 0, textAlign: 'center' }}>
             {data.question}
           </p>
         )}

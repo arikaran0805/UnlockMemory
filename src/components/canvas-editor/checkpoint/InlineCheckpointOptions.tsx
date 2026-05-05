@@ -24,11 +24,11 @@ const InlineCheckpointOptions = ({
         const isCorrect = opt.id === correctId;
 
         let containerStyle: React.CSSProperties = {
-          border: '1px solid #1e3428',
-          background: '#111f17',
+          border: '1px solid rgba(255,255,255,0.07)',
+          background: '#1e3228',
           boxShadow: 'none',
         };
-        let textColor = '#8dbfa0';
+        let textColor = '#b8d4c0';
         let textWeight: React.CSSProperties['fontWeight'] = 400;
         let cursor = 'pointer';
 
@@ -57,11 +57,11 @@ const InlineCheckpointOptions = ({
             indicator = 'cross';
           } else {
             containerStyle = {
-              border: '1px solid #182818',
-              background: '#0d1810',
-              opacity: 0.45,
+              border: '1px solid rgba(255,255,255,0.04)',
+              background: '#172318',
+              opacity: 0.4,
             };
-            textColor = '#3d5e47';
+            textColor = '#7aaa8e';
           }
         } else if (isSelected) {
           containerStyle = {
@@ -118,7 +118,7 @@ const InlineCheckpointOptions = ({
           return (
             <span style={{
               width: 20, height: 20, borderRadius: '50%',
-              border: '1.5px solid #2a4535',
+              border: '2px solid rgba(255,255,255,0.22)',
               background: 'transparent',
               flexShrink: 0,
               display: 'block',
@@ -150,16 +150,16 @@ const InlineCheckpointOptions = ({
             onMouseEnter={(e) => {
               if (!submitted && !isSelected) {
                 const el = e.currentTarget as HTMLButtonElement;
-                el.style.border = '1px solid #2a4535';
-                el.style.background = '#162118';
+                el.style.border = '1px solid rgba(255,255,255,0.13)';
+                el.style.background = '#253d2e';
                 el.style.boxShadow = 'none';
               }
             }}
             onMouseLeave={(e) => {
               if (!submitted && !isSelected) {
                 const el = e.currentTarget as HTMLButtonElement;
-                el.style.border = '1px solid #1e3428';
-                el.style.background = '#111f17';
+                el.style.border = '1px solid rgba(255,255,255,0.07)';
+                el.style.background = '#1e3228';
                 el.style.boxShadow = 'none';
               }
             }}
