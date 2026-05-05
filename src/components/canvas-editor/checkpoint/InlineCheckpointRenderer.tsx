@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ListChecks } from 'lucide-react';
 import type { InlineCheckpointData } from '../types';
 import InlineCheckpointOptions from './InlineCheckpointOptions';
 import InlineCheckpointFeedback from './InlineCheckpointFeedback';
-import { useTheme } from 'next-themes';
 
 interface InlineCheckpointRendererProps {
   data: InlineCheckpointData;
@@ -23,8 +21,6 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
   const [submitted, setSubmitted] = useState(false);
   const [correct, setCorrect] = useState(false);
   const [btnHover, setBtnHover] = useState(false);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
 
   useEffect(() => {
     try {
@@ -74,38 +70,45 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
       style={{
         borderRadius: 18,
         overflow: 'hidden',
-        border: isDark ? '1px solid #1e3428' : '1px solid #e2e2e7',
-        background: isDark ? '#0f1c14' : '#fff',
+        border: '1px solid #1e3428',
+        background: '#0f1c14',
       }}
     >
-      {/* ── Header ── */}
+      {/* ── Title ── */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: 8,
-          padding: '11px 20px',
-          background: isDark ? 'linear-gradient(to right, #111f17, #0f1c14)' : 'linear-gradient(to right, #f5f5f7, #f1f1f4)',
-          borderBottom: isDark ? '1px solid #1e3428' : '1px solid #e4e4e9',
+          padding: '20px 20px 4px',
         }}
       >
         <span style={{
-          width: 7, height: 7, borderRadius: '50%',
-          background: '#5aaa82',
-          flexShrink: 0,
-          boxShadow: '0 0 0 2px rgba(90,170,130,0.18)',
-        }} />
-        <ListChecks style={{ width: 13, height: 13, color: isDark ? '#5d8a6a' : '#86868e', flexShrink: 0 }} />
-        <span style={{
-          fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: isDark ? '#5d8a6a' : '#86868e', userSelect: 'none',
+          fontSize: 22,
+          fontWeight: 700,
+          color: '#e2e8f0',
+          letterSpacing: '-0.01em',
         }}>
-          Knowledge Check
+          Exercise
+        </span>
+        <span style={{
+          width: 18,
+          height: 18,
+          borderRadius: '50%',
+          background: '#2a4535',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          marginBottom: 8,
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 }}>?</span>
         </span>
       </div>
 
       {/* ── Body ── */}
-      <div style={{ padding: '20px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '12px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Question */}
         {data.questionType === 'code' ? (
@@ -113,16 +116,17 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
             fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
             fontSize: 13.5,
             lineHeight: '22px',
-            color: isDark ? '#c8e2d2' : '#1a1a2e',
+            color: '#c8e2d2',
             margin: 0,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-words',
             overflow: 'auto',
+            textAlign: 'center',
           }}>
             <code>{data.question}</code>
           </pre>
         ) : (
-          <p style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.5, color: isDark ? '#d4ead9' : '#18181b', margin: 0 }}>
+          <p style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.5, color: '#d4ead9', margin: 0, textAlign: 'center' }}>
             {data.question}
           </p>
         )}
@@ -155,10 +159,10 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
             onMouseEnter={() => setBtnHover(true)}
             onMouseLeave={() => setBtnHover(false)}
             style={{
-              alignSelf: 'flex-start',
+              alignSelf: 'center',
               marginTop: 2,
-              padding: '9px 22px',
-              borderRadius: 11,
+              padding: '10px 28px',
+              borderRadius: 8,
               border: 'none',
               fontSize: 13.5,
               fontWeight: 600,
@@ -168,8 +172,8 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
                 ? (btnHover
                   ? 'linear-gradient(135deg, #45a06e, #338055)'
                   : 'linear-gradient(135deg, #4daa78, #3a9066)')
-                : (isDark ? '#1a2a1e' : '#ebebef'),
-              color: canSubmit ? '#fff' : (isDark ? '#3d5e47' : '#a8a8b0'),
+                : '#1a2a1e',
+              color: canSubmit ? '#fff' : '#3d5e47',
               boxShadow: canSubmit
                 ? (btnHover
                   ? '0 4px 14px rgba(55,140,90,0.32)'
@@ -177,7 +181,7 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
                 : 'none',
             }}
           >
-            Check Answer
+            Submit Answer »
           </button>
         )}
 
@@ -186,28 +190,28 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
             type="button"
             onClick={handleRetry}
             style={{
-              alignSelf: 'flex-start',
+              alignSelf: 'center',
               marginTop: 2,
               padding: '9px 22px',
               borderRadius: 11,
-              border: isDark ? '1px solid #2a4535' : '1px solid #d0d0d8',
+              border: '1px solid #2a4535',
               fontSize: 13.5,
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
-              background: isDark ? '#111f17' : '#fff',
-              color: isDark ? '#8dbfa0' : '#3f3f46',
-              boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
+              background: '#111f17',
+              color: '#8dbfa0',
+              boxShadow: 'none',
             }}
             onMouseEnter={(e) => {
               const el = e.currentTarget as HTMLButtonElement;
-              el.style.background = isDark ? '#162118' : '#f5f5f8';
-              el.style.borderColor = isDark ? '#3a5e47' : '#b8b8c2';
+              el.style.background = '#162118';
+              el.style.borderColor = '#3a5e47';
             }}
             onMouseLeave={(e) => {
               const el = e.currentTarget as HTMLButtonElement;
-              el.style.background = isDark ? '#111f17' : '#fff';
-              el.style.borderColor = isDark ? '#2a4535' : '#d0d0d8';
+              el.style.background = '#111f17';
+              el.style.borderColor = '#2a4535';
             }}
           >
             Try Again
