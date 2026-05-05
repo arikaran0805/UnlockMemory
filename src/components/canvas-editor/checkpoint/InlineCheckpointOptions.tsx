@@ -1,7 +1,6 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
 import type { CheckpointOption } from '../types';
-import { useTheme } from 'next-themes';
 
 interface InlineCheckpointOptionsProps {
   options: CheckpointOption[];
@@ -18,26 +17,18 @@ const InlineCheckpointOptions = ({
   submitted,
   onSelect,
 }: InlineCheckpointOptionsProps) => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }} role="radiogroup">
       {options.map((opt) => {
         const isSelected = selectedId === opt.id;
         const isCorrect = opt.id === correctId;
 
-        // ── Compute state ─────────────────────────────────────────────────────
-        let containerStyle: React.CSSProperties = isDark ? {
+        let containerStyle: React.CSSProperties = {
           border: '1px solid #1e3428',
           background: '#111f17',
           boxShadow: 'none',
-        } : {
-          border: '1px solid #e4e4e9',
-          background: '#fafafa',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
         };
-        let textColor = isDark ? '#8dbfa0' : '#3f3f46';
+        let textColor = '#8dbfa0';
         let textWeight: React.CSSProperties['fontWeight'] = 400;
         let cursor = 'pointer';
 
@@ -47,59 +38,42 @@ const InlineCheckpointOptions = ({
         if (submitted) {
           cursor = 'default';
           if (isCorrect) {
-            containerStyle = isDark ? {
+            containerStyle = {
               border: '1px solid rgba(90,170,130,0.45)',
               background: 'linear-gradient(to right, #0e2318, #0c2015)',
               boxShadow: '0 2px 12px rgba(80,160,120,0.10)',
-            } : {
-              border: '1px solid rgba(90,170,130,0.55)',
-              background: 'linear-gradient(to right, #eef9f4, #e8f7f0)',
-              boxShadow: '0 2px 12px rgba(80,160,120,0.12), 0 1px 3px rgba(80,160,120,0.07)',
             };
-            textColor = isDark ? '#5aaa82' : '#1c4d35';
+            textColor = '#5aaa82';
             textWeight = 500;
             indicator = 'check';
           } else if (isSelected && !isCorrect) {
-            containerStyle = isDark ? {
+            containerStyle = {
               border: '1px solid rgba(220,80,80,0.35)',
               background: 'linear-gradient(to right, #1f1010, #1c0e0e)',
               boxShadow: '0 2px 8px rgba(200,60,60,0.08)',
-            } : {
-              border: '1px solid rgba(220,80,80,0.45)',
-              background: 'linear-gradient(to right, #fef4f4, #fdf0f0)',
-              boxShadow: '0 2px 10px rgba(210,60,60,0.08), 0 1px 3px rgba(210,60,60,0.05)',
             };
-            textColor = isDark ? '#cc6666' : '#7a1e1e';
+            textColor = '#cc6666';
             textWeight = 500;
             indicator = 'cross';
           } else {
-            containerStyle = isDark ? {
+            containerStyle = {
               border: '1px solid #182818',
               background: '#0d1810',
               opacity: 0.45,
-            } : {
-              border: '1px solid #ebebef',
-              background: '#f8f8fb',
-              opacity: 0.45,
             };
-            textColor = isDark ? '#3d5e47' : '#71717a';
+            textColor = '#3d5e47';
           }
         } else if (isSelected) {
-          containerStyle = isDark ? {
+          containerStyle = {
             border: '1px solid rgba(90,170,130,0.50)',
             background: 'linear-gradient(to right, #0f2219, #0d1e16)',
             boxShadow: '0 2px 12px rgba(80,160,120,0.10), 0 0 0 3px rgba(90,170,130,0.08)',
-          } : {
-            border: '1px solid rgba(90,170,130,0.60)',
-            background: 'linear-gradient(to right, #f2fbf6, #edf8f2)',
-            boxShadow: '0 2px 12px rgba(80,160,120,0.12), 0 0 0 3px rgba(90,170,130,0.10)',
           };
-          textColor = isDark ? '#c8e2d2' : '#18181b';
+          textColor = '#c8e2d2';
           textWeight = 500;
           indicator = 'radio-filled';
         }
 
-        // ── Indicator renderer ────────────────────────────────────────────────
         const renderIndicator = () => {
           if (indicator === 'check') {
             return (
@@ -141,11 +115,10 @@ const InlineCheckpointOptions = ({
               </span>
             );
           }
-          // radio-empty
           return (
             <span style={{
               width: 20, height: 20, borderRadius: '50%',
-              border: isDark ? '1.5px solid #2a4535' : '1.5px solid #c8c8d0',
+              border: '1.5px solid #2a4535',
               background: 'transparent',
               flexShrink: 0,
               display: 'block',
@@ -177,17 +150,17 @@ const InlineCheckpointOptions = ({
             onMouseEnter={(e) => {
               if (!submitted && !isSelected) {
                 const el = e.currentTarget as HTMLButtonElement;
-                el.style.border = isDark ? '1px solid #2a4535' : '1px solid #c0c0ca';
-                el.style.background = isDark ? '#162118' : '#f4f4f7';
-                el.style.boxShadow = isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.07)';
+                el.style.border = '1px solid #2a4535';
+                el.style.background = '#162118';
+                el.style.boxShadow = 'none';
               }
             }}
             onMouseLeave={(e) => {
               if (!submitted && !isSelected) {
                 const el = e.currentTarget as HTMLButtonElement;
-                el.style.border = isDark ? '1px solid #1e3428' : '1px solid #e4e4e9';
-                el.style.background = isDark ? '#111f17' : '#fafafa';
-                el.style.boxShadow = isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.04)';
+                el.style.border = '1px solid #1e3428';
+                el.style.background = '#111f17';
+                el.style.boxShadow = 'none';
               }
             }}
           >
