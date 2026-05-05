@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
-import { useTheme } from 'next-themes';
 
 interface InlineCheckpointFeedbackProps {
   visible: boolean;
@@ -15,9 +14,6 @@ const InlineCheckpointFeedback = ({
   explanation,
   showExplanation,
 }: InlineCheckpointFeedbackProps) => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-
   return (
     <AnimatePresence>
       {visible && (
@@ -29,31 +25,25 @@ const InlineCheckpointFeedback = ({
           style={correct
             ? {
                 borderRadius: 13,
-                border: isDark ? '1px solid rgba(90,170,130,0.35)' : '1px solid rgba(90,170,130,0.45)',
+                border: '1px solid rgba(90,170,130,0.35)',
                 borderLeft: '3px solid #5aaa82',
-                background: isDark
-                  ? 'linear-gradient(to right, #0e2318, #0c2015)'
-                  : 'linear-gradient(to right, #eef9f4, #e8f7f0)',
-                color: isDark ? '#5aaa82' : '#1c4d35',
+                background: 'linear-gradient(to right, #0e2318, #0c2015)',
+                color: '#5aaa82',
                 padding: '13px 16px',
                 display: 'flex',
                 flexDirection: 'column' as const,
                 gap: 6,
-                boxShadow: isDark ? 'none' : '0 2px 12px rgba(80,160,120,0.10), 0 1px 3px rgba(80,160,120,0.06)',
               }
             : {
                 borderRadius: 13,
-                border: isDark ? '1px solid rgba(220,80,80,0.28)' : '1px solid rgba(220,80,80,0.38)',
+                border: '1px solid rgba(220,80,80,0.28)',
                 borderLeft: '3px solid #e06060',
-                background: isDark
-                  ? 'linear-gradient(to right, #1f1010, #1c0e0e)'
-                  : 'linear-gradient(to right, #fef4f4, #fdf0f0)',
-                color: isDark ? '#cc6666' : '#7a1e1e',
+                background: 'linear-gradient(to right, #1f1010, #1c0e0e)',
+                color: '#cc6666',
                 padding: '13px 16px',
                 display: 'flex',
                 flexDirection: 'column' as const,
                 gap: 6,
-                boxShadow: isDark ? 'none' : '0 2px 10px rgba(210,60,60,0.08), 0 1px 3px rgba(210,60,60,0.04)',
               }
           }
         >
