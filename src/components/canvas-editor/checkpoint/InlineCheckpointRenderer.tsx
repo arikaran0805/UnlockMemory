@@ -78,7 +78,7 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
           gap: 8,
           padding: '20px 20px 4px',
@@ -89,6 +89,7 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
           fontWeight: 700,
           color: '#e2e8f0',
           letterSpacing: '-0.01em',
+          paddingBottom: 6,
         }}>
           Exercise
         </span>
@@ -101,7 +102,7 @@ const InlineCheckpointRenderer = ({ data, blockId }: InlineCheckpointRendererPro
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          marginBottom: 8,
+          marginTop: 2,
         }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 }}>?</span>
         </span>
