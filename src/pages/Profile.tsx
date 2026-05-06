@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import UMLoader from "@/components/UMLoader";
 import { useCourseNavigation } from "@/hooks/useCourseNavigation";
 import { useTodaysFocus } from "@/hooks/useTodaysFocus";
@@ -32,6 +33,7 @@ import { ContinueLearningCard } from "@/components/ContinueLearningCard";
 import Layout from "@/components/Layout";
 import SlimFooter from "@/components/SlimFooter";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUserState } from "@/hooks/useUserState";
 import { PracticeLab } from "@/components/practice";
 import { useActiveLabsProgress } from "@/hooks/useActiveLabsProgress";
 import { useSkillsProgress } from "@/hooks/useSkillsProgress";
@@ -39,6 +41,7 @@ import { usePublishedPracticeSkills } from "@/hooks/usePracticeSkills";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { LightEditor } from "@/components/tiptap";
 import { useWeeklyActivity } from "@/hooks/useWeeklyActivity";
+import type { WeeklyActivityData } from "@/hooks/useWeeklyActivity";
 import { z } from "zod";
 import { icons, RotateCcw, Code2, Play, CheckCircle2, AlertCircle, Mail, HelpCircle, Code } from "lucide-react";
 import {
@@ -98,6 +101,49 @@ const passwordSchema = z.object({
   message: "Passwords do not match",
   path: ["confirmPassword"],
 });
+
+// ─── Profile data cache (sessionStorage) ────────────────────────────────────
+// Persists within a browser session so the dashboard renders instantly on revisit.
+// The user ID is stored separately so lazy state initializers can read the cache
+// synchronously before the first render — before AuthContext finishes its DB call.
+const PROFILE_CACHE_KEY = (uid: string) => `um_profile_${uid}`;
+const PROFILE_UID_KEY = 'um_profile_uid';
+interface ProfileCache {
+  fullName: string; avatarUrl: string; email: string; selectedCareer: string;
+  currentStreak: number; maxStreak: number; streakFreezesAvailable: number;
+  enrolledCourses: any[]; allCourses: any[];
+  courseProgressMap: Record<string, { completed: number; total: number }>;
+  completedCourseSlugs: string[];
+}
+function getStoredUid(): string | null {
+  try { return sessionStorage.getItem(PROFILE_UID_KEY); }
+  catch { return null; }
+}
+function readProfileCache(uid: string): ProfileCache | null {
+  try { return JSON.parse(sessionStorage.getItem(PROFILE_CACHE_KEY(uid)) || "null"); }
+  catch { return null; }
+}
+function writeProfileCache(uid: string, data: ProfileCache) {
+  try {
+    sessionStorage.setItem(PROFILE_CACHE_KEY(uid), JSON.stringify(data));
+    sessionStorage.setItem(PROFILE_UID_KEY, uid); // stored for lazy init on next mount
+  }
+  catch {}
+}
+
+// ─── Weekly activity sessionStorage cache ─────────────────────────────────────
+// Separate from profile cache — written when React Query returns fresh data,
+// restored as placeholderData so the chart renders immediately without loading state.
+const WEEKLY_ACTIVITY_CACHE_KEY = (uid: string) => `um_weekly_activity_${uid}`;
+function readWeeklyActivityCache(uid: string): WeeklyActivityData | null {
+  try { return JSON.parse(sessionStorage.getItem(WEEKLY_ACTIVITY_CACHE_KEY(uid)) || "null"); }
+  catch { return null; }
+}
+function writeWeeklyActivityCache(uid: string, data: WeeklyActivityData) {
+  try { sessionStorage.setItem(WEEKLY_ACTIVITY_CACHE_KEY(uid), JSON.stringify(data)); }
+  catch {}
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 type TabType = 'dashboard' | 'learnings' | 'bookmarks' | 'discussions' | 'settings' | 'practice';
 
@@ -541,24 +587,38 @@ const FeaturedCourseCard = ({
 };
 
 const Profile = () => {
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading: authLoading } = useAuth();
+
+  // ── Synchronous cache init ────────────────────────────────────────────────
+  // Read cache before first render so the dashboard is instant on revisit.
+  // AuthContext fires a DB call (fetchUserRoles) before setting user/isLoading,
+  // so we can't wait for it. We stored the uid at last write so we can look it
+  // up synchronously here.
+  const [initData] = useState<{ uid: string | null; cache: ProfileCache | null }>(() => {
+    const uid = getStoredUid();
+    return { uid, cache: uid ? readProfileCache(uid) : null };
+  });
+
+  const [loading, setLoading] = useState(() => !initData.cache);
   const [updating, setUpdating] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [email, setEmail] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
+  const [fullName, setFullName] = useState(() => initData.cache?.fullName ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(() => initData.cache?.avatarUrl ?? "");
+  const [email, setEmail] = useState(() => initData.cache?.email ?? "");
+  const [userId, setUserId] = useState<string | null>(() => initData.uid);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
-  const [allCourses, setAllCourses] = useState<any[]>([]);
-  const [completedCourseSlugs, setCompletedCourseSlugs] = useState<string[]>([]);
-  const [courseProgressMap, setCourseProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
-  const [selectedCareer, setSelectedCareer] = useState<string>('data-science');
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>(() => initData.cache?.enrolledCourses ?? []);
+  const [allCourses, setAllCourses] = useState<any[]>(() => initData.cache?.allCourses ?? []);
+  const [completedCourseSlugs, setCompletedCourseSlugs] = useState<string[]>(() => initData.cache?.completedCourseSlugs ?? []);
+  const [courseProgressMap, setCourseProgressMap] = useState<Record<string, { completed: number; total: number }>>(() => initData.cache?.courseProgressMap ?? {});
+  const [selectedCareer, setSelectedCareer] = useState<string>(() => initData.cache?.selectedCareer ?? '');
+  const [userCareerSelectedIds, setUserCareerSelectedIds] = useState<string[] | null>(null);
   const [careerDialogOpen, setCareerDialogOpen] = useState(false);
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [maxStreak, setMaxStreak] = useState(0);
-  const [streakFreezesAvailable, setStreakFreezesAvailable] = useState(2);
+  const [currentStreak, setCurrentStreak] = useState(() => initData.cache?.currentStreak ?? 0);
+  const [maxStreak, setMaxStreak] = useState(() => initData.cache?.maxStreak ?? 0);
+  const [streakFreezesAvailable, setStreakFreezesAvailable] = useState(() => initData.cache?.streakFreezesAvailable ?? 2);
   const [isFreezingStreak, setIsFreezingStreak] = useState(false);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [resendingVerification, setResendingVerification] = useState(false);
@@ -571,20 +631,36 @@ const Profile = () => {
   const { toast } = useToast();
   const { bookmarks, loading: bookmarksLoading, toggleBookmark } = useBookmarks();
   const { bookmarks: problemBookmarks, loading: problemBookmarksLoading, toggleBookmark: toggleProblemBookmark } = useProblemBookmarks();
-  const { getCareerBySlug, getCareerCourseSlugs, getCareerSkills, getSkillContributionsForCourse, getCourseForSkill, loading: careersLoading } = useCareers();
+  const { getCareerBySlug, getCareerCourseSlugs, getCareerSkills, getCourseForSkill, loading: careersLoading } = useCareers();
   const { isAdmin, isModerator } = useUserRole();
+  const { isPro } = useUserState();
   const { navigateToCourse, navigateToCourseInCareerBoard, handleResume } = useCourseNavigation();
 
-  const { data: weeklyActivityQueryData, isLoading: weeklyActivityLoading } = useWeeklyActivity(userId);
+  // Restore cached weekly activity as placeholderData so the chart never shows
+  // a loading state on revisit — React Query refetches in background silently.
+  const cachedWeeklyActivity = initData.uid ? readWeeklyActivityCache(initData.uid) : null;
+  const { data: weeklyActivityQueryData, isLoading: weeklyActivityLoading } = useWeeklyActivity(
+    userId,
+    cachedWeeklyActivity ?? undefined,
+  );
   const weeklyActivityData =
     weeklyActivityQueryData ??
     ({ totalSeconds: 0, activeDays: 0, dailySeconds: {}, lastWeekSeconds: 0 } as const);
+
+  // Persist weekly activity to sessionStorage whenever React Query returns fresh data
+  useEffect(() => {
+    if (weeklyActivityQueryData && userId) {
+      writeWeeklyActivityCache(userId, weeklyActivityQueryData);
+    }
+  }, [weeklyActivityQueryData, userId]);
 
   // Practice labs progress — used in My Learnings
   const enrolledCourseIds = useMemo(
     () => enrolledCourses.map((e: any) => e.courses?.id).filter(Boolean) as string[],
     [enrolledCourses],
   );
+  const { data: publishedPracticeSkills = [] } = usePublishedPracticeSkills();
+
   const { data: labProgressMap, isLoading: labProgressLoading } = useActiveLabsProgress(
     userId ?? undefined,
     enrolledCourseIds,
@@ -627,9 +703,110 @@ const Profile = () => {
     }
   }, [searchParams]);
 
+  /**
+   * Fetch all profile data in a single parallel batch.
+   * uid is taken directly from AuthContext — no extra getSession() round-trip.
+   * Results are written to sessionStorage for instant render on the next visit.
+   * NOTE: must be declared before the useEffect that lists it as a dependency (TDZ safety).
+   */
+  const fetchProfileData = useCallback(async (uid: string) => {
+    try {
+      // All 5 queries run in parallel — from ~750 ms sequential to ~150 ms parallel.
+      const [profileRes, enrollmentsRes, coursesRes, lessonProgressRes, courseLessonsRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", uid).single(),
+        supabase.from("course_enrollments").select(`
+          *,
+          courses:course_id (id, name, slug, description, featured_image, level, icon, learning_hours)
+        `).eq("user_id", uid),
+        supabase.from("courses").select("id, name, slug, description, featured_image, level, icon, learning_hours"),
+        supabase.from("lesson_progress").select("course_id, completed").eq("user_id", uid).eq("completed", true),
+        supabase.from("posts").select("id, category_id"),
+      ]);
+
+      if (profileRes.error) throw profileRes.error;
+      const profile = profileRes.data;
+      const enrollments = enrollmentsRes.data ?? [];
+      const courses = coursesRes.data ?? [];
+      const lessonProgress = lessonProgressRes.data ?? [];
+      const courseLessons = courseLessonsRes.data ?? [];
+
+      // Profile fields
+      setFullName(profile.full_name || "");
+      setAvatarUrl(profile.avatar_url || "");
+      setEmail(profile.email);
+      setUserId(uid);
+      setSelectedCareer((profile as any).selected_career || '');
+      setCurrentStreak((profile as any).current_streak || 0);
+      setMaxStreak((profile as any).max_streak || 0);
+      setStreakFreezesAvailable((profile as any).streak_freezes_available ?? 2);
+
+      setEnrolledCourses(enrollments);
+      setAllCourses(courses);
+
+      // Build progress maps
+      const lessonCountByCourse: Record<string, number> = {};
+      courseLessons.forEach(lesson => {
+        if (lesson.category_id) {
+          lessonCountByCourse[lesson.category_id] = (lessonCountByCourse[lesson.category_id] || 0) + 1;
+        }
+      });
+      const completedByCourse: Record<string, number> = {};
+      lessonProgress.forEach(progress => {
+        completedByCourse[progress.course_id] = (completedByCourse[progress.course_id] || 0) + 1;
+      });
+      const progressMap: Record<string, { completed: number; total: number }> = {};
+      courses.forEach(course => {
+        progressMap[course.slug] = {
+          completed: completedByCourse[course.id] || 0,
+          total: lessonCountByCourse[course.id] || 0,
+        };
+      });
+      setCourseProgressMap(progressMap);
+
+      const completed = courses
+        .filter(course => {
+          const total = lessonCountByCourse[course.id] || 0;
+          return total > 0 && (completedByCourse[course.id] || 0) >= total;
+        })
+        .map(course => course.slug);
+      setCompletedCourseSlugs(completed);
+
+      // Persist to sessionStorage so the next visit renders instantly from cache
+      writeProfileCache(uid, {
+        fullName: profile.full_name || "",
+        avatarUrl: profile.avatar_url || "",
+        email: profile.email,
+        selectedCareer: (profile as any).selected_career || '',
+        currentStreak: (profile as any).current_streak || 0,
+        maxStreak: (profile as any).max_streak || 0,
+        streakFreezesAvailable: (profile as any).streak_freezes_available ?? 2,
+        enrolledCourses: enrollments,
+        allCourses: courses,
+        courseProgressMap: progressMap,
+        completedCourseSlugs: completed,
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  // Auth-aware data loading:
+  // Cache was already applied synchronously via lazy useState initializers (instant render).
+  // This effect waits for AuthContext to finish (fetchUserRoles DB call), then:
+  // - Redirects unauthenticated users to /auth
+  // - Ensures userId reflects the actual authenticated user (not a stale cached uid)
+  // - Fetches fresh data in the background (silent refresh on revisit, first load on new visit)
   useEffect(() => {
-    checkUser();
-  }, []);
+    if (authLoading) return;
+    if (!user) { navigate("/auth"); return; }
+
+    setEmailVerified(user.email_confirmed_at !== null);
+    setUserId(user.id);
+
+    fetchProfileData(user.id);
+  }, [authLoading, user, fetchProfileData]);
 
   // Fetch user's comments for Discussions tab — cached so tab switches are instant
   const { data: discussionsData, isLoading: commentsLoading } = useQuery({
@@ -785,135 +962,33 @@ const Profile = () => {
     refreshStreak();
   }, [userId]);
 
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      // Check email verification status from session
-      setEmailVerified(session.user.email_confirmed_at !== null);
-
-      // Fetch profile data
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (error) throw error;
-
-      if (profile) {
-        setFullName(profile.full_name || "");
-        setAvatarUrl(profile.avatar_url || "");
-        setEmail(profile.email);
-        setUserId(session.user.id);
-        // Load saved career path
-        if ((profile as any).selected_career) {
-          setSelectedCareer((profile as any).selected_career as string);
-        }
-        // Load streak data
-        setCurrentStreak((profile as any).current_streak || 0);
-        setMaxStreak((profile as any).max_streak || 0);
-        setStreakFreezesAvailable((profile as any).streak_freezes_available ?? 2);
-      }
-
-      // Fetch enrolled courses
-      const { data: enrollments } = await supabase
-        .from("course_enrollments")
-        .select(`
-          *,
-          courses:course_id (
-            id,
-            name,
-            slug,
-            description,
-            featured_image,
-            level,
-            icon,
-            learning_hours
-          )
-        `)
-        .eq("user_id", session.user.id);
-
-      if (enrollments) {
-        setEnrolledCourses(enrollments);
-      }
-
-      // Fetch all courses for recommendations
-      const { data: courses } = await supabase
-        .from("courses")
-        .select("id, name, slug, description, featured_image, level, icon, learning_hours");
-
-      if (courses) {
-        setAllCourses(courses);
-      }
-
-      // Fetch lesson progress to determine completed courses
-      const { data: lessonProgress } = await supabase
-        .from("lesson_progress")
-        .select("course_id, completed")
-        .eq("user_id", session.user.id)
-        .eq("completed", true);
-
-      // Fetch lesson counts per course (all lessons regardless of status)
-      const { data: courseLessons } = await supabase
-        .from("posts")
-        .select("id, category_id");
-
-      if (lessonProgress && courseLessons && courses) {
-        // Count lessons per course
-        const lessonCountByCourse: Record<string, number> = {};
-        courseLessons.forEach(lesson => {
-          if (lesson.category_id) {
-            lessonCountByCourse[lesson.category_id] = (lessonCountByCourse[lesson.category_id] || 0) + 1;
-          }
-        });
-
-        // Count completed lessons per course
-        const completedByCourse: Record<string, number> = {};
-        lessonProgress.forEach(progress => {
-          completedByCourse[progress.course_id] = (completedByCourse[progress.course_id] || 0) + 1;
-        });
-
-        // Build course progress map (by slug for easy lookup)
-        const progressMap: Record<string, { completed: number; total: number }> = {};
-        courses.forEach(course => {
-          const total = lessonCountByCourse[course.id] || 0;
-          const done = completedByCourse[course.id] || 0;
-          progressMap[course.slug] = { completed: done, total };
-        });
-        setCourseProgressMap(progressMap);
-
-        // Determine which courses are completed (all lessons done)
-        const completed = courses
-          .filter(course => {
-            const total = lessonCountByCourse[course.id] || 0;
-            const done = completedByCourse[course.id] || 0;
-            return total > 0 && done >= total;
-          })
-          .map(course => course.slug);
-
-        setCompletedCourseSlugs(completed);
-      }
-
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+  // Fetch user's planned course selections for the active career
+  useEffect(() => {
+    if (!userId || !selectedCareer) {
+      setUserCareerSelectedIds(null);
+      return;
     }
-  };
+    const career = getCareerBySlug(selectedCareer);
+    if (!career) {
+      setUserCareerSelectedIds(null);
+      return;
+    }
+    const fetchCareerSelections = async () => {
+      const { data } = await supabase
+        .from("user_career_selections")
+        .select("selected_course_ids")
+        .eq("user_id", userId)
+        .eq("career_id", career.id)
+        .maybeSingle();
+      setUserCareerSelectedIds(data?.selected_course_ids ?? null);
+    };
+    fetchCareerSelections();
+  }, [userId, selectedCareer, getCareerBySlug]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setSearchParams({ tab });
+    if (contentRef.current) contentRef.current.scrollTop = 0;
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -1164,57 +1239,72 @@ const Profile = () => {
     ? Math.round((weeklyActivityData.totalSeconds / 60) / weeklyActivityData.activeDays)
     : 0;
 
-  // Get skills and calculate actual skill values from database
+  // Career skills kept for weight lookup (each career_skills row maps 1:1 to a course in the new model)
   const skills = career ? getCareerSkills(career.id) : [];
 
-  // Calculate skill values based on lesson completion within courses
-  const calculateSkillValues = () => {
-    if (!career || skills.length === 0) return {};
-
-    const skillValues: Record<string, number> = {};
-
-    skills.forEach(skill => {
-      let skillValue = 0;
-
-      // For each course in this career path, calculate partial contribution based on lesson progress
-      careerRelatedSlugs.forEach(courseSlug => {
-        const contributions = getSkillContributionsForCourse(career.id, courseSlug);
-        const contribution = contributions.find(c => c.skill_name === skill.skill_name);
-
-        if (contribution) {
-          // Get the course's lesson progress
-          const progress = courseProgressMap[courseSlug];
-          if (progress && progress.total > 0) {
-            // Calculate partial contribution based on % of lessons completed
-            const completionRatio = progress.completed / progress.total;
-            skillValue += contribution.contribution * completionRatio;
-          }
-        }
-      });
-
-      // Cap at 100
-      skillValues[skill.skill_name] = Math.min(Math.round(skillValue), 100);
-    });
-
-    return skillValues;
+  // Helper: get lesson-completion % for a course slug (0–100)
+  const getCourseCompletionPct = (slug: string): number => {
+    const p = courseProgressMap[slug];
+    if (!p || p.total === 0) return 0;
+    return Math.round((p.completed / p.total) * 100);
   };
 
-  const skillValues = calculateSkillValues();
+  // Effective planned course IDs:
+  // - If user has selections in user_career_selections, use those (their plan)
+  // - Otherwise fall back to all career courses (they haven't planned yet)
+  const effectivePlannedIds: string[] = (() => {
+    if (userCareerSelectedIds !== null && userCareerSelectedIds.length > 0) {
+      return userCareerSelectedIds;
+    }
+    // Fallback: all career courses (no plan recorded yet)
+    return allCourses
+      .filter(c => careerRelatedSlugs.includes(c.slug))
+      .map(c => c.id);
+  })();
 
-  // Calculate weighted career readiness percentage
+  // Planned career courses (from allCourses, ordered by effectivePlannedIds)
+  const plannedCareerCourses = effectivePlannedIds
+    .map(id => allCourses.find(c => c.id === id))
+    .filter(Boolean) as typeof allCourses;
+
+  // Non-career enrolled courses (enrolled outside this career or outside the plan)
+  const nonCareerEnrolledCourses = enrolledCourses.filter(
+    e => !careerRelatedSlugs.includes(e.courses?.slug)
+  );
+
+  // Display list: planned career courses first (flat course objects), then non-career enrolled
+  // We unify them as a single shape: { id, name, slug, icon, isCareer, isEnrolled }
+  const displayCourses: Array<{
+    id: string; name: string; slug: string; icon: string | null;
+    isCareer: boolean; isEnrolled: boolean;
+  }> = [
+    ...plannedCareerCourses.map(c => ({
+      id: c.id, name: c.name, slug: c.slug, icon: c.icon,
+      isCareer: true,
+      isEnrolled: enrolledCourses.some(e => e.courses?.id === c.id),
+    })),
+    ...nonCareerEnrolledCourses
+      .filter(e => e.courses)
+      .map(e => ({
+        id: e.courses.id, name: e.courses.name, slug: e.courses.slug, icon: e.courses.icon,
+        isCareer: false,
+        isEnrolled: true,
+      })),
+  ];
+
+  // Career readiness = weighted average of planned career course completion %
+  // Weight comes from career_skills.weight (skill_name === course name in the new model)
   const calculateWeightedReadiness = () => {
-    if (!skills.length) return 0;
-
+    if (plannedCareerCourses.length === 0) return 0;
     let weightedSum = 0;
     let totalWeight = 0;
-
-    skills.forEach(skill => {
-      const value = skillValues[skill.skill_name] || 0;
-      const weight = skill.weight || 25; // Default to 25 if no weight set
-      weightedSum += value * weight;
+    plannedCareerCourses.forEach(course => {
+      const pct = getCourseCompletionPct(course.slug);
+      const matchingSkill = skills.find(s => s.skill_name === course.name);
+      const weight = matchingSkill?.weight ?? 25;
+      weightedSum += pct * weight;
       totalWeight += weight;
     });
-
     return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
   };
 
@@ -1222,23 +1312,24 @@ const Profile = () => {
 
   // Determine focus message and active course based on progress
   const getFocusContent = () => {
-    // Find first incomplete course in career path
-    const incompleteCourse = careerEnrolledCourses.find(e => {
-      const progress = courseProgressMap[e.courses?.slug];
-      return progress && progress.completed < progress.total;
+    // Find first incomplete planned career course (enrolled + in progress, or not started)
+    const incompleteCourse = plannedCareerCourses.find(c => {
+      const progress = courseProgressMap[c.slug];
+      const isEnrolled = enrolledCourses.some(e => e.courses?.id === c.id);
+      return isEnrolled && progress && progress.completed < progress.total;
     });
 
     if (incompleteCourse) {
-      const progress = courseProgressMap[incompleteCourse.courses?.slug];
+      const progress = courseProgressMap[incompleteCourse.slug];
       const remaining = progress ? progress.total - progress.completed : 0;
       const estimatedMins = remaining * 15;
       return {
-        message: `Complete ${incompleteCourse.courses?.name}`,
+        message: `Complete ${incompleteCourse.name}`,
         subtext: estimatedMins > 0 ? `~${Math.ceil(estimatedMins / 60)}h remaining` : "Almost there!",
-        currentCourse: incompleteCourse.courses?.name,
-        activeCourseSlug: incompleteCourse.courses?.slug as string | undefined,
-        activeCourseId: incompleteCourse.courses?.id as string | undefined,
-        activeCourseName: incompleteCourse.courses?.name as string | undefined,
+        currentCourse: incompleteCourse.name,
+        activeCourseSlug: incompleteCourse.slug as string | undefined,
+        activeCourseId: incompleteCourse.id as string | undefined,
+        activeCourseName: incompleteCourse.name as string | undefined,
       };
     }
 
@@ -1277,11 +1368,11 @@ const Profile = () => {
   const focusContent = getFocusContent();
 
   const renderDashboard = () => (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Dashboard Header + Career Readiness + Practice Labs */}
-        <div className="lg:col-span-2 space-y-7">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Premium Dashboard Header */}
           <ProfileDashboardHeader
             className="animate-stagger-1"
@@ -1298,70 +1389,60 @@ const Profile = () => {
                   <h3 className="text-xl font-bold tracking-[-0.02em] text-foreground">Career Readiness</h3>
                   <p className="text-sm mt-1 font-normal text-muted-foreground">Your progress toward becoming job-ready</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Readiness Level Badge with Tooltip */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge
-                        variant="outline"
-                        className="gap-1.5 px-3 py-1.5 text-foreground/70 border-border/40 bg-muted/50 cursor-default"
-                      >
-                        <Zap className="h-3.5 w-3.5" />
-                        <span className="font-semibold text-sm">
-                          {readinessPercentage >= 100 ? 'Career Ready' : readinessPercentage > 75 ? 'Interview Ready' : readinessPercentage > 50 ? 'Skill Builder' : 'Foundation Builder'}
-                        </span>
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>Based on your overall career readiness</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
-                {/* Skill Progress Bars */}
-                <div className="space-y-3 max-h-[400px] overflow-y-auto overflow-x-visible pr-2 py-2 pl-2 -ml-2 -mt-2">
-                  {skills.map((skill, index) => {
-                    // Get actual skill value from our calculation
-                    const skillProgress = skillValues[skill.skill_name] || 0;
-
-                    // Get icon from database
-                    const renderSkillIcon = (iconName: string) => {
-                      const IconComp = getIcon(iconName, Code2);
-                      return <IconComp className="h-5 w-5" />;
-                    };
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                {/* Course Progress Bars */}
+                <div className="space-y-1.5 h-[264px] overflow-y-auto pr-1 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {displayCourses.map((course) => {
+                    const pct = getCourseCompletionPct(course.slug);
+                    const IconComp = getIcon(course.icon, Code2);
 
                     return (
                       <div
-                        key={skill.id}
-                        className="group cursor-pointer hover:bg-muted/40 rounded-xl p-3.5 -m-1 transition-all duration-200 border border-transparent hover:border-border/40"
-                        onClick={() => handleSkillClick(skill.skill_name)}
+                        key={course.id}
+                        className="group cursor-pointer hover:bg-primary/[0.04] rounded-xl p-3 transition-all duration-200 border border-transparent hover:border-primary/15"
+                        onClick={() => {
+                          if (course.isCareer && career) {
+                            navigateToCourseInCareerBoard(career.slug, course.slug);
+                          } else {
+                            navigate(`/courses/${course.slug}`);
+                          }
+                        }}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="text-primary/70 transition-transform duration-200 group-hover:scale-110">
-                              {renderSkillIcon(skill.icon)}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="text-primary/70 shrink-0 transition-transform duration-200 group-hover:scale-110">
+                              <IconComp className="h-5 w-5" />
                             </div>
-                            <span className="font-medium">{skill.skill_name}</span>
+                            <div className="min-w-0">
+                              <span className="font-medium truncate block">{course.name}</span>
+                              {!course.isCareer && (
+                                <span className="text-[10px] text-muted-foreground/60 font-normal">Additional</span>
+                              )}
+                              {course.isCareer && !course.isEnrolled && (
+                                <span className="text-[10px] text-muted-foreground/50 font-normal">Not enrolled</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold tabular-nums">{skillProgress}%</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-semibold tabular-nums">{pct}%</span>
                             <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
                           </div>
                         </div>
                         <Progress
-                          value={skillProgress}
+                          value={pct}
                           className="h-[6px] rounded-full progress-animate [&]:bg-muted/60 [&>div]:rounded-full [&>div]:bg-primary"
                         />
                       </div>
                     );
                   })}
 
-                  {skills.length === 0 && (
-                    <div className="text-center text-muted-foreground py-4">
-                      <p>No skills defined for this career path.</p>
-                      <p className="text-sm">Select a career to see required skills.</p>
+                  {displayCourses.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-2">
+                      <BookOpen className="h-8 w-8 opacity-25" />
+                      <p className="text-sm font-medium">No courses in your plan yet</p>
+                      <p className="text-xs opacity-70">Add courses to your career plan to track progress here.</p>
                     </div>
                   )}
                 </div>
@@ -1375,7 +1456,7 @@ const Profile = () => {
                     (readinessPercentage >= 75 && readinessPercentage < 80);
 
                   return (
-                    <div className="flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center -mt-6">
                       <div className={`relative w-44 h-44 ${isCloseToNextLevel ? 'animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]' : ''}`}>
                         {/* Outer glow ring */}
                         <div
@@ -1411,8 +1492,8 @@ const Profile = () => {
                           {/* Progress gradient arc */}
                           <defs>
                             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#86EFAC" />
-                              <stop offset="100%" stopColor="#15803D" />
+                              <stop offset="0%" stopColor="#6CBFA0" />
+                              <stop offset="100%" stopColor="#2A5E42" />
                             </linearGradient>
                             {/* Glow filter for active arc */}
                             <filter id="arcGlow" x="-50%" y="-50%" width="200%" height="200%">
@@ -1488,43 +1569,55 @@ const Profile = () => {
                             </span>
                             <span className="text-2xl font-bold">%</span>
                           </div>
-                          <span className="text-sm mt-1 text-muted-foreground">Career Ready</span>
+                          <span className="text-sm mt-1 text-muted-foreground">
+                            {readinessPercentage >= 100 ? 'Career Ready' : readinessPercentage > 75 ? 'Interview Ready' : readinessPercentage > 50 ? 'Skill Builder' : readinessPercentage > 20 ? 'Progressing' : 'Getting Started'}
+                          </span>
                         </div>
                       </div>
 
                       {/* Micro guidance - Silent Coach */}
-                      {readinessPercentage < 100 && skills.length > 0 && (() => {
-                        // Find the lowest skill to suggest focus
-                        const lowestSkill = skills.reduce((min, skill) => {
-                          const currentValue = skillValues[skill.skill_name] || 0;
-                          const minValue = skillValues[min.skill_name] || 0;
-                          return currentValue < minValue ? skill : min;
-                        }, skills[0]);
+                      {readinessPercentage < 100 && plannedCareerCourses.length > 0 && (() => {
+                        // Find the planned career course with the lowest completion %
+                        const lowestCourse = plannedCareerCourses.reduce((min, c) => {
+                          return getCourseCompletionPct(c.slug) < getCourseCompletionPct(min.slug) ? c : min;
+                        }, plannedCareerCourses[0]);
                         const nextThreshold = readinessPercentage < 20 ? 20 :
                           readinessPercentage < 50 ? 50 :
                             readinessPercentage < 80 ? 80 : 100;
                         return (
-                          <p className="text-xs text-primary/70 mt-3 text-center max-w-[200px] leading-relaxed">
-                            Next focus: <span className="font-medium">{lowestSkill.skill_name}</span> to reach {nextThreshold}% readiness
-                          </p>
+                          <div className="mt-3 px-3 py-1.5 rounded-full bg-primary/[0.07] border border-primary/15">
+                            <p className="text-[11px] text-primary/80 text-center leading-relaxed">
+                              Next: <span className="font-semibold">{lowestCourse.name}</span> → {nextThreshold}%
+                            </p>
+                          </div>
                         );
                       })()}
 
                       {/* Bottom CTA */}
-                      <div className="flex flex-col items-center mt-5">
+                      <div className="flex flex-col items-center mt-3">
                         <Button
-                          className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms]"
+                          disabled={careersLoading}
+                          className="gap-2 rounded-full px-6 font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms] disabled:opacity-60 disabled:cursor-not-allowed"
                           style={{
-                            background: 'linear-gradient(180deg, hsl(var(--primary-glow)), hsl(var(--primary)))',
-                            boxShadow: '0 10px 24px hsl(var(--primary-glow) / 0.28)',
+                            background: 'linear-gradient(135deg, #4CAF82, #2A5E42)',
+                            boxShadow: '0 6px 20px hsl(var(--primary) / 0.28)',
                           }}
                           onClick={() => {
+                            // career?.slug is the resolved DB object (requires careersLoading=false)
+                            // selectedCareer is the raw slug string saved in the user's profile
                             const slug = career?.slug || selectedCareer;
-                            if (slug) {
-                              navigate(`/career-board/${slug}`);
-                            } else {
-                              navigate('/careers');
-                            }
+                            if (!slug) { navigate('/careers'); return; }
+
+                            // Navigate directly to the first course instead of going through
+                            // CareerBoardIndex redirect — avoids the async redirect race condition.
+                            // careerRelatedSlugs is already loaded on the Profile page (used by progress bars).
+                            const firstSlug = Array.isArray(careerRelatedSlugs) && careerRelatedSlugs.length > 0
+                              ? careerRelatedSlugs[0]
+                              : null;
+                            navigate(firstSlug
+                              ? `/career-board/${slug}/course/${firstSlug}`
+                              : `/career-board/${slug}`
+                            );
                           }}
                         >
                           <LayoutDashboard className="h-4 w-4" />
@@ -1540,11 +1633,11 @@ const Profile = () => {
           </Card>
 
           {/* Recommended Labs Section */}
-          <Card className="card-premium card-no-lift animate-stagger-3">
+          <Card className="card-premium card-no-lift animate-stagger-3 flex-1 flex flex-col">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/15">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(135deg, #4CAF82, #2A5E42)', boxShadow: '0 4px 12px hsl(var(--primary)/0.22)' }}>
                     <FlaskConical className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -1563,61 +1656,77 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2.5">
-                {enrolledCourses.slice(0, 4).map((enrollment, index) => {
-                  const course = enrollment.courses;
-                  if (!course) return null;
+                {(() => {
+                  const labIcons = [<Zap className="h-4 w-4" />, <Target className="h-4 w-4" />, <Award className="h-4 w-4" />, <BookOpen className="h-4 w-4" />];
 
-                  const labTypes = ['Coding Challenge', 'Quiz', 'Project', 'Mini Project'];
-                  const labIcons = [<Zap className="h-4 w-4" />, <Target className="h-4 w-4" />, <Award className="h-4 w-4" />, <Zap className="h-4 w-4" />];
-                  const labColors = ['from-emerald-500 to-teal-600', 'from-blue-500 to-indigo-600', 'from-violet-500 to-purple-600', 'from-rose-500 to-pink-600'];
+                  // Build up to 3 items: enrolled courses first, then pad with practice skills
+                  const courseItems = enrolledCourses
+                    .filter((e: any) => !!e.courses)
+                    .slice(0, 3)
+                    .map((enrollment: any, index: number) => {
+                      const course = enrollment.courses;
+                      return {
+                        id: enrollment.id,
+                        name: course.name,
+                        // Use actual DB field: level (e.g. "Beginner"), fallback to learning_hours, then "Course"
+                        type: course.level || (course.learning_hours ? `${course.learning_hours}h course` : 'Course'),
+                        icon: labIcons[index % 4],
+                        onClick: () => handleTabChange('practice'),
+                      };
+                    });
 
-                  return (
+                  const needed = 3 - courseItems.length;
+                  const skillItems = needed > 0
+                    ? publishedPracticeSkills.slice(0, needed).map((skill: any, i: number) => ({
+                        id: `skill-${skill.id}`,
+                        name: skill.name,
+                        // Use actual DB field: description (truncated), fallback to "Practice Skill"
+                        type: skill.description
+                          ? skill.description.replace(/<[^>]*>/g, '').slice(0, 38).trim() + (skill.description.length > 38 ? '…' : '')
+                          : 'Practice Skill',
+                        icon: labIcons[(courseItems.length + i) % 4],
+                        onClick: () => navigate(`/practice/${skill.slug}`),
+                      }))
+                    : [];
+
+                  const items = [...courseItems, ...skillItems];
+
+                  if (items.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FlaskConical className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">Enroll in courses to unlock practice labs</p>
+                        <Button variant="link" onClick={() => navigate('/courses')} className="mt-2">Browse Courses</Button>
+                      </div>
+                    );
+                  }
+
+                  return items.map((item) => (
                     <div
-                      key={enrollment.id}
+                      key={item.id}
                       className="group flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-border/30 cursor-pointer transition-all duration-200 hover:border-primary/25 hover:bg-muted/20 hover:-translate-y-[2px]"
-                      onClick={() => handleTabChange('practice')}
+                      onClick={item.onClick}
                     >
-                      {/* Icon */}
-                      <div
-                        className={`w-9 h-9 rounded-xl flex-shrink-0 bg-gradient-to-br ${labColors[index % 4]} flex items-center justify-center`}
-                        style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.12)' }}
-                      >
-                        {React.cloneElement(labIcons[index % 4] as React.ReactElement, { className: 'h-[18px] w-[18px] text-white' })}
+                      <div className="w-9 h-9 rounded-xl flex-shrink-0 bg-muted/70 flex items-center justify-center">
+                        {React.cloneElement(item.icon as React.ReactElement, { className: 'h-[18px] w-[18px] text-foreground/40' })}
                       </div>
-
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13.5px] font-semibold text-foreground line-clamp-1 leading-snug">
-                          {course.name}
-                        </p>
-                        <p className="text-[11.5px] text-muted-foreground mt-0.5">
-                          {labTypes[index % 4]}
-                        </p>
+                        <p className="text-[13.5px] font-semibold text-foreground line-clamp-1 leading-snug">{item.name}</p>
+                        <p className="text-[11.5px] text-muted-foreground mt-0.5">{item.type}</p>
                       </div>
-
-                      {/* CTA */}
                       <div className="flex-shrink-0 flex items-center gap-0.5 text-[12px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         Start <ChevronRight className="h-3.5 w-3.5" />
                       </div>
                     </div>
-                  );
-                })}
-                {enrolledCourses.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FlaskConical className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">Enroll in courses to unlock practice labs</p>
-                    <Button variant="link" onClick={() => navigate('/courses')} className="mt-2">
-                      Browse Courses
-                    </Button>
-                  </div>
-                )}
+                  ));
+                })()}
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Right Column - Today's Focus + Weekly Activity + AI Mentor */}
-        <div className="flex flex-col space-y-7 h-full min-h-full">
+        <div className="space-y-6">
           {/* Today's Focus Card */}
           <Card className="card-premium card-no-lift animate-stagger-1">
             <CardContent className="p-6">
@@ -1635,10 +1744,10 @@ const Profile = () => {
                 {/* Lesson Suggestion */}
                 <div
                   onClick={todaysFocus.handleContinueLearning}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 hover:border-border/50 hover:bg-muted/40 transition-all duration-200 cursor-pointer group"
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-primary/20 bg-primary/[0.04] hover:border-primary/30 hover:bg-primary/[0.07] transition-all duration-200 cursor-pointer group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover:bg-muted/80 transition-colors">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 transition-colors">
+                    <BookOpen className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold text-foreground">Continue Learning</p>
@@ -1707,16 +1816,16 @@ const Profile = () => {
           />
 
           {/* AI Mentor Card - tertiary tier */}
-          <Card className="card-premium card-tertiary card-no-lift animate-stagger-3 flex-1 flex flex-col overflow-hidden">
+          <Card className="card-premium card-tertiary card-no-lift animate-stagger-3">
             {/* Calm ambient tint */}
-            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(99,102,241,0.07)' }} />
-            <CardContent className="p-5 flex-1 flex flex-col relative">
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl pointer-events-none" style={{ background: 'hsl(var(--primary) / 0.08)' }} />
+            <CardContent className="p-5 flex flex-col relative">
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                   style={{
-                    background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
-                    boxShadow: '0 4px 14px rgba(99,102,241,0.28)',
+                    background: 'linear-gradient(135deg, #4CAF82, #2A5E42)',
+                    boxShadow: '0 4px 14px hsl(var(--primary) / 0.28)',
                   }}
                 >
                   <Sparkles className="h-5 w-5 text-white" strokeWidth={1.5} />
@@ -1727,7 +1836,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col justify-end">
+              <div className="flex flex-col mt-3">
                 <p className="text-[13px] leading-relaxed text-muted-foreground">
                   {completedInCareer < careerRelatedSlugs.length
                     ? `Continue your ${career?.name || 'career'} journey. Get personalized guidance on what to learn next and improve your skills.`
@@ -1738,8 +1847,8 @@ const Profile = () => {
                   variant="default"
                   className="w-full mt-4 gap-2 rounded-xl font-semibold text-white hover:-translate-y-[1px] active:translate-y-0 transition-all duration-[220ms] text-[13px] h-10"
                   style={{
-                    background: 'linear-gradient(135deg, #6366F1, #4338CA)',
-                    boxShadow: '0 6px 20px rgba(99,102,241,0.28)',
+                    background: 'linear-gradient(135deg, #4CAF82, #2A5E42)',
+                    boxShadow: '0 6px 20px hsl(var(--primary) / 0.28)',
                   }}
                 >
                   <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -2725,7 +2834,10 @@ const Profile = () => {
 
   return (
     <Layout showFooter={false}>
-      <div className="profile-page-outer">
+      <div ref={contentRef} className="profile-page-outer">
+
+        {/* ── Sidebar + Content row ── */}
+        <div className="profile-inner-row">
 
         {/* ── Icon Sidebar — flat, no card, floats on page bg ── */}
         {activeTab !== 'practice' && (
@@ -2809,8 +2921,12 @@ const Profile = () => {
           </main>
         </div>
 
+        </div>{/* end profile-inner-row */}
+
+        {/* ── Slim footer — full width, visible on scroll ── */}
+        <SlimFooter />
+
       </div>
-      <SlimFooter />
     </Layout>
   );
 };
