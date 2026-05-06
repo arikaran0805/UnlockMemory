@@ -88,7 +88,7 @@ const CareerCompleted = () => {
 
     const fetchData = async () => {
       try {
-        const courseIds = careerCourses.map(cc => cc.course_id);
+        const courseIds = careerCourses.map(cc => cc.id);
 
         const [profileResult, lessonsResult, hoursResult, skillsResult, dateResult] =
           await Promise.all([
@@ -134,12 +134,7 @@ const CareerCompleted = () => {
             0
           ) || 0;
         const totalHoursFromTracking = totalSeconds / 3600;
-        const totalHoursFallback = careerCourses.reduce(
-          (sum, cc) => sum + (((cc as any).course?.learning_hours as number) || 0),
-          0
-        );
-        const totalHours =
-          totalHoursFromTracking > 0 ? totalHoursFromTracking : totalHoursFallback || 1;
+        const totalHours = totalHoursFromTracking > 0 ? totalHoursFromTracking : 1;
 
         const skills: string[] =
           skillsResult.data?.map((s: any) => s.skill_name as string) || [];
@@ -149,10 +144,10 @@ const CareerCompleted = () => {
           : new Date();
 
         const courses = careerCourses.map(cc => ({
-          id: cc.course_id,
-          name: cc.course?.name || "",
-          slug: cc.course?.slug || "",
-          learning_hours: (cc as any).course?.learning_hours as number | null,
+          id: cc.id,
+          name: cc.name,
+          slug: cc.slug,
+          learning_hours: null as number | null,
         }));
 
         setCompletionData({

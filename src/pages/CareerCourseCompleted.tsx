@@ -234,7 +234,7 @@ const CareerCourseCompleted = () => {
   const isLastCourse = useMemo(() => {
     if (!careerCourses.length || !courseSlug) return false;
     const last = careerCourses[careerCourses.length - 1];
-    return last.course?.slug === courseSlug;
+    return last.slug === courseSlug;
   }, [careerCourses, courseSlug]);
 
   // ── Certificate download via Canvas API ────────────────────────────────────
@@ -388,7 +388,7 @@ const CareerCourseCompleted = () => {
     if (!user || !career) return;
     setCareerCtaState('checking');
     try {
-      const courseIds = careerCourses.map(cc => cc.course_id);
+      const courseIds = careerCourses.map(cc => cc.id);
       const [completedResult, totalResult] = await Promise.all([
         supabase
           .from('lesson_progress')
@@ -413,12 +413,12 @@ const CareerCourseCompleted = () => {
       });
 
       const statuses = careerCourses.map(cc => {
-        const completed = completedByCourse.get(cc.course_id) || 0;
-        const total = totalByCourse.get(cc.course_id) || 0;
+        const completed = completedByCourse.get(cc.id) || 0;
+        const total = totalByCourse.get(cc.id) || 0;
         return {
-          courseId: cc.course_id,
-          name: cc.course?.name || cc.course?.slug || 'Course',
-          slug: cc.course?.slug || '',
+          courseId: cc.id,
+          name: cc.name || 'Course',
+          slug: cc.slug,
           isComplete: total > 0 && completed >= total,
           progress: total > 0 ? Math.round((completed / total) * 100) : 0,
         };
@@ -432,7 +432,7 @@ const CareerCourseCompleted = () => {
             prefetchedStats: {
               totalLessons,
               totalHours: 0,
-              courses: careerCourses.map(cc => cc.course).filter(Boolean),
+              courses: careerCourses.map(cc => ({ id: cc.id, name: cc.name, slug: cc.slug })),
             },
           },
         });
