@@ -4,7 +4,7 @@
  * Route: /career-board/:careerId/course/:courseSlug/completed
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate, useOutletContext, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +23,9 @@ import {
   ChevronRight,
   Download,
   Check,
+  AlertCircle,
+  Trophy,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,6 +98,10 @@ const CareerCourseCompleted = () => {
   const [nextCourse, setNextCourse] = useState<CourseData | null>(null);
   const [nextCoursePosts, setNextCoursePosts] = useState<any[] | null>(null);
   const [nextCourseLessons, setNextCourseLessons] = useState<any[] | null>(null);
+  const [careerCtaState, setCareerCtaState] = useState<'idle' | 'checking' | 'incomplete'>('idle');
+  const [courseStatuses, setCourseStatuses] = useState<{
+    courseId: string; name: string; slug: string; isComplete: boolean; progress: number;
+  }[]>([]);
 
   // Safety timeout
   useEffect(() => {
@@ -223,6 +230,12 @@ const CareerCourseCompleted = () => {
 
   // Resolved display name — fast-path uses user metadata, full fetch uses DB profile
   const displayName = learnerName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Learner";
+
+  const isLastCourse = useMemo(() => {
+    if (!careerCourses.length || !courseSlug) return false;
+    const last = careerCourses[careerCourses.length - 1];
+    return last.course?.slug === courseSlug;
+  }, [careerCourses, courseSlug]);
 
   // ── Certificate download via Canvas API ────────────────────────────────────
   const downloadCertificate = useCallback(() => {
@@ -369,6 +382,68 @@ const CareerCourseCompleted = () => {
     );
     const url = encodeURIComponent(window.location.href);
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}&summary=${text}`, '_blank', 'width=600,height=400');
+  };
+
+  const handleCompleteCareer = async () => {
+    if (!user || !career) return;
+    setCareerCtaState('checking');
+    try {
+      const courseIds = careerCourses.map(cc => cc.course_id);
+      const [completedResult, totalResult] = await Promise.all([
+        supabase
+          .from('lesson_progress')
+          .select('course_id')
+          .eq('user_id', user.id)
+          .eq('completed', true)
+          .in('course_id', courseIds),
+        supabase
+          .from('posts')
+          .select('id, category_id')
+          .in('category_id', courseIds)
+          .eq('status', 'published'),
+      ]);
+
+      const completedByCourse = new Map<string, number>();
+      (completedResult.data || []).forEach((p: any) => {
+        completedByCourse.set(p.course_id, (completedByCourse.get(p.course_id) || 0) + 1);
+      });
+      const totalByCourse = new Map<string, number>();
+      (totalResult.data || []).forEach((p: any) => {
+        totalByCourse.set(p.category_id, (totalByCourse.get(p.category_id) || 0) + 1);
+      });
+
+      const statuses = careerCourses.map(cc => {
+        const completed = completedByCourse.get(cc.course_id) || 0;
+        const total = totalByCourse.get(cc.course_id) || 0;
+        return {
+          courseId: cc.course_id,
+          name: cc.course?.name || cc.course?.slug || 'Course',
+          slug: cc.course?.slug || '',
+          isComplete: total > 0 && completed >= total,
+          progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+        };
+      });
+
+      if (statuses.every(s => s.isComplete)) {
+        const totalLessons = [...completedByCourse.values()].reduce((a, b) => a + b, 0);
+        navigate(`/career-board/${careerSlugForPath}/completed`, {
+          state: {
+            completionDate: new Date().toISOString(),
+            prefetchedStats: {
+              totalLessons,
+              totalHours: 0,
+              courses: careerCourses.map(cc => cc.course).filter(Boolean),
+            },
+          },
+        });
+      } else {
+        setCourseStatuses(statuses);
+        setCareerCtaState('incomplete');
+      }
+    } catch (error) {
+      console.error('Error checking career completion:', error);
+      setCareerCtaState('idle');
+    }
   };
 
   const showLoading = hasLoadedOnce ? false : (authLoading || dataLoading);
@@ -607,6 +682,92 @@ const CareerCourseCompleted = () => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        </section>
+      )}
+
+      {/* ── Complete Career CTA — shown only on last course ────────────────── */}
+      {isLastCourse && (
+        <section className="rounded-2xl border border-border/50 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)] p-5 mt-4">
+          {careerCtaState !== 'incomplete' ? (
+            <>
+              <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.07em] mb-3">
+                Career Journey
+              </p>
+              <p className="font-semibold text-foreground mb-1">You've finished all courses!</p>
+              <p className="text-[12px] text-muted-foreground mb-4">
+                Claim your career certificate and celebrate completing the full path.
+              </p>
+              <Button
+                onClick={handleCompleteCareer}
+                disabled={careerCtaState === 'checking'}
+                className="w-full h-11 gap-2 rounded-xl bg-primary hover:bg-primary/90 text-white shadow-none font-medium"
+              >
+                {careerCtaState === 'checking' ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Checking...</>
+                ) : (
+                  <><Trophy className="h-4 w-4" /> Complete Career</>
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                <p className="text-[13px] font-semibold text-foreground">Complete all courses first</p>
+              </div>
+              <div className="flex flex-col gap-2 mb-4">
+                {courseStatuses.map(cs => (
+                  <div
+                    key={cs.courseId}
+                    className={cn(
+                      "flex items-center gap-2.5 p-2.5 rounded-lg border text-[12px]",
+                      cs.isComplete
+                        ? "border-border/30 bg-muted/20"
+                        : "border-amber-200/60 bg-amber-50/50"
+                    )}
+                  >
+                    {cs.isComplete ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    ) : (
+                      <div className="h-3.5 w-3.5 rounded-full border-2 border-amber-400 flex-shrink-0" />
+                    )}
+                    <span className={cn(
+                      "flex-1 font-medium",
+                      cs.isComplete ? "text-foreground/60" : "text-foreground"
+                    )}>
+                      {cs.name}
+                    </span>
+                    <span className={cn(
+                      "font-medium",
+                      cs.isComplete ? "text-primary" : "text-amber-600"
+                    )}>
+                      {cs.isComplete ? "Done" : `${cs.progress}%`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    const firstIncomplete = courseStatuses.find(s => !s.isComplete);
+                    if (firstIncomplete?.slug) {
+                      navigate(`/career-board/${careerSlugForPath}/course/${firstIncomplete.slug}`);
+                    }
+                  }}
+                  className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white shadow-none text-[13px]"
+                >
+                  Go to {courseStatuses.find(s => !s.isComplete)?.name}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCareerCtaState('idle')}
+                  className="rounded-xl border-border/60 hover:bg-muted/50 text-[13px]"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </>
+          )}
         </section>
       )}
 

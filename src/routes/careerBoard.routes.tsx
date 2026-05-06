@@ -21,6 +21,7 @@ import { CareerBoardProvider } from "@/contexts/CareerBoardContext";
 import CareerBoardLayout from "@/components/layouts/CareerBoardLayout";
 import CareerCourseDetail from "@/pages/CareerCourseDetail";
 import CareerCourseCompleted from "@/pages/CareerCourseCompleted";
+import CareerCompleted from "@/pages/CareerCompleted";
 import CareerBoardIndex from "@/components/career/CareerBoardIndex";
 
 /**
@@ -43,7 +44,10 @@ const CareerBoardRoutes = () => {
           
           {/* Course completion within career context */}
           <Route path="course/:courseSlug/completed" element={<CareerCourseCompleted />} />
-          
+
+          {/* Career completion page */}
+          <Route path="completed" element={<CareerCompleted />} />
+
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/careers" replace />} />
         </Route>
