@@ -633,7 +633,7 @@ const Profile = () => {
   const { bookmarks: problemBookmarks, loading: problemBookmarksLoading, toggleBookmark: toggleProblemBookmark } = useProblemBookmarks();
   const { getCareerBySlug, getCareerCourseSlugs, getCareerSkills, getCourseForSkill, loading: careersLoading } = useCareers();
   const { isAdmin, isModerator } = useUserRole();
-  const { isPro } = useUserState();
+  const { isPro, isLoading: userStateLoading } = useUserState();
   const { navigateToCourse, navigateToCourseInCareerBoard, handleResume } = useCourseNavigation();
 
   // Restore cached weekly activity as placeholderData so the chart never shows
@@ -1382,7 +1382,7 @@ const Profile = () => {
             maxStreak={maxStreak}
           />
           {/* Career Readiness */}
-          {!isPro ? (
+          {userStateLoading ? null : !isPro ? (
             /* Locked state — shown to free learners */
             <Card className="card-premium card-primary card-no-lift animate-stagger-2">
               <CardContent className="p-7">
@@ -1393,7 +1393,7 @@ const Profile = () => {
                     <p className="text-sm mt-1 font-normal text-muted-foreground">Your progress toward becoming job-ready</p>
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 border border-border">
-                    <Lock className="h-3 w-3 text-muted-foreground" />
+                    <Lock className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                     <span className="text-xs font-semibold text-muted-foreground">Pro Only</span>
                   </div>
                 </div>
@@ -1441,7 +1441,7 @@ const Profile = () => {
                   </div>
 
                   {/* Right: blurred gauge + Career Board button */}
-                  <div className="flex flex-col items-center -mt-6 blur-sm opacity-40 pointer-events-none select-none">
+                  <div className="flex flex-col items-center -mt-6 blur-sm opacity-40 pointer-events-none select-none" aria-hidden="true">
                     <div className="relative w-44 h-44">
                       <svg className="w-44 h-44 transform -rotate-90" viewBox="0 0 208 208">
                         <circle cx="104" cy="104" r="88" stroke="hsl(var(--muted))" strokeWidth="12" fill="none" opacity="0.3" />
