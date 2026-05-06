@@ -302,8 +302,8 @@ const LessonFooter = ({
         )}
 
         {/* Next Button OR Finish Course Button */}
-        {isCourseComplete && isCompleted && !nextLesson ? (
-          /* ALL lessons completed - Show "Finish Course" CTA */
+        {isCompleted && !nextLesson ? (
+          /* Last lesson completed - Show "Finish Course" CTA */
           <Button
             size="lg"
             variant="default"
