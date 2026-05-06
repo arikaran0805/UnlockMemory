@@ -110,20 +110,55 @@ const Plan = () => {
     setStep(1);
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!user) { setShowAuthDialog(true); return; }
     setPaymentLoading(true);
-    // Capture cart snapshot before clearing
+
     const snapshot = [...allCourses];
     const finalTotal = totalBreakdown.finalTotal;
-    const careerIds = items.map((i) => i.careerId);
-    setTimeout(() => {
+
+    try {
+      // Create/update Pro subscription
+      const now = new Date();
+      const periodEnd = new Date();
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+
+      const { error: subError } = await supabase
+        .from("subscriptions")
+        .upsert({
+          user_id: user.id,
+          status: "active",
+          plan: "pro",
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+          cancel_at_period_end: false,
+        }, { onConflict: "user_id" });
+
+      if (subError) throw subError;
+
+      // Record each purchased career's course selection
+      for (const item of items) {
+        const { error: selError } = await supabase
+          .from("user_career_selections")
+          .upsert({
+            user_id: user.id,
+            career_id: item.careerId,
+            selected_course_ids: item.selectedCourseIds,
+          }, { onConflict: "user_id,career_id" });
+        if (selError) throw selError;
+      }
+
+      // Clear cart and advance to confirmation
       setPurchasedCourses(snapshot);
       setPurchasedTotal(finalTotal);
-      careerIds.forEach((id) => removeCareer(id));
-      setPaymentLoading(false);
+      items.forEach((item) => removeCareer(item.careerId));
       setStep(2);
-    }, 2000);
+    } catch (err) {
+      console.error("Purchase failed:", err);
+      toast.error("Purchase failed. Please try again.");
+    } finally {
+      setPaymentLoading(false);
+    }
   };
 
   /* ── Loading skeleton ── */
@@ -360,7 +395,7 @@ const Plan = () => {
               <ConfirmationStep
                 purchasedCourses={purchasedCourses}
                 finalTotal={purchasedTotal}
-                onGoToLearning={() => navigate("/profile?tab=courses")}
+                onGoToLearning={() => { window.location.href = "/profile"; }}
               />
             </motion.div>
           )}
@@ -460,7 +495,7 @@ function PlanStep({
                   duration: 5000,
                 });
               }}
-              onToggleCourse={(courseId) => toggleCourse(item.careerId, courseId)}
+              onToggleCourse={(courseId, courseData) => toggleCourse(item.careerId, courseId, courseData)}
             />
           ))}
         </div>
@@ -694,7 +729,7 @@ function CheckoutStep({
               ) : (
                 <>
                   <GraduationCap className="h-5 w-5 mr-2.5" />
-                  Start Learning Now — {formatPrice(breakdown.finalTotal)}
+                  Unlock Your Growth — {formatPrice(breakdown.finalTotal)}
                 </>
               )}
             </Button>
@@ -956,7 +991,7 @@ function ConfirmationStep({
             style={{ background: "hsl(var(--primary))", color: "white" }}
           >
             <GraduationCap className="h-4 w-4 mr-2" />
-            Go to My Learning
+            Dashboard
           </Button>
           <Button variant="outline" className="flex-1 h-11 rounded-xl">
             <Download className="h-4 w-4 mr-2" />
@@ -976,7 +1011,7 @@ function CareerCartCard({
   isCustomizing: boolean;
   onCustomize: () => void;
   onRemove: () => void;
-  onToggleCourse: (courseId: string) => void;
+  onToggleCourse: (courseId: string, courseData?: PricingCourse) => void;
 }) {
   const Icon = (lucideIcons as Record<string, React.ElementType>)[item.careerIcon] || BookOpen;
 
@@ -1063,7 +1098,7 @@ function CareerCartCard({
 }
 
 /* ═══════════════════════════════════════════════════════ CUSTOMIZATION SECTION ══ */
-function CustomizationSection({ item, onToggleCourse }: { item: CareerPlanItem; onToggleCourse: (courseId: string) => void }) {
+function CustomizationSection({ item, onToggleCourse }: { item: CareerPlanItem; onToggleCourse: (courseId: string, courseData?: PricingCourse) => void }) {
   const [courseSearch, setCourseSearch] = useState("");
   const [searchResults, setSearchResults] = useState<PricingCourse[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -1105,7 +1140,7 @@ function CustomizationSection({ item, onToggleCourse }: { item: CareerPlanItem; 
   const addOnResults = searchResults ? searchResults.filter((c) => !includedIds.has(c.id) && !item.selectedCourseIds.includes(c.id)) : [];
 
   const handleAddAddon = (c: PricingCourse) => {
-    onToggleCourse(c.id);
+    onToggleCourse(c.id, c);
     setLastAdded(c.id);
     setTimeout(() => setLastAdded(null), 1500);
   };
