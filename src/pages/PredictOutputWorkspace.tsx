@@ -5,9 +5,10 @@
  */
 import { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, List } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PracticeWorkspaceHeader } from "@/components/practice/PracticeWorkspaceHeader";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -17,6 +18,7 @@ import type { ImperativePanelHandle } from "react-resizable-panels";
 import { usePublishedPredictOutputProblem } from "@/hooks/usePredictOutputProblems";
 import { usePredictOutputAttempts } from "@/hooks/usePredictOutputAttempts";
 import { usePublishedPracticeProblems, type ProblemWithMapping } from "@/hooks/usePracticeProblems";
+import { usePrefetchAdjacentProblems } from "@/hooks/usePrefetchAdjacentProblems";
 import { PredictDescriptionPanel } from "@/components/predict-output/PredictDescriptionPanel";
 import { PredictCodePanel } from "@/components/predict-output/PredictCodePanel";
 import { PredictEditorPanel } from "@/components/predict-output/PredictEditorPanel";
@@ -37,7 +39,7 @@ export default function PredictOutputWorkspace() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [isDescriptionCollapsed, setIsDescriptionCollapsed] = useState(true);
+  const [isDescriptionCollapsed, setIsDescriptionCollapsed] = useState(false);
   const [isCodeCollapsed, setIsCodeCollapsed] = useState(false);
   const [descriptionActiveTab, setDescriptionActiveTab] = useState("description");
 
@@ -75,6 +77,7 @@ export default function PredictOutputWorkspace() {
     }
     if (isDescriptionCollapsed) {
       descriptionPanelRef.current?.expand();
+      setTimeout(() => descriptionPanelRef.current?.resize(50), 0);
     } else {
       descriptionPanelRef.current?.collapse();
     }
@@ -125,6 +128,8 @@ export default function PredictOutputWorkspace() {
   const currentIndex = allProblemsInSkill.findIndex((p) => p.slug === problemSlug);
   const prevProblem = currentIndex > 0 ? allProblemsInSkill[currentIndex - 1] : null;
   const nextProblem = currentIndex < allProblemsInSkill.length - 1 ? allProblemsInSkill[currentIndex + 1] : null;
+
+  usePrefetchAdjacentProblems(skillId, prevProblem, nextProblem);
 
   const navigateToProblem = (p: ProblemWithMapping) => {
     if (p.problemType === "predict-output") {
@@ -181,31 +186,17 @@ export default function PredictOutputWorkspace() {
     );
   }
 
-  // Top nav bar
-  const topNav = (
-    <div className="h-12 flex items-center px-4 border-b border-border/50 bg-card shrink-0">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/practice/${skillId}`)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-        >
-          <List className="h-3.5 w-3.5" />
-          <span>{skill?.name || "Problems"}</span>
-        </button>
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevProblem} disabled={!prevProblem}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium px-2">{problem.title}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextProblem} disabled={!nextProblem}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
+  const sharedHeader = (
+    <PracticeWorkspaceHeader
+      skillId={skillId}
+      skillName={skill?.name || "Problems"}
+      problemTitle={problem.title}
+      prevProblem={prevProblem}
+      nextProblem={nextProblem}
+      onPrevProblem={handlePrevProblem}
+      onNextProblem={handleNextProblem}
+      onOpenDrawer={() => setDrawerOpen(true)}
+    />
   );
 
   // Expanded panel views
@@ -220,7 +211,7 @@ export default function PredictOutputWorkspace() {
           currentProblemSlug={problemSlug}
           onSelectProblem={handleDrawerSelectProblem}
         />
-        {topNav}
+        {sharedHeader}
         <div className="flex-1 min-h-0 overflow-hidden bg-muted/30 p-1.5">
           {expandedPanel === "description" && (
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
@@ -273,7 +264,7 @@ export default function PredictOutputWorkspace() {
         currentProblemSlug={problemSlug}
         onSelectProblem={handleDrawerSelectProblem}
       />
-      {topNav}
+      {sharedHeader}
 
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
@@ -330,13 +321,13 @@ export default function PredictOutputWorkspace() {
           <div className="h-full p-1.5">
             <ResizablePanelGroup direction="horizontal" className="h-full">
               {/* Left Panel: Description (top) + Code (bottom) */}
-              <ResizablePanel defaultSize={45} minSize={25} className="min-h-0">
+              <ResizablePanel defaultSize={50} minSize={25} className="min-h-0">
                 <ResizablePanelGroup direction="vertical" className="h-full">
                   {/* Description */}
                   <ResizablePanel
                     ref={descriptionPanelRef}
-                    defaultSize={8}
-                    minSize={15}
+                    defaultSize={50}
+                    minSize={8}
                     collapsible
                     collapsedSize={8}
                     className="min-h-0"
@@ -362,8 +353,8 @@ export default function PredictOutputWorkspace() {
                   {/* Code */}
                   <ResizablePanel
                     ref={codePanelRef}
-                    defaultSize={92}
-                    minSize={15}
+                    defaultSize={50}
+                    minSize={8}
                     collapsible
                     collapsedSize={8}
                     className="min-h-0"
@@ -386,7 +377,7 @@ export default function PredictOutputWorkspace() {
               <ResizableHandle />
 
               {/* Right Panel: Output (top) + Result (bottom) */}
-              <ResizablePanel defaultSize={55} minSize={30} className="min-h-0">
+              <ResizablePanel defaultSize={50} minSize={30} className="min-h-0">
                 <PredictEditorPanel
                   problem={problem}
                   attempts={attempts}

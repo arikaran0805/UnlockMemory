@@ -29,5 +29,6 @@ export function usePublishedFixErrorProblem(slug: string | undefined) {
       return transformProblem(data);
     },
     enabled: !!slug,
+    placeholderData: (prev) => prev,
   });
 }

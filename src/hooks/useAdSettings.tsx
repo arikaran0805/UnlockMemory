@@ -6,6 +6,7 @@ interface AdSettings {
   sidebarTopSlot: string;
   sidebarMiddleSlot: string;
   sidebarBottomSlot: string;
+  inContentSlot: string;
   thirdPartySidebarCode: string;
   showPreviewAds: boolean;
   adRedirectUrl: string;
@@ -16,6 +17,7 @@ const defaultSettings: AdSettings = {
   sidebarTopSlot: "",
   sidebarMiddleSlot: "",
   sidebarBottomSlot: "",
+  inContentSlot: "",
   thirdPartySidebarCode: "",
   showPreviewAds: false,
   adRedirectUrl: "",
@@ -52,6 +54,9 @@ export const useAdSettings = () => {
             break;
           case "sidebar_bottom_slot":
             settingsMap.sidebarBottomSlot = item.setting_value || "";
+            break;
+          case "in_content_slot":
+            settingsMap.inContentSlot = item.setting_value || "";
             break;
           case "third_party_sidebar_code":
             settingsMap.thirdPartySidebarCode = item.setting_value || "";

@@ -24,7 +24,7 @@ export const ProfileDashboardHeader = ({
       {/* Very subtle green tint in top-left */}
       <div
         className="absolute -top-12 -left-12 w-48 h-48 rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(34,197,94,0.06) 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.07) 0%, transparent 70%)" }}
       />
 
       <CardContent className="relative p-6 md:p-7 flex items-center">

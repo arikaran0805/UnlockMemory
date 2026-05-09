@@ -21,7 +21,7 @@ import Editor, { OnMount, Monaco } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { formatCode, registerMonacoFormatters, supportsFormatting } from "@/lib/formatters/codeFormatter";
 import { toast } from "sonner";
-import { usePlatformSettings } from "@/hooks/usePlatformSettings";
+import { usePlatformSettingsContext } from "@/contexts/PlatformSettingsContext";
 
 // LeetCode-style error location for Monaco highlighting
 export interface ErrorLocation {
@@ -126,7 +126,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
   ref
 ) {
   const { theme } = useTheme();
-  const { settings: platformSettings } = usePlatformSettings();
+  const { settings: platformSettings } = usePlatformSettingsContext();
   const availableLanguages = supportedLanguages && supportedLanguages.length > 0 
     ? supportedLanguages 
     : Object.keys(problem.starterCode);

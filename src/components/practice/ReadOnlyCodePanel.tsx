@@ -4,7 +4,7 @@
  * Used by Predict Output and Eliminate the Wrong Answer workspaces.
  * Includes: language badge, settings popover, copy, collapse/expand, engagement footer.
  */
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +35,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ShareTooltip from "@/components/ShareTooltip";
 import ReportSuggestDialog from "@/components/ReportSuggestDialog";
-import { PracticeEditorSettingsPopover } from "@/components/practice/PracticeEditorSettingsPopover";
-import { usePracticeEditorSettings } from "@/hooks/usePracticeEditorSettings";
+import { usePlatformSettingsContext } from "@/contexts/PlatformSettingsContext";
 import { useProblemReactions, type ProblemType } from "@/hooks/useProblemReactions";
 import { useProblemBookmarks } from "@/hooks/useProblemBookmarks";
 
@@ -64,8 +63,7 @@ interface ReadOnlyCodePanelProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onCommentClick?: () => void;
-  /** Hide the browser-fullscreen Maximize button in header row 2 */
-  hideMaximize?: boolean;
+
 }
 
 export function ReadOnlyCodePanel({
@@ -79,7 +77,7 @@ export function ReadOnlyCodePanel({
   isCollapsed = false,
   onToggleCollapse,
   onCommentClick,
-  hideMaximize = false,
+
 }: ReadOnlyCodePanelProps) {
   const { theme } = useTheme();
   const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
@@ -88,8 +86,7 @@ export function ReadOnlyCodePanel({
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const editorRef = useRef<any>(null);
 
-  // Shared editor settings
-  const { settings, updateSetting } = usePracticeEditorSettings();
+  const { monacoOptions } = usePlatformSettingsContext();
 
   // Real DB hooks
   const { likes, dislikes, userReaction, react } = useProblemReactions(problemId, problemType);
@@ -115,6 +112,13 @@ export function ReadOnlyCodePanel({
   const handleEditorMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
   }, []);
+
+  // Apply settings changes live to the mounted editor
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.updateOptions(monacoOptions);
+  }, [monacoOptions]);
 
   const monacoLanguage = LANGUAGE_MAP[language] || language;
 
@@ -202,13 +206,7 @@ export function ReadOnlyCodePanel({
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy} title="Copy code">
             {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <PracticeEditorSettingsPopover settings={settings} onChange={updateSetting} />
-          {!hideMaximize && (
-            <Button variant="ghost" size="icon" className="h-7 w-7"
-              onClick={() => document.documentElement.requestFullscreen?.()} title="Fullscreen">
-              <Maximize className="h-4 w-4" />
-            </Button>
-          )}
+
         </div>
       </div>
 
@@ -221,20 +219,15 @@ export function ReadOnlyCodePanel({
           theme={monacoTheme}
           onMount={handleEditorMount}
           options={{
+            ...monacoOptions,
             readOnly: true,
             domReadOnly: true,
-            fontSize: settings.fontSize,
-            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-            lineNumbers: settings.lineNumbers ? "on" : "off",
             lineNumbersMinChars: 2,
             lineDecorationsWidth: 4,
             glyphMargin: false,
             folding: true,
-            minimap: { enabled: settings.minimap },
-            wordWrap: settings.wordWrap ? "on" : "off",
             scrollBeyondLastLine: false,
             automaticLayout: true,
-            tabSize: settings.tabSize,
             renderIndentGuides: true,
             padding: { top: 16, bottom: 16, left: 8 },
             scrollbar: {
@@ -246,12 +239,7 @@ export function ReadOnlyCodePanel({
             overviewRulerBorder: false,
             hideCursorInOverviewRuler: true,
             overviewRulerLanes: 0,
-            renderLineHighlight: "line",
-            cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: "on",
-            smoothScrolling: true,
             contextmenu: true,
-            bracketPairColorization: { enabled: true },
             guides: {
               indentation: true,
               bracketPairs: true,

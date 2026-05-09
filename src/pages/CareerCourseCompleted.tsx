@@ -397,10 +397,11 @@ const CareerCourseCompleted = () => {
           .eq('completed', true)
           .in('course_id', courseIds),
         supabase
-          .from('posts')
-          .select('id, category_id')
-          .in('category_id', courseIds)
-          .eq('status', 'published'),
+          .from('course_lessons' as any)
+          .select('course_id')
+          .in('course_id', courseIds)
+          .eq('is_published', true)
+          .is('deleted_at', null),
       ]);
 
       const completedByCourse = new Map<string, number>();
@@ -409,7 +410,7 @@ const CareerCourseCompleted = () => {
       });
       const totalByCourse = new Map<string, number>();
       (totalResult.data || []).forEach((p: any) => {
-        totalByCourse.set(p.category_id, (totalByCourse.get(p.category_id) || 0) + 1);
+        totalByCourse.set(p.course_id, (totalByCourse.get(p.course_id) || 0) + 1);
       });
 
       const statuses = careerCourses.map(cc => {

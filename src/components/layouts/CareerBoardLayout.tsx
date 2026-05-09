@@ -15,18 +15,57 @@
  * - Owned by this layout, NOT by child pages
  * - Persisted per user per career in database
  */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Component, type ReactNode, type ErrorInfo } from "react";
 import { Outlet, Navigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCareerBoard } from "@/contexts/CareerBoardContext";
 import { useUserState } from "@/hooks/useUserState";
 import { useCareerWelcome } from "@/hooks/useCareerWelcome";
 import { useCareers } from "@/hooks/useCareers";
+import { courseDetailKey, fetchCourseDetail } from "@/hooks/useCourseDetailData";
 import { CareerScopedHeader } from "@/components/course/CareerScopedHeader";
 import { CareerWelcomePage } from "@/components/career/CareerWelcomePage";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
 import BackToTop from "@/components/BackToTop";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+/**
+ * Error Boundary for Career Board — prevents white page on any render crash.
+ * Shows a minimal recovery UI instead of an empty screen.
+ */
+interface ErrorBoundaryState { hasError: boolean; message: string }
+class CareerBoardErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, message: error?.message ?? "Unknown error" };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[CareerBoard] Render error caught by boundary:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-8">
+          <div className="max-w-md text-center space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Something went wrong</h2>
+            <p className="text-sm text-muted-foreground">{this.state.message}</p>
+            <button
+              onClick={() => { this.setState({ hasError: false, message: "" }); window.location.reload(); }}
+              className="px-4 py-2 rounded bg-primary text-primary-foreground text-sm hover:opacity-90"
+            >
+              Reload page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 /**
  * Loading skeleton that matches CareerScopedHeader dimensions
@@ -54,8 +93,29 @@ export const CareerBoardLayout = () => {
   const { career, careerCourses, isLoading: careerContextLoading, isReady, currentCourseSlug, setCurrentCourseSlug, deepNotesTitle, practiceTitle } = useCareerBoard();
   const { isPro } = useUserState();
   const { getCareerSkills, loading: careersLoading } = useCareers();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const showOverview = searchParams.get('overview') === 'true';
+
+  // Proactively background-prefetch every course in this career once the list is known.
+  // Without this, every course navigation shows a full-page skeleton (~250ms) because
+  // stateIsStale=true + hasPrefetchedData=false → needsFullSkeleton=true in CareerCourseDetail.
+  // After prefetch, hasPrefetchedData=true → skeleton never appears.
+  // 1.5s delay lets the current page's fetch finish first so we don't compete.
+  useEffect(() => {
+    if (!careerCourses.length) return;
+    const slugs = careerCourses.map((c) => c.slug);
+    const timer = setTimeout(() => {
+      slugs.forEach((slug) => {
+        queryClient.prefetchQuery({
+          queryKey: courseDetailKey(slug, false),
+          queryFn: () => fetchCourseDetail(slug, false),
+          staleTime: 5 * 60 * 1000,
+        });
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [careerCourses, queryClient]);
   
   // Welcome screen state - check if user has seen welcome for this career
   const { hasSeenWelcome, loading: welcomeLoading, markWelcomeSeen } = useCareerWelcome(career?.id);
@@ -151,10 +211,11 @@ export const CareerBoardLayout = () => {
   // Second: If user hasn't seen welcome (and didn't just dismiss it), OR they explicitly requested overview
   if (((hasSeenWelcome === false && !welcomeJustDismissed) || showOverview) && career) {
     return (
-      <CareerWelcomePage 
+      <CareerWelcomePage
         career={career as any}
         skills={careerSkills}
         onStart={handleWelcomeStart}
+        hasStarted={showOverview}
       />
     );
   }
@@ -209,7 +270,9 @@ export const CareerBoardLayout = () => {
           showAnnouncement ? 'pt-[5.25rem]' : 'pt-12'   // 84px / 48px
         )}
       >
-        <Outlet context={{ setCurrentCourseSlug, isHeaderVisible: false, showAnnouncement }} />
+        <CareerBoardErrorBoundary>
+          <Outlet context={{ setCurrentCourseSlug, isHeaderVisible: false, showAnnouncement }} />
+        </CareerBoardErrorBoundary>
       </main>
 
       {/* Back to top button */}

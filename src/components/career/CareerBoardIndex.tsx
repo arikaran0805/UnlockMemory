@@ -17,42 +17,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const CareerBoardIndex = () => {
   const { careerId } = useParams<{ careerId: string }>();
-  const { career, careerCourses, isLoading, isReady } = useCareerBoard();
+  const { career, careerCourses, isLoading, isReady, isCoursesReady } = useCareerBoard();
 
-  // Show skeleton while career context is loading
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="h-8 w-48 mb-4" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
+  const skeleton = (
+    <div className="container mx-auto px-4 py-8">
+      <Skeleton className="h-8 w-48 mb-4" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  );
 
-  // Career not found after loading resolved - redirect to arcade (never skeleton as "not found")
-  if (isReady && !career) {
-    return <Navigate to="/careers" replace />;
-  }
+  // Show skeleton while shell + auth + careers data are loading
+  if (isLoading) return skeleton;
 
-  // Still waiting for context to be ready (safety check)
-  if (!isReady || !career) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="h-8 w-48 mb-4" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
+  // Career not found after loading resolved - redirect to Careers
+  if (isReady && !career) return <Navigate to="/careers" replace />;
 
-  // Data is ready - redirect based on course availability
+  // Context not yet resolved
+  if (!isReady || !career) return skeleton;
+
+  // Wait for course data specifically — isCoursesReady = !careersLoading && isReady.
+  // When true, nativeCourses is guaranteed to be computed from loaded careers data.
+  // This prevents a race where careerCourses is momentarily [] while addon courses load.
+  if (!isCoursesReady) return skeleton;
+
+  // Course data confirmed ready — redirect to first course
   const firstCourse = careerCourses[0];
-  
   if (firstCourse) {
-    // Use careerId from URL params (the slug) consistently
     return <Navigate to={`/career-board/${careerId}/course/${firstCourse.slug}`} replace />;
   }
 
-  // Career has 0 courses (confirmed) - redirect to Careers
+  // Career has 0 courses (confirmed after isCoursesReady) — fall back to Careers
   return <Navigate to="/careers" replace />;
 };
 

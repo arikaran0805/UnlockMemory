@@ -191,15 +191,7 @@ export function PredictEditorPanel({
             isEditorHovered ? "opacity-100" : "opacity-0"
           )}
         >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => document.documentElement.requestFullscreen()}
-            title="Fullscreen"
-          >
-            <Maximize className="h-4 w-4" />
-          </Button>
+
           {!opts.shrinkable && (
             <Button
               variant="ghost"

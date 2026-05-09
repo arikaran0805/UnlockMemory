@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, List, PartyPopper } from "lucide-react";
+import { ArrowLeft, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UMLoader from "@/components/UMLoader";
+import { PracticeWorkspaceHeader } from "@/components/practice/PracticeWorkspaceHeader";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -13,6 +14,7 @@ import { ProblemWorkspace } from "@/components/practice/ProblemWorkspace";
 import { ProblemListDrawer } from "@/components/practice/ProblemListDrawer";
 import { TestResult } from "@/components/practice/TestCasePanel";
 import { usePublishedPracticeProblem, usePublishedPracticeProblems } from "@/hooks/usePracticeProblems";
+import { usePrefetchAdjacentProblems } from "@/hooks/usePrefetchAdjacentProblems";
 import { useCodeJudge, convertTestCasesToJudgeFormat, getVerdictDisplay } from "@/hooks/useCodeJudge";
 import { useProblemSubmissions, Submission } from "@/hooks/useProblemSubmissions";
 import { useUpdateLearnerProgress } from "@/hooks/useLearnerProblemProgress";
@@ -108,6 +110,13 @@ export default function ProblemDetail() {
 
   // Fetch all problems in this skill
   const { data: allProblemsInSkill = [] } = usePublishedPracticeProblems(skillId);
+
+  // Compute adjacent problems early (before any conditional returns) so the
+  // prefetch hook can be called unconditionally per React's rules of hooks.
+  const _currentIdx = allProblemsInSkill.findIndex((p) => p.slug === problemId);
+  const _prevProblem = _currentIdx > 0 ? allProblemsInSkill[_currentIdx - 1] : null;
+  const _nextProblem = _currentIdx < allProblemsInSkill.length - 1 ? allProblemsInSkill[_currentIdx + 1] : null;
+  usePrefetchAdjacentProblems(skillId, _prevProblem, _nextProblem);
 
   // Fetch problem from database
   const { data: dbProblem, isLoading } = usePublishedPracticeProblem(skillId, problemId);
@@ -479,49 +488,16 @@ export default function ProblemDetail() {
           }}
         />
 
-        {/* Top Navigation Bar */}
-        <div className="h-12 flex items-center px-4 border-b border-border/50 bg-card shrink-0">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => navigate(`/practice/${skillId}`)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            >
-              <List className="h-3.5 w-3.5" />
-              <span>{skill?.name || "Problems"}</span>
-            </button>
-
-            <div className="flex items-center">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={handlePrevProblem}
-                disabled={!prevProblem}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium px-2">{problem.title}</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={handleNextProblem}
-                disabled={!nextProblem}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PracticeWorkspaceHeader
+          skillId={skillId}
+          skillName={skill?.name || "Problems"}
+          problemTitle={problem.title}
+          prevProblem={prevProblem}
+          nextProblem={nextProblem}
+          onPrevProblem={handlePrevProblem}
+          onNextProblem={handleNextProblem}
+          onOpenDrawer={() => setDrawerOpen(true)}
+        />
 
         {/* Fullscreen Panel Content */}
         <div className="flex-1 min-h-0 overflow-hidden bg-muted/30 p-1.5">
@@ -594,50 +570,16 @@ export default function ProblemDetail() {
         }}
       />
 
-      {/* Top Navigation Bar */}
-      <div className="h-12 flex items-center px-4 border-b border-border/50 bg-card shrink-0">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => navigate(`/practice/${skillId}`)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          
-          {/* Skill Name - clickable to open drawer */}
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-          >
-            <List className="h-3.5 w-3.5" />
-            <span>{skill?.name || "Problems"}</span>
-          </button>
-
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={handlePrevProblem}
-              disabled={!prevProblem}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium px-2">{problem.title}</span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={handleNextProblem}
-              disabled={!nextProblem}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <PracticeWorkspaceHeader
+        skillId={skillId}
+        skillName={skill?.name || "Problems"}
+        problemTitle={problem.title}
+        prevProblem={prevProblem}
+        nextProblem={nextProblem}
+        onPrevProblem={handlePrevProblem}
+        onNextProblem={handleNextProblem}
+        onOpenDrawer={() => setDrawerOpen(true)}
+      />
 
       {/* Main Content - Three Panel Layout */}
       <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">

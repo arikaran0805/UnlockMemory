@@ -139,24 +139,29 @@ export function usePlatformSettings() {
   // Computed Monaco editor options
   const monacoOptions = useMemo(() => {
     const { learningExperience, codeEditor, advanced } = settings;
-    
+
     const fontFamilyMap: Record<string, string> = {
       default: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-      monospace: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+      monospace: "'Consolas', 'Courier New', monospace",
       serif: "'Georgia', 'Times New Roman', serif",
     };
 
     return {
       fontSize: learningExperience.fontSize,
-      wordWrap: learningExperience.wordWrap ? "on" : "off",
-      lineNumbers: learningExperience.showLineNumbers ? "on" : "off",
-      renderLineHighlight: learningExperience.highlightActiveLine ? "line" : "none",
-      matchBrackets: learningExperience.showMatchingBrackets ? "always" : "never",
+      wordWrap: (learningExperience.wordWrap ? "on" : "off") as "on" | "off",
+      lineNumbers: (learningExperience.showLineNumbers ? "on" : "off") as "on" | "off",
+      renderLineHighlight: (learningExperience.highlightActiveLine ? "line" : "none") as "line" | "none",
+      matchBrackets: (learningExperience.showMatchingBrackets ? "always" : "never") as "always" | "never",
       fontFamily: fontFamilyMap[codeEditor.fontFamily] || fontFamilyMap.default,
       tabSize: codeEditor.tabSize,
       insertSpaces: codeEditor.indentationType === "spaces",
       fontLigatures: codeEditor.fontLigatures,
       minimap: { enabled: advanced.minimap },
+      // Performance mode: disables smooth animations for better responsiveness
+      cursorBlinking: (advanced.performanceMode ? "solid" : "smooth") as "solid" | "smooth",
+      cursorSmoothCaretAnimation: (advanced.performanceMode ? "off" : "on") as "off" | "on",
+      smoothScrolling: !advanced.performanceMode,
+      bracketPairColorization: { enabled: !advanced.performanceMode },
     };
   }, [settings]);
 

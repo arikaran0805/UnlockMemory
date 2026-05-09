@@ -34,6 +34,7 @@ import { useCourseProgress } from "@/hooks/useCourseProgress";
 import { useLessonTimeTracking } from "@/hooks/useLessonTimeTracking";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUserState } from "@/hooks/useUserState";
+import { useAdSettings } from "@/hooks/useAdSettings";
 import { useCareerBoard } from "@/contexts/CareerBoardContext";
 import { usePracticeSkillByCourse, useLessonProblemCounts, useLessonProblemsCompletion } from "@/hooks/useLessonProblems";
 
@@ -157,7 +158,7 @@ const CareerCourseDetail = () => {
   const { setCurrentCourseSlug, isHeaderVisible, showAnnouncement } = useOutletContext<OutletContext>();
 
   // Career Board context
-  const { career, careerCourses, isLoading: careerLoading, setDeepNotesTitle, setPracticeTitle } = useCareerBoard();
+  const { career, isLoading: careerLoading, setDeepNotesTitle, setPracticeTitle } = useCareerBoard();
 
   // Always prefer the route param for building Career Board URLs.
   // (career can be transiently null during initialization; the param is always present.)
@@ -165,6 +166,7 @@ const CareerCourseDetail = () => {
 
   const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
   const { isPro, isLoading: userStateLoading } = useUserState();
+  const { settings: adSettings } = useAdSettings();
 
   // Derived — no state needed
   const showAllStatuses = isPreviewMode && (isAdmin || isModerator);
@@ -260,6 +262,13 @@ const CareerCourseDetail = () => {
   const [notesEverOpened, setNotesEverOpened] = useState(false);
   const [practiceEverOpened, setPracticeEverOpened] = useState(false);
 
+  // Derive practiceEverOpened from deepPracticeOpen so every call site that sets
+  // deepPracticeOpen=true automatically triggers the lazy mount, regardless of
+  // whether it remembered to call setPracticeEverOpened(true) explicitly.
+  useEffect(() => {
+    if (deepPracticeOpen) setPracticeEverOpened(true);
+  }, [deepPracticeOpen]);
+
   // Practice problems linking hooks
   const { data: practiceSkill } = usePracticeSkillByCourse(course?.id);
   const { data: lessonProblemCounts } = useLessonProblemCounts(course?.id);
@@ -350,30 +359,14 @@ const CareerCourseDetail = () => {
     // Bug 5 fix: all progress checks are after this guard so totalCount is always accurate
     if (!postsLoaded) return;
 
-    // Priority 4: LEARNER progress-based tab selection
-    const progressPercentage = courseProgress.percentage;
-
-    // 100% completion → Certificate tab
-    // Career Board users skip explicit enrollment — completion is proof of access
-    if (progressPercentage === 100 && courseProgress.isCompleted) {
-      if (isPro) {
-        setActiveTab("certificate");
-        setDefaultTabResolved(true);
-        return;
-      }
-      setActiveTab("lessons");
+    // Priority 4: Completed → Certificate tab (Pro only, tab not rendered for free users)
+    // Not completed → Lessons tab
+    if (courseProgress.isCompleted && isPro) {
+      setActiveTab("certificate");
       setDefaultTabResolved(true);
       return;
     }
 
-    // 1-99% progress → Lessons tab
-    if (progressPercentage > 0 && progressPercentage < 100) {
-      setActiveTab("lessons");
-      setDefaultTabResolved(true);
-      return;
-    }
-
-    // 0% progress → Lessons tab
     setActiveTab("lessons");
     setDefaultTabResolved(true);
   }, [
@@ -1397,6 +1390,7 @@ const CareerCourseDetail = () => {
             setSearchParams(nextSearch, { replace: true });
           }}
           onOpenPracticeFocus={(lessonId) => {
+            setPracticeEverOpened(true);
             setDeepPracticeLessonId(lessonId);
             setDeepPracticeOpen(true);
           }}
@@ -1538,11 +1532,14 @@ const CareerCourseDetail = () => {
 
                   {/* Lesson Content */}
                   <div className="mx-auto mt-10 w-full max-w-[720px]">
-                    <ContentRenderer 
+                    <ContentRenderer
                       htmlContent={selectedPost.content || ''}
                       courseType={course?.slug?.toLowerCase()}
                       codeTheme={selectedPost.code_theme || undefined}
                       variant="article"
+                      showAd={!userStateLoading && !isPro}
+                      googleAdClient={adSettings.googleAdClient}
+                      inContentSlot={adSettings.inContentSlot}
                     />
                   </div>
 
@@ -1952,6 +1949,7 @@ const CareerCourseDetail = () => {
                                           className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-primary/70 hover:text-primary hover:bg-primary/5 transition-colors"
                                           onClick={(e) => {
                                             e.stopPropagation();
+                                            setPracticeEverOpened(true);
                                             setDeepPracticeLessonId(lesson.id);
                                             setDeepPracticeOpen(true);
                                           }}
@@ -2032,36 +2030,46 @@ const CareerCourseDetail = () => {
                             !courseProgress.isCompleted && "pointer-events-none select-none"
                           )}>
                             {/* Certificate Preview */}
-                            <div className="w-full max-w-md aspect-[1.4/1] rounded-lg border-4 border-border/40 bg-gradient-to-br from-muted/40 to-muted/60 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                              <div className="absolute inset-3 border-2 border-border/40 rounded pointer-events-none" />
-                              
-                              <div className="mb-3">
-                                <Award className="h-12 w-12 text-primary" />
+                            <div className="w-full max-w-md">
+                              <div className="relative w-full rounded-2xl overflow-hidden border border-border/50 shadow-[0_2px_16px_rgba(0,0,0,0.06)]"
+                                style={{ aspectRatio: '1.414 / 1', background: '#fff' }}>
+                                {/* Top + bottom accent bars */}
+                                <div className="absolute top-0 left-0 right-0 h-[5px] bg-primary" />
+                                <div className="absolute bottom-0 left-0 right-0 h-[5px] bg-primary" />
+                                {/* Inner border */}
+                                <div className="absolute inset-[18px] border border-border/30 rounded-lg pointer-events-none" />
+                                {/* Corner dots */}
+                                {[['top-[14px] left-[14px]'], ['top-[14px] right-[14px]'], ['bottom-[14px] left-[14px]'], ['bottom-[14px] right-[14px]']].map(([pos], i) => (
+                                  <div key={i} className={cn("absolute w-2 h-2 rounded-full bg-primary/30", pos)} />
+                                ))}
+                                {/* Content */}
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8 py-6">
+                                  <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground/50 mb-3">
+                                    UnlockMemory
+                                  </p>
+                                  <h2 className="font-serif text-[clamp(14px,3vw,22px)] font-bold text-foreground/90 mb-2 leading-tight">
+                                    Certificate of Completion
+                                  </h2>
+                                  <div className="w-32 h-px mb-3"
+                                    style={{ background: 'linear-gradient(90deg, transparent, hsl(152 36% 33% / 0.5), transparent)' }} />
+                                  <p className="text-[clamp(8px,1.4vw,11px)] text-muted-foreground mb-1.5">
+                                    This is to certify that
+                                  </p>
+                                  <p className="font-serif text-[clamp(16px,3.5vw,26px)] font-bold text-foreground leading-tight mb-1">
+                                    {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner'}
+                                  </p>
+                                  <div className="w-28 h-px bg-border/60 mb-2" />
+                                  <p className="text-[clamp(8px,1.4vw,11px)] text-muted-foreground mb-1.5">
+                                    has successfully completed
+                                  </p>
+                                  <p className="text-[clamp(11px,2.2vw,16px)] font-bold text-primary leading-tight mb-3 max-w-[80%]">
+                                    {course.name}
+                                  </p>
+                                  <p className="text-[clamp(8px,1.3vw,11px)] text-muted-foreground/60">
+                                    {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                  </p>
+                                </div>
                               </div>
-                              
-                              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
-                                Certificate of Completion
-                              </p>
-                              
-                              <p className="text-sm text-muted-foreground mb-1">
-                                This is to certify that
-                              </p>
-                              
-                              <p className="text-lg font-bold text-foreground mb-2 line-clamp-1">
-                                {user?.user_metadata?.full_name || 'Learner'}
-                              </p>
-                              
-                              <p className="text-xs text-muted-foreground mb-1">
-                                has successfully completed
-                              </p>
-                              
-                              <p className="text-sm font-semibold text-primary line-clamp-2 mb-3">
-                                {course.name}
-                              </p>
-                              
-                              <p className="text-xs text-muted-foreground">
-                                {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                              </p>
                             </div>
 
                             {/* Actions */}

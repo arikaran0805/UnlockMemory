@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { Component, type ReactNode, type ErrorInfo, useEffect, useRef } from "react";
 import { usePresence } from "@/hooks/usePresence";
 import { useAuth } from "@/hooks/useAuth";
 import { usePageTracking } from "@/hooks/usePageTracking";
@@ -12,6 +12,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ViewAsRoleProvider } from "@/contexts/ViewAsRoleContext";
 import { PricingDrawerProvider } from "@/contexts/PricingDrawerContext";
 import { CareerPlanProvider } from "@/contexts/CareerPlanContext";
+import { PlatformSettingsProvider } from "@/contexts/PlatformSettingsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { NAV_COURSES_KEY, fetchNavCourses } from "@/hooks/useNavCourses";
 import { NAV_CAREERS_KEY, fetchNavCareers } from "@/hooks/useNavCareers";
@@ -40,6 +41,38 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Global Error Boundary — catches any render crash anywhere in the app tree.
+// Without this, an unhandled rejection or render error causes a full white page.
+interface AppErrorBoundaryState { hasError: boolean; message: string }
+class AppErrorBoundary extends Component<{ children: ReactNode }, AppErrorBoundaryState> {
+  state: AppErrorBoundaryState = { hasError: false, message: "" };
+  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
+    return { hasError: true, message: error?.message ?? "Unknown error" };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[AppErrorBoundary] Uncaught render error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem", fontFamily: "sans-serif" }}>
+          <div style={{ maxWidth: 420, textAlign: "center" }}>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.75rem" }}>Something went wrong</h2>
+            <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1.25rem" }}>{this.state.message}</p>
+            <button
+              onClick={() => { this.setState({ hasError: false, message: "" }); window.location.reload(); }}
+              style={{ padding: "0.5rem 1.25rem", borderRadius: "0.375rem", background: "#111827", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.875rem" }}
+            >
+              Reload page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Fire nav data prefetch immediately at module load — before any React component
 // mounts. By the time the Header renders and calls useNavCourses/useNavCareers,
@@ -145,23 +178,27 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-      <TooltipProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <ViewAsRoleProvider>
-              <CareerPlanProvider>
-                <PricingDrawerProvider>
-                  <AppContent />
-                </PricingDrawerProvider>
-              </CareerPlanProvider>
-            </ViewAsRoleProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+        <TooltipProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <ViewAsRoleProvider>
+                <PlatformSettingsProvider>
+                  <CareerPlanProvider>
+                    <PricingDrawerProvider>
+                      <AppContent />
+                    </PricingDrawerProvider>
+                  </CareerPlanProvider>
+                </PlatformSettingsProvider>
+              </ViewAsRoleProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

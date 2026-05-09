@@ -412,45 +412,47 @@ export function usePublishedPracticeProblems(skillSlug: string | undefined) {
 export function usePublishedPracticeProblem(skillSlug: string | undefined, problemSlug: string | undefined) {
   return useQuery({
     queryKey: ["published-practice-problem", skillSlug, problemSlug],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       if (!skillSlug || !problemSlug) return null;
-      
-      // First get the skill by slug
-      const { data: skill, error: skillError } = await supabase
-        .from("practice_skills")
-        .select("id")
-        .eq("slug", skillSlug)
-        .eq("status", "published")
-        .single();
 
-      if (skillError || !skill) return null;
+      // Fetch skill and problem in parallel to halve latency
+      const [skillResult, directBySlugResult] = await Promise.all([
+        supabase
+          .from("practice_skills")
+          .select("id")
+          .eq("slug", skillSlug)
+          .eq("status", "published")
+          .single(),
+        supabase
+          .from("practice_problems")
+          .select("*")
+          .eq("slug", problemSlug)
+          .eq("status", "published")
+          .maybeSingle(),
+      ]);
 
-      // Try direct skill_id match first
-      const { data: directProblem } = await supabase
-        .from("practice_problems")
-        .select("*")
-        .eq("skill_id", skill.id)
-        .eq("slug", problemSlug)
-        .eq("status", "published")
-        .single();
+      const skill = skillResult.data;
+      const candidateProblem = directBySlugResult.data;
 
-      if (directProblem) {
-        return transformProblem(directProblem);
+      // Verify the problem belongs to this skill
+      if (skill && candidateProblem && candidateProblem.skill_id === skill.id) {
+        return transformProblem(candidateProblem);
       }
 
-      // If not found directly, check via problem_mappings (problem linked from another skill)
-      const { data: mappedProblem } = await supabase
-        .from("problem_mappings")
-        .select(`
-          practice_problems!inner(*)
-        `)
-        .eq("practice_problems.slug", problemSlug)
-        .eq("practice_problems.status", "published")
-        .limit(1)
-        .single();
+      // Fallback: problem linked from another skill via problem_mappings
+      if (skill) {
+        const { data: mappedProblem } = await supabase
+          .from("problem_mappings")
+          .select("practice_problems!inner(*)")
+          .eq("practice_problems.slug", problemSlug)
+          .eq("practice_problems.status", "published")
+          .limit(1)
+          .maybeSingle();
 
-      if (mappedProblem?.practice_problems) {
-        return transformProblem(mappedProblem.practice_problems);
+        if (mappedProblem?.practice_problems) {
+          return transformProblem(mappedProblem.practice_problems);
+        }
       }
 
       return null;

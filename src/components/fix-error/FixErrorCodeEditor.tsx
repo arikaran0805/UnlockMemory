@@ -1,16 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Braces, RotateCcw, Settings, Maximize,
-  Expand, Shrink, AlignLeft, PanelTopClose, PanelTopOpen, Lock,
+  Braces, RotateCcw, Maximize,
+  Expand, Shrink, PanelTopClose, PanelTopOpen, Lock, FileCode
 } from "lucide-react";
 import Editor, { OnMount, Monaco } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
-import { usePlatformSettings } from "@/hooks/usePlatformSettings";
-import { PlatformSettingsModal } from "@/components/practice/PlatformSettingsModal";
-import { formatPython, registerMonacoPythonFormatter } from "@/lib/formatters/pythonFormatter";
+import { usePlatformSettingsContext } from "@/contexts/PlatformSettingsContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useProblemCodePersistence } from "@/hooks/useProblemCodePersistence";
 
 const monacoLanguageMap: Record<string, string> = {
   python: "python",
@@ -21,6 +20,7 @@ const monacoLanguageMap: Record<string, string> = {
 };
 
 interface FixErrorCodeEditorProps {
+  problemId?: string;
   initialCode: string;
   language: string;
   onRun: (code: string) => void;
@@ -37,6 +37,7 @@ interface FixErrorCodeEditorProps {
 }
 
 export function FixErrorCodeEditor({
+  problemId,
   initialCode,
   language,
   onRun,
@@ -50,10 +51,22 @@ export function FixErrorCodeEditor({
   editableEndLine,
 }: FixErrorCodeEditorProps) {
   const { theme } = useTheme();
-  const { settings, monacoOptions } = usePlatformSettings();
-  const [code, setCode] = useState(initialCode);
+  const { settings, monacoOptions } = usePlatformSettingsContext();
+
+  const {
+    code,
+    setCode,
+    handleReset: persistenceHandleReset,
+    restoreLastSubmission,
+    saveAsLastSubmission,
+    hasLastSubmission,
+  } = useProblemCodePersistence({
+    problemId,
+    starterCode: { [language]: initialCode },
+    supportedLanguages: [language],
+  });
+
   const [isHovered, setIsHovered] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -72,9 +85,8 @@ export function FixErrorCodeEditor({
     tabWidthRef.current = settings.codeEditor.tabSize;
   }, [settings.codeEditor.tabSize]);
 
-  // Reset code when problem changes
+  // Initialize locked lines snapshot when problem changes
   useEffect(() => {
-    setCode(initialCode);
     // Snapshot locked lines for validation
     if (hasLockedRegions) {
       const lines = initialCode.split("\n");
@@ -156,7 +168,7 @@ export function FixErrorCodeEditor({
         if (!lockedModified) {
           const originalLockedAfter = originalLines.length - editableEndLine!;
           const newLockedAfter = newLines.length - editableEndLine!;
-          
+
           // If total line count changed in locked regions, something was modified
           if (newLockedAfter !== originalLockedAfter) {
             lockedModified = true;
@@ -183,10 +195,10 @@ export function FixErrorCodeEditor({
               const editableContent = currentLines
                 .slice(editableStartLine! - 1, editableEndLine!)
                 .join("\n");
-              
+
               const beforeEditable = originalLines.slice(0, editableStartLine! - 1).join("\n");
               const afterEditable = originalLines.slice(editableEndLine!).join("\n");
-              
+
               const restored = [
                 beforeEditable,
                 editableContent,
@@ -211,7 +223,6 @@ export function FixErrorCodeEditor({
     (editor, monaco) => {
       editorRef.current = editor;
       monacoRef.current = monaco;
-      registerMonacoPythonFormatter(monaco, () => tabWidthRef.current);
 
       editor.addCommand(
         monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
@@ -244,7 +255,14 @@ export function FixErrorCodeEditor({
   }, [monacoOptions, settings.codeEditor.tabSize, settings.codeEditor.indentationType]);
 
   const handleReset = () => {
-    setCode(initialCode);
+    persistenceHandleReset();
+    // Explicitly update Monaco to ensure the visual state matches
+    if (editorRef.current) {
+      const model = editorRef.current.getModel?.();
+      if (model) {
+        model.setValue(initialCode);
+      }
+    }
     if (editorRef.current && decorationsRef.current) {
       decorationsRef.current.clear();
     }
@@ -252,47 +270,30 @@ export function FixErrorCodeEditor({
     if (editorRef.current && monacoRef.current) {
       applyLockedDecorations(editorRef.current, monacoRef.current);
     }
+    toast.success("Code reset");
   };
 
-  const handleFormatCode = useCallback(async () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const action = editor.getAction?.("editor.action.formatDocument");
-    const isSupported =
-      !!action && (typeof action.isSupported !== "function" || action.isSupported());
-
-    if (!isSupported && language === "python") {
-      try {
-        const model = editor.getModel?.();
-        if (!model) return;
-        const formatted = await formatPython(model.getValue(), {
-          tabWidth: settings.codeEditor.tabSize,
-        });
-        model.pushEditOperations(
-          [],
-          [{ range: model.getFullModelRange(), text: formatted }],
-          () => null
-        );
-        toast.success("Formatted");
-      } catch {
-        toast.error("Couldn't format this code.");
+  const handleRetrieveLastCode = () => {
+    if (hasLastSubmission) {
+      const restored = restoreLastSubmission();
+      if (restored) {
+        toast.success("Last submitted code restored");
+        // restoreLastSubmission updates `code` state, but we force Monaco update to ensure visual sync:
+        setTimeout(() => {
+          const draft = localStorage.getItem(`problem_draft_code_${problemId}_${language}`);
+          if (editorRef.current && draft) {
+            const model = editorRef.current.getModel?.();
+            if (model && model.getValue() !== draft) {
+              model.setValue(draft);
+            }
+          }
+        }, 50);
       }
-      return;
+    } else {
+      toast.info("No previous submission found");
     }
+  };
 
-    if (!isSupported) {
-      toast.info("Formatting isn't available for this language yet.");
-      return;
-    }
-
-    try {
-      await action.run();
-      toast.success("Formatted");
-    } catch {
-      toast.error("Couldn't format this code.");
-    }
-  }, [language, settings.codeEditor.tabSize]);
 
   const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
   const monacoLanguage = monacoLanguageMap[language] || "plaintext";
@@ -348,21 +349,7 @@ export function FixErrorCodeEditor({
                   : "Fix the buggy code below"
                 }
               </span>
-              <div className="flex items-center gap-0.5">
-                <Button variant="ghost" size="icon" className="h-7 w-7" title="Format code" onClick={handleFormatCode}>
-                  <AlignLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleReset} title="Reset to buggy code">
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSettingsModalOpen(true)} title="Settings">
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7"
-                  onClick={() => document.documentElement.requestFullscreen?.()} title="Fullscreen">
-                  <Maximize className="h-4 w-4" />
-                </Button>
-              </div>
+
             </div>
 
             {/* Monaco Editor */}
@@ -419,12 +406,31 @@ export function FixErrorCodeEditor({
                 {" "}to run
               </span>
               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0.5 mr-1 text-muted-foreground">
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Restore last submission"
+                    onClick={handleRetrieveLastCode}
+                    disabled={!hasLastSubmission}
+                  >
+                    <FileCode className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleReset} title="Reset to buggy code">
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Button variant="outline" size="sm" className="h-8"
                   onClick={() => onRun(code)} disabled={isRunning}>
                   Run
                 </Button>
                 <Button size="sm" className="h-8"
-                  onClick={() => onSubmit(code)} disabled={isRunning}>
+                  onClick={() => {
+                    saveAsLastSubmission(codeRef.current, language);
+                    onSubmit(codeRef.current);
+                  }} disabled={isRunning}>
                   Submit
                 </Button>
               </div>
@@ -432,8 +438,6 @@ export function FixErrorCodeEditor({
           </>
         )}
       </div>
-
-      <PlatformSettingsModal open={settingsModalOpen} onOpenChange={setSettingsModalOpen} />
 
       {/* Locked region styles */}
       <style>{`

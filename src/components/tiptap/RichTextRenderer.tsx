@@ -116,12 +116,15 @@ export const RichTextRenderer = ({
     [parsedContent]
   );
 
-  // Inject data-flow + data-flow-label attributes onto heading elements so
-  // useLessonFlowNavigation can discover them as Lesson Flow items.
+  // Inject data-flow + data-flow-label + data-flow-level onto h2/h3 elements so
+  // useLessonFlowNavigation can discover them as Lesson Flow TOC items.
+  // Only h2/h3 — matches the selector in useLessonFlowNavigation's observeFlowElements.
+  // data-flow-level must be set here so the hook preserves indentation hierarchy
+  // when these elements are already stamped before observeFlowElements runs.
   useEffect(() => {
     if (!editor || !containerRef.current) return;
     const container = containerRef.current;
-    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const headings = container.querySelectorAll('h2, h3');
     if (!headings.length) return;
 
     const slugCounts: Record<string, number> = {};
@@ -137,6 +140,7 @@ export const RichTextRenderer = ({
       const flowId = `h-${slug}`;
       el.setAttribute('data-flow', flowId);
       el.setAttribute('data-flow-label', text);
+      el.setAttribute('data-flow-level', el.tagName[1]);
       el.id = flowId;
     });
   }, [editor]);

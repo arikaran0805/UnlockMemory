@@ -12,16 +12,22 @@ interface ContentRendererProps {
   courseType?: string;
   codeTheme?: string;
   variant?: "default" | "article";
+  /** Pass true to inject one in-content ad at the midpoint of canvas blocks. */
+  showAd?: boolean;
+  /** AdSense publisher ID — forwarded to CanvasRenderer, no extra DB fetch needed. */
+  googleAdClient?: string;
+  /** AdSense in-content slot ID — forwarded to CanvasRenderer. */
+  inContentSlot?: string;
 }
 
 // Helper to extract code blocks from HTML and replace with placeholders
 const extractCodeBlocks = (html: string): { processedHtml: string; codeBlocks: { code: string; language: string }[] } => {
   const codeBlocks: { code: string; language: string }[] = [];
-  
+
   // Match <pre class="ql-syntax"...>...</pre> from Quill editor (legacy)
   // and <pre><code>...</code></pre> from TipTap
   const preRegex = /<pre[^>]*(?:class="[^"]*(?:ql-syntax|code-block)[^"]*")?[^>]*>(?:<code[^>]*>)?([\s\S]*?)(?:<\/code>)?<\/pre>/gi;
-  
+
   let processedHtml = html.replace(preRegex, (match, content) => {
     // Decode HTML entities
     const decodedContent = content
@@ -33,7 +39,7 @@ const extractCodeBlocks = (html: string): { processedHtml: string; codeBlocks: {
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<[^>]+>/g, '') // Remove any remaining HTML tags
       .trim();
-    
+
     // Try to detect language from code content
     let language = 'python'; // Default
     if (decodedContent.match(/^(function|const|let|var|import|export)\s/m)) {
@@ -43,11 +49,11 @@ const extractCodeBlocks = (html: string): { processedHtml: string; codeBlocks: {
     } else if (decodedContent.match(/^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP)\s/im)) {
       language = 'sql';
     }
-    
+
     codeBlocks.push({ code: decodedContent, language });
     return `<!--CODE_BLOCK_${codeBlocks.length - 1}-->`;
   });
-  
+
   return { processedHtml, codeBlocks };
 };
 
@@ -60,11 +66,14 @@ const extractCodeBlocks = (html: string): { processedHtml: string; codeBlocks: {
  * For TipTap JSON: Uses RichTextRenderer with full schema support
  * For legacy HTML: Uses sanitized HTML with code block extraction
  */
-const ContentRenderer = ({ 
-  htmlContent, 
+const ContentRenderer = ({
+  htmlContent,
   courseType = "python",
   codeTheme,
   variant = "default",
+  showAd = false,
+  googleAdClient,
+  inContentSlot,
 }: ContentRendererProps) => {
   // Check for corrupted/partial TipTap JSON that should be suppressed
   const isCorruptedJson = useMemo(() => {
@@ -111,6 +120,9 @@ const ContentRenderer = ({
           courseType={courseType}
           codeTheme={codeTheme}
           className={variant === "article" ? "content-renderer-article-canvas" : undefined}
+          showAd={showAd}
+          googleAdClient={googleAdClient}
+          inContentSlot={inContentSlot}
         />
       </div>
     );
@@ -139,8 +151,8 @@ const ContentRenderer = ({
   if (isTipTap) {
     return (
       <div className={contentWrapperClass}>
-        <RichTextRenderer 
-          content={htmlContent} 
+        <RichTextRenderer
+          content={htmlContent}
           className={variant === "article" ? "content-renderer-article" : undefined}
           emptyPlaceholder="No content available"
         />
@@ -151,7 +163,7 @@ const ContentRenderer = ({
   // Legacy HTML: If no code blocks, render normally with sanitization
   if (codeBlocks.length === 0) {
     return (
-      <div 
+      <div
         className={contentWrapperClass}
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlContent) }}
       />
@@ -160,14 +172,14 @@ const ContentRenderer = ({
 
   // Legacy HTML: Split by code block placeholders and render with CodeBlock components
   const parts = processedHtml.split(/<!--CODE_BLOCK_(\d+)-->/);
-  
+
   return (
     <div className={contentWrapperClass}>
       {parts.map((part, idx) => {
         // Even indices are HTML content, odd indices are code block indices
         if (idx % 2 === 0) {
           return part ? (
-            <div 
+            <div
               key={idx}
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(part) }}
             />
@@ -176,7 +188,7 @@ const ContentRenderer = ({
           const codeBlockIndex = parseInt(part, 10);
           const block = codeBlocks[codeBlockIndex];
           if (!block) return null;
-          
+
           return (
             <div key={idx} className="my-4 not-prose">
               <MonacoCodeBlock

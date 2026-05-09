@@ -529,20 +529,34 @@ All colors MUST be HSL.
   }
 
   /* ── Profile Page Layout ─────────────────────────────────────────────── */
+
+  /* Outer is the ONE scroll container — sidebar sticks, footer is full-width at bottom */
   .profile-page-outer {
     display: flex;
-    min-height: calc(100vh - 64px);
-    background: var(--background);  /* same as header & footer */
+    flex-direction: column;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
     overflow-x: hidden;
+    background: var(--background);
+    scrollbar-width: none;       /* Firefox */
+    -ms-overflow-style: none;    /* IE/Edge */
+  }
+  .profile-page-outer::-webkit-scrollbar {
+    display: none;               /* Chrome/Safari/Opera */
   }
 
-  /* Content fills remainder, scrollable */
+  /* Row that holds sidebar + content — grows with content */
+  .profile-inner-row {
+    flex-shrink: 0;
+    display: flex;
+  }
+
+  /* Content fills remainder — no independent scroll, outer handles it */
   .profile-content-wrap {
     flex: 1;
     min-width: 0;
     background: var(--background);
     padding: 28px 28px 40px 28px;
-    overflow-y: auto;
     overflow-x: hidden;
   }
 
@@ -556,14 +570,15 @@ All colors MUST be HSL.
 
   /* ── Profile Icon Sidebar ────────────────────────────────────────────── */
 
-  /* Sticky wrapper — fixed viewport height, no card */
+  /* Sidebar — sticky within the profile-page-outer scroll container */
   .profile-icon-sidebar-wrap {
     flex-shrink: 0;
     width: 64px;
     position: sticky;
-    top: 64px;
+    top: 0;
     height: calc(100vh - 64px);
     align-self: flex-start;
+    overflow: hidden;
   }
 
   /* Sidebar — same bg as header & footer, right border for separation */

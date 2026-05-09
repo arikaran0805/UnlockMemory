@@ -189,10 +189,7 @@ export function EliminateWrongOptionsPanel({
               {isExpanded ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7"
-            onClick={() => document.documentElement.requestFullscreen?.()} title="Browser fullscreen">
-            <Maximize className="h-4 w-4" />
-          </Button>
+
         </div>
       </div>
 

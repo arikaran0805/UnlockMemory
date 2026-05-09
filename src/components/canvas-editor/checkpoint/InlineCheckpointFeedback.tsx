@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface InlineCheckpointFeedbackProps {
   visible: boolean;
@@ -18,53 +19,32 @@ const InlineCheckpointFeedback = ({
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, y: -8, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -6, scale: 0.98 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          style={correct
-            ? {
-                borderRadius: 13,
-                border: '1px solid rgba(90,170,130,0.35)',
-                borderLeft: '3px solid #5aaa82',
-                background: 'linear-gradient(to right, #0e2318, #0c2015)',
-                color: '#5aaa82',
-                padding: '13px 16px',
-                display: 'flex',
-                flexDirection: 'column' as const,
-                gap: 6,
-              }
-            : {
-                borderRadius: 13,
-                border: '1px solid rgba(220,80,80,0.28)',
-                borderLeft: '3px solid #e06060',
-                background: 'linear-gradient(to right, #1f1010, #1c0e0e)',
-                color: '#cc6666',
-                padding: '13px 16px',
-                display: 'flex',
-                flexDirection: 'column' as const,
-                gap: 6,
-              }
-          }
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -2 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-3"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600 }}>
-            {correct
-              ? <CheckCircle2 style={{ width: 16, height: 16, flexShrink: 0, color: '#5aaa82' }} />
-              : <XCircle style={{ width: 16, height: 16, flexShrink: 0, color: '#e06060' }} />
-            }
-            {correct ? 'Correct!' : 'Not quite — give it another try.'}
+          <div className={cn(
+            'flex flex-col gap-1.5',
+            correct ? 'text-primary' : 'text-destructive'
+          )}>
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+              {correct
+                ? <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                : <XCircle className="h-4 w-4 flex-shrink-0" />
+              }
+              {correct
+                ? 'Correct — well done!'
+                : 'Not quite. See the highlighted answer above.'
+              }
+            </div>
+            {showExplanation && explanation && (
+              <p className="pl-[22px] text-[12.5px] leading-relaxed text-muted-foreground">
+                {explanation}
+              </p>
+            )}
           </div>
-          {showExplanation && explanation && (
-            <p style={{
-              paddingLeft: 24,
-              fontSize: 13,
-              lineHeight: 1.65,
-              margin: 0,
-              opacity: 0.78,
-            }}>
-              {explanation}
-            </p>
-          )}
         </motion.div>
       )}
     </AnimatePresence>

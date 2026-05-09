@@ -104,7 +104,7 @@ const CheckoutSuccess = ({ cartData, onGoToLearning }: { cartData: CartData; onG
         >
           <Button onClick={onGoToLearning} className="flex-1 gap-2">
             <GraduationCap className="h-4 w-4" />
-            Go to My Learning
+            Dashboard
           </Button>
           <Button variant="outline" className="flex-1 gap-2">
             <Download className="h-4 w-4" />
@@ -171,7 +171,7 @@ const Checkout = () => {
               <CheckoutSuccess
                 key="success"
                 cartData={cartData}
-                onGoToLearning={() => navigate("/profile?tab=courses")}
+                onGoToLearning={() => navigate("/profile")}
               />
             ) : (
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
@@ -273,7 +273,7 @@ const Checkout = () => {
                         }}
                       >
                         <GraduationCap className="h-5 w-5" />
-                        <span>Start Learning Now – {formatPrice(cartData.finalTotal)}</span>
+                        <span>Unlock Your Growth – {formatPrice(cartData.finalTotal)}</span>
                       </Button>
 
                       <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs text-muted-foreground mt-3">

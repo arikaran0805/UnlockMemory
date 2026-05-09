@@ -101,4 +101,9 @@ export function useCodeEdit() {
   return context;
 }
 
+/** Safe variant — returns null when called outside a CodeEditProvider */
+export function useCodeEditOptional(): CodeEditContextValue | null {
+  return useContext(CodeEditContext) ?? null;
+}
+
 export default CodeEditContext;

@@ -43,6 +43,9 @@ const LESSON_FLOW_SECTIONS = [
   { id: "cause", label: "Cause & Effect", icon: ArrowRightCircle },
 ];
 
+// Stable reference — must not be created inline (new ref every render tears down observers)
+const LESSON_FLOW_SECTION_CONFIG = LESSON_FLOW_SECTIONS.map((s) => ({ id: s.id, label: s.label }));
+
 // Practice items
 const PRACTICE_ITEMS = [
   {
@@ -150,8 +153,8 @@ export function LessonRightSidebar({
     sections: lessonFlowSections, 
     scrollToSection 
   } = useLessonFlowNavigation(
-    LESSON_FLOW_SECTIONS.map(s => ({ id: s.id, label: s.label })),
-    { scrollOffset }
+    LESSON_FLOW_SECTION_CONFIG,
+    { scrollOffset, resetKey: lessonId }
   );
 
   // Notes hook

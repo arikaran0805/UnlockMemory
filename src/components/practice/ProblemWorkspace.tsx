@@ -13,7 +13,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import { RotateCcw, Expand, Shrink, PanelTopClose, PanelTopOpen, Braces, AlignLeft, FileCode, Maximize, Settings } from "lucide-react";
+import { RotateCcw, Expand, Shrink, PanelTopClose, PanelTopOpen, Braces, FileCode, Maximize } from "lucide-react";
 import Editor, { OnMount, Monaco } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { TestCasePanel, TestResult } from "./TestCasePanel";
@@ -21,9 +21,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { parseCodeError } from "@/lib/errorParser";
 import { useProblemCodePersistence } from "@/hooks/useProblemCodePersistence";
-import { usePlatformSettings } from "@/hooks/usePlatformSettings";
-import { PlatformSettingsModal } from "./PlatformSettingsModal";
-import { formatPython, registerMonacoPythonFormatter } from "@/lib/formatters/pythonFormatter";
+import { usePlatformSettingsContext } from "@/contexts/PlatformSettingsContext";
+
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface ProblemWorkspaceProps {
@@ -97,19 +96,18 @@ export function ProblemWorkspace({
   const [isEditorPanelCollapsed, setIsEditorPanelCollapsed] = useState(false);
   const [isTestPanelCollapsed, setIsTestPanelCollapsed] = useState(false);
   const [errorLine, setErrorLine] = useState<number | undefined>();
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [hasRunOnce, setHasRunOnce] = useState(false);
 
-  const { settings, monacoOptions } = usePlatformSettings();
+  const { settings, monacoOptions } = usePlatformSettingsContext();
   const tabWidthRef = useRef(settings.codeEditor.tabSize);
-  
+
   // Track previous code for auto-run detection
   const previousCodeRef = useRef<string | null>(null);
 
   useEffect(() => {
     tabWidthRef.current = settings.codeEditor.tabSize;
   }, [settings.codeEditor.tabSize]);
-  
+
   // Use the persistence hook for code management
   const {
     code,
@@ -127,8 +125,8 @@ export function ProblemWorkspace({
     supportedLanguages,
   });
 
-  const availableLanguages = supportedLanguages.length > 0 
-    ? supportedLanguages 
+  const availableLanguages = supportedLanguages.length > 0
+    ? supportedLanguages
     : Object.keys(starterCode);
 
   const userCodeLineCount = code.split('\n').length;
@@ -137,7 +135,7 @@ export function ProblemWorkspace({
   const highlightErrorLine = useCallback((line: number) => {
     // Check if error line highlighting is enabled in settings
     if (!settings.advanced.highlightErrorLines) return;
-    
+
     setErrorLine(line);
     if (editorRef.current && monacoRef.current) {
       const monaco = monacoRef.current;
@@ -213,9 +211,6 @@ export function ProblemWorkspace({
     editorRef.current = editor;
     monacoRef.current = monaco;
 
-    // Enable Python formatting for Monaco's built-in Format Document action.
-    registerMonacoPythonFormatter(monaco, () => tabWidthRef.current);
-    
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       handleRun();
     });
@@ -233,48 +228,6 @@ export function ProblemWorkspace({
     model?.updateOptions?.({ tabSize: settings.codeEditor.tabSize, insertSpaces: settings.codeEditor.indentationType === "spaces" });
   }, [monacoOptions, settings.codeEditor.tabSize, settings.codeEditor.indentationType]);
 
-  const handleFormatCode = useCallback(async () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const action = editor.getAction?.("editor.action.formatDocument");
-    const isSupported =
-      !!action && (typeof action.isSupported !== "function" || action.isSupported());
-
-    // Fallback: Monaco doesn't ship a Python formatter by default.
-    if (!isSupported && language === "python") {
-      try {
-        const model = editor.getModel?.();
-        if (!model) return;
-
-        const formatted = await formatPython(model.getValue(), {
-          tabWidth: settings.codeEditor.tabSize,
-        });
-
-        model.pushEditOperations(
-          [],
-          [{ range: model.getFullModelRange(), text: formatted }],
-          () => null,
-        );
-        toast.success("Formatted");
-      } catch {
-        toast.error("Couldn't format this code.");
-      }
-      return;
-    }
-
-    if (!isSupported) {
-      toast.info("Formatting isn't available for this language yet.");
-      return;
-    }
-
-    try {
-      await action.run();
-      toast.success("Formatted");
-    } catch {
-      toast.error("Couldn't format this code.");
-    }
-  }, [language, settings.codeEditor.tabSize]);
 
   const handleRun = () => {
     testPanelRef.current?.expand();
@@ -289,7 +242,7 @@ export function ProblemWorkspace({
     testPanelRef.current?.resize(35);
     clearErrorHighlight();
     setHasRunOnce(true);
-    
+
     // Save as last submitted code when submitting
     saveAsLastSubmission(code, language);
     onSubmit(code, language);
@@ -349,179 +302,145 @@ export function ProblemWorkspace({
   // If editor is expanded, show only editor panel (full height)
   if (isEditorExpanded) {
     return (
-    <>
-      <div className="h-full flex flex-col gap-1.5">
-        <div 
-          className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden"
-          onMouseEnter={() => setIsEditorHovered(true)}
-          onMouseLeave={() => setIsEditorHovered(false)}
-        >
-          {/* First Header Row - Title and Controls */}
-          <div className="flex items-center justify-between px-4 h-11 border-b border-border/50 bg-muted/40">
-            <div className="flex items-center gap-2">
-              <Braces className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Code</span>
+      <>
+        <div className="h-full flex flex-col gap-1.5">
+          <div
+            className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden"
+            onMouseEnter={() => setIsEditorHovered(true)}
+            onMouseLeave={() => setIsEditorHovered(false)}
+          >
+            {/* First Header Row - Title and Controls */}
+            <div className="flex items-center justify-between px-4 h-11 border-b border-border/50 bg-muted/40">
+              <div className="flex items-center gap-2">
+                <Braces className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Code</span>
+                <div className="w-px h-4 bg-border/60 mx-1" />
+                <Select value={language} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className="w-[130px] h-7 text-sm bg-transparent border-none shadow-none hover:bg-muted/50 transition-colors focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableLanguages.map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {languageLabels[lang] || lang}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className={cn(
+                "flex items-center gap-0.5 transition-opacity",
+                isEditorHovered ? "opacity-100" : "opacity-0"
+              )}>
+                {onExpandEditor && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={onExpandEditor}
+                    title="Collapse panel"
+                  >
+                    <Shrink className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className={cn(
-              "flex items-center gap-0.5 transition-opacity",
-              isEditorHovered ? "opacity-100" : "opacity-0"
-            )}>
-              {onExpandEditor && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7"
-                  onClick={onExpandEditor}
-                  title="Collapse panel"
+
+
+
+            {/* Monaco Editor */}
+            <div className="flex-1 overflow-hidden">
+              <Editor
+                height="100%"
+                language={monacoLanguage}
+                value={code}
+                theme={monacoTheme}
+                onChange={handleEditorChange}
+                onMount={handleEditorMount}
+                options={{
+                  ...monacoOptions,
+                  fontFamily: monacoOptions.fontFamily || "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                  lineNumbersMinChars: 1,
+                  lineDecorationsWidth: 8,
+                  glyphMargin: true,
+                  folding: true,
+                  foldingHighlight: true,
+                  showFoldingControls: "always",
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  renderIndentGuides: true,
+                  padding: { top: 16, bottom: 16 },
+                  scrollbar: {
+                    vertical: "auto",
+                    horizontal: "auto",
+                    verticalScrollbarSize: 10,
+                    horizontalScrollbarSize: 10,
+                  },
+                  overviewRulerBorder: false,
+                  hideCursorInOverviewRuler: true,
+                  overviewRulerLanes: 0,
+                  cursorBlinking: "smooth",
+                  cursorSmoothCaretAnimation: "on",
+                  smoothScrolling: true,
+                  contextmenu: true,
+                  bracketPairColorization: { enabled: true },
+                  guides: {
+                    indentation: true,
+                    bracketPairs: true,
+                  },
+                }}
+              />
+            </div>
+
+            {/* Footer with Run/Submit */}
+            <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-muted/40">
+              <span className="text-xs text-muted-foreground">
+                Press <kbd className="px-1 py-0.5 text-[10px] rounded bg-muted border border-border">Ctrl</kbd> + <kbd className="px-1 py-0.5 text-[10px] rounded bg-muted border border-border">Enter</kbd> to run
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0.5 mr-1 text-muted-foreground">
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Restore last submission"
+                    onClick={handleRetrieveLastCode}
+                    disabled={!hasLastSubmission}
+                  >
+                    <FileCode className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleReset}
+                    title="Reset code"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRun}
+                  disabled={isRunning}
                 >
-                  <Shrink className="h-4 w-4" />
+                  Run
                 </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Second Header Row - Language Selector and Tools */}
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-background">
-            <div className="flex items-center gap-2">
-              <Select value={language} onValueChange={handleLanguageChange}>
-                <SelectTrigger className="w-[130px] h-7 text-sm bg-background border-none shadow-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableLanguages.map((lang) => (
-                    <SelectItem key={lang} value={lang}>
-                      {languageLabels[lang] || lang}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                title="Format code"
-                onClick={handleFormatCode}
-              >
-                <AlignLeft className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7" 
-                title="Restore last submission"
-                onClick={handleRetrieveLastCode}
-                disabled={!hasLastSubmission}
-              >
-                <FileCode className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7" 
-                onClick={handleReset}
-                title="Reset code"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7" 
-                onClick={() => setSettingsModalOpen(true)}
-                title="Settings"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7" 
-                onClick={() => document.documentElement.requestFullscreen()}
-                title="Fullscreen"
-              >
-                <Maximize className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Monaco Editor */}
-          <div className="flex-1 overflow-hidden">
-            <Editor
-              height="100%"
-              language={monacoLanguage}
-              value={code}
-              theme={monacoTheme}
-              onChange={handleEditorChange}
-              onMount={handleEditorMount}
-              options={{
-                ...monacoOptions,
-                fontFamily: monacoOptions.fontFamily || "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                lineNumbersMinChars: 1,
-                lineDecorationsWidth: 8,
-                glyphMargin: true,
-                folding: true,
-                foldingHighlight: true,
-                showFoldingControls: "always",
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                renderIndentGuides: true,
-                padding: { top: 16, bottom: 16 },
-                scrollbar: {
-                  vertical: "auto",
-                  horizontal: "auto",
-                  verticalScrollbarSize: 10,
-                  horizontalScrollbarSize: 10,
-                },
-                overviewRulerBorder: false,
-                hideCursorInOverviewRuler: true,
-                overviewRulerLanes: 0,
-                cursorBlinking: "smooth",
-                cursorSmoothCaretAnimation: "on",
-                smoothScrolling: true,
-                contextmenu: true,
-                bracketPairColorization: { enabled: true },
-                guides: {
-                  indentation: true,
-                  bracketPairs: true,
-                },
-              }}
-            />
-          </div>
-
-          {/* Footer with Run/Submit */}
-          <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-muted/40">
-            <span className="text-xs text-muted-foreground">
-              Press <kbd className="px-1 py-0.5 text-[10px] rounded bg-muted border border-border">Ctrl</kbd> + <kbd className="px-1 py-0.5 text-[10px] rounded bg-muted border border-border">Enter</kbd> to run
-            </span>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleRun}
-                disabled={isRunning}
-              >
-                Run
-              </Button>
-              <Button 
-                size="sm"
-                onClick={handleSubmit}
-                disabled={isRunning}
-              >
-                Submit
-              </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSubmit}
+                  disabled={isRunning}
+                >
+                  Submit
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Settings Modal */}
-      <PlatformSettingsModal 
-        open={settingsModalOpen} 
-        onOpenChange={setSettingsModalOpen} 
-      />
-    </>
+      </>
     );
   }
 
@@ -540,7 +459,7 @@ export function ProblemWorkspace({
           onCollapse={() => setIsEditorPanelCollapsed(true)}
           onExpand={() => setIsEditorPanelCollapsed(false)}
         >
-          <div 
+          <div
             className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden"
             onMouseEnter={() => setIsEditorHovered(true)}
             onMouseLeave={() => setIsEditorHovered(false)}
@@ -550,14 +469,27 @@ export function ProblemWorkspace({
               <div className="flex items-center gap-2">
                 <Braces className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Code</span>
+                <div className="w-px h-4 bg-border/60 mx-1" />
+                <Select value={language} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className="w-[130px] h-7 text-sm bg-transparent border-none shadow-none hover:bg-muted/50 transition-colors focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableLanguages.map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {languageLabels[lang] || lang}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className={cn(
                 "flex items-center gap-0.5 transition-opacity",
                 isEditorHovered ? "opacity-100" : "opacity-0"
               )}>
                 {/* Collapse Button */}
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-7 w-7"
                   onClick={handleToggleEditorPanelCollapse}
@@ -571,9 +503,9 @@ export function ProblemWorkspace({
                 </Button>
                 {/* Expand Panel Button */}
                 {onExpandEditor && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-7 w-7"
                     onClick={onExpandEditor}
                     title="Expand panel"
@@ -586,71 +518,7 @@ export function ProblemWorkspace({
 
             {!isEditorPanelCollapsed && (
               <>
-                {/* Second Header Row - Language Selector and Tools (Hidden when collapsed) */}
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-background">
-                  <div className="flex items-center gap-2">
-                    <Select value={language} onValueChange={handleLanguageChange}>
-                      <SelectTrigger className="w-[130px] h-7 text-sm bg-background border-none shadow-none">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableLanguages.map((lang) => (
-                          <SelectItem key={lang} value={lang}>
-                            {languageLabels[lang] || lang}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      title="Format code"
-                      onClick={handleFormatCode}
-                    >
-                      <AlignLeft className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7" 
-                      title="Restore last submission"
-                      onClick={handleRetrieveLastCode}
-                      disabled={!hasLastSubmission}
-                    >
-                      <FileCode className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7" 
-                      onClick={handleReset}
-                      title="Reset code"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7" 
-                      onClick={() => setSettingsModalOpen(true)}
-                      title="Settings"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7" 
-                      onClick={() => document.documentElement.requestFullscreen()}
-                      title="Fullscreen"
-                    >
-                      <Maximize className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+
 
                 {/* Monaco Editor */}
                 <div className="flex-1 overflow-hidden">
@@ -702,15 +570,37 @@ export function ProblemWorkspace({
                     Press <kbd className="px-1 py-0.5 text-[10px] rounded bg-muted border border-border">Ctrl</kbd> + <kbd className="px-1 py-0.5 text-[10px] rounded bg-muted border border-border">Enter</kbd> to run
                   </span>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
+                    <div className="flex items-center gap-0.5 mr-1 text-muted-foreground">
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Restore last submission"
+                        onClick={handleRetrieveLastCode}
+                        disabled={!hasLastSubmission}
+                      >
+                        <FileCode className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={handleReset}
+                        title="Reset code"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={handleRun}
                       disabled={isRunning}
                     >
                       Run
                     </Button>
-                    <Button 
+                    <Button
                       size="sm"
                       onClick={handleSubmit}
                       disabled={isRunning}
@@ -727,10 +617,10 @@ export function ProblemWorkspace({
         <ResizableHandle />
 
         {/* Test Case Panel */}
-        <ResizablePanel 
-          ref={testPanelRef} 
-          defaultSize={35} 
-          minSize={10} 
+        <ResizablePanel
+          ref={testPanelRef}
+          defaultSize={35}
+          minSize={10}
           collapsible
           collapsedSize={8}
           className="min-h-0"
@@ -763,11 +653,6 @@ export function ProblemWorkspace({
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {/* Settings Modal */}
-      <PlatformSettingsModal 
-        open={settingsModalOpen} 
-        onOpenChange={setSettingsModalOpen} 
-      />
     </div>
   );
 }

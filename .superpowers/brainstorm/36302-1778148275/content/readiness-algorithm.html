@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  body { background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 32px 24px; color: #111827; }
+  h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .subtitle { color: #6b7280; font-size: 13px; margin-bottom: 32px; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 36px; }
+  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; margin-bottom: 12px; }
+
+  /* ── Problem illustration ── */
+  .problem-row { display: flex; gap: 16px; align-items: stretch; flex-wrap: wrap; }
+  .problem-box {
+    flex: 1; min-width: 200px; background: white; border-radius: 12px; padding: 16px;
+    border: 1.5px solid #e5e7eb; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .problem-box.bad { border-color: #fca5a5; background: #fff7f7; }
+  .problem-box.good { border-color: #86efac; background: #f0fdf4; }
+  .box-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .box-label.bad-label { color: #ef4444; }
+  .box-label.good-label { color: #16a34a; }
+
+  .course-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f1f5f9; border-radius: 8px; padding: 5px 10px;
+    font-size: 12px; font-weight: 500; color: #374151; margin: 3px 3px 3px 0;
+  }
+  .course-pill .pct { font-weight: 700; color: #374151; }
+  .course-pill.removed { background: #fee2e2; color: #9ca3af; text-decoration: line-through; }
+  .course-pill.outside { background: #dbeafe; color: #1d4ed8; }
+  .course-pill.outside .pct { color: #1d4ed8; }
+
+  .equal-split { color: #ef4444; font-size: 12px; font-weight: 600; margin-top: 10px; }
+  .prop-split { color: #16a34a; font-size: 12px; font-weight: 600; margin-top: 10px; }
+
+  /* ── Algorithm flow ── */
+  .algo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .algo-step {
+    background: white; border-radius: 12px; padding: 16px;
+    border: 1.5px solid #e5e7eb; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    position: relative;
+  }
+  .step-num {
+    position: absolute; top: -10px; left: 14px;
+    background: #111827; color: white; border-radius: 99px;
+    font-size: 11px; font-weight: 700; width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .algo-step h4 { font-size: 13px; font-weight: 700; margin: 6px 0 6px; }
+  .algo-step p { font-size: 12px; color: #4b5563; margin: 0; line-height: 1.5; }
+  .algo-step code { background: #f3f4f6; border-radius: 4px; padding: 1px 5px; font-size: 11px; color: #1d4ed8; }
+
+  /* ── Example walkthrough ── */
+  .example-card {
+    background: white; border-radius: 14px; padding: 20px;
+    border: 1.5px solid #e5e7eb; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .example-scenario { font-size: 13px; color: #4b5563; margin-bottom: 14px; line-height: 1.6; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 6px 10px; color: #6b7280; font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1.5px solid #e5e7eb; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f3f4f6; }
+  tr.outside-row td { background: #eff6ff; color: #1d4ed8; }
+  tr.removed-row td { background: #fef2f2; color: #9ca3af; text-decoration: line-through; }
+  tr.total-row td { font-weight: 700; border-top: 2px solid #e5e7eb; }
+  .weight-bar { height: 6px; background: #e5e7eb; border-radius: 99px; margin-top: 4px; overflow: hidden; }
+  .weight-fill { height: 100%; border-radius: 99px; }
+
+  /* ── Edge cases ── */
+  .edge-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .edge-box { background: white; border-radius: 12px; padding: 14px; border: 1.5px solid #e5e7eb; }
+  .edge-box h5 { font-size: 12px; font-weight: 700; margin: 0 0 6px; }
+  .edge-box p { font-size: 11.5px; color: #4b5563; margin: 0; line-height: 1.5; }
+  .edge-tag { display: inline-block; background: #f3f4f6; border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+  .edge-tag.green { background: #dcfce7; color: #15803d; }
+  .edge-tag.blue { background: #dbeafe; color: #1d4ed8; }
+  .edge-tag.orange { background: #ffedd5; color: #9a3412; }
+</style>
+</head>
+<body>
+
+<h2>Career Readiness — Percentage Algorithm Design</h2>
+<p class="subtitle">How to fairly distribute freed weight from removed career courses to outside courses</p>
+
+<!-- ── Problem ── -->
+<div class="section">
+  <div class="section-title">The Problem: Equal Split is Unfair</div>
+  <div class="problem-row">
+    <div class="problem-box bad">
+      <div class="box-label bad-label">❌ Equal Split (naive)</div>
+      <div>Remove <b>Stat &amp; Prob (10%)</b> → add 5 outside courses</div>
+      <div style="margin-top:8px">
+        <span class="course-pill outside"><span class="pct">2%</span> React Course</span>
+        <span class="course-pill outside"><span class="pct">2%</span> System Design</span>
+        <span class="course-pill outside"><span class="pct">2%</span> Git &amp; DevOps</span>
+        <span class="course-pill outside"><span class="pct">2%</span> Docker</span>
+        <span class="course-pill outside"><span class="pct">2%</span> AWS</span>
+      </div>
+      <div class="equal-split">10% ÷ 5 = 2% each — a 40-lesson course worth 2% is meaningless</div>
+    </div>
+    <div class="problem-box good">
+      <div class="box-label good-label">✅ Lesson-Count Proportional</div>
+      <div>Same removal → same 5 courses, weighted by their <b>lesson count</b></div>
+      <div style="margin-top:8px">
+        <span class="course-pill outside"><span class="pct">4.0%</span> System Design <small>(40 lessons)</small></span>
+        <span class="course-pill outside"><span class="pct">3.0%</span> AWS <small>(30 lessons)</small></span>
+        <span class="course-pill outside"><span class="pct">1.5%</span> Git &amp; DevOps <small>(15 lessons)</small></span>
+        <span class="course-pill outside"><span class="pct">0.8%</span> Docker <small>(8 lessons)</small></span>
+        <span class="course-pill outside"><span class="pct">0.7%</span> React <small>(7 lessons)</small></span>
+      </div>
+      <div class="prop-split">10% split by lesson count — heavier courses carry more weight</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Algorithm ── -->
+<div class="section">
+  <div class="section-title">The Algorithm — 4 Steps</div>
+  <div class="algo-grid">
+    <div class="algo-step">
+      <div class="step-num">1</div>
+      <h4>Career courses → original weights</h4>
+      <p>Look up each kept career course in <code>career_skills.weight</code>. Sum them → <code>careerTotalWeight</code>.<br/><br/>Example: kept Python(30) + SQL(30) + PowerBI(10) → <b>careerTotalWeight = 70</b></p>
+    </div>
+    <div class="algo-step">
+      <div class="step-num">2</div>
+      <h4>Freed weight = what was removed</h4>
+      <p>Removed courses took their weight out of the 100-point budget.<br/><br/><code>freedWeight = 100 − careerTotalWeight</code><br/><br/>Example: 100 − 70 = <b>freedWeight = 30</b></p>
+    </div>
+    <div class="algo-step">
+      <div class="step-num">3</div>
+      <h4>Outside courses → lesson-count proportional</h4>
+      <p>Each outside course's weight =<br/><code>freedWeight × (its lessons / total outside lessons)</code><br/><br/>A 40-lesson course among 100 total outside lessons gets <b>40% of the freed 30 = 12 points</b>.</p>
+    </div>
+    <div class="algo-step">
+      <div class="step-num">4</div>
+      <h4>Final readiness</h4>
+      <p>Always divides by 100 — the original career budget.<br/><br/><code>readiness = (careerSum + outsideSum) / 100</code><br/><br/>Complete everything → always <b>100%</b>. Add an incomplete outside course → score drops honestly.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Worked example ── -->
+<div class="section">
+  <div class="section-title">Worked Example — Data Science Career</div>
+  <div class="example-card">
+    <div class="example-scenario">
+      Removed: <b>ML &amp; DL (20%)</b> and <b>Stat &amp; Prob (10%)</b> → freedWeight = <b>30</b><br/>
+      Added 3 outside courses. All courses 100% complete in this example.
+    </div>
+    <table>
+      <tr>
+        <th>Course</th><th>Type</th><th>Lessons</th><th>Assigned Weight</th><th>Completion</th><th>Contribution</th>
+      </tr>
+      <tr>
+        <td>Python</td><td>Career</td><td>—</td><td>30 pts</td><td>100%</td><td><b>30.0</b></td>
+      </tr>
+      <tr>
+        <td>SQL</td><td>Career</td><td>—</td><td>30 pts</td><td>100%</td><td><b>30.0</b></td>
+      </tr>
+      <tr>
+        <td>PowerBI</td><td>Career</td><td>—</td><td>10 pts</td><td>100%</td><td><b>10.0</b></td>
+      </tr>
+      <tr class="removed-row">
+        <td>ML &amp; DL</td><td>Removed</td><td>—</td><td>20 pts freed</td><td>—</td><td>0</td>
+      </tr>
+      <tr class="removed-row">
+        <td>Stat &amp; Prob</td><td>Removed</td><td>—</td><td>10 pts freed</td><td>—</td><td>0</td>
+      </tr>
+      <tr class="outside-row">
+        <td>Deep Learning Spec.</td><td>Outside</td><td>40 lessons</td><td>30 × 40/70 = <b>17.1 pts</b></td><td>100%</td><td><b>17.1</b></td>
+      </tr>
+      <tr class="outside-row">
+        <td>Statistics for DS</td><td>Outside</td><td>20 lessons</td><td>30 × 20/70 = <b>8.6 pts</b></td><td>100%</td><td><b>8.6</b></td>
+      </tr>
+      <tr class="outside-row">
+        <td>Tableau Basics</td><td>Outside</td><td>10 lessons</td><td>30 × 10/70 = <b>4.3 pts</b></td><td>100%</td><td><b>4.3</b></td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="5">Total readiness = (30+30+10+17.1+8.6+4.3) / 100</td><td><b>100%</b> ✓</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:16px;padding:12px;background:#f0fdf4;border-radius:10px;border:1.5px solid #bbf7d0">
+      <p style="font-size:12px;color:#15803d;margin:0;line-height:1.6">
+        <b>Key insight:</b> If you only finish Python + SQL + PowerBI (no outside courses done yet) → readiness = <b>70%</b>.
+        Each outside course you complete pushes it toward 100%.
+        Adding more outside courses without removing more career courses → they get <b>0 weight</b> (freedWeight stays 30, just redistribution changes).
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edge cases ── -->
+<div class="section">
+  <div class="section-title">Edge Cases — All Handled</div>
+  <div class="edge-grid">
+    <div class="edge-box">
+      <div class="edge-tag green">No outside courses</div>
+      <h5>Remove courses, add nothing</h5>
+      <p>Max readiness = <code>careerTotalWeight / 100</code>. Removed ML&DL+Stat&Prob → max = 70%. Honest ceiling — you've left a skill gap.</p>
+    </div>
+    <div class="edge-box">
+      <div class="edge-tag blue">Add outside, remove nothing</div>
+      <h5>freedWeight = 0</h5>
+      <p>Outside courses get 0 weight. Career is already 100 points — no room. They show in the list but don't inflate the score.</p>
+    </div>
+    <div class="edge-box">
+      <div class="edge-tag orange">No lesson count available</div>
+      <h5>courseProgressMap missing</h5>
+      <p>Fallback: treat all outside courses as equal weight. <code>freedWeight / outsideCourses.length</code> — equal split only as last resort.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

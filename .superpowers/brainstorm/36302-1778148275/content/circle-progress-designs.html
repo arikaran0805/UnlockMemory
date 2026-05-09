@@ -1,0 +1,233 @@
+<h2>Career Readiness Circle — Premium Redesign</h2>
+<p class="subtitle">Three directions for upgrading the progress ring. Click one to select.</p>
+
+<style>
+  .designs-row {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin: 32px 0;
+  }
+  .design-card {
+    background: #f8f9fa;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    padding: 32px 28px 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 260px;
+    text-align: center;
+    position: relative;
+  }
+  .design-card:hover { border-color: #4ade80; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .design-card.selected { border-color: #16a34a; background: #f0fdf4; box-shadow: 0 0 0 4px rgba(22,163,74,0.12); }
+  .design-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+  .design-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+  .design-desc {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-top: 12px;
+  }
+  .ring-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 8px;
+  }
+</style>
+
+<div class="designs-row">
+
+  <!-- Option A: Apple Watch Minimal -->
+  <div class="design-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="design-label">Option A</div>
+    <div class="design-name">Sleek Minimal</div>
+    <div class="ring-wrap">
+      <svg width="176" height="176" viewBox="0 0 176 176">
+        <defs>
+          <linearGradient id="gradA" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4ade80"/>
+            <stop offset="50%" stop-color="#22c55e"/>
+            <stop offset="100%" stop-color="#15803d"/>
+          </linearGradient>
+          <filter id="glowA">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Track -->
+        <circle cx="88" cy="88" r="74" stroke="#e5e7eb" stroke-width="6" fill="none"/>
+        <!-- Progress arc (100%) -->
+        <circle cx="88" cy="88" r="74"
+          stroke="url(#gradA)" stroke-width="6" fill="none"
+          stroke-linecap="round"
+          stroke-dasharray="464.96 464.96"
+          transform="rotate(-90 88 88)"
+          filter="url(#glowA)"
+        />
+        <!-- End jewel dot -->
+        <circle cx="88" cy="14" r="6" fill="white" stroke="url(#gradA)" stroke-width="2.5" transform="rotate(359.9 88 88)"/>
+
+        <!-- Inner subtle ring -->
+        <circle cx="88" cy="88" r="64" stroke="#e5e7eb" stroke-width="1" fill="none" opacity="0.5"/>
+
+        <!-- Center content -->
+        <text x="88" y="76" text-anchor="middle" font-size="36" font-weight="800" fill="#111827" font-family="-apple-system,sans-serif">100</text>
+        <text x="88" y="94" text-anchor="middle" font-size="13" font-weight="400" fill="#9ca3af" font-family="-apple-system,sans-serif">%</text>
+        <text x="88" y="112" text-anchor="middle" font-size="11" font-weight="600" fill="#22c55e" font-family="-apple-system,sans-serif" letter-spacing="0.5">CAREER READY</text>
+      </svg>
+    </div>
+    <div class="design-desc">Thin 6px stroke, clean track, soft glow. Elegant and fast-reading — inspired by Apple Watch rings.</div>
+  </div>
+
+  <!-- Option B: Premium Glassmorphism -->
+  <div class="design-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="design-label">Option B</div>
+    <div class="design-name">Layered Glow</div>
+    <div class="ring-wrap">
+      <svg width="176" height="176" viewBox="0 0 176 176">
+        <defs>
+          <linearGradient id="gradB1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#86efac"/>
+            <stop offset="40%" stop-color="#22c55e"/>
+            <stop offset="100%" stop-color="#14532d"/>
+          </linearGradient>
+          <radialGradient id="centerBg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#f0fdf4"/>
+            <stop offset="100%" stop-color="#dcfce7"/>
+          </radialGradient>
+          <filter id="glowB" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="3.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="outerGlowB" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feFlood flood-color="#22c55e" flood-opacity="0.25" result="color"/>
+            <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+            <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Outer glow halo -->
+        <circle cx="88" cy="88" r="76" stroke="#22c55e" stroke-width="14" fill="none" opacity="0.08"/>
+        <!-- Track -->
+        <circle cx="88" cy="88" r="74" stroke="#d1fae5" stroke-width="10" fill="none"/>
+        <!-- Second inner track -->
+        <circle cx="88" cy="88" r="64" stroke="#d1fae5" stroke-width="3" fill="none" opacity="0.6"/>
+        <!-- Progress arc -->
+        <circle cx="88" cy="88" r="74"
+          stroke="url(#gradB1)" stroke-width="10" fill="none"
+          stroke-linecap="round"
+          stroke-dasharray="464.96 464.96"
+          transform="rotate(-90 88 88)"
+          filter="url(#glowB)"
+        />
+        <!-- Tick marks at 25/50/75 -->
+        <g opacity="0.5">
+          <!-- 25% = 90° -->
+          <rect x="154" y="85" width="8" height="6" rx="1" fill="#22c55e" transform="rotate(90 88 88) translate(0,0)"/>
+          <!-- 50% = 180° -->
+          <rect x="154" y="85" width="8" height="6" rx="1" fill="#22c55e" transform="rotate(180 88 88) translate(0,0)"/>
+          <!-- 75% = 270° -->
+          <rect x="154" y="85" width="8" height="6" rx="1" fill="#22c55e" transform="rotate(270 88 88) translate(0,0)"/>
+        </g>
+        <!-- End cap jewel -->
+        <circle cx="88" cy="14" r="7" fill="white" stroke="url(#gradB1)" stroke-width="2.5" filter="url(#outerGlowB)" transform="rotate(359.9 88 88)"/>
+
+        <!-- Center glassmorphic circle -->
+        <circle cx="88" cy="88" r="56" fill="url(#centerBg)" opacity="0.95"/>
+        <circle cx="88" cy="88" r="56" fill="none" stroke="#bbf7d0" stroke-width="1"/>
+
+        <!-- Center text -->
+        <text x="88" y="80" text-anchor="middle" font-size="38" font-weight="800" fill="#111827" font-family="-apple-system,sans-serif">100</text>
+        <text x="115" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#6b7280" font-family="-apple-system,sans-serif">%</text>
+        <text x="88" y="100" text-anchor="middle" font-size="10.5" font-weight="600" fill="#16a34a" font-family="-apple-system,sans-serif" letter-spacing="0.8">CAREER READY</text>
+      </svg>
+    </div>
+    <div class="design-desc">Thicker 10px ring, outer glow halo, green-tinted glassmorphic center, tick marks at milestones.</div>
+  </div>
+
+  <!-- Option C: Dark Premium Dashboard -->
+  <div class="design-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="design-label">Option C</div>
+    <div class="design-name">Dark Prestige</div>
+    <div class="ring-wrap" style="background: #0f172a; border-radius: 16px; padding: 12px; margin-bottom: 0;">
+      <svg width="176" height="176" viewBox="0 0 176 176">
+        <defs>
+          <linearGradient id="gradC" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4ade80"/>
+            <stop offset="50%" stop-color="#22c55e"/>
+            <stop offset="100%" stop-color="#86efac"/>
+          </linearGradient>
+          <radialGradient id="darkCenter" cx="40%" cy="35%" r="70%">
+            <stop offset="0%" stop-color="#1e293b"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+          </radialGradient>
+          <filter id="glowC" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="dotGlowC">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Outer halo -->
+        <circle cx="88" cy="88" r="80" stroke="#22c55e" stroke-width="1" fill="none" opacity="0.15"/>
+        <!-- Track -->
+        <circle cx="88" cy="88" r="72" stroke="#1e293b" stroke-width="12" fill="none"/>
+        <circle cx="88" cy="88" r="72" stroke="#334155" stroke-width="12" fill="none" opacity="0.6"
+          stroke-dasharray="2 10" stroke-linecap="round"/>
+        <!-- Progress arc -->
+        <circle cx="88" cy="88" r="72"
+          stroke="url(#gradC)" stroke-width="12" fill="none"
+          stroke-linecap="round"
+          stroke-dasharray="452.39 452.39"
+          transform="rotate(-90 88 88)"
+          filter="url(#glowC)"
+        />
+        <!-- End cap -->
+        <circle cx="88" cy="16" r="8" fill="#0f172a" stroke="url(#gradC)" stroke-width="2.5" filter="url(#dotGlowC)" transform="rotate(359.9 88 88)"/>
+
+        <!-- Center -->
+        <circle cx="88" cy="88" r="54" fill="url(#darkCenter)"/>
+        <circle cx="88" cy="88" r="54" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+        <!-- Shine highlight -->
+        <ellipse cx="78" cy="68" rx="22" ry="14" fill="white" opacity="0.04"/>
+
+        <!-- Center text -->
+        <text x="88" y="82" text-anchor="middle" font-size="38" font-weight="800" fill="white" font-family="-apple-system,sans-serif">100</text>
+        <text x="115" y="70" text-anchor="middle" font-size="14" font-weight="700" fill="#6b7280" font-family="-apple-system,sans-serif">%</text>
+        <text x="88" y="102" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4ade80" font-family="-apple-system,sans-serif" letter-spacing="1">CAREER READY</text>
+      </svg>
+    </div>
+    <div class="design-desc">Dark center, dashed track, neon green glow arc. Striking contrast — works best in dark mode.</div>
+  </div>
+
+</div>
+
+<script>
+function toggleSelect(el) {
+  document.querySelectorAll('.design-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  if (window.recordChoice) recordChoice(el.dataset.choice, el.querySelector('.design-name').textContent);
+}
+</script>

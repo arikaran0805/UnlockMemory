@@ -44,15 +44,7 @@ interface UseNotesSyncBridgeOptions {
   onNoteDeleted?: (noteId: string) => void;
 }
 
-// Generate unique tab ID
-const getTabId = () => {
-  if (!window.__notesSyncTabId) {
-    window.__notesSyncTabId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-  }
-  return window.__notesSyncTabId;
-};
-
-// Extend Window interface for tab ID
+// Extend Window interface (kept for backward compat, no longer used for tabId)
 declare global {
   interface Window {
     __notesSyncTabId?: string;
@@ -73,7 +65,14 @@ export function useNotesSyncBridge({
   const lastBroadcastRef = useRef<string>('');
   const lastBroadcastTimeRef = useRef<string>('');
   const localTimestampRef = useRef<string>('');
-  const tabId = getTabId();
+
+  // Per-instance ID — NOT per-tab (window.__notesSyncTabId was shared across all
+  // hook instances in the same tab, which caused Quick Notes and Deep Notes in the
+  // same tab to filter each other's BroadcastChannel messages as "self-sent").
+  // BroadcastChannel only suppresses the exact sending object, not other objects in
+  // the same tab, so using a per-instance ref lets same-tab pairs communicate.
+  const instanceIdRef = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+  const tabId = instanceIdRef.current;
 
   // Keep refs in sync with latest values to avoid stale closures in the
   // BroadcastChannel message handler (which is set up once, in a useEffect).

@@ -1292,20 +1292,67 @@ const Profile = () => {
       })),
   ];
 
-  // Career readiness = weighted average of planned career course completion %
-  // Weight comes from career_skills.weight (skill_name === course name in the new model)
+  // Career readiness — lesson-count-proportional algorithm:
+  //
+  // • Career courses use their career_skills.weight.
+  // • freedWeight = 100 − sum(kept career weights) — freed by removed courses.
+  // • Outside courses added to the plan absorb the freed weight proportional to
+  //   lesson count (larger courses earn more of the freed budget).
+  //
+  // Two divisor modes:
+  //   No outside courses → divide by careerTotalWeight so completing your chosen
+  //     career path always reaches 100% (the user's plan IS their full career).
+  //   With outside courses → divide by 100; outside courses absorb the freed
+  //     weight so the combined total is still achievable to 100%.
+  //
+  // Edge cases:
+  //   • freedWeight = 0  → outside courses get 0 weight (career fills all 100pts).
+  //   • No lesson count  → equal split among outside courses as fallback.
   const calculateWeightedReadiness = () => {
     if (plannedCareerCourses.length === 0) return 0;
-    let weightedSum = 0;
-    let totalWeight = 0;
-    plannedCareerCourses.forEach(course => {
-      const pct = getCourseCompletionPct(course.slug);
-      const matchingSkill = skills.find(s => s.skill_name === course.name);
-      const weight = matchingSkill?.weight ?? 25;
-      weightedSum += pct * weight;
-      totalWeight += weight;
-    });
-    return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+
+    const careerCourses = plannedCareerCourses.filter(c =>
+      skills.some(s => s.skill_name === c.name)
+    );
+    const outsideCourses = plannedCareerCourses.filter(c =>
+      !skills.some(s => s.skill_name === c.name)
+    );
+
+    // Step 1: career courses — original weights
+    let careerWeightedSum = 0;
+    let careerTotalWeight = 0;
+    for (const course of careerCourses) {
+      const skill = skills.find(s => s.skill_name === course.name)!;
+      careerWeightedSum += getCourseCompletionPct(course.slug) * skill.weight;
+      careerTotalWeight += skill.weight;
+    }
+
+    // Step 2: freed weight from removed career courses
+    const freedWeight = Math.max(0, 100 - careerTotalWeight);
+
+    // Step 3: outside courses share freed weight proportional to lesson count
+    let outsideWeightedSum = 0;
+    if (outsideCourses.length > 0 && freedWeight > 0) {
+      const lessonCounts = outsideCourses.map(c =>
+        Math.max(courseProgressMap[c.slug]?.total ?? 10, 1)
+      );
+      const totalOutsideLessons = lessonCounts.reduce((a, b) => a + b, 0);
+      outsideCourses.forEach((course, i) => {
+        const weight = freedWeight * (lessonCounts[i] / totalOutsideLessons);
+        outsideWeightedSum += getCourseCompletionPct(course.slug) * weight;
+      });
+    }
+
+    // Step 4: choose divisor based on whether outside courses are in the plan
+    if (outsideCourses.length === 0) {
+      // No outside courses: scale to the user's chosen career path (always 100% achievable)
+      return careerTotalWeight > 0
+        ? Math.round(careerWeightedSum / careerTotalWeight)
+        : 0;
+    }
+
+    // With outside courses: total is always out of the original 100-point career budget
+    return Math.round((careerWeightedSum + outsideWeightedSum) / 100);
   };
 
   const readinessPercentage = calculateWeightedReadiness();
@@ -1562,76 +1609,74 @@ const Profile = () => {
                       (readinessPercentage >= 45 && readinessPercentage < 50) ||
                       (readinessPercentage >= 75 && readinessPercentage < 80);
 
+                    const readinessLabel = readinessPercentage >= 100 ? 'Career Ready'
+                      : readinessPercentage > 75 ? 'Interview Ready'
+                      : readinessPercentage > 50 ? 'Skill Builder'
+                      : readinessPercentage > 20 ? 'Progressing'
+                      : 'Getting Started';
+
+                    // Circumference for r=88: 2π×88 = 553.07
+                    const CIRC = 553.07;
+                    const progressAngle = (readinessPercentage / 100) * 360 - 90;
+                    const progressRad = (progressAngle * Math.PI) / 180;
+                    const dotX = 104 + 88 * Math.cos(progressRad);
+                    const dotY = 104 + 88 * Math.sin(progressRad);
+
                     return (
                       <div className="flex flex-col items-center -mt-6">
                         <div className={`relative w-44 h-44 ${isCloseToNextLevel ? 'animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]' : ''}`}>
+                          {/* Ambient radial glow — sits behind the ring */}
                           <div
-                            className={`absolute inset-0 rounded-full opacity-20 blur-xl transition-opacity duration-500 ${isCloseToNextLevel ? 'opacity-40' : ''}`}
+                            className="absolute inset-3 rounded-full blur-xl transition-opacity duration-500"
                             style={{
-                              background: `conic-gradient(from 0deg, hsl(var(--primary)) ${readinessPercentage}%, transparent ${readinessPercentage}%)`
+                              background: 'radial-gradient(circle, hsl(var(--primary) / 0.18) 0%, transparent 70%)',
+                              opacity: isCloseToNextLevel ? 0.5 : 0.3,
                             }}
                           />
 
                           <svg className="w-44 h-44 transform -rotate-90" viewBox="0 0 208 208">
-                            <circle cx="104" cy="104" r="88" stroke="hsl(var(--muted))" strokeWidth="12" fill="none" opacity="0.3" />
-                            <circle cx="104" cy="104" r="76" stroke="hsl(var(--muted))" strokeWidth="4" fill="none" opacity="0.2" />
                             <defs>
-                              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#6CBFA0" />
-                                <stop offset="100%" stopColor="#2A5E42" />
-                              </linearGradient>
-                              <filter id="arcGlow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="2.5" result="blur" />
+                              <filter id="arcGlow" x="-40%" y="-40%" width="180%" height="180%">
+                                <feGaussianBlur stdDeviation="2" result="blur" />
                                 <feMerge>
                                   <feMergeNode in="blur" />
                                   <feMergeNode in="SourceGraphic" />
                                 </feMerge>
                               </filter>
                             </defs>
+
+                            {/* Track — single thin ring */}
+                            <circle cx="104" cy="104" r="88" stroke="hsl(var(--muted))" strokeWidth="7" fill="none" opacity="0.45" />
+
+                            {/* Progress arc */}
                             <circle
                               cx="104" cy="104" r="88"
-                              stroke="url(#progressGradient)" strokeWidth="12" fill="none"
+                              stroke="hsl(var(--primary))" strokeWidth="7" fill="none"
                               strokeLinecap="round"
-                              strokeDasharray={`${(readinessPercentage / 100) * 553.07} 553.07`}
+                              strokeDasharray={`${(readinessPercentage / 100) * CIRC} ${CIRC}`}
                               className="transition-all duration-1000 ease-out"
                               filter="url(#arcGlow)"
                             />
-                            {[0, 25, 50, 75, 100].map((percent, i) => {
-                              const angle = (percent / 100) * 360 - 90;
-                              const rad = (angle * Math.PI) / 180;
-                              const x = 104 + 88 * Math.cos(rad);
-                              const y = 104 + 88 * Math.sin(rad);
-                              const isAchieved = readinessPercentage >= percent;
-                              return (
-                                <circle key={i} cx={x} cy={y} r="4"
-                                  fill={isAchieved ? "hsl(var(--primary))" : "hsl(var(--muted))"}
-                                  className="transition-all duration-500"
-                                />
-                              );
-                            })}
-                            {readinessPercentage > 0 && (() => {
-                              const progressAngle = (readinessPercentage / 100) * 360 - 90;
-                              const progressRad = (progressAngle * Math.PI) / 180;
-                              const dotX = 104 + 88 * Math.cos(progressRad);
-                              const dotY = 104 + 88 * Math.sin(progressRad);
-                              return (
-                                <circle cx={dotX} cy={dotY} r="8"
-                                  fill="hsl(var(--background))"
-                                  stroke="url(#progressGradient)" strokeWidth="3"
-                                  className="transition-all duration-1000 ease-out"
-                                  style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.7))' }}
-                                />
-                              );
-                            })()}
+
+                            {/* End-cap jewel */}
+                            {readinessPercentage > 0 && (
+                              <circle
+                                cx={dotX} cy={dotY} r="5"
+                                fill="hsl(var(--background))"
+                                stroke="hsl(var(--primary))" strokeWidth="2.5"
+                                className="transition-all duration-1000 ease-out"
+                                style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.6))' }}
+                              />
+                            )}
                           </svg>
 
                           <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="relative">
-                              <span className="text-5xl font-bold">{readinessPercentage}</span>
-                              <span className="text-2xl font-bold">%</span>
+                            <div className="flex items-baseline gap-0.5">
+                              <span className="text-4xl font-extrabold tracking-tight">{readinessPercentage}</span>
+                              <span className="text-sm font-semibold text-muted-foreground mb-1">%</span>
                             </div>
-                            <span className="text-sm mt-1 text-muted-foreground">
-                              {readinessPercentage >= 100 ? 'Career Ready' : readinessPercentage > 75 ? 'Interview Ready' : readinessPercentage > 50 ? 'Skill Builder' : readinessPercentage > 20 ? 'Progressing' : 'Getting Started'}
+                            <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-primary mt-0.5">
+                              {readinessLabel}
                             </span>
                           </div>
                         </div>

@@ -148,7 +148,7 @@ export function ProblemDescriptionPanel({
   // Collapsed state: vertical tabs layout like LeetCode
   if (isCollapsed && !isExpanded) {
     return (
-      <div 
+      <div
         className="h-full w-7 flex flex-col bg-card group"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -159,13 +159,13 @@ export function ProblemDescriptionPanel({
             onClick={() => setActiveTab("description")}
             className={cn(
               "flex flex-col items-center gap-1 py-2.5 transition-colors border-l-2",
-              activeTab === "description" 
-                ? "border-primary text-foreground bg-muted/50" 
+              activeTab === "description"
+                ? "border-primary text-foreground bg-muted/50"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
           >
             <FileText className="h-4 w-4 shrink-0" />
-            <span 
+            <span
               className="font-medium text-xs"
               style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
             >
@@ -177,13 +177,13 @@ export function ProblemDescriptionPanel({
             onClick={() => setActiveTab("editorial")}
             className={cn(
               "flex flex-col items-center gap-1 py-2.5 transition-colors border-l-2",
-              activeTab === "editorial" 
-                ? "border-primary text-foreground bg-muted/50" 
+              activeTab === "editorial"
+                ? "border-primary text-foreground bg-muted/50"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
           >
             <BookOpen className="h-4 w-4 shrink-0" />
-            <span 
+            <span
               className="font-medium text-xs"
               style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
             >
@@ -195,13 +195,13 @@ export function ProblemDescriptionPanel({
             onClick={() => setActiveTab("submissions")}
             className={cn(
               "flex flex-col items-center gap-1 py-2.5 transition-colors border-l-2",
-              activeTab === "submissions" 
-                ? "border-primary text-foreground bg-muted/50" 
+              activeTab === "submissions"
+                ? "border-primary text-foreground bg-muted/50"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
           >
             <History className="h-4 w-4 shrink-0" />
-            <span 
+            <span
               className="font-medium text-xs"
               style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
             >
@@ -223,7 +223,7 @@ export function ProblemDescriptionPanel({
               <Expand className="h-3 w-3" />
             </Button>
           )}
-          
+
           {onToggleCollapse && (
             <Button
               variant="ghost"
@@ -241,7 +241,7 @@ export function ProblemDescriptionPanel({
   }
 
   return (
-    <div 
+    <div
       className="h-full flex flex-col bg-card"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -251,22 +251,22 @@ export function ProblemDescriptionPanel({
         <div className="flex items-center justify-between">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
             <TabsList className="h-11 bg-transparent p-0 gap-4">
-              <TabsTrigger 
-                value="description" 
+              <TabsTrigger
+                value="description"
                 className="h-11 px-0 pb-3 pt-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground flex items-center gap-1.5"
               >
                 <FileText className="h-4 w-4" />
                 Description
               </TabsTrigger>
-              <TabsTrigger 
-                value="editorial" 
+              <TabsTrigger
+                value="editorial"
                 className="h-11 px-0 pb-3 pt-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground flex items-center gap-1.5"
               >
                 <BookOpen className="h-4 w-4" />
                 Editorial
               </TabsTrigger>
-              <TabsTrigger 
-                value="discuss" 
+              <TabsTrigger
+                value="discuss"
                 className="h-11 px-0 pb-3 pt-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground flex items-center gap-1.5"
               >
                 <MessageSquare className="h-4 w-4" />
@@ -275,8 +275,8 @@ export function ProblemDescriptionPanel({
                   <span className="text-xs text-muted-foreground">({commentCount})</span>
                 )}
               </TabsTrigger>
-              <TabsTrigger 
-                value="submissions" 
+              <TabsTrigger
+                value="submissions"
                 className="h-11 px-0 pb-3 pt-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground flex items-center gap-1.5"
               >
                 <History className="h-4 w-4" />
@@ -284,38 +284,38 @@ export function ProblemDescriptionPanel({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          
+
           {/* Collapse & Expand Buttons - Show on hover */}
           <div className={cn(
             "flex items-center gap-0.5 shrink-0 transition-opacity",
             isHovered || isExpanded || isCollapsed ? "opacity-100" : "opacity-0"
           )}>
-              {onToggleCollapse && !isExpanded && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={onToggleCollapse}
-                  title={isCollapsed ? "Show panel" : "Hide panel"}
-                >
-                  <PanelLeftClose className="h-4 w-4" />
-                </Button>
-              )}
-              {onToggleExpand && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={onToggleExpand}
-                  title={isExpanded ? "Exit fullscreen" : "Fullscreen"}
-                >
-                  {isExpanded ? (
-                    <Shrink className="h-4 w-4" />
-                  ) : (
-                    <Expand className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
+            {onToggleCollapse && !isExpanded && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onToggleCollapse}
+                title={isCollapsed ? "Show panel" : "Hide panel"}
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            )}
+            {onToggleExpand && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onToggleExpand}
+                title={isExpanded ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {isExpanded ? (
+                  <Shrink className="h-4 w-4" />
+                ) : (
+                  <Expand className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -328,8 +328,8 @@ export function ProblemDescriptionPanel({
             <div className="space-y-3">
               <h1 className="text-xl font-semibold">{title}</h1>
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className={cn(
                     "capitalize font-medium",
                     difficultyColors[difficulty?.toLowerCase()] || difficultyColors.medium
@@ -338,9 +338,9 @@ export function ProblemDescriptionPanel({
                   {difficulty}
                 </Badge>
                 {tags.map((tag, i) => (
-                  <Badge 
-                    key={i} 
-                    variant="secondary" 
+                  <Badge
+                    key={i}
+                    variant="secondary"
                     className="text-xs font-normal"
                   >
                     {tag}
@@ -351,8 +351,8 @@ export function ProblemDescriptionPanel({
 
             {/* Description */}
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <RichTextRenderer 
-                content={description} 
+              <RichTextRenderer
+                content={description}
                 emptyPlaceholder=""
               />
             </div>
@@ -410,8 +410,8 @@ export function ProblemDescriptionPanel({
                 <h3 className="text-sm font-medium">Constraints:</h3>
                 <ul className="space-y-1.5">
                   {constraints.map((constraint, i) => (
-                    <li 
-                      key={i} 
+                    <li
+                      key={i}
                       className="text-sm text-muted-foreground flex items-start gap-2"
                     >
                       <span className="text-foreground/50 mt-0.5">•</span>
@@ -446,7 +446,7 @@ export function ProblemDescriptionPanel({
                 {hintsExpanded && (
                   <div className="px-4 pb-4 space-y-3">
                     {hints.map((hint, i) => (
-                      <div 
+                      <div
                         key={i}
                         className="p-3 bg-amber-500/10 rounded-md text-sm text-foreground/80"
                       >
@@ -520,7 +520,7 @@ export function ProblemDescriptionPanel({
                     time_limit_exceeded: "Time Limit Exceeded",
                     compilation_error: "Compilation Error",
                   };
-                  
+
                   // Format the date
                   const submittedDate = new Date(submission.submitted_at);
 
@@ -535,7 +535,7 @@ export function ProblemDescriptionPanel({
                     go: "Go",
                     rust: "Rust",
                   };
-                  
+
                   return (
                     <button
                       key={submission.id}
@@ -546,27 +546,27 @@ export function ProblemDescriptionPanel({
                       <span className="text-sm text-muted-foreground">
                         {submissions.length - index}
                       </span>
-                      
+
                       {/* Status */}
                       <div className="flex flex-col gap-0.5">
                         <span className={cn("text-sm font-medium", statusColors[submission.status])}>
                           {statusLabels[submission.status]}
                         </span>
                       </div>
-                      
+
                       {/* Language badge */}
                       <div>
                         <Badge variant="secondary" className="text-xs font-normal">
                           {languageLabels[submission.language] || submission.language}
                         </Badge>
                       </div>
-                      
+
                       {/* Runtime */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>{submission.runtime_ms} ms</span>
                       </div>
-                      
+
                       {/* Date & Time */}
                       <div className="text-xs text-muted-foreground">
                         <div>{format(submittedDate, "MMM d, yyyy")}</div>

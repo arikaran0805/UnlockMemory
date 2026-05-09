@@ -35,9 +35,9 @@ import CommentDialog from "@/components/CommentDialog";
 import ReportSuggestDialog from "@/components/ReportSuggestDialog";
 import LessonFooter from "@/components/course/LessonFooter";
 import { CourseSidebarAds } from "@/components/course/CourseSidebarAds";
-import { 
-  GuestContextBanner, 
-  CertificateTeaser, 
+import {
+  GuestContextBanner,
+  CertificateTeaser,
   CompletionNudge,
 } from "@/components/course/nudges";
 import { usePricingDrawer } from "@/contexts/PricingDrawerContext";
@@ -53,28 +53,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  BookOpen, 
-  Users, 
-  Tag, 
-  ThumbsUp, 
-  Share2, 
-  MessageSquare, 
-  Calendar, 
-  MoreVertical, 
-  Bookmark, 
-  BookmarkCheck, 
-  Flag, 
-  Edit, 
-  Lightbulb, 
-  Star, 
-  UserPlus, 
-  CheckCircle, 
-  Circle, 
-  AlertTriangle, 
-  Info, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  Users,
+  Tag,
+  ThumbsUp,
+  Share2,
+  MessageSquare,
+  Calendar,
+  MoreVertical,
+  Bookmark,
+  BookmarkCheck,
+  Flag,
+  Edit,
+  Lightbulb,
+  Star,
+  UserPlus,
+  CheckCircle,
+  Circle,
+  AlertTriangle,
+  Info,
   List,
   Award,
   Play,
@@ -177,7 +177,7 @@ const CourseDetail = () => {
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [suggestDialogOpen, setSuggestDialogOpen] = useState(false);
-  const [allTags, setAllTags] = useState<Array<{id: string; name: string; slug: string}>>([]);
+  const [allTags, setAllTags] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const { toast } = useToast();
   const { settings: adSettings } = useAdSettings();
@@ -264,7 +264,7 @@ const CourseDetail = () => {
   useEffect(() => {
     // Wait for data to load
     if (loading || userStateLoading || posts.length === 0) return;
-    
+
     // Only redirect guests from external sources who don't have a lesson already selected
     if (isGuest && entrySource === "external" && !lessonSlug) {
       const firstPost = posts[0];
@@ -360,8 +360,8 @@ const CourseDetail = () => {
     if (lessons.length > 0) {
       setExpandedLessons(new Set([lessons[0].id]));
     }
-  // courseDetailData reference changes whenever slug or data changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // courseDetailData reference changes whenever slug or data changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseDetailData]);
 
   useEffect(() => {
@@ -417,11 +417,11 @@ const CourseDetail = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      
+
       if (event.data?.type === "NAVIGATE_TO_LESSON") {
         console.log("[CourseDetail] Legacy postMessage navigation:", event.data);
         const { lessonSlug: targetLessonSlug, courseSlug: targetCourseSlug } = event.data;
-        
+
         if (targetLessonSlug && targetCourseSlug && slug === targetCourseSlug) {
           handleExternalLessonNavigation(targetLessonSlug);
         }
@@ -438,7 +438,7 @@ const CourseDetail = () => {
       setAllTags([]);
       return;
     }
-    
+
     try {
       const { data, error } = await supabase
         .from("post_tags")
@@ -446,7 +446,7 @@ const CourseDetail = () => {
         .eq("post_id", postId);
 
       if (error) throw error;
-      
+
       const tags = data?.map(item => (item.tags as any)) || [];
       setAllTags(tags);
     } catch (error) {
@@ -723,10 +723,10 @@ const CourseDetail = () => {
   };
 
   const orderedPosts = getAllOrderedPosts();
-  const currentOrderedIndex = selectedPost 
+  const currentOrderedIndex = selectedPost
     ? orderedPosts.findIndex(p => p.id === selectedPost.id)
     : -1;
-    
+
   const hasPrevious = currentOrderedIndex > 0;
   const hasNext = currentOrderedIndex < orderedPosts.length - 1 && currentOrderedIndex !== -1;
 
@@ -983,621 +983,621 @@ const CourseDetail = () => {
 
   return (
     <CodeEditProvider>
-    <div className="min-h-screen bg-background flex flex-col">
-      <SEOHead 
-        title={`${course.name} - Course`}
-        description={course.description || `Explore ${course.name} courses and lessons. Join ${courseStats.enrollmentCount.toLocaleString()} learners in this comprehensive learning path.`}
-        keywords={`${course.name}, course, learning, tutorial, lessons`}
-        ogTitle={`${course.name} Course`}
-        ogDescription={course.description || `Learn ${course.name} with our comprehensive course materials`}
-      />
-      <CourseStructuredData
-        course={course}
-        lessons={posts.map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
-        stats={{
-          enrollmentCount: courseStats.enrollmentCount,
-          averageRating: courseStats.averageRating,
-          reviewCount: courseStats.reviewCount,
-        }}
-        siteUrl={siteSettings?.site_url}
-      />
-      
-      {/* Preview Mode Banner */}
-      {hasPreviewBanner && (
-        <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-amber-950 py-2 px-4">
-          <div className="container mx-auto flex items-center justify-center gap-2 text-sm font-medium">
-            <AlertTriangle className="h-4 w-4" />
-            <span>Preview Mode - This content is not published yet</span>
+      <div className="min-h-screen bg-background flex flex-col">
+        <SEOHead
+          title={`${course.name} - Course`}
+          description={course.description || `Explore ${course.name} courses and lessons. Join ${courseStats.enrollmentCount.toLocaleString()} learners in this comprehensive learning path.`}
+          keywords={`${course.name}, course, learning, tutorial, lessons`}
+          ogTitle={`${course.name} Course`}
+          ogDescription={course.description || `Learn ${course.name} with our comprehensive course materials`}
+        />
+        <CourseStructuredData
+          course={course}
+          lessons={posts.map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
+          stats={{
+            enrollmentCount: courseStats.enrollmentCount,
+            averageRating: courseStats.averageRating,
+            reviewCount: courseStats.reviewCount,
+          }}
+          siteUrl={siteSettings?.site_url}
+        />
+
+        {/* Preview Mode Banner */}
+        {hasPreviewBanner && (
+          <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-amber-950 py-2 px-4">
+            <div className="container mx-auto flex items-center justify-center gap-2 text-sm font-medium">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Preview Mode - This content is not published yet</span>
+            </div>
           </div>
+        )}
+
+        <div className={`fixed ${hasPreviewBanner ? 'top-10' : 'top-0'} left-0 right-0 z-[60]`}>
+          <AnnouncementBar onVisibilityChange={handleAnnouncementVisibility} />
         </div>
-      )}
-      
-      <div className={`fixed ${hasPreviewBanner ? 'top-10' : 'top-0'} left-0 right-0 z-[60]`}>
-        <AnnouncementBar onVisibilityChange={handleAnnouncementVisibility} />
-      </div>
-      
-      {/* HEADER RENDERING:
+
+        {/* HEADER RENDERING:
           CourseDetail is ONLY for non-career courses.
           Career courses use /career-board/:careerId/course/:slug routes.
           Always show the normal secondary header here. */}
-      <Header 
-        announcementVisible={showAnnouncement} 
-        onVisibilityChange={handleHeaderVisibility}
-        showCourseSecondaryHeader={true}
-      />
+        <Header
+          announcementVisible={showAnnouncement}
+          onVisibilityChange={handleHeaderVisibility}
+          showCourseSecondaryHeader={true}
+        />
 
-      {/* Main Layout - standard padding for non-career course */}
-      <div className={`w-full transition-[padding-top] duration-200 ease-out ${
-        hasPreviewBanner
-          ? (showAnnouncement ? 'pt-[8.75rem]' : 'pt-[6.5rem]') 
-          : isHeaderVisible
-            ? (showAnnouncement ? 'pt-[8.75rem]' : 'pt-[6.5rem]') // 140px / 104px (64+40+36 / 64+40)
-            : (showAnnouncement ? 'pt-[4.75rem]' : 'pt-10') // 76px / 40px (40+36 / 40)
-      }`}>
-        <div className="flex flex-col lg:flex-row gap-0 lg:justify-center">
-          
-          {/* LEFT SIDEBAR - Progress & Navigation */}
-          <CourseSidebar
-            lessons={lessons}
-            posts={posts}
-            selectedPost={selectedPost}
-            expandedLessons={expandedLessons}
-            courseProgress={courseProgress}
-            isPreviewMode={isPreviewMode && (isAdmin || isModerator)}
-            canPreview={canPreview}
-            hasPreviewBanner={hasPreviewBanner}
-            isHeaderVisible={isHeaderVisible}
-            showAnnouncement={showAnnouncement}
-            isAuthenticated={!!user}
-            practiceSkillSlug={practiceSkill?.slug}
-            lessonProblemCounts={lessonProblemCounts}
-            lessonProblemsCompleted={lessonProblemsCompleted}
-            getPostsForLesson={getPostsForLesson}
-            getLessonProgress={getLessonProgress}
-            isLessonCompleted={isLessonCompleted}
-            toggleLessonExpansion={toggleLessonExpansion}
-            handleLessonClick={handleLessonClick}
-            handleHomeClick={() => {
-              setSelectedPost(null);
+        {/* Main Layout - standard padding for non-career course */}
+        <div className={`w-full transition-[padding-top] duration-200 ease-out ${hasPreviewBanner
+            ? (showAnnouncement ? 'pt-[8.75rem]' : 'pt-[6.5rem]')
+            : isHeaderVisible
+              ? (showAnnouncement ? 'pt-[8.75rem]' : 'pt-[6.5rem]') // 140px / 104px (64+40+36 / 64+40)
+              : (showAnnouncement ? 'pt-[4.75rem]' : 'pt-10') // 76px / 40px (40+36 / 40)
+          }`}>
+          <div className="flex flex-col lg:flex-row gap-0 lg:justify-center">
 
-              if (!slug) {
-                navigate("/courses");
-                return;
-              }
+            {/* LEFT SIDEBAR - Progress & Navigation */}
+            <CourseSidebar
+              lessons={lessons}
+              posts={posts}
+              selectedPost={selectedPost}
+              expandedLessons={expandedLessons}
+              courseProgress={courseProgress}
+              isPreviewMode={isPreviewMode && (isAdmin || isModerator)}
+              canPreview={canPreview}
+              hasPreviewBanner={hasPreviewBanner}
+              isHeaderVisible={isHeaderVisible}
+              showAnnouncement={showAnnouncement}
+              isAuthenticated={!!user}
+              practiceSkillSlug={practiceSkill?.slug}
+              lessonProblemCounts={lessonProblemCounts}
+              lessonProblemsCompleted={lessonProblemsCompleted}
+              getPostsForLesson={getPostsForLesson}
+              getLessonProgress={getLessonProgress}
+              isLessonCompleted={isLessonCompleted}
+              toggleLessonExpansion={toggleLessonExpansion}
+              handleLessonClick={handleLessonClick}
+              handleHomeClick={() => {
+                setSelectedPost(null);
 
-              const nextSearch = new URLSearchParams(searchParams);
-              nextSearch.delete("lesson");
-              nextSearch.delete("tab");
-              setSearchParams(nextSearch, { replace: true });
-            }}
-            onPracticeLockedClick={() => openPricingDrawer("practice_problems")}
-          />
+                if (!slug) {
+                  navigate("/courses");
+                  return;
+                }
 
-          {/* MAIN CONTENT - centered between sidebars (280px left + 260px right = 540px total, offset by 10px right) */}
-          <main id="lesson-main-content" className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0">
-            <Card className="rounded-none border-0 shadow-none">
-              <CardContent className="p-6 lg:p-8">
-                {selectedPost ? (
-                  /* Post Content View */
-                  <>
-                    {/* Post Header */}
-                    <div className="mb-4">
-                      <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-foreground">{selectedPost.title}</h1>
-                      <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>Last updated: {new Date(selectedPost.updated_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <ShareTooltip
-                            title={selectedPost?.title || course?.name || ""}
-                            url={window.location.href}
-                            postId={selectedPost?.id}
-                          >
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Share2 className="h-5 w-5" />
-                            </Button>
-                          </ShareTooltip>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCommentDialogOpen(true)}>
-                                  <MessageSquare className="h-5 w-5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{comments.length} comments</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          {/* Like button - visible for guests, hidden for logged-in users (they see it in footer) */}
-                          {isGuest && (
+                const nextSearch = new URLSearchParams(searchParams);
+                nextSearch.delete("lesson");
+                nextSearch.delete("tab");
+                setSearchParams(nextSearch, { replace: true });
+              }}
+              onPracticeLockedClick={() => openPricingDrawer("practice_problems")}
+            />
+
+            {/* MAIN CONTENT - centered between sidebars (280px left + 260px right = 540px total, offset by 10px right) */}
+            <main id="lesson-main-content" className="flex-1 min-w-0 max-w-4xl lg:mx-auto lg:pr-[10px] px-4 lg:px-0">
+              <Card className="rounded-none border-0 shadow-none">
+                <CardContent className="p-6 lg:p-8">
+                  {selectedPost ? (
+                    /* Post Content View */
+                    <>
+                      {/* Post Header */}
+                      <div className="mb-4">
+                        <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-foreground">{selectedPost.title}</h1>
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Last updated: {new Date(selectedPost.updated_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <ShareTooltip
+                              title={selectedPost?.title || course?.name || ""}
+                              url={window.location.href}
+                              postId={selectedPost?.id}
+                            >
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Share2 className="h-5 w-5" />
+                              </Button>
+                            </ShareTooltip>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8"
-                                    onClick={handleLikeToggle}
-                                    disabled={likingPost}
-                                  >
-                                    <ThumbsUp className={cn("h-5 w-5", hasLiked && "fill-current text-primary")} />
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCommentDialogOpen(true)}>
+                                    <MessageSquare className="h-5 w-5" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{hasLiked ? 'Unlike' : 'Like'} ({likeCount})</p>
+                                  <p>{comments.length} comments</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-                          )}
-                          {/* Bookmark - only for logged-in users */}
-                          {!isGuest && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleBookmark(undefined, selectedPost?.id)}>
-                                    {isBookmarked(undefined, selectedPost?.id) ? (
-                                      <BookmarkCheck className="h-5 w-5 text-primary fill-primary" />
-                                    ) : (
-                                      <Bookmark className="h-5 w-5" />
-                                    )}
+                            {/* Like button - visible for guests, hidden for logged-in users (they see it in footer) */}
+                            {isGuest && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={handleLikeToggle}
+                                      disabled={likingPost}
+                                    >
+                                      <ThumbsUp className={cn("h-5 w-5", hasLiked && "fill-current text-primary")} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{hasLiked ? 'Unlike' : 'Like'} ({likeCount})</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {/* Bookmark - only for logged-in users */}
+                            {!isGuest && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleBookmark(undefined, selectedPost?.id)}>
+                                      {isBookmarked(undefined, selectedPost?.id) ? (
+                                        <BookmarkCheck className="h-5 w-5 text-primary fill-primary" />
+                                      ) : (
+                                        <Bookmark className="h-5 w-5" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{isBookmarked(undefined, selectedPost?.id) ? 'Remove bookmark' : 'Add bookmark'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {/* More options menu - only for logged-in users */}
+                            {!isGuest && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 data-[state=open]:bg-transparent">
+                                    <MoreVertical className="h-5 w-5" />
                                   </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{isBookmarked(undefined, selectedPost?.id) ? 'Remove bookmark' : 'Add bookmark'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          {/* More options menu - only for logged-in users */}
-                          {!isGuest && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 data-[state=open]:bg-transparent">
-                                  <MoreVertical className="h-5 w-5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={handleLikeToggle} disabled={likingPost}>
-                                  <ThumbsUp className={`mr-2 h-4 w-4 ${hasLiked ? 'fill-current' : ''}`} />
-                                  <span>{hasLiked ? 'Unlike' : 'Like'} ({likeCount})</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setReportDialogOpen(true)}>
-                                  <Flag className="mr-2 h-4 w-4" />
-                                  <span>Report</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setSuggestDialogOpen(true)}>
-                                  <Lightbulb className="mr-2 h-4 w-4" />
-                                  <span>Suggest Changes</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={handleLikeToggle} disabled={likingPost}>
+                                    <ThumbsUp className={`mr-2 h-4 w-4 ${hasLiked ? 'fill-current' : ''}`} />
+                                    <span>{hasLiked ? 'Unlike' : 'Like'} ({likeCount})</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setReportDialogOpen(true)}>
+                                    <Flag className="mr-2 h-4 w-4" />
+                                    <span>Report</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setSuggestDialogOpen(true)}>
+                                    <Lightbulb className="mr-2 h-4 w-4" />
+                                    <span>Suggest Changes</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <Separator className="mt-2" />
-                    </div>
-
-                    {/* Guest Context Banner - dismissible, session-based */}
-                    {isGuest && (
-                      <GuestContextBanner className="mb-6" />
-                    )}
-
-
-                    {/* Completion Nudge for Learners - 40-60% trigger */}
-                    {isLearner && courseStats.isEnrolled && course?.id && (
-                      <CompletionNudge
-                        courseId={course.id}
-                        progressPercentage={courseProgress.percentage}
-                        className="mb-6"
-                        onUpgrade={() => openPricingDrawer("completion_nudge")}
-                      />
-                    )}
-
-                    {/* Lesson Content */}
-                    <div className="mx-auto mt-10 w-full max-w-[720px]">
-                      <ContentRenderer 
-                        htmlContent={selectedPost.content || ''}
-                        courseType={course?.slug?.toLowerCase()}
-                        codeTheme={selectedPost.code_theme || undefined}
-                        variant="article"
-                      />
-                    </div>
-
-                    {/* Certificate Teaser - after lesson content */}
-                    {(isGuest || isLearner) && (
-                      <CertificateTeaser
-                        variant={isGuest ? "guest" : "learner"}
-                        className="mt-8 mb-6"
-                        onLearnMore={() => openPricingDrawer("certificate_teaser_guest")}
-                        onUpgrade={() => openPricingDrawer("certificate_teaser")}
-                      />
-                    )}
-
-                    {/* Lesson Footer - Completion, Tags, Actions, Navigation */}
-                    {/* Hide progress-related actions for guests */}
-                    <LessonFooter
-                      isCompleted={selectedPost ? isLessonCompleted(selectedPost.id) : false}
-                      isMarkingComplete={markingComplete}
-                      onMarkComplete={async () => {
-                        if (!selectedPost) return;
-                        setMarkingComplete(true);
-                        const completed = !isLessonCompleted(selectedPost.id);
-                        const success = await markLessonCompleted(selectedPost.id, completed);
-                        if (success) {
-                          toast({
-                            title: completed ? "Lesson completed!" : "Lesson marked as incomplete",
-                            description: completed ? "Great job! Keep up the good work." : "You can mark it complete anytime.",
-                          });
-                        }
-                        setMarkingComplete(false);
-                      }}
-                      canComplete={!!user && !isGuest}
-                      isGuest={isGuest}
-                      completedLessonsCount={isGuest ? 0 : courseProgress.completedCount}
-                      totalLessons={orderedPosts.length}
-                      courseProgressPercentage={isGuest ? 0 : courseProgress.percentage}
-                      isCourseComplete={!isGuest && courseProgress.isCompleted}
-                      courseId={course?.id || ""}
-                      tags={allTags}
-                      onCommentClick={() => setCommentDialogOpen(true)}
-                      onSuggestChangesClick={isGuest ? undefined : () => setSuggestDialogOpen(true)}
-                      onLikeClick={handleLikeToggle}
-                      likeCount={likeCount}
-                      hasLiked={hasLiked}
-                      isLiking={likingPost}
-                      commentCount={comments.length}
-                      shareTitle={selectedPost?.title || course?.name || ""}
-                      shareUrl={window.location.href}
-                      postId={selectedPost?.id}
-                      previousLesson={hasPrevious ? orderedPosts[currentOrderedIndex - 1] : null}
-                      nextLesson={hasNext ? orderedPosts[currentOrderedIndex + 1] : null}
-                      onPrevious={handlePrevious}
-                      onNext={handleNext}
-                    />
-
-                    {/* Dialogs */}
-                    {selectedPost && (
-                      <>
-                        <ReportSuggestDialog
-                          open={reportDialogOpen}
-                          onOpenChange={setReportDialogOpen}
-                          contentType="post"
-                          contentId={selectedPost.id}
-                          contentTitle={selectedPost.title}
-                          type="report"
-                        />
-                        <ReportSuggestDialog
-                          open={suggestDialogOpen}
-                          onOpenChange={setSuggestDialogOpen}
-                          contentType="post"
-                          contentId={selectedPost.id}
-                          contentTitle={selectedPost.title}
-                          type="suggestion"
-                        />
-                      </>
-                    )}
-                  </>
-                ) : (
-                  /* Course Overview View */
-                  <>
-                    {/* PAGE HEADER */}
-                    <div className="text-center mb-8">
-                      <h1 className="text-3xl lg:text-4xl font-bold mb-4 text-foreground">{course.name}</h1>
-                      
-                      {/* Stats Row */}
-                      <div className="flex items-center justify-center gap-4 flex-wrap mb-6">
-                        {courseStats.averageRating > 0 && (
-                          <CourseReviewDialog
-                            reviews={courseReviews}
-                            averageRating={courseStats.averageRating}
-                            reviewCount={courseStats.reviewCount}
-                            userReview={courseStats.userReview}
-                            isEnrolled={courseStats.isEnrolled}
-                            isAuthenticated={!!user}
-                            onSubmitReview={submitReview}
-                            onDeleteReview={deleteReview}
-                          >
-                            <button className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-                              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                              <span className="font-semibold">{courseStats.averageRating.toFixed(1)}</span>
-                              <span className="text-muted-foreground text-sm">({courseStats.reviewCount} reviews)</span>
-                            </button>
-                          </CourseReviewDialog>
-                        )}
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Users className="h-4 w-4" />
-                          <span className="text-sm">{courseStats.enrollmentCount.toLocaleString()} enrolled</span>
-                        </div>
+                        <Separator className="mt-2" />
                       </div>
 
-                      {/* CTAs */}
-                      <div className="flex items-center justify-center gap-3">
-                        {/* Primary CTA */}
-                        <Button
-                          size="lg"
-                          className="bg-primary hover:bg-primary/90 gap-2 px-8 shadow-lg"
-                          onClick={ctaProps.onClick}
-                          disabled={posts.length === 0}
-                        >
-                          <CtaIcon className="h-5 w-5" />
-                          {ctaProps.label}
-                        </Button>
-                      </div>
-                      
-                      {/* Cheer Label - subtle emotional reinforcement below CTAs */}
-                      {/* Only show for enrolled users, not for preview mode */}
-                      {courseStats.isEnrolled && !isPreviewMode && (
-                        <div className="flex items-center justify-center gap-2 mt-3">
-                          {courseProgress.isCompleted ? (
-                            <>
-                              <PartyPopper className="h-5 w-5 text-primary flex-shrink-0" strokeWidth={1.6} />
-                              <span className="text-sm text-muted-foreground font-medium">You've successfully completed this course</span>
-                            </>
-                          ) : courseProgress.hasStarted && courseProgress.percentage > 0 ? (
-                            <p className="text-sm text-muted-foreground font-medium text-center">💪 You're making great progress — keep going</p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground font-medium text-center">🚀 Ready to begin — let's start building this skill</p>
-                          )}
-                        </div>
+                      {/* Guest Context Banner - dismissible, session-based */}
+                      {isGuest && (
+                        <GuestContextBanner className="mb-6" />
                       )}
-                    </div>
 
-                    {/* Lessons List (Curriculum) - rendered directly since tabs were removed */}
-                    <div className="mt-8">
 
-                      {lessons.length === 0 ? (
-                        <div className="text-center py-16 bg-muted/30 rounded-xl">
-                          <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                          <p className="text-muted-foreground">No lessons available yet</p>
-                          <p className="text-sm text-muted-foreground mt-1">Check back soon for new content!</p>
+                      {/* Completion Nudge for Learners - 40-60% trigger */}
+                      {isLearner && courseStats.isEnrolled && course?.id && (
+                        <CompletionNudge
+                          courseId={course.id}
+                          progressPercentage={courseProgress.percentage}
+                          className="mb-6"
+                          onUpgrade={() => openPricingDrawer("completion_nudge")}
+                        />
+                      )}
+
+                      {/* Lesson Content */}
+                      <div className="mx-auto mt-10 w-full max-w-[720px]">
+                        <ContentRenderer
+                          htmlContent={selectedPost.content || ''}
+                          courseType={course?.slug?.toLowerCase()}
+                          codeTheme={selectedPost.code_theme || undefined}
+                          variant="article"
+                          showAd={shouldShowAdsInCourse}
+                          googleAdClient={adSettings.googleAdClient}
+                          inContentSlot={adSettings.inContentSlot}
+                        />
+                      </div>
+
+                      {/* Certificate Teaser - after lesson content */}
+                      {(isGuest || isLearner) && (
+                        <CertificateTeaser
+                          variant={isGuest ? "guest" : "learner"}
+                          className="mt-8 mb-6"
+                          onLearnMore={() => openPricingDrawer("certificate_teaser_guest")}
+                          onUpgrade={() => openPricingDrawer("certificate_teaser")}
+                        />
+                      )}
+
+                      {/* Lesson Footer - Completion, Tags, Actions, Navigation */}
+                      {/* Hide progress-related actions for guests */}
+                      <LessonFooter
+                        isCompleted={selectedPost ? isLessonCompleted(selectedPost.id) : false}
+                        isMarkingComplete={markingComplete}
+                        onMarkComplete={async () => {
+                          if (!selectedPost) return;
+                          setMarkingComplete(true);
+                          const completed = !isLessonCompleted(selectedPost.id);
+                          const success = await markLessonCompleted(selectedPost.id, completed);
+                          if (success) {
+                            toast({
+                              title: completed ? "Lesson completed!" : "Lesson marked as incomplete",
+                              description: completed ? "Great job! Keep up the good work." : "You can mark it complete anytime.",
+                            });
+                          }
+                          setMarkingComplete(false);
+                        }}
+                        canComplete={!!user && !isGuest}
+                        isGuest={isGuest}
+                        completedLessonsCount={isGuest ? 0 : courseProgress.completedCount}
+                        totalLessons={orderedPosts.length}
+                        courseProgressPercentage={isGuest ? 0 : courseProgress.percentage}
+                        isCourseComplete={!isGuest && courseProgress.isCompleted}
+                        courseId={course?.id || ""}
+                        tags={allTags}
+                        onCommentClick={() => setCommentDialogOpen(true)}
+                        onSuggestChangesClick={isGuest ? undefined : () => setSuggestDialogOpen(true)}
+                        onLikeClick={handleLikeToggle}
+                        likeCount={likeCount}
+                        hasLiked={hasLiked}
+                        isLiking={likingPost}
+                        commentCount={comments.length}
+                        shareTitle={selectedPost?.title || course?.name || ""}
+                        shareUrl={window.location.href}
+                        postId={selectedPost?.id}
+                        previousLesson={hasPrevious ? orderedPosts[currentOrderedIndex - 1] : null}
+                        nextLesson={hasNext ? orderedPosts[currentOrderedIndex + 1] : null}
+                        onPrevious={handlePrevious}
+                        onNext={handleNext}
+                      />
+
+                      {/* Dialogs */}
+                      {selectedPost && (
+                        <>
+                          <ReportSuggestDialog
+                            open={reportDialogOpen}
+                            onOpenChange={setReportDialogOpen}
+                            contentType="post"
+                            contentId={selectedPost.id}
+                            contentTitle={selectedPost.title}
+                            type="report"
+                          />
+                          <ReportSuggestDialog
+                            open={suggestDialogOpen}
+                            onOpenChange={setSuggestDialogOpen}
+                            contentType="post"
+                            contentId={selectedPost.id}
+                            contentTitle={selectedPost.title}
+                            type="suggestion"
+                          />
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    /* Course Overview View */
+                    <>
+                      {/* PAGE HEADER */}
+                      <div className="text-center mb-8">
+                        <h1 className="text-3xl lg:text-4xl font-bold mb-4 text-foreground">{course.name}</h1>
+
+                        {/* Stats Row */}
+                        <div className="flex items-center justify-center gap-4 flex-wrap mb-6">
+                          {courseStats.averageRating > 0 && (
+                            <CourseReviewDialog
+                              reviews={courseReviews}
+                              averageRating={courseStats.averageRating}
+                              reviewCount={courseStats.reviewCount}
+                              userReview={courseStats.userReview}
+                              isEnrolled={courseStats.isEnrolled}
+                              isAuthenticated={!!user}
+                              onSubmitReview={submitReview}
+                              onDeleteReview={deleteReview}
+                            >
+                              <button className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+                                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                                <span className="font-semibold">{courseStats.averageRating.toFixed(1)}</span>
+                                <span className="text-muted-foreground text-sm">({courseStats.reviewCount} reviews)</span>
+                              </button>
+                            </CourseReviewDialog>
+                          )}
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            <span className="text-sm">{courseStats.enrollmentCount.toLocaleString()} enrolled</span>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {lessons
-                            .filter(lesson => (isPreviewMode && (isAdmin || isModerator)) || lesson.is_published)
-                            .map((lesson, lessonIndex) => {
-                              const lessonPosts = getPostsForLesson(lesson.id);
-                              const lessonProgress = getLessonProgress(lesson.id);
-                              
-                              return (
-                                <Card key={lesson.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                                  <div className="bg-muted/30 px-4 py-3 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                                        lessonProgress.isComplete 
-                                          ? 'bg-primary text-primary-foreground' 
-                                          : 'bg-muted text-muted-foreground'
-                                      }`}>
-                                        {lessonProgress.isComplete ? <CheckCircle className="h-4 w-4" /> : lessonIndex + 1}
-                                      </div>
-                                      <div>
-                                        <h4 className="font-semibold">{lesson.title}</h4>
-                                        {lesson.description && (
-                                          <p className="text-xs text-muted-foreground">{lesson.description}</p>
+
+                        {/* CTAs */}
+                        <div className="flex items-center justify-center gap-3">
+                          {/* Primary CTA */}
+                          <Button
+                            size="lg"
+                            className="bg-primary hover:bg-primary/90 gap-2 px-8 shadow-lg"
+                            onClick={ctaProps.onClick}
+                            disabled={posts.length === 0}
+                          >
+                            <CtaIcon className="h-5 w-5" />
+                            {ctaProps.label}
+                          </Button>
+                        </div>
+
+                        {/* Cheer Label - subtle emotional reinforcement below CTAs */}
+                        {/* Only show for enrolled users, not for preview mode */}
+                        {courseStats.isEnrolled && !isPreviewMode && (
+                          <div className="flex items-center justify-center gap-2 mt-3">
+                            {courseProgress.isCompleted ? (
+                              <>
+                                <PartyPopper className="h-5 w-5 text-primary flex-shrink-0" strokeWidth={1.6} />
+                                <span className="text-sm text-muted-foreground font-medium">You've successfully completed this course</span>
+                              </>
+                            ) : courseProgress.hasStarted && courseProgress.percentage > 0 ? (
+                              <p className="text-sm text-muted-foreground font-medium text-center">💪 You're making great progress — keep going</p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground font-medium text-center">🚀 Ready to begin — let's start building this skill</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Lessons List (Curriculum) - rendered directly since tabs were removed */}
+                      <div className="mt-8">
+
+                        {lessons.length === 0 ? (
+                          <div className="text-center py-16 bg-muted/30 rounded-xl">
+                            <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                            <p className="text-muted-foreground">No lessons available yet</p>
+                            <p className="text-sm text-muted-foreground mt-1">Check back soon for new content!</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {lessons
+                              .filter(lesson => (isPreviewMode && (isAdmin || isModerator)) || lesson.is_published)
+                              .map((lesson, lessonIndex) => {
+                                const lessonPosts = getPostsForLesson(lesson.id);
+                                const lessonProgress = getLessonProgress(lesson.id);
+
+                                return (
+                                  <Card key={lesson.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                                    <div className="bg-muted/30 px-4 py-3 flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold ${lessonProgress.isComplete
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground'
+                                          }`}>
+                                          {lessonProgress.isComplete ? <CheckCircle className="h-4 w-4" /> : lessonIndex + 1}
+                                        </div>
+                                        <div>
+                                          <h4 className="font-semibold">{lesson.title}</h4>
+                                          {lesson.description && (
+                                            <p className="text-xs text-muted-foreground">{lesson.description}</p>
+                                          )}
+                                        </div>
+                                        {!lesson.is_published && (
+                                          <Badge variant="secondary" className="text-xs">Draft</Badge>
                                         )}
                                       </div>
-                                      {!lesson.is_published && (
-                                        <Badge variant="secondary" className="text-xs">Draft</Badge>
-                                      )}
+                                      <div className="flex items-center gap-3">
+                                        {lessonProgress.totalPosts > 0 && (
+                                          <div className="flex items-center gap-2">
+                                            <Progress value={lessonProgress.percentage} className="w-16 h-1.5" />
+                                            <span className="text-xs text-muted-foreground">
+                                              {lessonProgress.completedPosts} of {lessonProgress.totalPosts} posts completed
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                      {lessonProgress.totalPosts > 0 && (
-                                        <div className="flex items-center gap-2">
-                                          <Progress value={lessonProgress.percentage} className="w-16 h-1.5" />
-                                          <span className="text-xs text-muted-foreground">
-                                            {lessonProgress.completedPosts} of {lessonProgress.totalPosts} posts completed
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  {lessonPosts.length > 0 ? (
-                                    <div className="divide-y">
-                                      {lessonPosts.map((post) => {
-                                        const isCompleted = isLessonCompleted(post.id);
-                                        
-                                        const isActive = selectedPost?.id === post.id;
-                                        
-                                        return (
-                                          <div 
-                                            key={post.id}
-                                            className={cn(
-                                              "relative flex items-center justify-between hover:bg-muted/30 cursor-pointer transition-colors group",
-                                              isActive && "bg-muted/60",
-                                              shareOpenPostId === post.id && !isActive && "bg-muted/40"
-                                            )}
-                                            onClick={() => handleLessonClick(post)}
+
+                                    {lessonPosts.length > 0 ? (
+                                      <div className="divide-y">
+                                        {lessonPosts.map((post) => {
+                                          const isCompleted = isLessonCompleted(post.id);
+
+                                          const isActive = selectedPost?.id === post.id;
+
+                                          return (
+                                            <div
+                                              key={post.id}
+                                              className={cn(
+                                                "relative flex items-center justify-between hover:bg-muted/30 cursor-pointer transition-colors group",
+                                                isActive && "bg-muted/60",
+                                                shareOpenPostId === post.id && !isActive && "bg-muted/40"
+                                              )}
+                                              onClick={() => handleLessonClick(post)}
+                                            >
+                                              {/* Accent bar - active or share open */}
+                                              {(isActive || shareOpenPostId === post.id) && (
+                                                <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-r" />
+                                              )}
+
+                                              <div className="px-4 py-3 flex items-center gap-3 flex-1">
+                                                {isCompleted ? (
+                                                  <CheckCircle className="h-4 w-4 text-primary" />
+                                                ) : (
+                                                  <Circle className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                                )}
+                                                <span className={`text-sm ${isActive ? "font-medium" : ""}`}>{post.title}</span>
+                                                {post.post_type && post.post_type !== 'content' && (
+                                                  <Badge variant="secondary" className="text-[10px]">
+                                                    {post.post_type}
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-2 pr-4">
+                                                {/* Estimated Time - always visible */}
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                  <Clock className="h-3 w-3" />
+                                                  ~{formatReadingTime(post.content)}
+                                                </span>
+
+                                                {/* Copy Link - visible on hover */}
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigator.clipboard.writeText(`${window.location.origin}/courses/${post.slug}`);
+                                                        setCopiedPostId(post.id);
+                                                        toast({ title: "Link copied!" });
+                                                        setTimeout(() => setCopiedPostId(null), 2000);
+                                                      }}
+                                                      className={`p-1 rounded text-muted-foreground hover:text-foreground transition-opacity ${shareOpenPostId === post.id || copiedPostId === post.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                                        }`}
+                                                    >
+                                                      <Link2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent side="top" className="text-xs">
+                                                    {copiedPostId === post.id ? "Copied" : "Copy link"}
+                                                  </TooltipContent>
+                                                </Tooltip>
+
+                                                {/* Share - visible on hover */}
+                                                <LessonShareMenu
+                                                  postId={post.id}
+                                                  postTitle={post.title}
+                                                  postSlug={post.slug}
+                                                  sectionName={lesson.title}
+                                                  side="right"
+                                                  vertical
+                                                  onOpenChange={(isOpen) =>
+                                                    setShareOpenPostId((prev) =>
+                                                      isOpen ? post.id : prev === post.id ? null : prev
+                                                    )
+                                                  }
+                                                />
+
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+
+                                        {/* Practice Problems link */}
+                                        {practiceSkill?.slug ? (
+                                          <button
+                                            type="button"
+                                            className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted/30 transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openPricingDrawer("practice_problems");
+                                            }}
                                           >
-                                            {/* Accent bar - active or share open */}
-                                            {(isActive || shareOpenPostId === post.id) && (
-                                              <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-r" />
-                                            )}
-                                            
-                                            <div className="px-4 py-3 flex items-center gap-3 flex-1">
-                                              {isCompleted ? (
-                                                <CheckCircle className="h-4 w-4 text-primary" />
-                                              ) : (
-                                                <Circle className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                            <Dumbbell className="h-4 w-4 opacity-50" />
+                                            <span>Practice Problems</span>
+                                            <div className="ml-auto flex items-center gap-2">
+                                              {lessonProblemCounts?.get(lesson.id) && (
+                                                <span className="text-xs text-muted-foreground">
+                                                  {lessonProblemCounts.get(lesson.id)} problem{(lessonProblemCounts.get(lesson.id) || 0) !== 1 ? 's' : ''}
+                                                </span>
                                               )}
-                                              <span className={`text-sm ${isActive ? "font-medium" : ""}`}>{post.title}</span>
-                                              {post.post_type && post.post_type !== 'content' && (
-                                                <Badge variant="secondary" className="text-[10px]">
-                                                  {post.post_type}
-                                                </Badge>
-                                              )}
+                                              <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
                                             </div>
-                                            <div className="flex items-center gap-2 pr-4">
-                                              {/* Estimated Time - always visible */}
-                                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                <Clock className="h-3 w-3" />
-                                                ~{formatReadingTime(post.content)}
-                                              </span>
-                                              
-                                              {/* Copy Link - visible on hover */}
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      navigator.clipboard.writeText(`${window.location.origin}/courses/${post.slug}`);
-                                                      setCopiedPostId(post.id);
-                                                      toast({ title: "Link copied!" });
-                                                      setTimeout(() => setCopiedPostId(null), 2000);
-                                                    }}
-                                                    className={`p-1 rounded text-muted-foreground hover:text-foreground transition-opacity ${
-                                                      shareOpenPostId === post.id || copiedPostId === post.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                                    }`}
-                                                  >
-                                                    <Link2 className="h-3.5 w-3.5" />
-                                                  </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top" className="text-xs">
-                                                  {copiedPostId === post.id ? "Copied" : "Copy link"}
-                                                </TooltipContent>
-                                              </Tooltip>
-                                              
-                                              {/* Share - visible on hover */}
-                                              <LessonShareMenu
-                                                postId={post.id}
-                                                postTitle={post.title}
-                                                postSlug={post.slug}
-                                                sectionName={lesson.title}
-                                                side="right"
-                                                vertical
-                                                onOpenChange={(isOpen) =>
-                                                  setShareOpenPostId((prev) =>
-                                                    isOpen ? post.id : prev === post.id ? null : prev
-                                                  )
-                                                }
-                                              />
-                                              
-                                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    ) : (
+                                      <div className="px-4 py-6 text-center bg-muted/20">
+                                        <Lock className="h-5 w-5 mx-auto mb-2 text-muted-foreground/50" />
+                                        <p className="text-sm text-muted-foreground">Content coming soon</p>
+                                      </div>
+                                    )}
+                                  </Card>
+                                );
+                              })}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </main>
 
-                                      {/* Practice Problems link */}
-                                      {practiceSkill?.slug ? (
-                                        <button
-                                          type="button"
-                                          className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted/30 transition-colors"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openPricingDrawer("practice_problems");
-                                          }}
-                                        >
-                                          <Dumbbell className="h-4 w-4 opacity-50" />
-                                          <span>Practice Problems</span>
-                                          <div className="ml-auto flex items-center gap-2">
-                                            {lessonProblemCounts?.get(lesson.id) && (
-                                              <span className="text-xs text-muted-foreground">
-                                                {lessonProblemCounts.get(lesson.id)} problem{(lessonProblemCounts.get(lesson.id) || 0) !== 1 ? 's' : ''}
-                                              </span>
-                                            )}
-                                            <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
-                                          </div>
-                                        </button>
-                                      ) : null}
-                                    </div>
-                                  ) : (
-                                    <div className="px-4 py-6 text-center bg-muted/20">
-                                      <Lock className="h-5 w-5 mx-auto mb-2 text-muted-foreground/50" />
-                                      <p className="text-sm text-muted-foreground">Content coming soon</p>
-                                    </div>
-                                  )}
-                                </Card>
-                              );
-                            })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </main>
-
-          {/* RIGHT SIDEBAR - keep width reserved so content does not shift when ads initialize */}
-          <CourseSidebarAds
-            adSettings={adSettings ? {
-              googleAdClient: adSettings.googleAdClient,
-              sidebarTopSlot: adSettings.sidebarTopSlot,
-              sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
-              sidebarBottomSlot: adSettings.sidebarBottomSlot,
-            } : null}
-            showAds={shouldShowAdsInCourse}
-            isHeaderVisible={isHeaderVisible}
-            showAnnouncement={showAnnouncement}
-            hasPreviewBanner={hasPreviewBanner}
-            showClarityText={isPro}
-          />
+            {/* RIGHT SIDEBAR - keep width reserved so content does not shift when ads initialize */}
+            <CourseSidebarAds
+              adSettings={adSettings ? {
+                googleAdClient: adSettings.googleAdClient,
+                sidebarTopSlot: adSettings.sidebarTopSlot,
+                sidebarMiddleSlot: adSettings.sidebarMiddleSlot,
+                sidebarBottomSlot: adSettings.sidebarBottomSlot,
+              } : null}
+              showAds={shouldShowAdsInCourse}
+              isHeaderVisible={isHeaderVisible}
+              showAnnouncement={showAnnouncement}
+              hasPreviewBanner={hasPreviewBanner}
+              showClarityText={isPro}
+            />
+          </div>
         </div>
+
+        <Footer />
+
+        {/* Comment Dialog */}
+        {selectedPost && (
+          <CommentDialog
+            open={commentDialogOpen}
+            onOpenChange={setCommentDialogOpen}
+            comments={comments}
+            user={user}
+            newComment={commentContent}
+            setNewComment={setCommentContent}
+            onSubmitComment={handleCommentSubmit}
+            onEditComment={handleEditComment}
+            onDeleteComment={handleDeleteComment}
+            submitting={submittingComment}
+          />
+        )}
+
+        {/* Login Required Modal */}
+        <AlertDialog open={loginModalOpen} onOpenChange={setLoginModalOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Login Required</AlertDialogTitle>
+              <AlertDialogDescription>
+                Please log in to enroll in this course and track your progress.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLoginRedirect} className="bg-primary hover:bg-primary/90">
+                Log in
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Restart Course Confirmation Modal */}
+        <AlertDialog open={restartModalOpen} onOpenChange={setRestartModalOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restart Course?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Restarting will reset your progress. Your completion history will be preserved. Continue?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRestartCourse} className="bg-primary hover:bg-primary/90">
+                Restart Course
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Notes now opens in a dedicated route: /courses/:courseId/notes */}
       </div>
-
-      <Footer />
-
-      {/* Comment Dialog */}
-      {selectedPost && (
-        <CommentDialog
-          open={commentDialogOpen}
-          onOpenChange={setCommentDialogOpen}
-          comments={comments}
-          user={user}
-          newComment={commentContent}
-          setNewComment={setCommentContent}
-          onSubmitComment={handleCommentSubmit}
-          onEditComment={handleEditComment}
-          onDeleteComment={handleDeleteComment}
-          submitting={submittingComment}
-        />
-      )}
-
-      {/* Login Required Modal */}
-      <AlertDialog open={loginModalOpen} onOpenChange={setLoginModalOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Login Required</AlertDialogTitle>
-            <AlertDialogDescription>
-              Please log in to enroll in this course and track your progress.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLoginRedirect} className="bg-primary hover:bg-primary/90">
-              Log in
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Restart Course Confirmation Modal */}
-      <AlertDialog open={restartModalOpen} onOpenChange={setRestartModalOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restart Course?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Restarting will reset your progress. Your completion history will be preserved. Continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRestartCourse} className="bg-primary hover:bg-primary/90">
-              Restart Course
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Notes now opens in a dedicated route: /courses/:courseId/notes */}
-    </div>
     </CodeEditProvider>
   );
 };

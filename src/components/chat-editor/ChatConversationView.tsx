@@ -12,6 +12,9 @@ import { Loader2 } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { isTipTapJSON, normalizeBubbleContent } from "@/lib/tiptapMigration";
 import { RichTextRenderer } from "@/components/tiptap/RichTextRenderer";
+import { useLocation } from "react-router-dom";
+import { useAdSettings } from "@/hooks/useAdSettings";
+import { AdPlaceholder } from "@/components/ads";
 
 // Lazy load the freeform canvas viewer to avoid loading fabric.js until needed
 const FreeformCanvasViewer = lazy(() =>
@@ -55,6 +58,12 @@ interface ChatConversationViewProps {
   onAnnotationResolve?: (annotationId: string) => void;
   onAnnotationDismiss?: (annotationId: string) => void;
   onAnnotationDelete?: (annotationId: string) => void;
+  /**
+   * When true, suppresses the built-in in-content AdSense unit.
+   * Set by CanvasRenderer so it can inject one ad at the block midpoint
+   * instead, preventing a double-ad when this component is a canvas block.
+   */
+  disableInternalAd?: boolean;
 }
 
 interface Course {
@@ -161,8 +170,9 @@ const extractCodeBlocksFromHtml = (html: string): {
   return { processedHtml, codeBlocks };
 };
 
-// Inline takeaway block — minimal: vertical accent line + label + content only
+// Inline takeaway block — styled to match InlineCheckpointRenderer
 const TakeawayInlineBlock = ({
+  title,
   content,
   staggerDelay
 }: {
@@ -176,32 +186,14 @@ const TakeawayInlineBlock = ({
       initial={{ opacity: 0, x: -6 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.08 + staggerDelay }}
-      className="my-4 flex gap-3"
+      className="border-l-[3px] border-primary bg-muted/[0.35] pl-5 pr-4 py-4 my-1"
     >
-      {/* Vertical accent line */}
-      <motion.div
-        className="flex-shrink-0 w-[3px] rounded-full self-stretch"
-        style={{ background: "rgba(0, 0, 0, 0.18)", originY: 0 }}
-        initial={{ scaleY: 0 }}
-        animate={{ scaleY: 1 }}
-        transition={{ duration: 0.3, delay: 0.14 + staggerDelay, ease: "easeOut" }}
-      />
-
-      {/* Label + content */}
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <span
-          className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
-          style={{ color: "rgba(0, 0, 0, 0.38)" }}
-        >
-          One-Line Takeaway
-        </span>
-        <p
-          className="text-[13.5px] leading-relaxed"
-          style={{ color: "rgba(30, 25, 10, 0.80)" }}
-        >
-          {content}
-        </p>
-      </div>
+      <p className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-primary mb-2 select-none">
+        {title}
+      </p>
+      <p className="text-[14.5px] font-medium text-foreground/90 leading-relaxed">
+        {content}
+      </p>
     </motion.div>
   );
 };
@@ -219,12 +211,18 @@ const ChatConversationView = ({
   onAnnotationResolve,
   onAnnotationDismiss,
   onAnnotationDelete,
+  disableInternalAd = false,
 }: ChatConversationViewProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [dynamicColors, setDynamicColors] = useState<DynamicChatColors | null>(null);
   const messages = useMemo(() => parseConversation(content, allowSingleSpeaker), [content, allowSingleSpeaker]);
   const explanation = useMemo(() => extractExplanation(content), [content]);
   const isExplanationTipTapJSON = useMemo(() => isTipTapJSON(explanation), [explanation]);
+
+  // Determine if we are on the regular Course Detail page to show the in-content ad
+  const location = useLocation();
+  const isCourseDetail = location.pathname.startsWith('/course/');
+  const { settings: adSettings } = useAdSettings();
 
   const { processedHtml: explanationHtml, codeBlocks: explanationCodeBlocks } = useMemo(() => {
     // Skip code block extraction if it's TipTap JSON - RichTextRenderer will handle it
@@ -714,6 +712,20 @@ const ChatConversationView = ({
           }
         `}</style>
       </div>
+
+      {/* IN-CONTENT AD SENSE UNIT
+          Suppressed when disableInternalAd=true (canvas block mode) because
+          CanvasRenderer injects one ad at the midpoint across all blocks instead. */}
+      {isCourseDetail && !disableInternalAd && (
+        <div className="w-full my-12 mx-auto overflow-hidden rounded-xl border border-border/40 bg-muted/5 p-2 flex items-center justify-center min-h-[120px]">
+          <AdPlaceholder
+            adType="in-content"
+            googleAdClient={adSettings?.googleAdClient}
+            googleAdSlot={adSettings?.inContentSlot || adSettings?.sidebarMiddleSlot}
+            className="w-full h-full"
+          />
+        </div>
+      )}
 
       {/* Explanation section (if present) - Cause & Effect Section */}
       {explanation && (

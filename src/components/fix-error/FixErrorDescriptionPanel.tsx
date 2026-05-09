@@ -167,7 +167,7 @@ export function FixErrorDescriptionPanel({
               className="font-medium text-xs"
               style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
             >
-                Comments
+              Comments
             </span>
           </button>
 
@@ -251,7 +251,10 @@ export function FixErrorDescriptionPanel({
           </Tabs>
 
           {/* Collapse & Expand Buttons */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className={cn(
+            "flex items-center gap-0.5 shrink-0 transition-opacity",
+            isHovered || isExpanded ? "opacity-100" : "opacity-0"
+          )}>
             {onToggleCollapse && !isExpanded && (
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleCollapse}
                 title={isCollapsed ? "Show panel" : "Hide panel"}>

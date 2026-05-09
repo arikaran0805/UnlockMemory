@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -47,44 +47,49 @@ interface Course {
   featured_image?: string | null;
 }
 
+// ─── Careers sessionStorage cache ────────────────────────────────────────────
+// Careers data is static/infrequently-changing and NOT user-specific.
+// Caching it means every useCareers() consumer renders instantly on revisit,
+// before authLoading resolves.
+const CAREERS_CACHE_KEY = 'um_careers_v1';
+interface CareersCache {
+  careers: Career[];
+  careerSkills: Record<string, CareerSkill[]>;
+  careerCourses: Record<string, CareerCourse[]>;
+  allCourses: Course[];
+}
+function readCareersCache(): CareersCache | null {
+  try { return JSON.parse(sessionStorage.getItem(CAREERS_CACHE_KEY) || 'null'); }
+  catch { return null; }
+}
+function writeCareersCache(data: CareersCache) {
+  try { sessionStorage.setItem(CAREERS_CACHE_KEY, JSON.stringify(data)); }
+  catch {}
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const useCareers = () => {
   const { isLoading: authLoading } = useAuth();
-  const [careers, setCareers] = useState<Career[]>([]);
-  const [careerSkills, setCareerSkills] = useState<Record<string, CareerSkill[]>>({});
-  const [careerCourses, setCareerCourses] = useState<Record<string, CareerCourse[]>>({});
-  const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Synchronous cache init — all useCareers() consumers render with correct data
+  // on the very first frame, before auth resolves and before any DB query fires.
+  const [initCache] = useState<CareersCache | null>(() => readCareersCache());
+  const [careers, setCareers] = useState<Career[]>(() => initCache?.careers ?? []);
+  const [careerSkills, setCareerSkills] = useState<Record<string, CareerSkill[]>>(() => initCache?.careerSkills ?? {});
+  const [careerCourses, setCareerCourses] = useState<Record<string, CareerCourse[]>>(() => initCache?.careerCourses ?? {});
+  const [allCourses, setAllCourses] = useState<Course[]>(() => initCache?.allCourses ?? []);
+  const [loading, setLoading] = useState(() => !initCache); // false if cache hit
 
   // Prevent a common refresh bug:
   // if we fetch career data BEFORE auth finishes restoring, backend policies may deny the request,
   // leaving careers empty and causing the Career Board shell to redirect to /arcade.
   const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
 
-  useEffect(() => {
-    if (hasFetchedOnce) return;
-    if (authLoading) return;
-
-    setHasFetchedOnce(true);
-    fetchCareers();
-  }, [authLoading, hasFetchedOnce]);
-
-  // Safety timeout: if loading takes more than 10 seconds, force it to complete
-  // This prevents infinite loading states in edge cases
-  useEffect(() => {
-    if (!loading) return;
-    
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn("useCareers: Loading timeout reached, forcing completion");
-        setLoading(false);
-      }
-    }, 10000);
-    
-    return () => clearTimeout(timeout);
-  }, [loading]);
-
-  const fetchCareers = async () => {
-    setLoading(true);
+  // Defined before the useEffect that calls it to avoid TDZ error
+  const fetchCareers = useCallback(async () => {
+    // Don't flip to loading=true if we already have cached data rendered.
+    // A silent refresh in the background is better UX than a skeleton flash.
+    if (!initCache) setLoading(true);
     try {
       const [careersRes, skillsRes, coursesRes, allCoursesRes] = await Promise.all([
         supabase.from("careers").select("*").order("display_order"),
@@ -96,60 +101,76 @@ export const useCareers = () => {
       const firstError = careersRes.error || skillsRes.error || coursesRes.error || allCoursesRes.error;
       if (firstError) throw firstError;
 
-      if (careersRes.data) {
-        setCareers(careersRes.data);
-      }
+      if (careersRes.data) setCareers(careersRes.data);
+      if (allCoursesRes.data) setAllCourses(allCoursesRes.data);
 
-      if (allCoursesRes.data) {
-        setAllCourses(allCoursesRes.data);
-      }
-
+      const resolvedSkillsByCareer: Record<string, CareerSkill[]> = {};
       if (skillsRes.data) {
-        const skillsByCareer: Record<string, CareerSkill[]> = {};
         skillsRes.data.forEach(skill => {
-          if (!skillsByCareer[skill.career_id]) {
-            skillsByCareer[skill.career_id] = [];
-          }
-          skillsByCareer[skill.career_id].push({
-            ...skill,
-            weight: skill.weight || 25,
-            icon: skill.icon || 'Code2',
-            color: skill.color || 'Emerald',
+          if (!resolvedSkillsByCareer[skill.career_id]) resolvedSkillsByCareer[skill.career_id] = [];
+          resolvedSkillsByCareer[skill.career_id].push({
+            ...skill, weight: skill.weight || 25, icon: skill.icon || 'Code2', color: skill.color || 'Emerald',
           });
         });
-        setCareerSkills(skillsByCareer);
+        setCareerSkills(resolvedSkillsByCareer);
       }
 
+      const resolvedCoursesByCareer: Record<string, CareerCourse[]> = {};
       if (coursesRes.data) {
-        const coursesByCareer: Record<string, CareerCourse[]> = {};
         coursesRes.data.forEach(cc => {
-          if (!coursesByCareer[cc.career_id]) {
-            coursesByCareer[cc.career_id] = [];
-          }
-          // Parse skill_contributions from JSON
-          const skillContributions = Array.isArray(cc.skill_contributions) 
+          if (!resolvedCoursesByCareer[cc.career_id]) resolvedCoursesByCareer[cc.career_id] = [];
+          const skillContributions = Array.isArray(cc.skill_contributions)
             ? (cc.skill_contributions as unknown as SkillContribution[])
             : [];
-          coursesByCareer[cc.career_id].push({
-            id: cc.id,
-            career_id: cc.career_id,
-            course_id: cc.course_id,
-            skill_contributions: skillContributions,
-            course: cc.course,
+          resolvedCoursesByCareer[cc.career_id].push({
+            id: cc.id, career_id: cc.career_id, course_id: cc.course_id,
+            skill_contributions: skillContributions, course: cc.course,
           });
         });
-        setCareerCourses(coursesByCareer);
+        setCareerCourses(resolvedCoursesByCareer);
       }
+
+      // Persist to sessionStorage — all future useCareers() calls return instantly
+      writeCareersCache({
+        careers: careersRes.data ?? [],
+        careerSkills: resolvedSkillsByCareer,
+        careerCourses: resolvedCoursesByCareer,
+        allCourses: allCoursesRes.data ?? [],
+      });
     } catch (error) {
       console.error("Error fetching careers:", error);
     } finally {
       setLoading(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const getCareerBySlug = (slug: string) => {
+  useEffect(() => {
+    if (hasFetchedOnce) return;
+    if (authLoading) return;
+
+    setHasFetchedOnce(true);
+    fetchCareers();
+  }, [authLoading, hasFetchedOnce, fetchCareers]);
+
+  // Safety timeout: if loading takes more than 10 seconds, force it to complete
+  // This prevents infinite loading states in edge cases
+  useEffect(() => {
+    if (!loading) return;
+
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn("useCareers: Loading timeout reached, forcing completion");
+        setLoading(false);
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
+  const getCareerBySlug = useCallback((slug: string) => {
     return careers.find(c => c.slug === slug);
-  };
+  }, [careers]);
 
   const getCareerById = (id: string) => {
     return careers.find(c => c.id === id);

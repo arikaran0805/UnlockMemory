@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Career Completed — Design Options</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e5e7eb; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 22px; font-weight: 700; text-align: center; color: #f9fafb; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #6b7280; font-size: 14px; margin-bottom: 32px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4b5563; margin-bottom: 20px; text-align: center; }
+
+  /* Layout */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1200px; margin: 0 auto; }
+  .panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; overflow: hidden; }
+  .panel-label { padding: 14px 20px; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; gap: 10px; }
+  .panel-label .badge { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; border-radius: 4px; padding: 2px 7px; }
+  .badge-a { background: #1d4ed8; color: white; }
+  .badge-b { background: #7c3aed; color: white; }
+  .panel-label h3 { font-size: 14px; font-weight: 600; color: #e5e7eb; }
+  .panel-label p { font-size: 12px; color: #6b7280; margin-top: 1px; }
+  .panel-body { padding: 20px; }
+  .option-panel { cursor: pointer; transition: all 0.2s; }
+  .option-panel:hover { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+  .option-panel.selected { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
+
+  /* Cert preview A — Dark Premium Gold */
+  .cert-a {
+    width: 100%; aspect-ratio: 1.414/1;
+    background: #0c1821;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+  .cert-a::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b);
+  }
+  .cert-a::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b);
+  }
+  .cert-a .border-inner {
+    position: absolute; inset: 12px;
+    border: 1px solid rgba(255,215,0,0.15); border-radius: 6px; pointer-events: none;
+  }
+  .cert-a .corner { position: absolute; width: 8px; height: 8px; background: #b8860b; }
+  .cert-a .c1 { top: 9px; left: 9px; }
+  .cert-a .c2 { top: 9px; right: 9px; }
+  .cert-a .c3 { bottom: 9px; left: 9px; }
+  .cert-a .c4 { bottom: 9px; right: 9px; }
+  .cert-a .platform { font-size: 8px; letter-spacing: 0.2em; color: rgba(255,215,0,0.4); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+  .cert-a .trophy { font-size: 22px; margin-bottom: 6px; }
+  .cert-a .title { font-family: Georgia, serif; font-size: clamp(10px, 2.5vw, 14px); font-weight: 700; color: #f5e642; letter-spacing: 0.02em; margin-bottom: 4px; }
+  .cert-a .rule { width: 80px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,215,0,0.5), transparent); margin: 6px auto; }
+  .cert-a .certify { font-size: clamp(7px,1.2vw,9px); color: rgba(255,215,0,0.5); margin-bottom: 4px; }
+  .cert-a .name { font-family: Georgia, serif; font-size: clamp(11px,2.8vw,16px); font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .cert-a .completed { font-size: clamp(7px,1.2vw,9px); color: rgba(255,215,0,0.5); margin-bottom: 4px; }
+  .cert-a .career-name { font-size: clamp(9px,2vw,12px); font-weight: 700; color: #ffd700; margin-bottom: 6px; }
+  .cert-a .date { font-size: clamp(6px,1.1vw,8px); color: rgba(255,215,0,0.4); }
+  .cert-a .stars { color: #ffd700; font-size: 10px; letter-spacing: 2px; margin-bottom: 4px; }
+
+  /* Cert preview B — Deep Green Elevated */
+  .cert-b {
+    width: 100%; aspect-ratio: 1.414/1;
+    background: #ffffff;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+  }
+  .cert-b::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 5px;
+    background: linear-gradient(90deg, #064e3b, #059669, #064e3b);
+  }
+  .cert-b::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 5px;
+    background: linear-gradient(90deg, #064e3b, #059669, #064e3b);
+  }
+  .cert-b .border-inner {
+    position: absolute; inset: 12px;
+    border: 1.5px solid rgba(6,78,59,0.12); border-radius: 6px; pointer-events: none;
+  }
+  .cert-b .corner { position: absolute; width: 8px; height: 8px; background: #064e3b; }
+  .cert-b .c1 { top: 9px; left: 9px; }
+  .cert-b .c2 { top: 9px; right: 9px; }
+  .cert-b .c3 { bottom: 9px; left: 9px; }
+  .cert-b .c4 { bottom: 9px; right: 9px; }
+  .cert-b .platform { font-size: 8px; letter-spacing: 0.2em; color: #9ca3af; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+  .cert-b .ribbon { font-size: 20px; margin-bottom: 4px; }
+  .cert-b .title { font-family: Georgia, serif; font-size: clamp(10px, 2.5vw, 14px); font-weight: 700; color: #111827; margin-bottom: 2px; }
+  .cert-b .subtitle-tag { font-size: clamp(6px,1.1vw,8px); color: #059669; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 100px; padding: 1px 6px; display: inline-block; margin-bottom: 5px; }
+  .cert-b .rule { width: 80px; height: 1px; background: linear-gradient(90deg, transparent, rgba(6,78,59,0.4), transparent); margin: 5px auto; }
+  .cert-b .certify { font-size: clamp(7px,1.2vw,9px); color: #6b7280; margin-bottom: 3px; }
+  .cert-b .name { font-family: Georgia, serif; font-size: clamp(11px,2.8vw,16px); font-weight: 700; color: #111827; margin-bottom: 3px; }
+  .cert-b .completed { font-size: clamp(7px,1.2vw,9px); color: #6b7280; margin-bottom: 3px; }
+  .cert-b .career-name { font-size: clamp(9px,2vw,12px); font-weight: 700; color: #064e3b; margin-bottom: 5px; }
+  .cert-b .date { font-size: clamp(6px,1.1vw,8px); color: #9ca3af; }
+
+  /* Page mockup */
+  .page-mock { background: #f9fafb; border-radius: 10px; padding: 16px; }
+  .mock-section { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .mock-header { text-align: center; margin-bottom: 12px; }
+  .mock-icon { width: 40px; height: 40px; border-radius: 10px; background: #ecfdf5; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 18px; }
+  .mock-h1 { font-size: 20px; font-weight: 800; color: #111827; }
+  .mock-h2 { font-size: 13px; font-weight: 600; color: #059669; }
+  .mock-p { font-size: 11px; color: #6b7280; }
+  .mock-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #6b7280; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 100px; padding: 3px 10px; margin-top: 6px; }
+  .mock-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .mock-stat { background: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 8px; text-align: center; }
+  .mock-stat .v { font-size: 16px; font-weight: 800; color: #111827; }
+  .mock-stat .l { font-size: 10px; color: #9ca3af; margin-top: 1px; }
+  .mock-skills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .mock-skill { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 5px; padding: 3px 7px; font-size: 10px; color: #374151; }
+  .mock-cta { display: flex; gap: 6px; margin-bottom: 10px; }
+  .mock-btn { flex: 1; padding: 9px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; }
+  .btn-primary { background: #064e3b; color: white; }
+  .btn-outline { background: white; color: #374151; border: 1px solid #d1d5db; }
+  .btn-icon { width: 36px; flex: none; background: white; border: 1px solid #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9ca3af; margin-bottom: 8px; }
+  .course-list { display: flex; flex-direction: column; gap: 5px; }
+  .course-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #f9fafb; border: 1px solid #f3f4f6; border-radius: 7px; }
+  .course-row .check { width: 16px; height: 16px; border-radius: 50%; background: #059669; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; flex-shrink: 0; }
+  .course-row .cname { font-size: 11px; font-weight: 600; color: #111827; }
+  .course-row .chours { font-size: 10px; color: #9ca3af; margin-left: auto; }
+
+  /* CTA section in last course completed */
+  .cta-section { background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 1.5px solid #a7f3d0; border-radius: 12px; padding: 14px 16px; }
+  .cta-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #059669; margin-bottom: 6px; }
+  .cta-heading { font-size: 15px; font-weight: 700; color: #064e3b; margin-bottom: 3px; }
+  .cta-sub { font-size: 11px; color: #6b7280; margin-bottom: 10px; }
+  .cta-progress { display: flex; gap: 4px; margin-bottom: 10px; }
+  .cta-course-chip { flex: 1; text-align: center; padding: 4px 2px; border-radius: 5px; font-size: 9px; font-weight: 600; }
+  .chip-done { background: #059669; color: white; }
+  .chip-todo { background: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb; }
+  .cta-btn { width: 100%; padding: 10px; background: #064e3b; color: white; border-radius: 9px; font-size: 13px; font-weight: 700; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  /* Choice indicator */
+  .choice-row { display: flex; gap: 12px; justify-content: center; margin-top: 28px; margin-bottom: 8px; }
+  .choice-btn { padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+  .choice-a { background: #1d4ed8; color: white; }
+  .choice-a:hover { background: #1e40af; }
+  .choice-b { background: #7c3aed; color: white; }
+  .choice-b:hover { background: #6d28d9; }
+
+  .tag { font-size: 11px; color: #6b7280; text-align: center; margin-top: 8px; }
+
+  @media (max-width: 700px) {
+    .split { grid-template-columns: 1fr; }
+    .mock-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<h1>Career Completion — Design Review</h1>
+<p class="subtitle">Two certificate styles · same page layout · click to select your preferred certificate</p>
+
+<!-- Section 1: CTA in last course completed page (same for both) -->
+<div style="max-width:560px;margin:0 auto 36px;">
+  <p class="section-label">① "Complete Career" CTA — appears at end of last course completed page (same for both options)</p>
+  <div class="cta-section">
+    <p class="cta-title">🏆 Career Journey</p>
+    <p class="cta-heading">You've finished all courses!</p>
+    <p class="cta-sub">All 3 courses in Data Science completed. Claim your career certificate.</p>
+    <div class="cta-progress">
+      <div class="cta-course-chip chip-done">Python Basics ✓</div>
+      <div class="cta-course-chip chip-done">ML Foundations ✓</div>
+      <div class="cta-course-chip chip-done">Data Science ✓</div>
+    </div>
+    <div class="cta-btn">🎓 Complete Career</div>
+  </div>
+  <p class="tag">If any course is incomplete, clicking this shows which courses are still pending</p>
+</div>
+
+<!-- Section 2: Career Completed Page — both show same layout, certificate differs -->
+<div style="max-width:1200px;margin:0 auto;">
+  <p class="section-label">② Career Completed Page — choose your preferred certificate design</p>
+  <div class="split">
+
+    <!-- Option A: Dark Gold Premium -->
+    <div class="panel option-panel" id="optA" onclick="selectOption('a')">
+      <div class="panel-label">
+        <span class="badge badge-a">A</span>
+        <div>
+          <h3>Dark Gold Premium</h3>
+          <p>Black background, gold accents — feels like an award</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <!-- Page mockup with Cert A -->
+        <div class="page-mock">
+          <div class="mock-header">
+            <div class="mock-icon">🏆</div>
+            <div class="mock-h1">Career Completed!</div>
+            <div class="mock-h2">Data Science</div>
+            <p class="mock-p">You've mastered the full career path.</p>
+            <div class="mock-badge">✓ Completed on May 6, 2026</div>
+          </div>
+
+          <!-- Certificate A -->
+          <div class="cert-a" style="margin-bottom:8px;">
+            <div class="border-inner"></div>
+            <div class="corner c1"></div><div class="corner c2"></div>
+            <div class="corner c3"></div><div class="corner c4"></div>
+            <div class="platform">UnlockMemory</div>
+            <div class="trophy">🏆</div>
+            <div class="title">Career Certificate of Excellence</div>
+            <div class="rule"></div>
+            <div class="certify">This is to certify that</div>
+            <div class="name">Arikaran</div>
+            <div class="completed">has successfully completed the</div>
+            <div class="career-name">Data Science Career Path</div>
+            <div class="stars">★★★★★</div>
+            <div class="date">May 6, 2026</div>
+          </div>
+          <div class="mock-cta">
+            <div class="mock-btn btn-primary">⬇ Download</div>
+            <div class="mock-btn btn-outline">in LinkedIn</div>
+            <div class="btn-icon">⧉</div>
+          </div>
+
+          <!-- Career Summary -->
+          <div class="mock-section">
+            <div class="section-title">Career Summary</div>
+            <div class="mock-stats">
+              <div class="mock-stat"><div class="v">3</div><div class="l">Courses</div></div>
+              <div class="mock-stat"><div class="v">12</div><div class="l">Lessons</div></div>
+              <div class="mock-stat"><div class="v">8.5h</div><div class="l">Invested</div></div>
+              <div class="mock-stat"><div class="v">6</div><div class="l">Skills</div></div>
+            </div>
+            <div class="mock-skills" style="margin-top:10px;">
+              <div class="mock-skill">Python</div>
+              <div class="mock-skill">Machine Learning</div>
+              <div class="mock-skill">Data Analysis</div>
+              <div class="mock-skill">Statistics</div>
+            </div>
+          </div>
+
+          <!-- Courses covered -->
+          <div class="mock-section">
+            <div class="section-title">Courses Covered</div>
+            <div class="course-list">
+              <div class="course-row"><div class="check">✓</div><div class="cname">Python Basics</div><div class="chours">2h</div></div>
+              <div class="course-row"><div class="check">✓</div><div class="cname">ML Foundations</div><div class="chours">3.5h</div></div>
+              <div class="course-row"><div class="check">✓</div><div class="cname">Data Science</div><div class="chours">3h</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option B: Elevated Green -->
+    <div class="panel option-panel" id="optB" onclick="selectOption('b')">
+      <div class="panel-label">
+        <span class="badge badge-b">B</span>
+        <div>
+          <h3>Elevated Green</h3>
+          <p>White background, dual green — premium but consistent with brand</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <!-- Page mockup with Cert B -->
+        <div class="page-mock">
+          <div class="mock-header">
+            <div class="mock-icon">🎓</div>
+            <div class="mock-h1">Career Completed!</div>
+            <div class="mock-h2">Data Science</div>
+            <p class="mock-p">You've mastered the full career path.</p>
+            <div class="mock-badge">✓ Completed on May 6, 2026</div>
+          </div>
+
+          <!-- Certificate B -->
+          <div class="cert-b" style="margin-bottom:8px;">
+            <div class="border-inner"></div>
+            <div class="corner c1"></div><div class="corner c2"></div>
+            <div class="corner c3"></div><div class="corner c4"></div>
+            <div class="platform">UnlockMemory</div>
+            <div class="ribbon">🎖️</div>
+            <div class="title">Career Certificate of Completion</div>
+            <div class="subtitle-tag">Full Career Path</div>
+            <div class="rule"></div>
+            <div class="certify">This is to certify that</div>
+            <div class="name">Arikaran</div>
+            <div class="completed">has successfully completed</div>
+            <div class="career-name">Data Science Career Path</div>
+            <div class="date">May 6, 2026</div>
+          </div>
+          <div class="mock-cta">
+            <div class="mock-btn btn-primary">⬇ Download</div>
+            <div class="mock-btn btn-outline">in LinkedIn</div>
+            <div class="btn-icon">⧉</div>
+          </div>
+
+          <!-- Career Summary -->
+          <div class="mock-section">
+            <div class="section-title">Career Summary</div>
+            <div class="mock-stats">
+              <div class="mock-stat"><div class="v">3</div><div class="l">Courses</div></div>
+              <div class="mock-stat"><div class="v">12</div><div class="l">Lessons</div></div>
+              <div class="mock-stat"><div class="v">8.5h</div><div class="l">Invested</div></div>
+              <div class="mock-stat"><div class="v">6</div><div class="l">Skills</div></div>
+            </div>
+            <div class="mock-skills" style="margin-top:10px;">
+              <div class="mock-skill">Python</div>
+              <div class="mock-skill">Machine Learning</div>
+              <div class="mock-skill">Data Analysis</div>
+              <div class="mock-skill">Statistics</div>
+            </div>
+          </div>
+
+          <!-- Courses covered -->
+          <div class="mock-section">
+            <div class="section-title">Courses Covered</div>
+            <div class="course-list">
+              <div class="course-row"><div class="check">✓</div><div class="cname">Python Basics</div><div class="chours">2h</div></div>
+              <div class="course-row"><div class="check">✓</div><div class="cname">ML Foundations</div><div class="chours">3.5h</div></div>
+              <div class="course-row"><div class="check">✓</div><div class="cname">Data Science</div><div class="chours">3h</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Also show incomplete modal at bottom -->
+<div style="max-width:480px;margin:36px auto 0;">
+  <p class="section-label">③ "Incomplete Courses" state — when CTA clicked but some courses not done</p>
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:14px;padding:20px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">⚠️</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#f9fafb;">Complete all courses first</div>
+        <div style="font-size:12px;color:#6b7280;">1 course still in progress</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#111;border:1px solid #2a2a2a;border-radius:8px;">
+        <div style="width:20px;height:20px;border-radius:50%;background:#059669;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;flex-shrink:0;">✓</div>
+        <div style="font-size:12px;color:#e5e7eb;font-weight:500;">Python Basics</div>
+        <div style="margin-left:auto;font-size:10px;color:#059669;font-weight:600;">Done</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#111;border:1px solid #f59e0b33;border-radius:8px;">
+        <div style="width:20px;height:20px;border-radius:50%;background:#111;border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:10px;color:#f59e0b;flex-shrink:0;">●</div>
+        <div style="font-size:12px;color:#e5e7eb;font-weight:500;">ML Foundations</div>
+        <div style="margin-left:auto;font-size:10px;color:#f59e0b;font-weight:600;">67%</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#111;border:1px solid #2a2a2a;border-radius:8px;">
+        <div style="width:20px;height:20px;border-radius:50%;background:#059669;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;flex-shrink:0;">✓</div>
+        <div style="font-size:12px;color:#e5e7eb;font-weight:500;">Data Science</div>
+        <div style="margin-left:auto;font-size:10px;color:#059669;font-weight:600;">Done</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;padding:9px;background:#1d4ed8;color:white;border-radius:8px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;">Go to ML Foundations</div>
+      <div style="padding:9px 14px;background:#1a1a1a;border:1px solid #2a2a2a;color:#9ca3af;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Dismiss</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function selectOption(choice) {
+  document.querySelectorAll('.option-panel').forEach(p => p.classList.remove('selected'));
+  document.getElementById('opt' + choice.toUpperCase()).classList.add('selected');
+  // Record selection
+  if (window.__recordChoice) window.__recordChoice(choice, choice === 'a' ? 'Dark Gold Premium' : 'Elevated Green');
+}
+</script>
+
+</body>
+</html>

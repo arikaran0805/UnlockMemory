@@ -12,7 +12,7 @@ import { ChevronRight, StickyNote, UserCircle, Dumbbell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQueryClient } from "@tanstack/react-query";
@@ -75,6 +75,17 @@ export const CareerScopedHeader = ({
   const profileRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!profileOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileOpen]);
+
   // Prefetch course data on hover so clicking a tab is instant
   const prefetchCourse = (slug: string) => {
     queryClient.prefetchQuery({
@@ -92,8 +103,8 @@ export const CareerScopedHeader = ({
   // primary header is gone — secondary header always sits at the very top
   const topClass = announcementVisible ? "top-9" : "top-0";
 
-  // ── loading / no-course skeleton ──────────────────────────────────────────
-  if (isLoading || !currentCourse) {
+  // ── loading skeleton only — no-course state (e.g. /completed) renders normally ──
+  if (isLoading) {
     return (
       <div
         className={cn(
@@ -125,7 +136,7 @@ export const CareerScopedHeader = ({
     );
   }
 
-  const courseIdx = careerCourses.findIndex((c) => c.slug === currentCourse.slug);
+  const courseIdx = currentCourse ? careerCourses.findIndex((c) => c.slug === currentCourse.slug) : -1;
 
   return (
     <div
@@ -200,27 +211,31 @@ export const CareerScopedHeader = ({
                 </span>
               </Link>
 
-              {/* Separator */}
-              <ChevronRight className="h-3 w-3 flex-shrink-0 text-foreground/20" aria-hidden="true" />
+              {currentCourse && (
+                <>
+                  {/* Separator */}
+                  <ChevronRight className="h-3 w-3 flex-shrink-0 text-foreground/20" aria-hidden="true" />
 
-              {/* Current course name */}
-              <h2
-                className="text-[13px] font-semibold text-foreground/90 leading-none truncate max-w-[220px]"
-                title={currentCourse.name}
-              >
-                {currentCourse.name}
-              </h2>
+                  {/* Current course name */}
+                  <h2
+                    className="text-[13px] font-semibold text-foreground/90 leading-none truncate max-w-[220px]"
+                    title={currentCourse.name}
+                  >
+                    {currentCourse.name}
+                  </h2>
 
-              {/* Position indicator — "2 / 5" */}
-              {careerCourses.length > 1 && courseIdx >= 0 && (
-                <span
-                  className={cn(
-                    "flex-shrink-0 text-[9.5px] font-bold leading-none px-1.5 py-[3px] rounded-[4px]",
-                    "bg-primary/[0.09] text-primary/80 border border-primary/[0.22] font-mono tabular-nums"
+                  {/* Position indicator — "2 / 5" */}
+                  {careerCourses.length > 1 && courseIdx >= 0 && (
+                    <span
+                      className={cn(
+                        "flex-shrink-0 text-[9.5px] font-bold leading-none px-1.5 py-[3px] rounded-[4px]",
+                        "bg-primary/[0.09] text-primary/80 border border-primary/[0.22] font-mono tabular-nums"
+                      )}
+                    >
+                      {courseIdx + 1}&thinsp;/&thinsp;{careerCourses.length}
+                    </span>
                   )}
-                >
-                  {courseIdx + 1}&thinsp;/&thinsp;{careerCourses.length}
-                </span>
+                </>
               )}
             </div>
           )}
@@ -235,7 +250,7 @@ export const CareerScopedHeader = ({
               aria-label="Career course navigation"
             >
               {careerCourses.map((course, idx) => {
-                const isActive = course.slug === currentCourse.slug;
+                const isActive = !!currentCourse && course.slug === currentCourse.slug;
                 const stepNum = String(idx + 1).padStart(2, "0");
 
                 return (

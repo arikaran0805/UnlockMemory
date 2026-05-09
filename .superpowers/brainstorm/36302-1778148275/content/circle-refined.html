@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  body { background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 40px 24px; }
+  h2 { text-align:center; font-size: 20px; color: #111827; margin-bottom: 4px; }
+  .subtitle { text-align:center; color: #6b7280; font-size: 13px; margin-bottom: 32px; }
+
+  .split { display: flex; gap: 40px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+
+  .column { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .col-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; }
+
+  /* Card shell */
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 22px 22px;
+    width: 480px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05);
+  }
+  .card-title { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+  .card-sub { font-size: 12px; color: #9ca3af; margin-bottom: 16px; }
+
+  .card-body { display: flex; gap: 20px; align-items: flex-start; }
+
+  /* Course list */
+  .course-list { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .course-row { display: flex; flex-direction: column; gap: 5px; }
+  .course-meta { display: flex; justify-content: space-between; align-items: center; }
+  .course-name-row { display: flex; align-items: center; gap: 7px; }
+  .course-icon { width: 18px; height: 18px; color: #16a34a; }
+  .course-name { font-size: 13px; font-weight: 500; color: #111827; }
+  .course-pct { font-size: 13px; font-weight: 600; color: #111827; }
+  .progress-track { height: 5px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #4ade80, #16a34a); }
+
+  /* CTA button */
+  .cta-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white; font-size: 13px; font-weight: 600;
+    border: none; border-radius: 99px; padding: 9px 22px;
+    margin-top: 14px; cursor: pointer; width: 100%;
+    box-shadow: 0 2px 8px rgba(22,163,74,0.25);
+  }
+
+  /* OLD circle */
+  .old-ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+
+  /* NEW circle */
+  .new-ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<h2>Career Readiness — In Context</h2>
+<p class="subtitle">Before (current) vs After (Sleek Minimal). Same real layout from the Profile page.</p>
+
+<div class="split">
+
+  <!-- BEFORE -->
+  <div class="column">
+    <div class="col-label">Before</div>
+    <div class="card">
+      <div class="card-title">Career Readiness</div>
+      <div class="card-sub">Your progress toward becoming job-ready</div>
+      <div class="card-body">
+        <div class="course-list">
+          <div class="course-row">
+            <div class="course-meta">
+              <div class="course-name-row">
+                <svg class="course-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+                <span class="course-name">AI &amp; ML</span>
+              </div>
+              <span class="course-pct">100%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="course-row">
+            <div class="course-meta">
+              <div class="course-name-row">
+                <svg class="course-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v7a9 3 0 0 0 18 0V5"/><path d="M3 12v4a9 3 0 0 0 18 0v-4"/></svg>
+                <span class="course-name">Data Science</span>
+              </div>
+              <span class="course-pct">100%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="course-row">
+            <div class="course-meta">
+              <div class="course-name-row">
+                <svg class="course-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                <span class="course-name">testing practice prob</span>
+              </div>
+              <span class="course-pct">100%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+
+        <!-- OLD SVG circle -->
+        <div class="old-ring-wrap">
+          <svg width="140" height="140" viewBox="0 0 208 208" style="margin-top:-8px">
+            <defs>
+              <linearGradient id="oldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6CBFA0"/>
+                <stop offset="100%" stop-color="#2A5E42"/>
+              </linearGradient>
+              <filter id="oldGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <circle cx="104" cy="104" r="88" stroke="#e5e7eb" stroke-width="12" fill="none" opacity="0.3"/>
+            <circle cx="104" cy="104" r="76" stroke="#e5e7eb" stroke-width="4" fill="none" opacity="0.2"/>
+            <circle cx="104" cy="104" r="88" stroke="url(#oldGrad)" stroke-width="12" fill="none"
+              stroke-linecap="round" stroke-dasharray="553.07 553.07"
+              transform="rotate(-90 104 104)" filter="url(#oldGlow)"/>
+            <!-- milestone dots -->
+            <circle cx="104" cy="16" r="4" fill="#16a34a"/>
+            <circle cx="192" cy="104" r="4" fill="#16a34a"/>
+            <circle cx="104" cy="192" r="4" fill="#16a34a"/>
+            <circle cx="16" cy="104" r="4" fill="#16a34a"/>
+            <!-- end dot -->
+            <circle cx="104" cy="16" r="8" fill="white" stroke="url(#oldGrad)" stroke-width="3"
+              style="filter: drop-shadow(0 0 6px rgba(22,163,74,0.7))"/>
+            <!-- text -->
+            <text x="104" y="94" text-anchor="middle" font-size="42" font-weight="800" fill="#111827" font-family="-apple-system,sans-serif">100</text>
+            <text x="104" y="114" text-anchor="middle" font-size="14" fill="#9ca3af" font-family="-apple-system,sans-serif">%</text>
+            <text x="104" y="134" text-anchor="middle" font-size="13" fill="#9ca3af" font-family="-apple-system,sans-serif">Career Ready</text>
+          </svg>
+          <button class="cta-btn" style="width:140px;font-size:12px;padding:8px 14px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Career Board
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AFTER -->
+  <div class="column">
+    <div class="col-label">After — Sleek Minimal</div>
+    <div class="card">
+      <div class="card-title">Career Readiness</div>
+      <div class="card-sub">Your progress toward becoming job-ready</div>
+      <div class="card-body">
+        <div class="course-list">
+          <div class="course-row">
+            <div class="course-meta">
+              <div class="course-name-row">
+                <svg class="course-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+                <span class="course-name">AI &amp; ML</span>
+              </div>
+              <span class="course-pct">100%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="course-row">
+            <div class="course-meta">
+              <div class="course-name-row">
+                <svg class="course-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v7a9 3 0 0 0 18 0V5"/><path d="M3 12v4a9 3 0 0 0 18 0v-4"/></svg>
+                <span class="course-name">Data Science</span>
+              </div>
+              <span class="course-pct">100%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="course-row">
+            <div class="course-meta">
+              <div class="course-name-row">
+                <svg class="course-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                <span class="course-name">testing practice prob</span>
+              </div>
+              <span class="course-pct">100%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+
+        <!-- NEW SVG circle — Sleek Minimal -->
+        <div class="new-ring-wrap">
+          <div style="position:relative; width:140px; height:140px; margin-top:-8px">
+            <!-- Subtle ambient glow behind -->
+            <div style="position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle, rgba(34,197,94,0.13) 0%, transparent 70%);"></div>
+
+            <svg width="140" height="140" viewBox="0 0 140 140" style="position:absolute;inset:0">
+              <defs>
+                <linearGradient id="newGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#86efac"/>
+                  <stop offset="45%" stop-color="#22c55e"/>
+                  <stop offset="100%" stop-color="#15803d"/>
+                </linearGradient>
+                <filter id="newGlow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="2" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+
+              <!-- Outer track — light, clean -->
+              <circle cx="70" cy="70" r="60" stroke="#e5e7eb" stroke-width="6" fill="none"/>
+
+              <!-- Inner accent ring — very subtle -->
+              <circle cx="70" cy="70" r="51" stroke="#f0fdf4" stroke-width="1.5" fill="none"/>
+
+              <!-- Progress arc — full 100% -->
+              <circle cx="70" cy="70" r="60"
+                stroke="url(#newGrad)" stroke-width="6" fill="none"
+                stroke-linecap="round"
+                stroke-dasharray="376.99 376.99"
+                transform="rotate(-90 70 70)"
+                filter="url(#newGlow)"/>
+
+              <!-- End-cap jewel — small, crisp -->
+              <circle cx="70" cy="10" r="5" fill="white" stroke="url(#newGrad)" stroke-width="2.5"
+                style="filter:drop-shadow(0 1px 4px rgba(34,197,94,0.5))"/>
+            </svg>
+
+            <!-- Center text — rotated 0 (not part of SVG so it's readable) -->
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <div style="display:flex;align-items:baseline;gap:1px">
+                <span style="font-size:32px;font-weight:800;color:#111827;letter-spacing:-1px;line-height:1">100</span>
+                <span style="font-size:14px;font-weight:700;color:#6b7280;margin-bottom:10px">%</span>
+              </div>
+              <span style="font-size:9.5px;font-weight:700;color:#16a34a;letter-spacing:1.2px;text-transform:uppercase;margin-top:2px">Career Ready</span>
+            </div>
+          </div>
+
+          <button class="cta-btn" style="width:140px;font-size:12px;padding:8px 14px;margin-top:6px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Career Board
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:24px">
+  Key changes: thinner 6px stroke · 3-stop gradient · ambient glow · cleaner typography · removed milestone dots · label in green uppercase
+</p>
+</body>
+</html>

@@ -18,6 +18,7 @@ import {
   DEFAULT_CODE_EDITOR,
   DEFAULT_ADVANCED,
 } from "@/hooks/usePlatformSettings";
+import { usePlatformSettingsContext } from "@/contexts/PlatformSettingsContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,10 +124,12 @@ function LearningExperienceSection({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="10">10px</SelectItem>
             <SelectItem value="12">12px</SelectItem>
             <SelectItem value="14">14px</SelectItem>
             <SelectItem value="16">16px</SelectItem>
             <SelectItem value="18">18px</SelectItem>
+            <SelectItem value="20">20px</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
@@ -195,7 +198,7 @@ function CodeEditorSection({
     <div className="space-y-1">
       <SettingRow
         label="Font Family"
-        description="Choose a font that's comfortable for coding"
+        description="JetBrains Mono or Consolas for code; Serif for readability"
       >
         <Select
           value={codeEditor.fontFamily}
@@ -203,12 +206,12 @@ function CodeEditorSection({
             updateCategory("codeEditor", { fontFamily: v })
           }
         >
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default">Default</SelectItem>
-            <SelectItem value="monospace">Monospace</SelectItem>
+            <SelectItem value="default">JetBrains Mono</SelectItem>
+            <SelectItem value="monospace">Consolas</SelectItem>
             <SelectItem value="serif">Serif</SelectItem>
           </SelectContent>
         </Select>
@@ -321,7 +324,7 @@ function AdvancedSection({
 
         <SettingRow
           label="Performance Mode"
-          description="Disable visual effects for better performance"
+          description="Disables cursor animations and smooth scrolling for snappier response"
         >
           <Switch
             checked={advanced.performanceMode}
@@ -345,38 +348,63 @@ function AdvancedSection({
       </div>
 
       {/* Reset Options */}
-      <div className="pt-4 border-t border-border">
-        <h4 className="text-sm font-medium mb-3">Reset Options</h4>
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2">
-            {categories.slice(0, -1).map((cat) => (
-              <Button
-                key={cat.id}
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  handleResetSection(
-                    cat.id === "learning"
-                      ? "learningExperience"
-                      : "codeEditor"
-                  )
-                }
-                className="text-xs"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Reset {cat.label}
-              </Button>
-            ))}
+      <div className="pt-2">
+        <div className="rounded-xl border border-border/60 overflow-hidden">
+          {/* Section label */}
+          <div className="px-4 py-3 bg-muted/30 border-b border-border/50">
+            <p className="text-[12px] font-semibold tracking-[0.06em] uppercase text-muted-foreground/70">
+              Reset Options
+            </p>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setResetAllDialog(true)}
-            className="mt-3"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Reset All Settings
-          </Button>
+
+          {/* Section reset rows */}
+          {categories.slice(0, -1).map((cat, idx) => {
+            const sectionKey = cat.id === "learning" ? "learningExperience" : "codeEditor";
+            const descriptions: Record<string, string> = {
+              learning: "Restore font size, line numbers, and readability defaults",
+              editor: "Restore font family, tab size, and indentation defaults",
+            };
+            return (
+              <div
+                key={cat.id}
+                className={cn(
+                  "flex items-center justify-between px-4 py-3.5 bg-background",
+                  idx < categories.slice(0, -1).length - 1 && "border-b border-border/40"
+                )}
+              >
+                <div className="flex-1 pr-4">
+                  <p className="text-[13px] font-medium text-foreground">{cat.label}</p>
+                  <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">
+                    {descriptions[cat.id]}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleResetSection(sectionKey)}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-medium border border-border/60 text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted/40 transition-all duration-150"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </button>
+              </div>
+            );
+          })}
+
+          {/* Reset All — danger row */}
+          <div className="flex items-center justify-between px-4 py-3.5 bg-red-50/60 border-t border-red-100/80">
+            <div className="flex-1 pr-4">
+              <p className="text-[13px] font-medium text-red-700">Reset All Settings</p>
+              <p className="text-[11.5px] text-red-500/80 mt-0.5">
+                Restores every setting to factory defaults — cannot be undone
+              </p>
+            </div>
+            <button
+              onClick={() => setResetAllDialog(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold bg-red-600 text-white hover:bg-red-700 transition-all duration-150 shadow-sm"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset All
+            </button>
+          </div>
         </div>
       </div>
 
@@ -438,7 +466,7 @@ export function PlatformSettingsModal({
     updateCategory,
     resetSection,
     resetAll,
-  } = usePlatformSettings();
+  } = usePlatformSettingsContext();
 
   const activeCategoryData = categories.find((c) => c.id === activeCategory);
 

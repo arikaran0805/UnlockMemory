@@ -14,7 +14,6 @@
  */
 
 import { useMemo, lazy, Suspense } from 'react';
-import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import {
   parseCanvasContent,
@@ -25,6 +24,7 @@ import { ChatConversationView } from '@/components/chat-editor';
 import { InlineCheckpointRenderer } from './checkpoint';
 import { parseTakeawayContent } from './TakeawayCanvasEditor';
 import { Loader2 } from 'lucide-react';
+import InContentAd from '@/components/ads/InContentAd';
 
 // ─── Lazy-load fabric.js-backed viewer ───────────────────────────────────────
 const FreeformCanvasViewer = lazy(() =>
@@ -49,49 +49,19 @@ const CanvasLoadingFallback = ({ className }: { className?: string }) => (
 );
 
 // ─── TakeawayBlockCard ────────────────────────────────────────────────────────
-// Minimal: vertical accent line + "One-Line Takeaway" label + body text only.
+// Styled to match InlineCheckpointRenderer: green left border, muted bg, green label.
 const TakeawayBlockCard = ({ content }: { content: string }) => {
   const data = parseTakeawayContent(content);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-
   if (!data.body && !data.title) return null;
 
   return (
-    <div style={{ display: 'flex', gap: 12, margin: '4px 0' }}>
-      {/* Vertical accent line */}
-      <div style={{
-        width: 3,
-        borderRadius: 999,
-        background: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.18)',
-        flexShrink: 0,
-        alignSelf: 'stretch',
-        minHeight: 20,
-      }} />
-
-      {/* Label + content */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-        <span style={{
-          fontSize: 10.5,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(0, 0, 0, 0.38)',
-        }}>
-          One-Line Takeaway
-        </span>
-        <p style={{
-          fontFamily: 'Georgia, "Times New Roman", Times, serif',
-          fontSize: 18,
-          lineHeight: 1.8,
-          letterSpacing: '0.2px',
-          color: isDark ? '#c8e2d2' : '#242424',
-          whiteSpace: 'pre-wrap',
-          margin: 0,
-        }}>
-          {data.body || data.title}
-        </p>
-      </div>
+    <div className="border-l-[3px] border-primary bg-muted/[0.35] pl-5 pr-4 py-4 my-1">
+      <p className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-primary mb-2 select-none">
+        {data.title || 'One-Line Takeaway'}
+      </p>
+      <p className="text-[14.5px] font-medium text-foreground/90 leading-relaxed whitespace-pre-wrap">
+        {data.body || data.title}
+      </p>
     </div>
   );
 };
@@ -167,9 +137,23 @@ interface CanvasRendererProps {
   className?: string;
   courseType?: string;
   codeTheme?: string;
+  /** When true, one InContentAd is injected at the midpoint between blocks. */
+  showAd?: boolean;
+  /** AdSense publisher ID (ca-pub-…). Passed from the page so no extra DB fetch. */
+  googleAdClient?: string;
+  /** AdSense in-content slot ID. Passed from the page so no extra DB fetch. */
+  inContentSlot?: string;
 }
 
-const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRendererProps) => {
+const CanvasRenderer = ({
+  content,
+  className,
+  courseType,
+  codeTheme,
+  showAd = false,
+  googleAdClient,
+  inContentSlot,
+}: CanvasRendererProps) => {
   const blocks = useMemo(() => {
     if (!isCanvasContent(content)) return [];
     return parseCanvasContent(content).blocks;
@@ -181,60 +165,83 @@ const CanvasRenderer = ({ content, className, courseType, codeTheme }: CanvasRen
     [blocks]
   );
 
+  // Index of the block AFTER which the ad is injected.
+  // Formula: floor((n - 1) / 2) places the ad at the true midpoint:
+  //   1 block  → after index 0 (below the only block)
+  //   2 blocks → after index 0 (between blocks)
+  //   3 blocks → after index 1 (between blocks 1 and 2)
+  //   4 blocks → after index 1
+  //   5 blocks → after index 2
+  const adAfterIndex = useMemo(
+    () => (blocks.length > 0 ? Math.floor((blocks.length - 1) / 2) : -1),
+    [blocks.length]
+  );
+
   if (blocks.length === 0) {
     return null;
   }
 
   return (
     <div className={cn('canvas-renderer-root space-y-6', className)}>
-      {blocks.map((block) => (
-        <div
-          key={block.id}
-          className={cn(
-            'canvas-rendered-block',
-            block.kind === 'text'
-              ? 'canvas-rendered-block-text'
-              : block.kind === 'checkpoint'
-                ? 'canvas-rendered-block-checkpoint py-4'
-                : block.kind === 'chat'
-                  ? 'canvas-rendered-block-chat'
-                  : ''
-          )}
-        >
-          {/* ── text ── */}
-          {block.kind === 'text' && (
-            <RichTextRenderer content={block.content} />
-          )}
+      {blocks.map((block, index) => (
+        <div key={block.id}>
+          <div
+            className={cn(
+              'canvas-rendered-block',
+              block.kind === 'text'
+                ? 'canvas-rendered-block-text'
+                : block.kind === 'checkpoint'
+                  ? 'canvas-rendered-block-checkpoint py-4'
+                  : block.kind === 'chat'
+                    ? 'canvas-rendered-block-chat'
+                    : ''
+            )}
+          >
+            {/* ── text ── */}
+            {block.kind === 'text' && (
+              <RichTextRenderer content={block.content} />
+            )}
 
-          {/* ── checkpoint ── */}
-          {block.kind === 'checkpoint' && block.data && (
-            <InlineCheckpointRenderer data={block.data} blockId={block.id} />
-          )}
+            {/* ── checkpoint ── */}
+            {block.kind === 'checkpoint' && block.data && (
+              <InlineCheckpointRenderer data={block.data} blockId={block.id} />
+            )}
 
-          {/* ── chat (the only block type that goes through ChatConversationView) ── */}
-          {block.kind === 'chat' && (
-            <ChatConversationView
-              content={block.content}
-              courseType={courseType}
-              codeTheme={codeTheme}
-              showHeader={block.id === firstChatBlockId}
-              allowSingleSpeaker
+            {/* ── chat — disableInternalAd prevents a second in-content ad
+                   from ChatConversationView when CanvasRenderer is handling it ── */}
+            {block.kind === 'chat' && (
+              <ChatConversationView
+                content={block.content}
+                courseType={courseType}
+                codeTheme={codeTheme}
+                showHeader={block.id === firstChatBlockId}
+                allowSingleSpeaker
+                disableInternalAd
+              />
+            )}
+
+            {/* ── takeaway ── */}
+            {block.kind === 'takeaway' && (
+              <TakeawayBlockCard content={block.content} />
+            )}
+
+            {/* ── freeform canvas ── */}
+            {block.kind === 'freeform' && (
+              <FreeformBlock content={block.content} />
+            )}
+
+            {/* ── media (image / video) ── */}
+            {block.kind === 'media' && (
+              <MediaBlock content={block.content} />
+            )}
+          </div>
+
+          {/* ── In-content ad — injected after the midpoint block ── */}
+          {showAd && index === adAfterIndex && (
+            <InContentAd
+              googleAdClient={googleAdClient}
+              googleAdSlot={inContentSlot}
             />
-          )}
-
-          {/* ── takeaway ── */}
-          {block.kind === 'takeaway' && (
-            <TakeawayBlockCard content={block.content} />
-          )}
-
-          {/* ── freeform canvas ── */}
-          {block.kind === 'freeform' && (
-            <FreeformBlock content={block.content} />
-          )}
-
-          {/* ── media (image / video) ── */}
-          {block.kind === 'media' && (
-            <MediaBlock content={block.content} />
           )}
         </div>
       ))}

@@ -44,8 +44,11 @@ export default function PublicCareerCard({ career, index }: PublicCareerCardProp
   const ratingLabel = career.averageRating > 0 ? career.averageRating.toFixed(1) : null;
 
   const navigate = useNavigate();
-  const { addCareer, isCareerInPlan } = useCareerPlan();
-  const inCart = isCareerInPlan(career.id);
+  const { addCareer, isCareerInPlan, isCareerOwned, hasActiveCareer } = useCareerPlan();
+  const owned = isCareerOwned(career.id);
+  // User already owns another career they haven't been blocked from buying more of
+  const locked = !owned && hasActiveCareer;
+  const inCart = !owned && !locked && isCareerInPlan(career.id);
 
   const finalPrice = career.price > 0 && career.discountPercentage != null && career.discountPercentage > 0
     ? Math.round(career.price * (1 - career.discountPercentage / 100))
@@ -54,6 +57,7 @@ export default function PublicCareerCard({ career, index }: PublicCareerCardProp
   const handleCartClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (owned || locked) return; // inert states
     if (inCart) {
       navigate("/plan");
     } else {
@@ -159,11 +163,31 @@ export default function PublicCareerCard({ career, index }: PublicCareerCardProp
           )}
 
           <button
-            className={`lcc-cp-cart-btn${inCart ? " lcc-cp-cart-btn--active" : ""}`}
+            className={`lcc-cp-cart-btn${owned ? " lcc-cp-cart-btn--owned" : locked ? " lcc-cp-cart-btn--locked" : inCart ? " lcc-cp-cart-btn--active" : ""}`}
             onClick={handleCartClick}
-            aria-label={inCart ? "View in cart" : "Add to cart"}
+            disabled={owned || locked}
+            title={locked ? "Complete your active career first" : undefined}
+            aria-label={owned ? "Unlocked" : locked ? "Complete active career first" : inCart ? "View in cart" : "Add to cart"}
           >
-            {inCart ? (
+            {owned ? (
+              <>
+                {/* Shield-check — signals ownership */}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <polyline points="9 12 11 14 15 10"/>
+                </svg>
+                Unlocked
+              </>
+            ) : locked ? (
+              <>
+                {/* Lock — finish active career first */}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                1 Career at a Time
+              </>
+            ) : inCart ? (
               <>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
@@ -172,7 +196,6 @@ export default function PublicCareerCard({ career, index }: PublicCareerCardProp
               </>
             ) : (
               <>
-                {/* ShoppingBag — matches header icon */}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
                 </svg>

@@ -15,6 +15,13 @@ interface UseLessonFlowNavigationOptions {
   scrollOffset?: number;
   /** Hysteresis delay before changing active section (ms) */
   hysteresisMs?: number;
+  /**
+   * Pass the current lessonId here. When this value changes the hook
+   * resets all stale state (activeFlow, dynamicSections, sectionStates)
+   * and re-attaches observers to the current [data-lesson-content] element,
+   * which may have been remounted by React during lesson navigation.
+   */
+  resetKey?: string;
 }
 
 /**
@@ -27,25 +34,34 @@ interface UseLessonFlowNavigationOptions {
  * - Hysteresis prevents flicker during fast scrolling
  * - No scroll listeners - pure IntersectionObserver
  * - Stable observer (not recreated on every active-section change)
+ * - Resets cleanly when resetKey (lessonId) changes
  */
 export function useLessonFlowNavigation(
   sectionConfig: Array<{ id: string; label: string }>,
   options: UseLessonFlowNavigationOptions = {}
 ) {
-  const { scrollOffset = 140, hysteresisMs = 80 } = options;
+  const { scrollOffset = 140, hysteresisMs = 80, resetKey } = options;
 
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
   const [sectionStates, setSectionStates] = useState<Record<string, boolean>>({});
   const [dynamicSections, setDynamicSections] = useState<Array<{ id: string; label: string; level: number }>>([]);
   const dynamicSectionsRef = useRef<Array<{ id: string; label: string; level: number }>>([]);
 
-  // Track intersection ratios for all sections - single source of truth
   const ratioMap = useRef<Map<string, number>>(new Map());
   const hysteresisTimer = useRef<number | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const observedElements = useRef<Set<Element>>(new Set());
 
-  // Ref to track current activeFlow WITHOUT causing effect re-runs
+  // Stored in refs so the reset effect can disconnect/reconnect without
+  // needing access to the main effect's local variables.
+  const mutationObserverRef = useRef<MutationObserver | null>(null);
+  const mutationTimerRef = useRef<number | null>(null);
+  const mutationTimer2Ref = useRef<number | null>(null);
+
+  // Ref to observeFlowElements so it can be called from the reset effect,
+  // which runs after the main effect and can't close over its locals.
+  const observeFlowElementsRef = useRef<() => void>(() => {});
+
   const activeFlowRef = useRef<string | null>(null);
   useEffect(() => {
     activeFlowRef.current = activeFlow;
@@ -66,10 +82,39 @@ export function useLessonFlowNavigation(
     };
   }, []);
 
-  // Scroll listener — drives active section as the user scrolls.
-  // IntersectionObserver only fires when elements cross viewport boundaries;
-  // it won't update while scrolling *between* two headings. The scroll listener
-  // fills that gap by calling scheduleUpdate on every scroll frame.
+  // Resolve active section by scroll position — "last [data-flow] element whose
+  // top edge is at or above the reading line".
+  const resolveDominant = useCallback((): string | null => {
+    const elements = Array.from(document.querySelectorAll("[data-flow]"));
+    if (elements.length === 0) return null;
+
+    let activeId: string | null = null;
+    for (const el of elements) {
+      const top = (el as HTMLElement).getBoundingClientRect().top;
+      if (top <= scrollOffset + 20) {
+        activeId = el.getAttribute("data-flow");
+      }
+    }
+    return activeId ?? elements[0].getAttribute("data-flow");
+  }, [scrollOffset]);
+
+  const scheduleUpdate = useCallback(() => {
+    if (hysteresisTimer.current) {
+      clearTimeout(hysteresisTimer.current);
+    }
+
+    hysteresisTimer.current = window.setTimeout(() => {
+      const newActive = resolveDominant();
+      if (newActive !== null && newActive !== activeFlowRef.current) {
+        setActiveFlow(newActive);
+      }
+    }, hysteresisMs);
+  }, [resolveDominant, hysteresisMs]);
+
+  const scheduleUpdateRef = useRef(scheduleUpdate);
+  scheduleUpdateRef.current = scheduleUpdate;
+
+  // Scroll listener
   useEffect(() => {
     let rafPending = false;
     const onScroll = () => {
@@ -84,43 +129,9 @@ export function useLessonFlowNavigation(
     return () => window.removeEventListener("scroll", onScroll);
   }, [scheduleUpdate]);
 
-  // Resolve active section by scroll position — "last [data-flow] element whose
-  // top edge is at or above the reading line".  This is the standard TOC algorithm
-  // (Claude docs, MDN, etc.) and is far more reliable than IntersectionObserver
-  // ratio comparison, which breaks whenever a large block element (e.g. the Chat
-  // Bubbles container) scores higher than the small heading currently in view.
-  const resolveDominant = useCallback((): string | null => {
-    const elements = Array.from(document.querySelectorAll("[data-flow]"));
-    if (elements.length === 0) return null;
-
-    let activeId: string | null = null;
-    for (const el of elements) {
-      const top = (el as HTMLElement).getBoundingClientRect().top;
-      if (top <= scrollOffset + 20) {
-        activeId = el.getAttribute("data-flow");
-      }
-    }
-    // Nothing above the reading line yet → first section
-    return activeId ?? elements[0].getAttribute("data-flow");
-  }, [scrollOffset]);
-
-  // Update active flow with hysteresis — uses ref, NOT captured activeFlow state
-  const scheduleUpdate = useCallback(() => {
-    if (hysteresisTimer.current) {
-      clearTimeout(hysteresisTimer.current);
-    }
-
-    hysteresisTimer.current = window.setTimeout(() => {
-      const newActive = resolveDominant();
-      if (newActive !== null && newActive !== activeFlowRef.current) {
-        setActiveFlow(newActive);
-      }
-    }, hysteresisMs);
-  }, [resolveDominant, hysteresisMs]); // No activeFlow dep — uses ref instead
-
   // Single IntersectionObserver setup — only recreated when sectionConfig changes by value
   useEffect(() => {
-    // Fix 4: bail out if config values are identical (prevents rebuild on reference churn)
+    // Fix 4: bail out if config values are identical
     const isSame =
       prevConfigRef.current.length === sectionConfig.length &&
       prevConfigRef.current.every(
@@ -138,13 +149,8 @@ export function useLessonFlowNavigation(
     observedElements.current.clear();
 
     // Create single observer
-    // rootMargin: "0px 0px -40% 0px" — top of viewport triggers, bottom 40% excluded
-    // This ensures the last section at the bottom of a page is still detected
-    // IntersectionObserver is kept for section existence detection only.
-    // Active section is now driven by the scroll listener + resolveDominant
-    // (scroll-position based), so we no longer need ratio tracking here.
     observerRef.current = new IntersectionObserver(
-      () => { scheduleUpdate(); },
+      () => { scheduleUpdateRef.current(); },
       {
         root: null,
         rootMargin: "0px 0px -40% 0px",
@@ -152,9 +158,11 @@ export function useLessonFlowNavigation(
       }
     );
 
-    // Find and observe all [data-flow] elements
+    // ── observeFlowElements ──────────────────────────────────────────────────
+    // Defined inside the effect so it closes over sectionConfig, but also
+    // stored in observeFlowElementsRef so the reset effect can call it.
     const observeFlowElements = () => {
-      // ── Clean up stale entries from previous lesson navigation ─────────────
+      // Clean up stale entries from previous lesson navigation
       Array.from(observedElements.current).forEach((el) => {
         if (!document.contains(el)) {
           observerRef.current?.unobserve(el);
@@ -162,10 +170,7 @@ export function useLessonFlowNavigation(
         }
       });
 
-      // ── Stamp h2/h3 in ALL visible TipTap roots ───────────────────────────
-      // querySelectorAll catches every .ProseMirror — canvas lessons have one
-      // per text block.  offsetParent !== null excludes hidden editors (Notes
-      // panel stays mounted but display:none after lazy-mount).
+      // Stamp h2/h3 in ALL visible TipTap roots
       let allRoots = Array.from(
         document.querySelectorAll("[data-lesson-content] .ProseMirror")
       ).filter((el) => (el as HTMLElement).offsetParent !== null);
@@ -184,7 +189,6 @@ export function useLessonFlowNavigation(
         });
       });
 
-      // Shared usedIds across all roots — no slug collisions between canvas blocks
       const usedIds = new Set<string>();
       allRoots.forEach((tiptapRoot) => {
         tiptapRoot.querySelectorAll("h2:not([data-flow]), h3:not([data-flow])").forEach((el) => {
@@ -206,7 +210,6 @@ export function useLessonFlowNavigation(
           if (!el.id) el.id = flowId;
         });
       });
-      // ─────────────────────────────────────────────────────────────────────
 
       const elements = document.querySelectorAll("[data-flow]");
       const foundStates: Record<string, boolean> = {};
@@ -230,7 +233,6 @@ export function useLessonFlowNavigation(
         if (configIds.has(flowId)) {
           foundStates[flowId] = true;
         } else {
-          // Dynamic section (e.g., heading from TipTap renderer)
           const label = el.getAttribute("data-flow-label");
           const levelAttr = el.getAttribute("data-flow-level");
           if (label) {
@@ -271,10 +273,13 @@ export function useLessonFlowNavigation(
       }
     };
 
+    // Expose for reset effect
+    observeFlowElementsRef.current = observeFlowElements;
+
     // Initial observation
     observeFlowElements();
 
-    // Fix 3: single rAF instead of 150ms + 500ms timeouts — catches sections visible after first paint
+    // rAF pass: catches sections visible after first paint
     const rafId = requestAnimationFrame(() => {
       observeFlowElements();
     });
@@ -283,40 +288,98 @@ export function useLessonFlowNavigation(
     const contentRoot =
       document.querySelector("[data-lesson-content]") ?? document.body;
 
-    // Debounce mutations. Two passes: 200 ms catches React-rendered content;
-    // +400 ms is a safety net for lessons that async-load their body.
-    let mutationTimer: number | null = null;
-    let mutationTimer2: number | null = null;
     const mutationObserver = new MutationObserver(() => {
-      if (mutationTimer) clearTimeout(mutationTimer);
-      if (mutationTimer2) clearTimeout(mutationTimer2);
-      mutationTimer = window.setTimeout(() => {
-        observeFlowElements();
-        mutationTimer2 = window.setTimeout(observeFlowElements, 400);
+      if (mutationTimerRef.current) clearTimeout(mutationTimerRef.current);
+      if (mutationTimer2Ref.current) clearTimeout(mutationTimer2Ref.current);
+      mutationTimerRef.current = window.setTimeout(() => {
+        observeFlowElementsRef.current();
+        mutationTimer2Ref.current = window.setTimeout(() => observeFlowElementsRef.current(), 400);
       }, 200);
     });
 
-    // Watch childList only — NOT attributes/attributeFilter["data-flow"].
-    // We are the ones stamping data-flow, so watching for it creates a feedback loop
-    // that pegs the CPU (each stamp fires the observer, which re-stamps, repeat).
     mutationObserver.observe(contentRoot, {
       childList: true,
       subtree: true,
     });
+    mutationObserverRef.current = mutationObserver;
 
     return () => {
       cancelAnimationFrame(rafId);
-      if (mutationTimer) clearTimeout(mutationTimer);
-      if (mutationTimer2) clearTimeout(mutationTimer2);
+      if (mutationTimerRef.current) clearTimeout(mutationTimerRef.current);
+      if (mutationTimer2Ref.current) clearTimeout(mutationTimer2Ref.current);
       if (hysteresisTimer.current) {
         clearTimeout(hysteresisTimer.current);
       }
       observerRef.current?.disconnect();
       mutationObserver.disconnect();
+      mutationObserverRef.current = null;
       ratioMap.current.clear();
       observedElements.current.clear();
     };
-  }, [sectionConfig, scheduleUpdate]); // scheduleUpdate is stable now
+  }, [sectionConfig]);
+
+  // ── Reset effect ───────────────────────────────────────────────────────────
+  // Fires when the lesson changes (resetKey = lessonId).
+  // Clears stale TOC state and re-attaches observers to the new
+  // [data-lesson-content] element, which React may have remounted.
+  useEffect(() => {
+    if (resetKey === undefined) return;
+
+    // 1. Wipe all state that belongs to the previous lesson
+    setActiveFlow(null);
+    activeFlowRef.current = null;
+    setDynamicSections([]);
+    dynamicSectionsRef.current = [];
+    setSectionStates({});
+    sectionStatesRef.current = {};
+
+    // 2. Reset IntersectionObserver (observed elements are gone)
+    observerRef.current?.disconnect();
+    ratioMap.current.clear();
+    observedElements.current.clear();
+
+    observerRef.current = new IntersectionObserver(
+      () => { scheduleUpdateRef.current(); },
+      { root: null, rootMargin: "0px 0px -40% 0px", threshold: [0, 0.25, 0.5, 1] }
+    );
+
+    // 3. Re-attach MutationObserver to the CURRENT [data-lesson-content].
+    //    If React unmounted the old element and mounted a new one, the
+    //    previous observer was watching a detached node and silently dropped
+    //    all mutations. Reconnecting here ensures we catch new content.
+    if (mutationObserverRef.current) {
+      mutationObserverRef.current.disconnect();
+    }
+    if (mutationTimerRef.current) clearTimeout(mutationTimerRef.current);
+    if (mutationTimer2Ref.current) clearTimeout(mutationTimer2Ref.current);
+
+    const contentRoot = document.querySelector("[data-lesson-content]") ?? document.body;
+    const newMO = new MutationObserver(() => {
+      if (mutationTimerRef.current) clearTimeout(mutationTimerRef.current);
+      if (mutationTimer2Ref.current) clearTimeout(mutationTimer2Ref.current);
+      mutationTimerRef.current = window.setTimeout(() => {
+        observeFlowElementsRef.current();
+        mutationTimer2Ref.current = window.setTimeout(() => observeFlowElementsRef.current(), 400);
+      }, 200);
+    });
+    newMO.observe(contentRoot, { childList: true, subtree: true });
+    mutationObserverRef.current = newMO;
+
+    // 4. Scan immediately in case new content is already in the DOM,
+    //    then again at two delays for async-loading TipTap content.
+    observeFlowElementsRef.current();
+    const rafId = requestAnimationFrame(() => observeFlowElementsRef.current());
+    const t1 = window.setTimeout(() => observeFlowElementsRef.current(), 250);
+    const t2 = window.setTimeout(() => observeFlowElementsRef.current(), 600);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  // sectionConfig intentionally omitted — handled by the main effect above.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
 
   // Build enriched sections: configured (with greyed-out support) + dynamic headings
   const configuredSections: LessonFlowSection[] = sectionConfig.map((section) => ({
@@ -335,12 +398,11 @@ export function useLessonFlowNavigation(
   }));
 
   // If dynamic heading sections exist, suppress greyed-out configured sections
-  // so a TipTap lesson doesn't show disabled Chat Bubbles / Cause & Effect items.
   const sections: LessonFlowSection[] = discoveredSections.length > 0
     ? [...configuredSections.filter((s) => s.exists), ...discoveredSections]
     : configuredSections;
 
-  // Scroll to section — fast 250 ms cubic ease-out (browser "smooth" is ~1 s)
+  // Scroll to section — fast 250 ms cubic ease-out
   const scrollToSection = useCallback(
     (flowId: string) => {
       const element = document.querySelector(`[data-flow="${flowId}"]`);
@@ -351,7 +413,6 @@ export function useLessonFlowNavigation(
       const startY = window.scrollY;
       const distance = targetY - startY;
 
-      // Immediately set active for snappy visual feedback
       activeFlowRef.current = flowId;
       setActiveFlow(flowId);
 

@@ -6,22 +6,22 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  FileText,
-  BookOpen,
-  History,
-  Expand,
-  Shrink,
-  PanelTopClose,
-  PanelTopOpen,
-  Lightbulb,
-  MessageSquare,
+  FileText, BookOpen, History, Expand, Shrink, PanelTopClose, PanelTopOpen,
+  Lightbulb, MessageSquare, ThumbsUp, ThumbsDown, Share2, Flag, Bookmark,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProblemCommentsSection } from "@/components/practice/ProblemCommentsSection";
 import { useProblemComments } from "@/hooks/useProblemComments";
+import { useProblemReactions } from "@/hooks/useProblemReactions";
+import { useProblemBookmarks } from "@/hooks/useProblemBookmarks";
+import { usePlatformSettingsContext } from "@/contexts/PlatformSettingsContext";
+import ShareTooltip from "@/components/ShareTooltip";
+import ReportSuggestDialog from "@/components/ReportSuggestDialog";
+import { toast } from "sonner";
 
 import type { PredictOutputProblem } from "@/hooks/usePredictOutputProblems";
 import type { PredictOutputAttempt } from "@/hooks/usePredictOutputAttempts";
@@ -63,7 +63,38 @@ export function PredictDescriptionPanel({
   const [hintsShown, setHintsShown] = useState(0);
 
   const { commentCount } = useProblemComments(problem.id || undefined);
+  const { likes, dislikes, userReaction, react, isAuthenticated: reactionsAuth } = useProblemReactions(problem.id, "predict");
+  const { isBookmarked, toggleBookmark, isAuthenticated: bookmarksAuth } = useProblemBookmarks("predict");
+  const { settings } = usePlatformSettingsContext();
+  const fontSize = settings.learningExperience.fontSize;
   const alreadySolved = attempts.some((a) => a.is_correct);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  const saved = isBookmarked(problem.id);
+  const liked = userReaction === "like";
+  const disliked = userReaction === "dislike";
+
+  const handleLike = useCallback(() => {
+    if (!reactionsAuth) { toast.error("Please sign in to react"); return; }
+    react("like");
+    if (!liked) toast.success("Thanks for the feedback!");
+  }, [react, liked, reactionsAuth]);
+
+  const handleDislike = useCallback(() => {
+    if (!reactionsAuth) { toast.error("Please sign in to react"); return; }
+    react("dislike");
+    if (!disliked) toast.success("Thanks for the feedback!");
+  }, [react, disliked, reactionsAuth]);
+
+  const handleSave = useCallback(async () => {
+    if (!bookmarksAuth) { toast.error("Please sign in to save problems"); return; }
+    try { await toggleBookmark(problem.id); }
+    catch { toast.error("Failed to save problem"); }
+  }, [toggleBookmark, problem.id, bookmarksAuth]);
+
+  const handleComment = useCallback(() => {
+    setActiveTab("discuss");
+  }, [setActiveTab]);
 
   // Handle tab click in collapsed state — expand and switch tab
   const handleCollapsedTabClick = (tab: string) => {
@@ -219,10 +250,10 @@ export function PredictDescriptionPanel({
       {/* Tab Content */}
       <ScrollArea className="flex-1">
         {activeTab === "description" && (
-          <div className="p-5 space-y-5">
+          <div className="p-5 space-y-5" style={{ fontSize: `${fontSize}px` }}>
             {/* Title and Difficulty */}
             <div className="space-y-2.5">
-              <h1 className="text-lg font-semibold leading-snug tracking-tight">{problem.title}</h1>
+              <h1 className="font-semibold leading-snug tracking-tight" style={{ fontSize: `${Math.round(fontSize * 1.25)}px` }}>{problem.title}</h1>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge
                   variant="outline"
@@ -298,7 +329,7 @@ export function PredictDescriptionPanel({
         )}
 
         {activeTab === "explanation" && (
-          <div className="p-5 space-y-5">
+          <div className="p-5 space-y-5" style={{ fontSize: `${fontSize}px` }}>
             {!alreadySolved && !attempts.some((a) => a.revealed) ? (
               <div className="py-16 text-center">
                 <BookOpen className="h-7 w-7 text-muted-foreground/30 mx-auto mb-3" />
@@ -423,6 +454,16 @@ export function PredictDescriptionPanel({
           </div>
         )}
       </ScrollArea>
+
+
+      <ReportSuggestDialog
+        open={reportDialogOpen}
+        onOpenChange={setReportDialogOpen}
+        contentType="problem"
+        contentId={problem.id}
+        contentTitle={problem.title}
+        type="report"
+      />
     </div>
   );
 }

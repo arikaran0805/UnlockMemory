@@ -28,7 +28,11 @@ interface CareerPlanContextType {
   }) => void;
   removeCareer: (careerId: string) => void;
   isCareerInPlan: (careerId: string) => boolean;
-  toggleCourse: (careerId: string, courseId: string) => void;
+  /** True if the user has already purchased this career (Pro + in user_career_selections) */
+  isCareerOwned: (careerId: string) => boolean;
+  /** True if the user owns at least one career — blocks purchasing additional ones */
+  hasActiveCareer: boolean;
+  toggleCourse: (careerId: string, courseId: string, courseData?: PricingCourse) => void;
   getBreakdown: () => { items: CareerPlanItem[]; totalBreakdown: PricingBreakdown };
   getAllSelectedCourses: () => PricingCourse[];
   customizingCareerId: string | null;
@@ -64,6 +68,8 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
   const [customizingCareerId, setCustomizingCareerId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const syncingRef = useRef(false);
+  // Career IDs the user has already paid for (Pro + in user_career_selections)
+  const [ownedCareerIds, setOwnedCareerIds] = useState<Set<string>>(new Set());
 
   // Promo state
   const [promoCode, setPromoCode] = useState("");
@@ -94,29 +100,67 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
     const loadCart = async () => {
       setLoading(true);
 
-      // Single joined query — eliminates the previous 2-query sequential waterfall.
-      // cart_items → careers → career_courses → courses in one round-trip.
-      const { data: cartRows, error } = await supabase
-        .from("cart_items")
-        .select(`
-          career_id,
-          selected_course_ids,
-          careers (
-            id, name, description, icon, discount_percentage,
-            career_courses (
-              course_id,
-              courses (id, name, description, original_price, discount_price)
+      // Fetch subscription status and purchased career selections in parallel
+      const [{ data: subData }, { data: selections }, { data: cartRows, error }] = await Promise.all([
+        supabase
+          .from("subscriptions")
+          .select("status")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .maybeSingle(),
+        supabase
+          .from("user_career_selections")
+          .select("career_id")
+          .eq("user_id", userId),
+        supabase
+          .from("cart_items")
+          .select(`
+            career_id,
+            selected_course_ids,
+            careers (
+              id, name, description, icon, discount_percentage,
+              career_courses (
+                course_id,
+                courses (id, name, description, original_price, discount_price)
+              )
             )
-          )
-        `)
-        .eq("user_id", userId);
+          `)
+          .eq("user_id", userId),
+      ]);
 
-      if (error || !cartRows || cartRows.length === 0) {
+      // Determine owned careers: Pro user whose careers are recorded in user_career_selections
+      const userIsPro = !!subData;
+      const purchasedIds = new Set<string>(
+        userIsPro ? (selections || []).map((s: any) => s.career_id) : []
+      );
+      setOwnedCareerIds(purchasedIds);
+
+      // Strip owned careers from cart_items so they don't linger in the cart after purchase
+      if (purchasedIds.size > 0 && cartRows) {
+        const ownedInCart = cartRows
+          .filter((row: any) => purchasedIds.has(row.career_id))
+          .map((row: any) => row.career_id);
+        if (ownedInCart.length > 0) {
+          supabase
+            .from("cart_items")
+            .delete()
+            .eq("user_id", userId)
+            .in("career_id", ownedInCart)
+            .then(() => {});
+        }
+      }
+
+      // Only non-owned careers remain in the cart view
+      const activeCartRows = (cartRows || []).filter(
+        (row: any) => !purchasedIds.has(row.career_id)
+      );
+
+      if (error || activeCartRows.length === 0) {
         setLoading(false);
         return;
       }
 
-      const loadedItems: CareerPlanItem[] = (cartRows as any[])
+      const loadedItems: CareerPlanItem[] = (activeCartRows as any[])
         .filter((row) => row.careers)
         .map((row) => {
           const c = row.careers;
@@ -132,9 +176,28 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
             discountPrice: Number(co.discount_price) || Number(co.original_price) || 0,
           }));
           const defaultCourseIds = coursesRaw.map((co: any) => co.id);
-          const selectedCourseIds = row.selected_course_ids?.length
-            ? row.selected_course_ids
+          const savedIds: string[] = row.selected_course_ids || [];
+
+          // Auto-include any career courses added since the user last saved their selection.
+          // Keeps existing user deselections intact; only new (previously absent) courses are added.
+          const newCourseIds = defaultCourseIds.filter((id: string) => !savedIds.includes(id));
+          const selectedCourseIds: string[] = savedIds.length > 0
+            ? [
+                ...savedIds.filter((id: string) => defaultCourseIds.includes(id)), // remove stale IDs
+                ...newCourseIds,                                                     // add new defaults
+              ]
             : defaultCourseIds;
+
+          // Persist the merged selection back so future loads are consistent
+          if (newCourseIds.length > 0 && savedIds.length > 0) {
+            supabase
+              .from("cart_items")
+              .upsert(
+                { user_id: userId, career_id: c.id, selected_course_ids: selectedCourseIds },
+                { onConflict: "user_id,career_id" }
+              )
+              .then(() => {});
+          }
 
           return {
             careerId: c.id,
@@ -165,6 +228,14 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [userId]);
 
+  const syncCareerSelection = useCallback(async (careerId: string, selectedCourseIds: string[]) => {
+    if (!userId) return;
+    await supabase.from("user_career_selections").upsert(
+      { user_id: userId, career_id: careerId, selected_course_ids: selectedCourseIds },
+      { onConflict: "user_id,career_id" }
+    );
+  }, [userId]);
+
   const deleteCartItem = useCallback(async (careerId: string) => {
     if (!userId) return;
     await supabase.from("cart_items").delete().eq("user_id", userId).eq("career_id", careerId);
@@ -173,6 +244,11 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
   const isCareerInPlan = useCallback(
     (careerId: string) => items.some((i) => i.careerId === careerId),
     [items]
+  );
+
+  const isCareerOwned = useCallback(
+    (careerId: string) => ownedCareerIds.has(careerId),
+    [ownedCareerIds]
   );
 
   const addCareer = useCallback(
@@ -197,12 +273,13 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
           selectedCourseIds: [...career.courseIds],
           courses: career.courses,
         };
-        // Sync to DB
+        // Sync to cart + persistent selections
         upsertCartItem(career.id, career.courseIds);
+        syncCareerSelection(career.id, career.courseIds);
         return [...prev, newItem];
       });
     },
-    [upsertCartItem]
+    [upsertCartItem, syncCareerSelection]
   );
 
   const removeCareer = useCallback((careerId: string) => {
@@ -211,7 +288,7 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
     deleteCartItem(careerId);
   }, [deleteCartItem]);
 
-  const toggleCourse = useCallback((careerId: string, courseId: string) => {
+  const toggleCourse = useCallback((careerId: string, courseId: string, courseData?: PricingCourse) => {
     setItems((prev) =>
       prev.map((item) => {
         if (item.careerId !== careerId) return item;
@@ -220,12 +297,26 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
         const newSelected = has
           ? item.selectedCourseIds.filter((id) => id !== courseId)
           : [...item.selectedCourseIds, courseId];
-        // Sync to DB
+
+        // For add-on courses (not in item.courses), add/remove their data so the
+        // order summary and breakdown can resolve them by ID.
+        let newCourses = item.courses;
+        const isAddon = !item.courses.some((c) => c.id === courseId);
+        if (!has && isAddon && courseData) {
+          // Adding an add-on: append its PricingCourse data
+          newCourses = [...item.courses, courseData];
+        } else if (has && !item.defaultCourseIds.includes(courseId)) {
+          // Removing an add-on: drop it from courses so it doesn't linger
+          newCourses = item.courses.filter((c) => c.id !== courseId);
+        }
+
+        // Sync to cart + persistent selections
         upsertCartItem(careerId, newSelected);
-        return { ...item, selectedCourseIds: newSelected };
+        syncCareerSelection(careerId, newSelected);
+        return { ...item, selectedCourseIds: newSelected, courses: newCourses };
       })
     );
-  }, [upsertCartItem]);
+  }, [upsertCartItem, syncCareerSelection]);
 
   const getAllSelectedCourses = useCallback(() => {
     const seen = new Set<string>();
@@ -361,6 +452,8 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
       addCareer,
       removeCareer,
       isCareerInPlan,
+      isCareerOwned,
+      hasActiveCareer: ownedCareerIds.size > 0,
       toggleCourse,
       getBreakdown,
       getAllSelectedCourses,
@@ -374,7 +467,7 @@ export const CareerPlanProvider = ({ children }: { children: ReactNode }) => {
       handleApplyPromo,
       handleRemovePromo,
     }),
-    [items, itemCount, loading, addCareer, removeCareer, isCareerInPlan, toggleCourse, getBreakdown, getAllSelectedCourses, customizingCareerId, promoCode, appliedPromo, promoDiscount, promoError, handleApplyPromo, handleRemovePromo]
+    [items, itemCount, loading, addCareer, removeCareer, isCareerInPlan, isCareerOwned, ownedCareerIds, toggleCourse, getBreakdown, getAllSelectedCourses, customizingCareerId, promoCode, appliedPromo, promoDiscount, promoError, handleApplyPromo, handleRemovePromo]
   );
 
   return (

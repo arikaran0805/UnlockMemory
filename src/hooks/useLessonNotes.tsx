@@ -172,25 +172,28 @@ export function useLessonNotes({ lessonId, courseId, userId }: UseLessonNotesOpt
 
         if (error) throw error;
 
+        // ROOT CAUSE 2 FIX: User navigated to a different lesson while this fetch was
+        // in-flight. Committing stale results would corrupt lastSavedContentRef and
+        // noteId for the lesson the user is now actually viewing.
+        if (contentForLessonIdRef.current !== lessonId) return;
+
         if (data) {
           setNoteId(data.id);
           setContent(data.content || "");
           lastSavedContentRef.current = data.content || "";
-          contentForLessonIdRef.current = lessonId; // FIX: Track content ownership
+          contentForLessonIdRef.current = lessonId;
           setLastSaved(new Date(data.updated_at));
-          // Initialize the sync bridge with the loaded timestamp
           updateLocalTimestamp(data.updated_at);
         } else {
-          // Explicitly keep empty state for non-existent notes
           setNoteId(null);
           setContent("");
           lastSavedContentRef.current = "";
-          contentForLessonIdRef.current = lessonId; // FIX: Track content ownership
+          contentForLessonIdRef.current = lessonId;
           setLastSaved(null);
         }
       } catch (error) {
         console.error("Error loading lesson note:", error);
-        // On error, ensure clean state
+        if (contentForLessonIdRef.current !== lessonId) return;
         setNoteId(null);
         setContent("");
         lastSavedContentRef.current = "";
@@ -198,7 +201,6 @@ export function useLessonNotes({ lessonId, courseId, userId }: UseLessonNotesOpt
       } finally {
         setIsLoading(false);
         initialLoadRef.current = false;
-        // FIX: Reset transition flag after load completes
         setTimeout(() => {
           isTransitioningRef.current = false;
         }, 100);
@@ -210,32 +212,23 @@ export function useLessonNotes({ lessonId, courseId, userId }: UseLessonNotesOpt
 
   /**
    * Auto-save on debounced content change
-   * FIX: Added validation to ensure we're saving to the correct lesson's note
    */
   useEffect(() => {
     if (initialLoadRef.current || !lessonId || !courseId || !userId) return;
     if (debouncedContent === "" && !noteId) return; // Don't save empty new notes
-    
-    // FIX: Don't save if we're transitioning between lessons
-    if (isTransitioningRef.current) {
-      console.debug('[useLessonNotes] Skipping save during lesson transition');
-      return;
-    }
-    
-    // FIX: Validate that the debounced content belongs to the current lesson
-    // This prevents saving stale content when user switches lessons rapidly
-    if (contentForLessonIdRef.current !== lessonId) {
-      console.debug('[useLessonNotes] Skipping save - content belongs to different lesson', {
-        contentFor: contentForLessonIdRef.current,
-        currentLesson: lessonId,
-      });
-      return;
-    }
-    
-    // Skip save if this was a remote update (already saved by the other tab)
+
+    // ROOT CAUSE 1 FIX: debouncedContent lags 1 second behind content state.
+    // When the user navigates to a new lesson, setContent("") fires and starts a
+    // 1-second debounce. loadNote() completes within ~200ms and sets
+    // lastSavedContentRef.current = actualContent. After the full second,
+    // debouncedContent = "" fires and "" !== actualContent causes an empty-string
+    // UPDATE that wipes the note. Guard: skip whenever debouncedContent is stale
+    // (the live content has already moved past it).
+    if (debouncedContent !== contentRef.current) return;
+
+    if (isTransitioningRef.current) return;
+    if (contentForLessonIdRef.current !== lessonId) return;
     if (isRemoteUpdateRef.current) return;
-    
-    // Skip if content hasn't actually changed from last save
     if (debouncedContent === lastSavedContentRef.current) return;
 
     const saveNote = async () => {

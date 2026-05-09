@@ -78,6 +78,7 @@ type IntegrationsState = Record<string, StoredConfig>;
 
 const BRAND: Record<string, { bg: string; text: string; abbr: string }> = {
   "google-analytics": { bg: "#E37400", text: "#fff", abbr: "GA"   },
+  "google-adsense":   { bg: "#34A853", text: "#fff", abbr: "AdS"  },
   "google-ads":       { bg: "#4285F4", text: "#fff", abbr: "Ads"  },
   "meta-ads":         { bg: "#0082FB", text: "#fff", abbr: "Meta" },
   "stripe":           { bg: "#635BFF", text: "#fff", abbr: "S"    },
@@ -107,6 +108,36 @@ const CATEGORIES: CategoryDef[] = [
             hint: "Found in Google Analytics → Admin → Data Streams → your stream → Measurement ID",
             helpUrl: "https://support.google.com/analytics/answer/9539598",
             required: true,
+          },
+        ],
+      },
+      {
+        id: "google-adsense",
+        name: "Google AdSense",
+        description: "Monetise your platform by showing Google ads in the sidebar and inside lessons",
+        recommended: true,
+        fields: [
+          {
+            key: "publisher_id",
+            label: "Publisher ID",
+            placeholder: "ca-pub-XXXXXXXXXXXXXXXXXX",
+            hint: "Found in AdSense → Account → Account information → Publisher ID",
+            helpUrl: "https://support.google.com/adsense/answer/105516",
+            required: true,
+          },
+          {
+            key: "sidebar_slot",
+            label: "Sidebar Ad Slot ID",
+            placeholder: "1234567890",
+            hint: "AdSense → Ads → By ad unit → Display ad → get the numeric slot ID from the code snippet",
+            required: true,
+          },
+          {
+            key: "in_content_slot",
+            label: "In-Content Ad Slot ID",
+            placeholder: "0987654321",
+            hint: "AdSense → Ads → By ad unit → In-article ad → get the numeric slot ID. Shown between lesson blocks.",
+            required: false,
           },
         ],
       },
@@ -830,6 +861,43 @@ const IntegrationsSettings = () => {
     load();
   }, []);
 
+  // ── AdSense ↔ ad_settings sync ───────────────────────────────────────────
+  // When the AdSense integration is saved or disconnected, mirror the values
+  // into the ad_settings table so useAdSettings picks them up immediately —
+  // no code changes needed to make ads go live.
+
+  const syncAdSenseToAdSettings = useCallback(async (fields: Record<string, string>) => {
+    const rows = [
+      { setting_key: "google_ad_client",   setting_value: fields.publisher_id    || "" },
+      { setting_key: "sidebar_top_slot",   setting_value: fields.sidebar_slot    || "" },
+      { setting_key: "sidebar_middle_slot",setting_value: fields.sidebar_slot    || "" },
+      { setting_key: "sidebar_bottom_slot",setting_value: fields.sidebar_slot    || "" },
+      { setting_key: "in_content_slot",    setting_value: fields.in_content_slot || "" },
+    ];
+    for (const row of rows) {
+      const { error } = await supabase
+        .from("ad_settings")
+        .upsert(row, { onConflict: "setting_key" });
+      if (error) throw error;
+    }
+  }, []);
+
+  const clearAdSenseFromAdSettings = useCallback(async () => {
+    const keys = [
+      "google_ad_client",
+      "sidebar_top_slot",
+      "sidebar_middle_slot",
+      "sidebar_bottom_slot",
+      "in_content_slot",
+    ];
+    for (const key of keys) {
+      const { error } = await supabase
+        .from("ad_settings")
+        .upsert({ setting_key: key, setting_value: "" }, { onConflict: "setting_key" });
+      if (error) throw error;
+    }
+  }, []);
+
   // ── Persist helper ────────────────────────────────────────────────────────
   const persist = useCallback(
     async (next: IntegrationsState) => {
@@ -865,6 +933,12 @@ const IntegrationsSettings = () => {
         },
       };
       await persist(next);
+
+      // Sync AdSense credentials into ad_settings so ads go live immediately
+      if (id === "google-adsense") {
+        await syncAdSenseToAdSettings(fields);
+      }
+
       toast({ title: "Integration saved successfully" });
       setModalDef(null);
     } catch (err: unknown) {
@@ -879,6 +953,12 @@ const IntegrationsSettings = () => {
       const next = { ...integrationsData };
       delete next[id];
       await persist(next);
+
+      // Clear AdSense credentials from ad_settings so ads stop showing
+      if (id === "google-adsense") {
+        await clearAdSenseFromAdSettings();
+      }
+
       toast({ title: "Integration disconnected" });
       setModalDef(null);
     } catch (err: unknown) {

@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { 
+import {
   Save, X, BookOpen, Sparkles, MousePointerClick,
   GripVertical, Trash2, Settings, Palette, ChevronRight, ChevronLeft, Search,
   Target, TrendingUp, Zap, Move, Send
@@ -57,15 +57,15 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 // Types
-interface SkillNode {
-  id: string;
-  name: string;
-  weight: number;
+interface CourseNode {
+  id: string;        // local id (matches career_skills.id when loaded from DB)
+  courseId: string;  // DB courses.id
+  name: string;      // course name for display
+  weight: number;    // contribution % to this career
   icon: string;
   color: string;
   x: number;
   y: number;
-  courses: { courseId: string; contribution: number }[];
 }
 
 interface SkillContribution {
@@ -73,9 +73,9 @@ interface SkillContribution {
   contribution: number;
 }
 
-// Sortable Skill Item Component
-interface SortableSkillItemProps {
-  skill: SkillNode;
+// Sortable Course Item Component
+interface SortableCourseItemProps {
+  skill: CourseNode;
   colorStyle: {
     name: string;
     bg: string;
@@ -86,7 +86,7 @@ interface SortableSkillItemProps {
   getIcon: (iconName: string) => React.ReactNode;
 }
 
-const SortableSkillItem = ({ skill, colorStyle, getIcon }: SortableSkillItemProps) => {
+const SortableCourseItem = ({ skill, colorStyle, getIcon }: SortableCourseItemProps) => {
   const {
     attributes,
     listeners,
@@ -100,12 +100,6 @@ const SortableSkillItem = ({ skill, colorStyle, getIcon }: SortableSkillItemProp
     transform: CSS.Transform.toString(transform),
     transition,
   };
-
-  const hasCourses = skill.courses.length > 0;
-  const totalContribution = skill.courses.reduce((sum, c) => sum + c.contribution, 0);
-  const isBalanced = totalContribution === skill.weight;
-  // Progress = how much of skill weight is covered (capped at 100%)
-  const coveragePct = skill.weight > 0 ? Math.min(100, Math.round((totalContribution / skill.weight) * 100)) : 0;
 
   return (
     <div
@@ -133,17 +127,13 @@ const SortableSkillItem = ({ skill, colorStyle, getIcon }: SortableSkillItemProp
       </div>
 
       <Progress
-        value={hasCourses ? coveragePct : 0}
+        value={skill.weight}
         className="h-1.5 mb-2"
       />
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{skill.courses.length} course(s)</span>
-        {hasCourses && (
-          <span className={isBalanced ? "text-green-600 dark:text-green-400 font-semibold" : "text-amber-600 dark:text-amber-400 font-semibold"}>
-            {totalContribution}% / {skill.weight}%
-          </span>
-        )}
+        <span>Course weight</span>
+        <span className="font-semibold">{skill.weight}%</span>
       </div>
     </div>
   );
@@ -183,7 +173,7 @@ const careerColorOptions = [
 ];
 
 const careerIconOptions = [
-  "Brain", "Database", "Layers", "BarChart3", "Code2", "Briefcase", 
+  "Brain", "Database", "Layers", "BarChart3", "Code2", "Briefcase",
   "Server", "Cloud", "Cpu", "Terminal", "Rocket", "Target"
 ];
 
@@ -193,12 +183,12 @@ const AdminCareerEditor = () => {
   const { toast } = useToast();
   const { isAdmin, isModerator, userId, isLoading: roleLoading } = useUserRole();
   const canvasRef = useRef<HTMLDivElement>(null);
-  
+
   // Core state
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [activeTab, setActiveTab] = useState("settings");
-  
+
   // Career form state
   const [careerName, setCareerName] = useState("");
   const [careerSlug, setCareerSlug] = useState("");
@@ -210,37 +200,29 @@ const AdminCareerEditor = () => {
   const [isFeatured, setIsFeatured] = useState(false);
   const [careerDiscount, setCareerDiscount] = useState(0);
   const [originalAuthorId, setOriginalAuthorId] = useState<string | null>(null);
-  
+
   // Canvas state
-  const [skillNodes, setSkillNodes] = useState<SkillNode[]>([]);
-  const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
-  const [draggingSkill, setDraggingSkill] = useState<string | null>(null);
+  const [courseNodes, setCourseNodes] = useState<CourseNode[]>([]);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  
-  const [dropTargetSkill, setDropTargetSkill] = useState<string | null>(null);
-  
+
   // Dialogs
-  const [skillEditorOpen, setSkillEditorOpen] = useState(false);
-  const [editingSkill, setEditingSkill] = useState<SkillNode | null>(null);
-  const [contributionDialogOpen, setContributionDialogOpen] = useState(false);
-  const [pendingCourseMapping, setPendingCourseMapping] = useState<{
-    skillId: string;
-    courseId: string;
-  } | null>(null);
-  
-  // Multi-course add state
+  const [nodeEditorOpen, setNodeEditorOpen] = useState(false);
+  const [editingNode, setEditingNode] = useState<CourseNode | null>(null);
+
+  // Add Course picker state
   const [addCoursesDialogOpen, setAddCoursesDialogOpen] = useState(false);
-  const [addCoursesSkillId, setAddCoursesSkillId] = useState<string | null>(null);
   const [selectedCoursesToAdd, setSelectedCoursesToAdd] = useState<{courseId: string; contribution: number}[]>([]);
-  const [contributionValue, setContributionValue] = useState(50);
-  const [sharedContribution, setSharedContribution] = useState(50);
-  const [useSharedContribution, setUseSharedContribution] = useState(true);
   const [courseSearch, setCourseSearch] = useState("");
-  
+  const [addCourseWeight, setAddCourseWeight] = useState(25);
+  const [addCourseIcon, setAddCourseIcon] = useState(skillIconOptions[0]);
+  const [addCourseColor, setAddCourseColor] = useState(skillColorOptions[0].name);
+
   // Track if user has attempted to save (for validation display)
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
 
-  // DnD sensors for skill reordering
+  // DnD sensors for course node reordering
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -252,16 +234,16 @@ const AdminCareerEditor = () => {
     })
   );
 
-  // Filtered courses for the Add Courses dialog search
+  // Filtered courses for the Add Course dialog search
   const filteredCourses = courses.filter(course =>
     !courseSearch || course.name.toLowerCase().includes(courseSearch.toLowerCase())
   );
 
-  const handleSkillDragEnd = (event: DragEndEvent) => {
+  const handleNodeDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
-      setSkillNodes((items) => {
+      setCourseNodes((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
@@ -354,33 +336,29 @@ const AdminCareerEditor = () => {
       setIsFeatured(career.is_featured ?? false);
       setCareerDiscount(Number(career.discount_percentage) || 0);
 
-      // Convert skills to nodes with positions
-      const nodes: SkillNode[] = (skillsRes.data || []).map((skill, index) => {
-        // Find courses mapped to this skill
-        const mappedCourses: { courseId: string; contribution: number }[] = [];
-        (coursesRes.data || []).forEach(cc => {
-          const contributions = Array.isArray(cc.skill_contributions) 
+      // For each career_course DB row, reconstruct a CourseNode
+      const nodes: CourseNode[] = (coursesRes.data || []).map((cc, index) => {
+        // Find matching skill in skillsRes to get icon/color/position
+        const matchingSkill = (skillsRes.data || []).find(s => {
+          const contribs = Array.isArray(cc.skill_contributions)
             ? (cc.skill_contributions as unknown as SkillContribution[])
             : [];
-          const contribution = contributions.find(c => c.skill_name === skill.skill_name);
-          if (contribution) {
-            mappedCourses.push({ courseId: cc.course_id, contribution: contribution.contribution });
-          }
+          return contribs.some(c => c.skill_name === s.skill_name);
         });
-
+        const courseName = (cc.course as any)?.name || 'Unknown Course';
         return {
-          id: skill.id,
-          name: skill.skill_name,
-          weight: skill.weight || 25,
-          icon: skill.icon || "Code2",
-          color: skill.color || skillColorOptions[index % skillColorOptions.length].name,
+          id: matchingSkill?.id || `course-${cc.course_id}`,
+          courseId: cc.course_id,
+          name: courseName,
+          weight: matchingSkill?.weight || 25,
+          icon: matchingSkill?.icon || skillIconOptions[index % skillIconOptions.length],
+          color: matchingSkill?.color || skillColorOptions[index % skillColorOptions.length].name,
           x: 100 + (index % 3) * 280,
           y: 100 + Math.floor(index / 3) * 180,
-          courses: mappedCourses,
         };
       });
 
-      setSkillNodes(nodes);
+      setCourseNodes(nodes);
     } catch (error: any) {
       toast({ title: "Error loading career", variant: "destructive" });
       navigate("/admin/courses?tab=careers");
@@ -397,259 +375,121 @@ const AdminCareerEditor = () => {
   // Canvas interactions
   const handleCanvasDoubleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.skill-node')) return;
-    
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
 
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const newSkill: SkillNode = {
-      id: `skill-${Date.now()}`,
-      name: "New Skill",
-      weight: 25,
-      icon: skillIconOptions[skillNodes.length % skillIconOptions.length],
-      color: skillColorOptions[skillNodes.length % skillColorOptions.length].name,
-      x: Math.max(20, Math.min(x - 100, rect.width - 220)),
-      y: Math.max(20, Math.min(y - 40, rect.height - 100)),
-      courses: [],
-    };
-
-    setSkillNodes(prev => [...prev, newSkill]);
-    setEditingSkill(newSkill);
-    setSkillEditorOpen(true);
+    // Open Add Course dialog when double-clicking on canvas
+    setSelectedCoursesToAdd([]);
+    setCourseSearch("");
+    const nextIdx = courseNodes.length;
+    setAddCourseWeight(25);
+    setAddCourseIcon(skillIconOptions[nextIdx % skillIconOptions.length]);
+    setAddCourseColor(skillColorOptions[nextIdx % skillColorOptions.length].name);
+    setAddCoursesDialogOpen(true);
   };
 
-  const handleSkillMouseDown = (e: React.MouseEvent, skillId: string) => {
+  const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
-    const skill = skillNodes.find(s => s.id === skillId);
-    if (!skill) return;
+    const node = courseNodes.find(s => s.id === nodeId);
+    if (!node) return;
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setDragOffset({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     });
-    setDraggingSkill(skillId);
-    setSelectedSkill(skillId);
+    setDraggingNode(nodeId);
+    setSelectedNode(nodeId);
   };
 
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!draggingSkill || !canvasRef.current) return;
+    if (!draggingNode || !canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - dragOffset.x;
     const y = e.clientY - rect.top - dragOffset.y;
 
-    setSkillNodes(prev => prev.map(s => 
-      s.id === draggingSkill 
+    setCourseNodes(prev => prev.map(s =>
+      s.id === draggingNode
         ? { ...s, x: Math.max(0, Math.min(x, rect.width - 200)), y: Math.max(0, Math.min(y, rect.height - 80)) }
         : s
     ));
-  }, [draggingSkill, dragOffset]);
+  }, [draggingNode, dragOffset]);
 
   const handleCanvasMouseUp = () => {
-    setDraggingSkill(null);
+    setDraggingNode(null);
   };
 
-  const handleSkillDragOver = (e: React.DragEvent, skillId: string) => {
-    e.preventDefault();
-    setDropTargetSkill(skillId);
-  };
-
-  const handleSkillDragLeave = () => {
-    setDropTargetSkill(null);
-  };
-
-  const handleSkillDrop = (e: React.DragEvent, skillId: string) => {
-    e.preventDefault();
-    const courseId = e.dataTransfer.getData("courseId");
-    if (!courseId) return;
-
-    // Check if course is already mapped to this skill
-    const skill = skillNodes.find(s => s.id === skillId);
-    if (skill?.courses.some(c => c.courseId === courseId)) {
-      toast({ title: "Course already mapped to this skill" });
-      setDropTargetSkill(null);
-      return;
-    }
-
-    // Open contribution dialog
-    setPendingCourseMapping({ skillId, courseId });
-    setContributionValue(50);
-    setContributionDialogOpen(true);
-    setDropTargetSkill(null);
-  };
-
-  const confirmCourseMapping = () => {
-    if (!pendingCourseMapping) return;
-
-    setSkillNodes(prev => prev.map(skill => {
-      if (skill.id === pendingCourseMapping.skillId) {
-        return {
-          ...skill,
-          courses: [...skill.courses, { 
-            courseId: pendingCourseMapping.courseId, 
-            contribution: contributionValue 
-          }],
-        };
-      }
-      return skill;
-    }));
-
-    setContributionDialogOpen(false);
-    setPendingCourseMapping(null);
-    toast({ title: "Course mapped successfully!" });
-  };
-
-  // Multi-course add functions
-  const openAddCoursesDialog = (skillId: string) => {
-    const skill = skillNodes.find(s => s.id === skillId);
-    setAddCoursesSkillId(skillId);
-    setSelectedCoursesToAdd([]);
-    // Default to skill weight so one course gets the full allocation by default
-    setSharedContribution(skill ? skill.weight : 50);
-    setUseSharedContribution(true);
-    setAddCoursesDialogOpen(true);
-  };
-
+  // Toggle single course selection (radio-style)
   const toggleCourseSelection = (courseId: string) => {
     setSelectedCoursesToAdd(prev => {
       const exists = prev.find(c => c.courseId === courseId);
       if (exists) {
-        return prev.filter(c => c.courseId !== courseId);
+        return [];
       }
-      return [...prev, { courseId, contribution: useSharedContribution ? sharedContribution : 50 }];
+      return [{ courseId, contribution: 25 }];
     });
   };
 
-  const applySharedContributionToAll = (value?: number) => {
-    const contrib = value ?? sharedContribution;
-    setSelectedCoursesToAdd(prev => prev.map(c => ({ ...c, contribution: contrib })));
-  };
+  const confirmAddCourse = () => {
+    if (selectedCoursesToAdd.length !== 1) return;
+    const { courseId } = selectedCoursesToAdd[0];
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
 
-  // Distribute skill.weight evenly across the courses being added in the dialog
-  const autoDistributeAddingContributions = () => {
-    const skill = skillNodes.find(s => s.id === addCoursesSkillId);
-    if (!skill || selectedCoursesToAdd.length === 0) return;
-    const n = selectedCoursesToAdd.length;
-    const perCourse = Math.floor(skill.weight / n);
-    const remainder = skill.weight - perCourse * n;
-    setSelectedCoursesToAdd(prev =>
-      prev.map((c, i) => ({ ...c, contribution: i === 0 ? perCourse + remainder : perCourse }))
-    );
-  };
-
-  // Distribute skill.weight evenly across already-mapped courses in Edit Skill dialog
-  const autoDistributeSkillCourses = (skillId: string) => {
-    const skill = skillNodes.find(s => s.id === skillId);
-    if (!skill || skill.courses.length === 0) return;
-    const n = skill.courses.length;
-    const perCourse = Math.floor(skill.weight / n);
-    const remainder = skill.weight - perCourse * n;
-    const newCourses = skill.courses.map((c, i) => ({
-      ...c,
-      contribution: i === 0 ? perCourse + remainder : perCourse,
-    }));
-    setSkillNodes(prev => prev.map(s => s.id === skillId ? { ...s, courses: newCourses } : s));
-    setEditingSkill(prev => prev ? { ...prev, courses: newCourses } : null);
-  };
-
-  const updateSelectedCourseContribution = (courseId: string, contribution: number) => {
-    setSelectedCoursesToAdd(prev => prev.map(c => 
-      c.courseId === courseId ? { ...c, contribution } : c
-    ));
-  };
-
-  const confirmAddMultipleCourses = () => {
-    if (!addCoursesSkillId || selectedCoursesToAdd.length === 0) return;
-
-    setSkillNodes(prev => prev.map(skill => {
-      if (skill.id === addCoursesSkillId) {
-        const existingCourseIds = skill.courses.map(c => c.courseId);
-        const newCourses = selectedCoursesToAdd.filter(c => !existingCourseIds.includes(c.courseId));
-        return {
-          ...skill,
-          courses: [...skill.courses, ...newCourses],
-        };
-      }
-      return skill;
-    }));
-
-    // Update editingSkill if it's the same
-    if (editingSkill?.id === addCoursesSkillId) {
-      const skill = skillNodes.find(s => s.id === addCoursesSkillId);
-      if (skill) {
-        const existingCourseIds = skill.courses.map(c => c.courseId);
-        const newCourses = selectedCoursesToAdd.filter(c => !existingCourseIds.includes(c.courseId));
-        setEditingSkill({
-          ...skill,
-          courses: [...skill.courses, ...newCourses],
-        });
-      }
+    // Prevent duplicate
+    if (courseNodes.some(n => n.courseId === courseId)) {
+      toast({ title: "Course already added to this career" });
+      return;
     }
 
+    const idx = courseNodes.length;
+    const newNode: CourseNode = {
+      id: `course-${Date.now()}`,
+      courseId,
+      name: course.name,
+      weight: addCourseWeight,
+      icon: addCourseIcon,
+      color: addCourseColor,
+      x: 100 + (idx % 3) * 280,
+      y: 100 + Math.floor(idx / 3) * 180,
+    };
+    setCourseNodes(prev => [...prev, newNode]);
     setAddCoursesDialogOpen(false);
-    setAddCoursesSkillId(null);
     setSelectedCoursesToAdd([]);
-    toast({ title: `${selectedCoursesToAdd.length} course(s) added successfully!` });
+    setCourseSearch("");
+    setAddCourseWeight(25);
+    setAddCourseIcon(skillIconOptions[0]);
+    setAddCourseColor(skillColorOptions[0].name);
   };
 
-  const removeCourseFromSkill = (skillId: string, courseId: string) => {
-    setSkillNodes(prev => prev.map(skill => {
-      if (skill.id === skillId) {
-        return {
-          ...skill,
-          courses: skill.courses.filter(c => c.courseId !== courseId),
-        };
-      }
-      return skill;
-    }));
+  // Node management
+  const deleteNode = (nodeId: string) => {
+    setCourseNodes(prev => prev.filter(s => s.id !== nodeId));
+    setSelectedNode(null);
+    setNodeEditorOpen(false);
   };
 
-  const updateCourseContribution = (skillId: string, courseId: string, contribution: number) => {
-    setSkillNodes(prev => prev.map(skill => {
-      if (skill.id === skillId) {
-        return {
-          ...skill,
-          courses: skill.courses.map(c => 
-            c.courseId === courseId ? { ...c, contribution } : c
-          ),
-        };
-      }
-      return skill;
-    }));
-  };
-
-  // Skill management
-  const deleteSkill = (skillId: string) => {
-    setSkillNodes(prev => prev.filter(s => s.id !== skillId));
-    setSelectedSkill(null);
-    setSkillEditorOpen(false);
-  };
-
-  const updateSkill = (updates: Partial<SkillNode>) => {
-    if (!editingSkill) return;
-    setSkillNodes(prev => prev.map(s => 
-      s.id === editingSkill.id ? { ...s, ...updates } : s
+  const updateNode = (updates: Partial<CourseNode>) => {
+    if (!editingNode) return;
+    setCourseNodes(prev => prev.map(s =>
+      s.id === editingNode.id ? { ...s, ...updates } : s
     ));
-    setEditingSkill(prev => prev ? { ...prev, ...updates } : null);
+    setEditingNode(prev => prev ? { ...prev, ...updates } : null);
   };
 
   const autoBalanceWeights = () => {
-    if (skillNodes.length === 0) return;
-    const equalWeight = Math.floor(100 / skillNodes.length);
-    const remainder = 100 - (equalWeight * skillNodes.length);
-    setSkillNodes(prev => prev.map((skill, index) => ({
-      ...skill,
+    if (courseNodes.length === 0) return;
+    const equalWeight = Math.floor(100 / courseNodes.length);
+    const remainder = 100 - (equalWeight * courseNodes.length);
+    setCourseNodes(prev => prev.map((node, index) => ({
+      ...node,
       weight: equalWeight + (index < remainder ? 1 : 0),
     })));
   };
 
   // Calculations
-  const getTotalWeight = () => skillNodes.reduce((sum, s) => sum + s.weight, 0);
-  
-  const getSkillColor = (colorName: string) => 
+  const getTotalWeight = () => courseNodes.reduce((sum, s) => sum + s.weight, 0);
+
+  const getSkillColor = (colorName: string) =>
     skillColorOptions.find(c => c.name === colorName) || skillColorOptions[0];
 
   const getIcon = (iconName: string) => {
@@ -665,21 +505,19 @@ const AdminCareerEditor = () => {
     },
   };
 
-  // Generate radar chart data from skill nodes
+  // Generate radar chart data from course nodes
   const getSkillRadarData = () => {
-    if (skillNodes.length === 0) return [];
-    return skillNodes.map(skill => ({
-      skill: skill.name,
-      value: skill.weight,
+    if (courseNodes.length === 0) return [];
+    return courseNodes.map(node => ({
+      skill: node.name,
+      value: node.weight,
       fullMark: 100,
     }));
   };
 
   const getMappedCourseIds = () => {
     const ids = new Set<string>();
-    skillNodes.forEach(skill => {
-      skill.courses.forEach(c => ids.add(c.courseId));
-    });
+    courseNodes.forEach(node => ids.add(node.courseId));
     return ids;
   };
 
@@ -693,22 +531,11 @@ const AdminCareerEditor = () => {
     if (!careerSlug.trim()) errors.push("Career slug is required");
 
     if (forPublish) {
-      if (skillNodes.length === 0) {
-        errors.push("Add at least 1 skill before publishing");
+      if (courseNodes.length === 0) {
+        errors.push("Add at least 1 course before publishing");
       }
-      if (skillNodes.length > 0 && getTotalWeight() !== 100) {
-        errors.push(`Skill weights must total 100% (currently ${getTotalWeight()}%)`);
-      }
-      const skillsWithoutCourses = skillNodes.filter(s => s.courses.length === 0);
-      if (skillsWithoutCourses.length > 0) {
-        errors.push(`${skillsWithoutCourses.length} skill(s) have no courses mapped: ${skillsWithoutCourses.map(s => s.name).join(", ")}`);
-      }
-      const unbalancedSkills = skillNodes.filter(s =>
-        s.courses.length > 0 &&
-        s.courses.reduce((sum, c) => sum + c.contribution, 0) !== s.weight
-      );
-      if (unbalancedSkills.length > 0) {
-        errors.push(`${unbalancedSkills.length} skill(s) have course contributions that don't add up to their weight: ${unbalancedSkills.map(s => s.name).join(", ")}`);
+      if (courseNodes.length > 0 && getTotalWeight() !== 100) {
+        errors.push(`Course weights must total 100% (currently ${getTotalWeight()}%)`);
       }
     }
 
@@ -719,10 +546,8 @@ const AdminCareerEditor = () => {
   const getPublishReadiness = () => [
     { done: !!careerName.trim(), label: "Career name set" },
     { done: !!careerSlug.trim(), label: "URL slug set" },
-    { done: skillNodes.length > 0, label: `Skills added (${skillNodes.length})` },
-    { done: skillNodes.length > 0 && getTotalWeight() === 100, label: `Weights balanced at 100% (${getTotalWeight()}%)` },
-    { done: skillNodes.length > 0 && skillNodes.every(s => s.courses.length > 0), label: "All skills have courses mapped" },
-    { done: skillNodes.length > 0 && skillNodes.filter(s => s.courses.length > 0).every(s => s.courses.reduce((sum, c) => sum + c.contribution, 0) === s.weight), label: "All course contributions balanced" },
+    { done: courseNodes.length > 0, label: `Courses added (${courseNodes.length})` },
+    { done: courseNodes.length > 0 && getTotalWeight() === 100, label: `Weights balanced at 100% (${getTotalWeight()}%)` },
   ];
 
   const isValid = () => getValidationErrors().length === 0;
@@ -731,7 +556,7 @@ const AdminCareerEditor = () => {
   const handleSubmit = async () => {
     // Mark that user has attempted to save
     setHasAttemptedSave(true);
-    
+
     try {
       const errors = getValidationErrors();
 
@@ -747,24 +572,24 @@ const AdminCareerEditor = () => {
         if (careerStatus === "published") setActiveTab("settings");
         return;
       }
-      
+
       setLoading(true);
 
-      // Build course skill mappings
-      const courseSkillMappings: Record<string, SkillContribution[]> = {};
-      skillNodes.forEach(skill => {
-        skill.courses.forEach(({ courseId, contribution }) => {
-          if (!courseSkillMappings[courseId]) {
-            courseSkillMappings[courseId] = [];
-          }
-          courseSkillMappings[courseId].push({
-            skill_name: skill.name,
-            contribution,
-          });
-        });
-      });
-
-      const courseIds = Object.keys(courseSkillMappings);
+      // Each CourseNode becomes one career_skill + one career_courses entry
+      // This keeps useCareers() and profile radar working (they read career_skills + skill_contributions)
+      const skillsToInsert = courseNodes.map((node, idx) => ({
+        career_id: id || "",
+        skill_name: node.name,
+        display_order: idx + 1,
+        weight: node.weight,
+        icon: node.icon,
+        color: node.color,
+      }));
+      const coursesToInsert = courseNodes.map(node => ({
+        career_id: id || "",
+        course_id: node.courseId,
+        skill_contributions: [{ skill_name: node.name, contribution: node.weight }] as unknown as Json,
+      }));
 
       if (id) {
         // Update career
@@ -787,27 +612,16 @@ const AdminCareerEditor = () => {
 
         // Update skills
         await supabase.from("career_skills").delete().eq("career_id", id);
-        if (skillNodes.length > 0) {
-          const skillsToInsert = skillNodes.map((skill, idx) => ({
-            career_id: id,
-            skill_name: skill.name,
-            display_order: idx + 1,
-            weight: skill.weight,
-            icon: skill.icon,
-            color: skill.color,
-          }));
-          await supabase.from("career_skills").insert(skillsToInsert);
+        if (courseNodes.length > 0) {
+          const skillsWithId = skillsToInsert.map(s => ({ ...s, career_id: id }));
+          await supabase.from("career_skills").insert(skillsWithId);
         }
 
         // Update courses
         await supabase.from("career_courses").delete().eq("career_id", id);
-        if (courseIds.length > 0) {
-          const coursesToInsert = courseIds.map(courseId => ({
-            career_id: id,
-            course_id: courseId,
-            skill_contributions: courseSkillMappings[courseId] as unknown as Json,
-          }));
-          await supabase.from("career_courses").insert(coursesToInsert);
+        if (courseNodes.length > 0) {
+          const coursesWithId = coursesToInsert.map(c => ({ ...c, career_id: id }));
+          await supabase.from("career_courses").insert(coursesWithId);
         }
 
         toast({ title: "Career updated successfully" });
@@ -832,26 +646,15 @@ const AdminCareerEditor = () => {
         if (error) throw error;
 
         // Insert skills
-        if (skillNodes.length > 0) {
-          const skillsToInsert = skillNodes.map((skill, idx) => ({
-            career_id: newCareer.id,
-            skill_name: skill.name,
-            display_order: idx + 1,
-            weight: skill.weight,
-            icon: skill.icon,
-            color: skill.color,
-          }));
-          await supabase.from("career_skills").insert(skillsToInsert);
+        if (courseNodes.length > 0) {
+          const skillsWithId = skillsToInsert.map(s => ({ ...s, career_id: newCareer.id }));
+          await supabase.from("career_skills").insert(skillsWithId);
         }
 
         // Insert courses
-        if (courseIds.length > 0) {
-          const coursesToInsert = courseIds.map(courseId => ({
-            career_id: newCareer.id,
-            course_id: courseId,
-            skill_contributions: courseSkillMappings[courseId] as unknown as Json,
-          }));
-          await supabase.from("career_courses").insert(coursesToInsert);
+        if (courseNodes.length > 0) {
+          const coursesWithId = coursesToInsert.map(c => ({ ...c, career_id: newCareer.id }));
+          await supabase.from("career_courses").insert(coursesWithId);
         }
 
         toast({ title: "Career created successfully" });
@@ -978,47 +781,21 @@ const AdminCareerEditor = () => {
                     <button
                       className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors"
                       onMouseDown={(e) => e.stopPropagation()}
-                      onDoubleClick={(e) => {
-                        e.stopPropagation();
-                        const rect = canvasRef.current?.getBoundingClientRect();
-                        if (!rect) return;
-                        const newSkill: SkillNode = {
-                          id: `skill-${Date.now()}`,
-                          name: "New Skill",
-                          weight: 25,
-                          icon: skillIconOptions[skillNodes.length % skillIconOptions.length],
-                          color: skillColorOptions[skillNodes.length % skillColorOptions.length].name,
-                          x: 80 + Math.random() * (rect.width - 280),
-                          y: 80 + Math.random() * (rect.height - 200),
-                          courses: [],
-                        };
-                        setSkillNodes(prev => [...prev, newSkill]);
-                        setEditingSkill(newSkill);
-                        setSkillEditorOpen(true);
-                      }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const rect = canvasRef.current?.getBoundingClientRect();
-                        if (!rect) return;
-                        const newSkill: SkillNode = {
-                          id: `skill-${Date.now()}`,
-                          name: "New Skill",
-                          weight: 25,
-                          icon: skillIconOptions[skillNodes.length % skillIconOptions.length],
-                          color: skillColorOptions[skillNodes.length % skillColorOptions.length].name,
-                          x: 80 + Math.random() * (rect.width - 280),
-                          y: 80 + Math.random() * (rect.height - 200),
-                          courses: [],
-                        };
-                        setSkillNodes(prev => [...prev, newSkill]);
-                        setEditingSkill(newSkill);
-                        setSkillEditorOpen(true);
+                        setSelectedCoursesToAdd([]);
+                        setCourseSearch("");
+                        const nextIdx = courseNodes.length;
+                        setAddCourseWeight(25);
+                        setAddCourseIcon(skillIconOptions[nextIdx % skillIconOptions.length]);
+                        setAddCourseColor(skillColorOptions[nextIdx % skillColorOptions.length].name);
+                        setAddCoursesDialogOpen(true);
                       }}
                     >
                       <Icons.Plus className="h-3.5 w-3.5" />
-                      Add Skill
+                      Add Course
                     </button>
-                    {skillNodes.length > 0 && (
+                    {courseNodes.length > 0 && (
                       <button
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-card border border-border text-foreground shadow-sm hover:bg-muted/60 transition-colors"
                         onMouseDown={(e) => e.stopPropagation()}
@@ -1034,7 +811,7 @@ const AdminCareerEditor = () => {
                   </div>
 
                   {/* Weight badge — top right */}
-                  {skillNodes.length > 0 && (
+                  {courseNodes.length > 0 && (
                     <div className="absolute top-3 right-3 z-20">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border ${
                         getTotalWeight() === 100
@@ -1050,38 +827,32 @@ const AdminCareerEditor = () => {
                   )}
 
                   {/* Empty state */}
-                  {skillNodes.length === 0 && (
+                  {courseNodes.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="text-center">
                         <div className="w-16 h-16 rounded-2xl bg-muted/60 border-2 border-dashed border-border flex items-center justify-center mx-auto mb-4">
                           <MousePointerClick className="h-7 w-7 text-muted-foreground/50" />
                         </div>
-                        <p className="text-base font-semibold text-foreground/60 mb-1">No skills yet</p>
-                        <p className="text-sm text-muted-foreground/50">Click "Add Skill" or double-click anywhere on the canvas</p>
+                        <p className="text-base font-semibold text-foreground/60 mb-1">No courses yet</p>
+                        <p className="text-sm text-muted-foreground/50">Click "Add Course" or double-click anywhere on the canvas</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Skill Nodes */}
-                  {skillNodes.map(skill => {
-                    const colorStyle = getSkillColor(skill.color);
-                    const isSelected = selectedSkill === skill.id;
-                    const isDropTarget = dropTargetSkill === skill.id;
-                    const hasCourses = skill.courses.length > 0;
+                  {/* Course Nodes */}
+                  {courseNodes.map(node => {
+                    const colorStyle = getSkillColor(node.color);
+                    const isSelected = selectedNode === node.id;
 
                     return (
                       <div
-                        key={skill.id}
+                        key={node.id}
                         className={`skill-node absolute select-none ${isSelected ? 'z-10' : 'z-0'}`}
-                        style={{ left: skill.x, top: skill.y }}
-                        onMouseDown={(e) => handleSkillMouseDown(e, skill.id)}
-                        onDragOver={(e) => handleSkillDragOver(e, skill.id)}
-                        onDragLeave={handleSkillDragLeave}
-                        onDrop={(e) => handleSkillDrop(e, skill.id)}
+                        style={{ left: node.x, top: node.y }}
+                        onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                       >
                         <div className={`
                           w-56 rounded-2xl border bg-card cursor-move overflow-hidden
-                          ${isDropTarget ? `ring-2 ${colorStyle.ring}` : ''}
                           ${isSelected ? 'shadow-xl ring-2 ' + colorStyle.ring : 'shadow-md hover:shadow-xl'}
                           transition-all duration-150
                         `}>
@@ -1093,12 +864,12 @@ const AdminCareerEditor = () => {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${colorStyle.bg} ${colorStyle.text}`}>
-                                  {getIcon(skill.icon)}
+                                  {getIcon(node.icon)}
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-bold text-sm text-foreground truncate leading-tight">{skill.name}</p>
+                                  <p className="font-bold text-sm text-foreground truncate leading-tight">{node.name}</p>
                                   <p className={`text-[11px] font-semibold ${colorStyle.text}`}>
-                                    {skill.weight}% weight
+                                    {node.weight}% weight
                                   </p>
                                 </div>
                               </div>
@@ -1106,8 +877,8 @@ const AdminCareerEditor = () => {
                                 className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setEditingSkill(skill);
-                                  setSkillEditorOpen(true);
+                                  setEditingNode(node);
+                                  setNodeEditorOpen(true);
                                 }}
                               >
                                 <Settings className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1118,45 +889,9 @@ const AdminCareerEditor = () => {
                             <div className="mt-2.5 h-1 rounded-full bg-muted overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all ${colorStyle.solid}`}
-                                style={{ width: `${skill.weight}%` }}
+                                style={{ width: `${node.weight}%` }}
                               />
                             </div>
-                          </div>
-
-                          {/* Courses section */}
-                          <div className="px-2.5 pb-2.5 space-y-1 max-h-36 overflow-y-auto">
-                            {hasCourses ? (
-                              skill.courses.map(({ courseId, contribution }) => {
-                                const course = courses.find(c => c.id === courseId);
-                                return (
-                                  <div
-                                    key={courseId}
-                                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-muted/50 group"
-                                  >
-                                    <BookOpen className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                    <span className="text-[11px] truncate flex-1 font-medium text-foreground/80">
-                                      {course?.name || "Unknown"}
-                                    </span>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${colorStyle.bg} ${colorStyle.text}`}>
-                                      {contribution}%
-                                    </span>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeCourseFromSkill(skill.id, courseId);
-                                      }}
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                    >
-                                      <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                                    </button>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <div className={`text-[11px] text-center py-2.5 rounded-lg border border-dashed ${colorStyle.border} ${colorStyle.text} opacity-50`}>
-                                Click ⚙ to add courses
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -1184,7 +919,7 @@ const AdminCareerEditor = () => {
                     {(() => {
                       const checks = [
                         !!careerName.trim(),
-                        skillNodes.length > 0,
+                        courseNodes.length > 0,
                         getTotalWeight() === 100,
                         getMappedCourseIds().size > 0,
                         careerStatus === "published",
@@ -1209,8 +944,8 @@ const AdminCareerEditor = () => {
                     <div className="space-y-2">
                       {[
                         { done: !!careerName.trim(), label: "Career name & slug defined" },
-                        { done: skillNodes.length > 0, label: `Skills added (${skillNodes.length})` },
-                        { done: getTotalWeight() === 100, label: `Weights balanced (${getTotalWeight()}%)`, warn: skillNodes.length > 0 && getTotalWeight() !== 100 },
+                        { done: courseNodes.length > 0, label: `Courses added (${courseNodes.length})` },
+                        { done: getTotalWeight() === 100, label: `Weights balanced (${getTotalWeight()}%)`, warn: courseNodes.length > 0 && getTotalWeight() !== 100 },
                         { done: getMappedCourseIds().size > 0, label: `Courses mapped (${getMappedCourseIds().size})` },
                         { done: careerStatus === "published", label: "Published & live" },
                       ].map(({ done, label, warn }, i) => (
@@ -1225,12 +960,12 @@ const AdminCareerEditor = () => {
 
                     <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/50">
                       <div className="text-center p-2 rounded-lg bg-muted/40">
-                        <p className="text-xl font-bold text-primary">{skillNodes.length}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Skills</p>
+                        <p className="text-xl font-bold text-primary">{courseNodes.length}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Courses</p>
                       </div>
                       <div className="text-center p-2 rounded-lg bg-muted/40">
                         <p className="text-xl font-bold text-green-500">{getMappedCourseIds().size}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Courses</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Mapped</p>
                       </div>
                       <div className="text-center p-2 rounded-lg bg-muted/40">
                         <p className={`text-xl font-bold ${getTotalWeight() === 100 ? "text-primary" : "text-destructive"}`}>{getTotalWeight()}%</p>
@@ -1247,7 +982,7 @@ const AdminCareerEditor = () => {
                         Skill Weight Distribution
                       </h3>
                     </div>
-                    {skillNodes.length >= 3 ? (
+                    {courseNodes.length >= 3 ? (
                       <ChartContainer config={chartConfig} className="h-[380px] w-full">
                         <RadarChart data={getSkillRadarData()} outerRadius="72%" margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                           <PolarGrid className="stroke-border" />
@@ -1269,8 +1004,8 @@ const AdminCareerEditor = () => {
                         <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center mb-3">
                           <TrendingUp className="h-5 w-5 text-muted-foreground/40" />
                         </div>
-                        <p className="text-sm font-medium text-muted-foreground">Add 3+ skills to see radar</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">Currently {skillNodes.length} skill{skillNodes.length !== 1 ? "s" : ""}</p>
+                        <p className="text-sm font-medium text-muted-foreground">Add 3+ courses to see radar</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Currently {courseNodes.length} course{courseNodes.length !== 1 ? "s" : ""}</p>
                       </div>
                     )}
                   </Card>
@@ -1280,39 +1015,39 @@ const AdminCareerEditor = () => {
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-semibold text-sm flex items-center gap-2">
                         <Zap className="h-4 w-4 text-primary" />
-                        Skill Breakdown
+                        Course Breakdown
                       </h3>
-                      <Button variant="outline" size="sm" onClick={autoBalanceWeights} disabled={skillNodes.length === 0} className="h-7 text-xs">
+                      <Button variant="outline" size="sm" onClick={autoBalanceWeights} disabled={courseNodes.length === 0} className="h-7 text-xs">
                         <Sparkles className="h-3 w-3 mr-1.5" />
                         Auto-balance
                       </Button>
                     </div>
 
-                    {skillNodes.length > 0 ? (
+                    {courseNodes.length > 0 ? (
                       <>
                         {/* Segmented weight bar */}
                         <div className="h-3 rounded-full overflow-hidden flex gap-px bg-muted mb-4">
-                          {skillNodes.map((skill) => {
-                            const cs = getSkillColor(skill.color);
+                          {courseNodes.map((node) => {
+                            const cs = getSkillColor(node.color);
                             return (
                               <div
-                                key={skill.id}
+                                key={node.id}
                                 className={`h-full ${cs.solid} transition-all duration-300`}
-                                style={{ width: `${skill.weight}%` }}
-                                title={`${skill.name}: ${skill.weight}%`}
+                                style={{ width: `${node.weight}%` }}
+                                title={`${node.name}: ${node.weight}%`}
                               />
                             );
                           })}
                         </div>
                         {/* Legend */}
                         <div className="flex flex-wrap gap-x-5 gap-y-2">
-                          {skillNodes.map(skill => {
-                            const cs = getSkillColor(skill.color);
+                          {courseNodes.map(node => {
+                            const cs = getSkillColor(node.color);
                             return (
-                              <div key={skill.id} className="flex items-center gap-1.5 text-xs">
+                              <div key={node.id} className="flex items-center gap-1.5 text-xs">
                                 <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cs.solid}`} />
-                                <span className="font-medium text-foreground/80">{skill.name}</span>
-                                <span className="text-muted-foreground">({skill.weight}%)</span>
+                                <span className="font-medium text-foreground/80">{node.name}</span>
+                                <span className="text-muted-foreground">({node.weight}%)</span>
                               </div>
                             );
                           })}
@@ -1321,35 +1056,35 @@ const AdminCareerEditor = () => {
                     ) : (
                       <div className="py-8 text-center">
                         <Target className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-                        <p className="text-sm text-muted-foreground">Add skills in the Skill Canvas tab</p>
+                        <p className="text-sm text-muted-foreground">Add courses in the Skill Canvas tab</p>
                       </div>
                     )}
                   </Card>
 
-                  {/* ── Skill Order (drag reorder) ─── */}
+                  {/* ── Course Order (drag reorder) ─── */}
                   <Card className="p-5 lg:col-span-2">
                     <div className="flex items-center gap-2 mb-4">
                       <h3 className="font-semibold text-sm flex items-center gap-2">
                         <Icons.GripVertical className="h-4 w-4 text-primary" />
-                        Skill Order
+                        Course Order
                       </h3>
-                      {skillNodes.length > 0 && (
+                      {courseNodes.length > 0 && (
                         <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                           Drag to reorder
                         </span>
                       )}
                     </div>
 
-                    {skillNodes.length > 0 ? (
+                    {courseNodes.length > 0 ? (
                       <ScrollArea className="pr-2">
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSkillDragEnd}>
-                          <SortableContext items={skillNodes.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleNodeDragEnd}>
+                          <SortableContext items={courseNodes.map(s => s.id)} strategy={verticalListSortingStrategy}>
                             <div className="space-y-2">
-                              {skillNodes.map((skill) => (
-                                <SortableSkillItem
-                                  key={skill.id}
-                                  skill={skill}
-                                  colorStyle={getSkillColor(skill.color)}
+                              {courseNodes.map((node) => (
+                                <SortableCourseItem
+                                  key={node.id}
+                                  skill={node}
+                                  colorStyle={getSkillColor(node.color)}
                                   getIcon={getIcon}
                                 />
                               ))}
@@ -1360,7 +1095,7 @@ const AdminCareerEditor = () => {
                     ) : (
                       <div className="py-8 text-center">
                         <Icons.GripVertical className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-                        <p className="text-sm text-muted-foreground">No skills to order yet</p>
+                        <p className="text-sm text-muted-foreground">No courses to order yet</p>
                       </div>
                     )}
                   </Card>
@@ -1416,7 +1151,7 @@ const AdminCareerEditor = () => {
                               <BookOpen className="h-5 w-5 text-muted-foreground/40" />
                             </div>
                             <p className="text-sm font-medium text-muted-foreground">No courses mapped yet</p>
-                            <p className="text-xs text-muted-foreground/60 mt-1">Add courses to skills in the Skill Canvas tab</p>
+                            <p className="text-xs text-muted-foreground/60 mt-1">Add courses in the Skill Canvas tab</p>
                           </div>
                         )}
                       </Card>
@@ -1492,7 +1227,7 @@ const AdminCareerEditor = () => {
                   );
                 })()}
               </TabsContent>
-              
+
               <TabsContent value="settings" className="flex-1 overflow-auto">
                 <div className="space-y-5">
 
@@ -1728,11 +1463,11 @@ const AdminCareerEditor = () => {
       </div>
     </div>
 
-      {/* Skill Editor Dialog */}
-      <Dialog open={skillEditorOpen} onOpenChange={setSkillEditorOpen}>
+      {/* Course Node Settings Dialog */}
+      <Dialog open={nodeEditorOpen} onOpenChange={setNodeEditorOpen}>
         <DialogContent className="max-w-[480px] p-0 gap-0 overflow-hidden">
-          {editingSkill && (() => {
-            const colorStyle = getSkillColor(editingSkill.color);
+          {editingNode && (() => {
+            const colorStyle = getSkillColor(editingNode.color);
             return (
               <>
                 {/* Colored header strip */}
@@ -1742,11 +1477,11 @@ const AdminCareerEditor = () => {
                 <div className="px-6 pt-5 pb-4 border-b border-border/60">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorStyle.bg} ${colorStyle.text}`}>
-                      {getIcon(editingSkill.icon)}
+                      {getIcon(editingNode.icon)}
                     </div>
                     <div>
-                      <h2 className="text-base font-bold text-foreground leading-tight">{editingSkill.name || "New Skill"}</h2>
-                      <p className="text-[12px] text-muted-foreground mt-0.5">Skill configuration</p>
+                      <h2 className="text-base font-bold text-foreground leading-tight">{editingNode.name}</h2>
+                      <p className="text-[12px] text-muted-foreground mt-0.5">Course Settings</p>
                     </div>
                   </div>
                 </div>
@@ -1754,35 +1489,50 @@ const AdminCareerEditor = () => {
                 {/* Body */}
                 <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-y-auto">
 
-                  {/* Name */}
+                  {/* Course name (read-only) */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Skill Name</Label>
-                    <Input
-                      value={editingSkill.name}
-                      onChange={(e) => updateSkill({ name: e.target.value })}
-                      placeholder="e.g., Python Programming"
-                      className="h-9 text-sm"
-                    />
+                    <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Course</Label>
+                    <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-muted/50 border border-border/50">
+                      <BookOpen className={`h-4 w-4 flex-shrink-0 ${colorStyle.text}`} />
+                      <span className="text-sm font-medium text-foreground/80 truncate">{editingNode.name}</span>
+                    </div>
                   </div>
 
                   {/* Weight */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Weight</Label>
-                      <span className={`text-sm font-bold px-2.5 py-0.5 rounded-lg ${colorStyle.bg} ${colorStyle.text}`}>
-                        {editingSkill.weight}%
-                      </span>
+                      <div className={`flex items-center gap-0.5 px-2.5 py-0.5 rounded-lg ${colorStyle.bg}`}>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={String(editingNode.weight)}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, '');
+                            const v = raw === '' ? 0 : Math.min(100, parseInt(raw, 10));
+                            updateNode({ weight: v });
+                          }}
+                          className={`w-9 text-sm font-bold text-right bg-transparent outline-none ${colorStyle.text}`}
+                        />
+                        <span className={`text-sm font-bold ${colorStyle.text}`}>%</span>
+                      </div>
                     </div>
-                    <Slider
-                      value={[editingSkill.weight]}
-                      onValueChange={([v]) => updateSkill({ weight: v })}
-                      max={100}
-                      step={5}
-                    />
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>Low</span>
-                      <span>Contribution to career readiness</span>
-                      <span>High</span>
+                    <div className="relative">
+                      <Slider
+                        value={[editingNode.weight]}
+                        onValueChange={([v]) => updateNode({ weight: v })}
+                        max={100}
+                        step={5}
+                      />
+                      <div className="absolute inset-0 pointer-events-none flex items-center z-10">
+                        {[25, 50, 75].map(pct => (
+                          <div
+                            key={pct}
+                            className="absolute w-[2px] h-3.5 rounded-full bg-background"
+                            style={{ left: `${pct}%`, transform: "translateX(-50%)", boxShadow: "0 0 0 0.5px rgba(0,0,0,0.15)" }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -1790,7 +1540,7 @@ const AdminCareerEditor = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Icon</Label>
-                      <Select value={editingSkill.icon} onValueChange={(v) => updateSkill({ icon: v })}>
+                      <Select value={editingNode.icon} onValueChange={(v) => updateNode({ icon: v })}>
                         <SelectTrigger className="h-9">
                           <SelectValue />
                         </SelectTrigger>
@@ -1808,7 +1558,7 @@ const AdminCareerEditor = () => {
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Color</Label>
-                      <Select value={editingSkill.color} onValueChange={(v) => updateSkill({ color: v })}>
+                      <Select value={editingNode.color} onValueChange={(v) => updateNode({ color: v })}>
                         <SelectTrigger className="h-9">
                           <SelectValue />
                         </SelectTrigger>
@@ -1826,118 +1576,19 @@ const AdminCareerEditor = () => {
                     </div>
                   </div>
 
-                  {/* Mapped Courses */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
-                        Mapped Courses
-                        <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold text-[10px] normal-case tracking-normal">
-                          {editingSkill.courses.length}
-                        </span>
-                      </Label>
-                      <button
-                        onClick={() => openAddCoursesDialog(editingSkill.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
-                      >
-                        <Icons.Plus className="h-3 w-3" />
-                        Add Courses
-                      </button>
-                    </div>
-
-                    {editingSkill.courses.length > 0 ? (
-                      <div className="space-y-1.5">
-                        {editingSkill.courses.map(({ courseId, contribution }) => {
-                          const course = courses.find(c => c.id === courseId);
-                          return (
-                            <div key={courseId} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/50 border border-border/50 group">
-                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${colorStyle.bg}`}>
-                                <BookOpen className={`h-3.5 w-3.5 ${colorStyle.text}`} />
-                              </div>
-                              <span className="text-sm font-medium flex-1 truncate text-foreground/80">{course?.name}</span>
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  max={editingSkill.weight}
-                                  value={contribution}
-                                  onChange={(e) => {
-                                    const v = Math.min(editingSkill.weight, Math.max(0, parseInt(e.target.value) || 0));
-                                    updateCourseContribution(editingSkill.id, courseId, v);
-                                    setEditingSkill(prev => prev ? {
-                                      ...prev,
-                                      courses: prev.courses.map(c => c.courseId === courseId ? { ...c, contribution: v } : c)
-                                    } : null);
-                                  }}
-                                  className="w-14 h-7 text-xs text-center font-semibold"
-                                />
-                                <span className="text-xs text-muted-foreground font-medium">%</span>
-                                <button
-                                  onClick={() => {
-                                    removeCourseFromSkill(editingSkill.id, courseId);
-                                    setEditingSkill(prev => prev ? {
-                                      ...prev,
-                                      courses: prev.courses.filter(c => c.courseId !== courseId)
-                                    } : null);
-                                  }}
-                                  className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {/* Total contribution vs skill weight indicator */}
-                        {(() => {
-                          const total = editingSkill.courses.reduce((s, c) => s + c.contribution, 0);
-                          const isOk = total === editingSkill.weight;
-                          return (
-                            <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs ${
-                              isOk
-                                ? "bg-green-500/8 text-green-700 dark:text-green-400"
-                                : "bg-amber-500/8 text-amber-700 dark:text-amber-400"
-                            }`}>
-                              <span>
-                                Total: <strong>{total}%</strong> / <strong>{editingSkill.weight}%</strong> skill weight
-                                {!isOk && (
-                                  <span className="ml-1 opacity-70">
-                                    ({total > editingSkill.weight ? `${total - editingSkill.weight}% over` : `${editingSkill.weight - total}% under`})
-                                  </span>
-                                )}
-                              </span>
-                              <button
-                                onClick={() => autoDistributeSkillCourses(editingSkill.id)}
-                                className="text-xs font-semibold underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity ml-3 flex-shrink-0"
-                              >
-                                Auto-balance
-                              </button>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      <div className={`py-5 rounded-xl border-2 border-dashed text-center ${colorStyle.border}`}>
-                        <BookOpen className={`h-5 w-5 mx-auto mb-1.5 ${colorStyle.text} opacity-40`} />
-                        <p className="text-xs font-medium text-muted-foreground">No courses mapped yet</p>
-                        <p className="text-[11px] text-muted-foreground/60 mt-0.5">Click "Add Courses" above</p>
-                      </div>
-                    )}
-                  </div>
-
                 </div>
 
                 {/* Footer */}
                 <div className="px-6 py-4 border-t border-border/60 flex items-center justify-between bg-muted/20">
                   <button
-                    onClick={() => deleteSkill(editingSkill.id)}
+                    onClick={() => deleteNode(editingNode.id)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-destructive hover:bg-destructive/8 transition-colors"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Delete Skill
+                    Delete Course
                   </button>
                   <button
-                    onClick={() => setSkillEditorOpen(false)}
+                    onClick={() => setNodeEditorOpen(false)}
                     className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     <Icons.Check className="h-3.5 w-3.5" />
@@ -1950,138 +1601,27 @@ const AdminCareerEditor = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Course Contribution Dialog */}
-      <Dialog open={contributionDialogOpen} onOpenChange={setContributionDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Set Contribution Level</DialogTitle>
-            <DialogDescription>
-              How much does this course contribute to the skill?
-            </DialogDescription>
-          </DialogHeader>
-          
-          {pendingCourseMapping && (
-            <div className="space-y-4">
-              <div className="p-3 rounded-lg bg-muted/50">
-                <p className="text-sm font-medium">
-                  {courses.find(c => c.id === pendingCourseMapping.courseId)?.name}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  → {skillNodes.find(s => s.id === pendingCourseMapping.skillId)?.name}
-                </p>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Contribution</Label>
-                  <span className="text-lg font-bold text-primary">{contributionValue}%</span>
-                </div>
-                <Slider
-                  value={[contributionValue]}
-                  onValueChange={([v]) => setContributionValue(v)}
-                  max={100}
-                  step={5}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Low impact</span>
-                  <span>Full mastery</span>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setContributionDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmCourseMapping}>
-              <Zap className="h-4 w-4 mr-2" />
-              Add Mapping
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Multiple Courses Dialog */}
+      {/* Add Course to Career Dialog */}
       <Dialog open={addCoursesDialogOpen} onOpenChange={setAddCoursesDialogOpen}>
+        {(() => {
+          const addColorStyle = getSkillColor(addCourseColor);
+          return (
         <DialogContent className="max-w-[500px] p-0 gap-0 overflow-hidden flex flex-col max-h-[85vh]">
 
-          {/* Green accent strip */}
-          <div className="h-1 w-full bg-primary flex-shrink-0" />
+          {/* Dynamic color accent strip */}
+          <div className={`h-1 w-full ${addColorStyle.solid} flex-shrink-0`} />
 
           {/* Header */}
           <div className="px-6 pt-5 pb-4 border-b border-border/60 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <BookOpen className="h-[18px] w-[18px] text-primary" />
+              <div className={`w-9 h-9 rounded-xl ${addColorStyle.bg} flex items-center justify-center`}>
+                <BookOpen className={`h-[18px] w-[18px] ${addColorStyle.text}`} />
               </div>
               <div>
-                <h2 className="text-base font-bold text-foreground leading-tight">Add Courses to Skill</h2>
-                <p className="text-[12px] text-muted-foreground mt-0.5">Select courses and set contribution levels</p>
+                <h2 className="text-base font-bold text-foreground leading-tight">Add Course to Career</h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Select a course to add to this career path</p>
               </div>
             </div>
-          </div>
-
-          {/* Contribution control */}
-          <div className="px-6 py-4 border-b border-border/40 flex-shrink-0 bg-muted/20">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground/80">Contribution %</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Slider sets default · <span className="font-semibold text-primary">Apply All</span> overwrites selected · <span className="font-semibold text-foreground/70">Auto</span> splits skill weight evenly
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Slider
-                  value={[sharedContribution]}
-                  onValueChange={([v]) => setSharedContribution(v)}
-                  max={100}
-                  step={5}
-                  className="w-24"
-                />
-                <span className="text-sm font-bold text-foreground w-10 text-right">{sharedContribution}%</span>
-                <button
-                  onClick={() => applySharedContributionToAll(sharedContribution)}
-                  disabled={selectedCoursesToAdd.length === 0}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Apply All
-                </button>
-                <button
-                  onClick={autoDistributeAddingContributions}
-                  disabled={selectedCoursesToAdd.length === 0}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted text-foreground border border-border hover:bg-muted/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Distribute skill weight evenly across selected courses"
-                >
-                  Auto
-                </button>
-              </div>
-            </div>
-
-            {/* Live total indicator */}
-            {selectedCoursesToAdd.length > 0 && (() => {
-              const skill = skillNodes.find(s => s.id === addCoursesSkillId);
-              const total = selectedCoursesToAdd.reduce((s, c) => s + c.contribution, 0);
-              const target = skill?.weight ?? 100;
-              const isOk = total === target;
-              return (
-                <div className={`mt-2.5 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg ${
-                  isOk
-                    ? "bg-green-500/10 text-green-700 dark:text-green-400"
-                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                }`}>
-                  <span className="font-bold">{isOk ? "✓" : "⚠"}</span>
-                  <span>
-                    Selected total: <strong>{total}%</strong> / target <strong>{target}%</strong> (skill weight)
-                    {!isOk && (
-                      <span className="ml-1 opacity-70">
-                        — {total > target ? `${total - target}% over` : `${target - total}% under`}. Click <strong>Auto</strong> to fix.
-                      </span>
-                    )}
-                  </span>
-                </div>
-              );
-            })()}
           </div>
 
           {/* Search */}
@@ -2110,21 +1650,20 @@ const AdminCareerEditor = () => {
           <ScrollArea className="flex-1 min-h-0">
             <div className="px-4 py-3 space-y-1.5">
               {(() => {
-                const skill = skillNodes.find(s => s.id === addCoursesSkillId);
-                const visible = filteredCourses.filter(c => !skill?.courses.some(sc => sc.courseId === c.id));
+                const alreadyAdded = new Set(courseNodes.map(n => n.courseId));
+                const visible = filteredCourses.filter(c => !alreadyAdded.has(c.id));
                 if (visible.length === 0) {
                   return (
                     <div className="py-12 text-center">
                       <Search className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" />
                       <p className="text-sm text-muted-foreground">
-                        {courseSearch ? `No courses matching "${courseSearch}"` : "All courses already mapped"}
+                        {courseSearch ? `No courses matching "${courseSearch}"` : "All courses already added"}
                       </p>
                     </div>
                   );
                 }
                 return visible.map(course => {
                   const isSelected = selectedCoursesToAdd.some(c => c.courseId === course.id);
-                  const selectedCourse = selectedCoursesToAdd.find(c => c.courseId === course.id);
                   return (
                     <div
                       key={course.id}
@@ -2135,11 +1674,11 @@ const AdminCareerEditor = () => {
                           : "bg-card border-border/60 hover:bg-muted/40 hover:border-border"
                       }`}
                     >
-                      {/* Custom checkbox */}
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      {/* Radio-style selector */}
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                         isSelected ? "bg-primary border-primary" : "border-border bg-background"
                       }`}>
-                        {isSelected && <Icons.Check className="h-3 w-3 text-primary-foreground" />}
+                        {isSelected && <span className="w-2 h-2 rounded-full bg-primary-foreground" />}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -2150,23 +1689,6 @@ const AdminCareerEditor = () => {
                           <p className="text-[11px] text-muted-foreground truncate mt-0.5">{course.description}</p>
                         )}
                       </div>
-
-                      {isSelected && (
-                        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={selectedCourse?.contribution ?? sharedContribution}
-                            onChange={(e) => updateSelectedCourseContribution(
-                              course.id,
-                              Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                            )}
-                            className="w-14 h-7 text-xs text-center font-bold"
-                          />
-                          <span className="text-xs text-muted-foreground font-medium">%</span>
-                        </div>
-                      )}
                     </div>
                   );
                 });
@@ -2174,32 +1696,121 @@ const AdminCareerEditor = () => {
             </div>
           </ScrollArea>
 
+          {/* Course configuration — always visible */}
+          {(() => {
+            const colorStyle = addColorStyle;
+            const dimmed = selectedCoursesToAdd.length === 0;
+            return (
+              <div className={`px-6 py-4 border-t border-border/40 flex-shrink-0 space-y-4 bg-muted/10 transition-opacity duration-200 ${dimmed ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+                {/* Weight */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Weight</Label>
+                    <div className={`flex items-center gap-0.5 px-2.5 py-0.5 rounded-lg ${colorStyle.bg}`}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={String(addCourseWeight)}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\D/g, '');
+                          const v = raw === '' ? 0 : Math.min(100, parseInt(raw, 10));
+                          setAddCourseWeight(v);
+                        }}
+                        className={`w-9 text-sm font-bold text-right bg-transparent outline-none ${colorStyle.text}`}
+                      />
+                      <span className={`text-sm font-bold ${colorStyle.text}`}>%</span>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Slider
+                      value={[addCourseWeight]}
+                      onValueChange={([v]) => setAddCourseWeight(v)}
+                      max={100}
+                      step={5}
+                    />
+                    <div className="absolute inset-0 pointer-events-none flex items-center">
+                      {[25, 50, 75].map(pct => (
+                        <div
+                          key={pct}
+                          className="absolute w-[1.5px] h-3 rounded-full bg-background/80"
+                          style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Icon + Color */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Icon</Label>
+                    <Select value={addCourseIcon} onValueChange={setAddCourseIcon}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {skillIconOptions.map(icon => (
+                          <SelectItem key={icon} value={icon}>
+                            <div className="flex items-center gap-2">
+                              {getIcon(icon)}
+                              <span className="text-sm">{icon}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Color</Label>
+                    <Select value={addCourseColor} onValueChange={setAddCourseColor}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {skillColorOptions.map(color => (
+                          <SelectItem key={color.name} value={color.name}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3.5 h-3.5 rounded-full ${color.solid}`} />
+                              <span className="text-sm">{color.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Footer */}
           <div className="px-6 py-4 border-t border-border/60 flex-shrink-0 flex items-center justify-between bg-muted/10">
             <p className="text-xs text-muted-foreground">
               {selectedCoursesToAdd.length > 0
-                ? <><span className="font-semibold text-foreground">{selectedCoursesToAdd.length}</span> course{selectedCoursesToAdd.length !== 1 ? "s" : ""} selected</>
-                : "No courses selected"}
+                ? <><span className="font-semibold text-foreground">{selectedCoursesToAdd.length}</span> course selected</>
+                : "No course selected"}
             </p>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setAddCoursesDialogOpen(false)}
+                onClick={() => { setAddCoursesDialogOpen(false); setSelectedCoursesToAdd([]); setCourseSearch(""); }}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-foreground/70 hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmAddMultipleCourses}
-                disabled={selectedCoursesToAdd.length === 0}
+                onClick={confirmAddCourse}
+                disabled={selectedCoursesToAdd.length !== 1}
                 className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <BookOpen className="h-3.5 w-3.5" />
-                Add {selectedCoursesToAdd.length > 0 ? selectedCoursesToAdd.length : ""} Course{selectedCoursesToAdd.length !== 1 ? "s" : ""}
+                Add Course
               </button>
             </div>
           </div>
 
         </DialogContent>
+          );
+        })()}
       </Dialog>
     </>
   );

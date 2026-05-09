@@ -1035,6 +1035,40 @@ a.l-course-card {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Locked state — one career at a time rule */
+.lcc-cp-cart-btn--locked {
+  background: transparent;
+  border-color: hsl(var(--border));
+  color: hsl(var(--muted-foreground) / 0.6);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.lcc-cp-cart-btn--locked:hover {
+  background: transparent;
+  border-color: hsl(var(--border));
+  color: hsl(var(--muted-foreground) / 0.6);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Owned state — solid primary fill, non-interactive */
+.lcc-cp-cart-btn--owned {
+  background: hsl(var(--primary) / 0.12);
+  border-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary));
+  cursor: default;
+  opacity: 0.85;
+}
+
+.lcc-cp-cart-btn--owned:hover {
+  background: hsl(var(--primary) / 0.12);
+  border-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary));
+  transform: none;
+  box-shadow: none;
+}
+
 /* ── Featured Career Card ─────────────────────────────────────────────────── */
 
 /* Wrapper — horizontal flex */

@@ -20,7 +20,7 @@ import {
   Zap,
   BookOpen,
 } from "lucide-react";
-import { useCodeEdit } from "@/contexts/CodeEditContext";
+import { useCodeEditOptional } from "@/contexts/CodeEditContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LearningCockpitProps {
@@ -64,6 +64,9 @@ const LESSON_FLOW_SECTIONS = [
   { id: "cause", label: "Cause & Effect", icon: ArrowRightCircle },
 ];
 
+// Stable reference — must not be created inline (new ref every render tears down observers)
+const LESSON_FLOW_SECTION_CONFIG = LESSON_FLOW_SECTIONS.map((s) => ({ id: s.id, label: s.label }));
+
 type PanelId = "flow" | "notes" | "practice" | "help" | null;
 
 /**
@@ -95,9 +98,8 @@ export const LearningCockpit = ({
   const messaging = useMessaging(userId);
   const [activePanel, setActivePanel] = useState<PanelId>(null);
 
-  // Code edit context (optional — may not be available on every lesson)
-  let codeEditContext: ReturnType<typeof useCodeEdit> | null = null;
-  try { codeEditContext = useCodeEdit(); } catch { /* not available */ }
+  // Code edit context (optional — safe null when called outside CodeEditProvider)
+  const codeEditContext = useCodeEditOptional();
   const hasEditedCode = codeEditContext?.hasEditedCode ?? false;
   const editedCodeBlock = codeEditContext?.editedCodeBlock ?? null;
 
@@ -173,8 +175,8 @@ export const LearningCockpit = ({
     : (isHeaderVisible ? (showAnnouncement ? 140 : 104) : (showAnnouncement ? 76 : 40));
 
   const { activeSection, sections: lessonFlowSections, scrollToSection } = useLessonFlowNavigation(
-    LESSON_FLOW_SECTIONS.map((s) => ({ id: s.id, label: s.label })),
-    { scrollOffset }
+    LESSON_FLOW_SECTION_CONFIG,
+    { scrollOffset, resetKey: lessonId }
   );
 
   // Notes
@@ -320,7 +322,7 @@ export const LearningCockpit = ({
                               disabled={isDisabled}
                               aria-current={isActive ? "location" : undefined}
                               className={cn(
-                                "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden",
+                                "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden outline-none",
                                 "transition-all duration-150",
                                 "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-full before:transition-all before:duration-150",
                                 isDisabled && "opacity-35 cursor-not-allowed text-muted-foreground",
@@ -357,7 +359,7 @@ export const LearningCockpit = ({
                                   onClick={() => scrollToSection(section.id)}
                                   aria-current={isActive ? "location" : undefined}
                                   className={cn(
-                                    "w-full flex items-center px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden",
+                                    "w-full flex items-center px-3 py-2 rounded-lg text-sm text-left relative overflow-hidden outline-none",
                                     "transition-all duration-150",
                                     "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-full before:transition-all before:duration-150",
                                     level === 2 && "pl-6",

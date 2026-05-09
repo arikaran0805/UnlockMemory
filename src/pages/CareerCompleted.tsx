@@ -3,11 +3,12 @@
  *
  * Route: /career-board/:careerId/completed
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCareerBoard } from "@/contexts/CareerBoardContext";
+import { useCareers } from "@/hooks/useCareers";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -43,6 +44,27 @@ const CareerCompleted = () => {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const { career, careerCourses, isLoading: careerLoading } = useCareerBoard();
+  const { getCareerCourses } = useCareers();
+
+  // Derive skills only from the courses in the user's plan (careerCourses from context).
+  // Filters by selected course IDs so test/unplanned courses don't bleed through.
+  const skillsFromCourses = useMemo(() => {
+    if (!career || !careerCourses.length) return [];
+    const selectedIds = new Set(careerCourses.map(c => c.id));
+    const seen = new Set<string>();
+    const result: string[] = [];
+    getCareerCourses(career.id).forEach(cc => {
+      if (!selectedIds.has(cc.course?.id ?? '')) return;
+      (cc.skill_contributions || []).forEach(s => {
+        if (s.skill_name && !seen.has(s.skill_name)) {
+          seen.add(s.skill_name);
+          result.push(s.skill_name);
+        }
+      });
+    });
+    return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [career?.id, careerCourses]);
 
   const navState = location.state as {
     completionDate?: string;
@@ -90,7 +112,7 @@ const CareerCompleted = () => {
       try {
         const courseIds = careerCourses.map(cc => cc.id);
 
-        const [profileResult, lessonsResult, hoursResult, skillsResult, dateResult] =
+        const [profileResult, lessonsResult, hoursResult, dateResult] =
           await Promise.all([
             supabase
               .from("profiles")
@@ -108,11 +130,6 @@ const CareerCompleted = () => {
               .select("duration_seconds")
               .eq("user_id", user.id)
               .in("course_id", courseIds),
-            supabase
-              .from("career_skills")
-              .select("skill_name")
-              .eq("career_id", career.id)
-              .order("display_order"),
             supabase
               .from("lesson_progress")
               .select("viewed_at")
@@ -136,9 +153,6 @@ const CareerCompleted = () => {
         const totalHoursFromTracking = totalSeconds / 3600;
         const totalHours = totalHoursFromTracking > 0 ? totalHoursFromTracking : 1;
 
-        const skills: string[] =
-          skillsResult.data?.map((s: any) => s.skill_name as string) || [];
-
         const completionDate = dateResult.data?.[0]?.viewed_at
           ? new Date(dateResult.data[0].viewed_at)
           : new Date();
@@ -158,7 +172,7 @@ const CareerCompleted = () => {
           totalHours: navState?.prefetchedStats?.totalHours || totalHours,
           totalCourses: careerCourses.length,
           skills:
-            skills.length > 0 ? skills : ["Problem Solving", "Critical Thinking"],
+            skillsFromCourses.length > 0 ? skillsFromCourses : ["Problem Solving", "Critical Thinking"],
           courses: navState?.prefetchedStats?.courses ?? courses,
         });
       } catch (error) {

@@ -10,9 +10,10 @@
  */
 import { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, List } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PracticeWorkspaceHeader } from "@/components/practice/PracticeWorkspaceHeader";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -21,6 +22,7 @@ import {
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { usePublishedFixErrorProblem } from "@/hooks/useFixErrorProblemBySlug";
 import { usePublishedPracticeProblems, type ProblemWithMapping } from "@/hooks/usePracticeProblems";
+import { usePrefetchAdjacentProblems } from "@/hooks/usePrefetchAdjacentProblems";
 import { useFixErrorJudge } from "@/hooks/useFixErrorJudge";
 import { ProblemListDrawer } from "@/components/practice/ProblemListDrawer";
 import { FixErrorDescriptionPanel } from "@/components/fix-error/FixErrorDescriptionPanel";
@@ -118,6 +120,8 @@ export default function FixErrorWorkspace() {
       ? allProblemsInSkill[currentIndex + 1]
       : null;
 
+  usePrefetchAdjacentProblems(skillId, prevProblem, nextProblem);
+
   const navigateToProblem = (p: ProblemWithMapping) => {
     reset(); // Reset judge state on navigation
     if (p.problemType === "predict-output") {
@@ -194,36 +198,17 @@ export default function FixErrorWorkspace() {
     );
   }
 
-  // Top nav bar
-  const topNav = (
-    <div className="h-12 flex items-center px-4 border-b border-border/50 bg-card shrink-0">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => navigate(`/practice/${skillId}`)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-        >
-          <List className="h-3.5 w-3.5" />
-          <span>{skill?.name || "Problems"}</span>
-        </button>
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevProblem} disabled={!prevProblem}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium px-2">{problem.title}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextProblem} disabled={!nextProblem}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
+  const sharedHeader = (
+    <PracticeWorkspaceHeader
+      skillId={skillId}
+      skillName={skill?.name || "Problems"}
+      problemTitle={problem.title}
+      prevProblem={prevProblem}
+      nextProblem={nextProblem}
+      onPrevProblem={handlePrevProblem}
+      onNextProblem={handleNextProblem}
+      onOpenDrawer={() => setDrawerOpen(true)}
+    />
   );
 
   // Shared result panel props
@@ -246,7 +231,7 @@ export default function FixErrorWorkspace() {
           currentProblemSlug={slug}
           onSelectProblem={handleDrawerSelectProblem}
         />
-        {topNav}
+        {sharedHeader}
         <div className="flex-1 min-h-0 overflow-hidden bg-muted/30 p-1.5">
           {expandedPanel === "description" && (
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
@@ -262,6 +247,7 @@ export default function FixErrorWorkspace() {
           {expandedPanel === "editor" && (
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <FixErrorCodeEditor
+                problemId={problem.id}
                 initialCode={problem.buggy_code}
                 language={problem.language}
                 onRun={handleRun}
@@ -298,7 +284,7 @@ export default function FixErrorWorkspace() {
         currentProblemSlug={slug}
         onSelectProblem={handleDrawerSelectProblem}
       />
-      {topNav}
+      {sharedHeader}
 
       {/* Main Content - 3-panel layout like Solve */}
       <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
@@ -317,6 +303,7 @@ export default function FixErrorWorkspace() {
             </div>
             <div className="min-h-[40vh] bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <FixErrorCodeEditor
+                problemId={problem.id}
                 initialCode={problem.buggy_code}
                 language={problem.language}
                 onRun={handleRun}
@@ -376,6 +363,7 @@ export default function FixErrorWorkspace() {
                   >
                     <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
                       <FixErrorCodeEditor
+                        problemId={problem.id}
                         initialCode={problem.buggy_code}
                         language={problem.language}
                         onRun={handleRun}
