@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useDeferredValue } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -192,7 +192,10 @@ const AdminPosts = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [moderatorOnly, setModeratorOnly] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [scopedCourseIds, setScopedCourseIds] = useState<string[]>([]);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [deleteRequestPost, setDeleteRequestPost] = useState<Post | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
@@ -201,6 +204,13 @@ const AdminPosts = () => {
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const postsBasePath = location.pathname.startsWith("/moderator")
+    ? "/moderator/posts"
+    : location.pathname.startsWith("/senior-moderator")
+      ? "/senior-moderator/posts"
+      : location.pathname.startsWith("/super-moderator")
+        ? "/super-moderator/posts"
+        : "/admin/posts";
 
   useEffect(() => {
     checkAccessAndLoad();
@@ -222,7 +232,7 @@ const AdminPosts = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .in("role", ["admin", "moderator"]);
+        .in("role", ["admin", "moderator", "senior_moderator"]);
 
       if (roleError) throw roleError;
 
@@ -237,11 +247,27 @@ const AdminPosts = () => {
       }
 
       const roles = (rolesData || []).map((r) => r.role);
-      const isModeratorOnly = roles.includes("moderator") && !roles.includes("admin");
-      setModeratorOnly(isModeratorOnly);
+      const isModeratorRole = roles.includes("moderator") && !roles.includes("admin");
+      const isSeniorModRole = roles.includes("senior_moderator") && !roles.includes("admin");
+      const adminUser = roles.includes("admin");
+
+      setModeratorOnly(isModeratorRole);
+      setIsAdminUser(adminUser);
       setCurrentUserId(session.user.id);
 
-      await fetchPosts(session.user.id, isModeratorOnly);
+      if (isSeniorModRole || isModeratorRole) {
+        const assignedRole = isSeniorModRole ? "senior_moderator" : "moderator";
+        const { data: assignmentData } = await supabase
+          .from("course_assignments")
+          .select("course_id")
+          .eq("user_id", session.user.id)
+          .eq("role", assignedRole);
+        const courseIds = (assignmentData || []).map((r: any) => r.course_id);
+        setScopedCourseIds(courseIds);
+        await fetchPosts(session.user.id, adminUser, courseIds);
+      } else {
+        await fetchPosts(session.user.id, adminUser, []);
+      }
     } catch (error: any) {
       console.error("Error checking access:", error);
       navigate("/");
@@ -281,7 +307,7 @@ const AdminPosts = () => {
     }
   };
 
-  const fetchPosts = async (viewerUserId: string, isModeratorOnly: boolean) => {
+  const fetchPosts = async (viewerUserId: string, adminUser: boolean, courseIds: string[]) => {
     try {
       let query = supabase
         .from("posts")
@@ -289,9 +315,14 @@ const AdminPosts = () => {
           "id, title, slug, status, published_at, created_at, updated_at, category_id, author_id, assigned_to, courses:category_id(slug)"
         );
 
-      // Moderators see their own posts AND posts assigned to them
-      if (isModeratorOnly) {
-        query = query.or(`author_id.eq.${viewerUserId},assigned_to.eq.${viewerUserId}`);
+      if (!adminUser) {
+        if (courseIds.length > 0) {
+          query = query.or(
+            `category_id.in.(${courseIds.join(",")}),author_id.eq.${viewerUserId}`
+          );
+        } else {
+          query = query.eq("author_id", viewerUserId);
+        }
       }
 
       const { data, error } = await query.order("created_at", { ascending: false });
@@ -429,7 +460,7 @@ const AdminPosts = () => {
       setDeleteDialogOpen(false);
       setPostToDelete(null);
       if (currentUserId) {
-        fetchPosts(currentUserId, moderatorOnly);
+        fetchPosts(currentUserId!, isAdminUser, scopedCourseIds);
       }
     } catch (error: any) {
       toast({
@@ -468,7 +499,7 @@ const AdminPosts = () => {
   };
 
   const handleEdit = (post: Post) => {
-    navigate(`/admin/posts/edit/${post.id}`);
+    navigate(`${postsBasePath}/edit/${post.id}`);
   };
 
   const getUserDisplay = (userId: string | null) => {
@@ -622,7 +653,7 @@ const AdminPosts = () => {
 
       setSelectedIds(new Set());
       if (currentUserId) {
-        fetchPosts(currentUserId, moderatorOnly);
+        fetchPosts(currentUserId!, isAdminUser, scopedCourseIds);
       }
     } catch (error: any) {
       toast({
@@ -738,7 +769,7 @@ const AdminPosts = () => {
             </p>
           </div>
 
-          <Button onClick={() => navigate("/admin/posts/new")}>
+          <Button onClick={() => navigate(`${postsBasePath}/new`)}>
             <Plus className="mr-2 h-4 w-4" />
             New Post
           </Button>
@@ -865,7 +896,7 @@ const AdminPosts = () => {
                   onClick={async () => {
                     if (!currentUserId) return;
                     setRefreshing(true);
-                    await fetchPosts(currentUserId, moderatorOnly);
+                    await fetchPosts(currentUserId!, isAdminUser, scopedCourseIds);
                     setRefreshing(false);
                   }}
                 >
@@ -988,7 +1019,7 @@ const AdminPosts = () => {
                       : "No posts created yet."}
                 </p>
                 {!searchQuery && !hasActiveFilters ? (
-                  <Button className="mt-4" onClick={() => navigate("/admin/posts/new")}>
+                  <Button className="mt-4" onClick={() => navigate(`${postsBasePath}/new`)}>
                     Create Your First Post
                   </Button>
                 ) : null}
@@ -1290,7 +1321,7 @@ const AdminPosts = () => {
                   });
                   setBulkDeleteDialogOpen(false);
                   setSelectedIds(new Set());
-                  if (currentUserId) fetchPosts(currentUserId, moderatorOnly);
+                  if (currentUserId) fetchPosts(currentUserId, isAdminUser, scopedCourseIds);
                 } catch (error: any) {
                   toast({ title: "Error", description: error.message, variant: "destructive" });
                 }
