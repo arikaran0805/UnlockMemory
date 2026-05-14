@@ -399,8 +399,14 @@ const AdminApprovals = () => {
   const getAuthorName = (item: PendingItem) => item.author?.full_name || item.author?.email || "Unknown";
   const getPublishedContentPath = (contentType: string) => {
     const base = getRoleBasePath();
-    if (base === "/admin") return contentType === "course" ? "/admin/courses" : "/admin/posts";
-    return base + "/content";
+    if (base === "/admin") {
+      return contentType === "course" ? "/admin/courses" : "/admin/posts";
+    }
+    if (base === "/moderator") {
+      return contentType === "course" ? "/moderator/courses" : "/moderator/content";
+    }
+    // senior-moderator, super-moderator
+    return contentType === "course" ? `${base}/courses` : `${base}/posts`;
   };
 
   const renderContentTable = (items: PendingItem[], contentType: string, icon: React.ReactNode) => (
@@ -463,33 +469,37 @@ const AdminApprovals = () => {
                       >
                         <History className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                        onClick={() => openActionDialog(item, contentType, "approve")}
-                        title="Approve"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                        onClick={() => openActionDialog(item, contentType, "changes")}
-                        title="Request Changes"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => openActionDialog(item, contentType, "reject")}
-                        title="Reject"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
+                      {!isModerator && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            onClick={() => openActionDialog(item, contentType, "approve")}
+                            title="Approve"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            onClick={() => openActionDialog(item, contentType, "changes")}
+                            title="Request Changes"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => openActionDialog(item, contentType, "reject")}
+                            title="Reject"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
