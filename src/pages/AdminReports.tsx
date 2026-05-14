@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useRoleScope } from "@/hooks/useRoleScope";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -67,8 +68,14 @@ interface ContentReport {
 
 const AdminReports = () => {
   const navigate = useNavigate();
-  const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isModerator, isSeniorModerator, isLoading: roleLoading } = useUserRole();
+  const location = useLocation();
+  const roleBasePath = location.pathname.startsWith("/senior-moderator") ? "/senior-moderator"
+    : location.pathname.startsWith("/super-moderator") ? "/super-moderator"
+    : location.pathname.startsWith("/moderator") ? "/moderator"
+    : "/admin";
   const { courseIds } = useRoleScope();
+  const { userId } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("reports");
@@ -83,7 +90,7 @@ const AdminReports = () => {
 
   useEffect(() => {
     if (!roleLoading) {
-      if (!isAdmin && !isModerator) {
+      if (!isAdmin && !isModerator && !isSeniorModerator) {
         navigate("/auth");
       } else {
         fetchReports();
@@ -99,8 +106,20 @@ const AdminReports = () => {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!isAdmin && courseIds.length > 0) {
-        query = query.in("content_id", courseIds);
+      if (!isAdmin) {
+        if (!userId) { setReports([]); setLoading(false); return; }
+        const { data: ownPosts } = await supabase
+          .from("posts")
+          .select("id")
+          .eq("author_id", userId);
+        const ownPostIds = (ownPosts || []).map((p) => p.id);
+        if (ownPostIds.length > 0) {
+          query = query.in("content_id", ownPostIds);
+        } else {
+          setReports([]);
+          setLoading(false);
+          return;
+        }
       }
 
       const { data, error } = await query;
@@ -255,8 +274,8 @@ const AdminReports = () => {
 
   const getContentPath = (report: ContentReport) =>
     report.content_type === "course"
-      ? `/admin/courses/${report.content_id}`
-      : `/admin/posts/edit/${report.content_id}`;
+      ? `${roleBasePath}/courses/${report.content_id}`
+      : `${roleBasePath}/posts/edit/${report.content_id}`;
 
   const getDecisionLabel = (status: string) => {
     switch (status) {
@@ -403,7 +422,7 @@ const AdminReports = () => {
                 variant="outline"
                 size="sm"
                 className="border-border/70 bg-background/80 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                onClick={() => navigate("/admin/posts")}
+                onClick={() => navigate(`${roleBasePath}/posts`)}
               >
                 View Published Content
               </Button>
