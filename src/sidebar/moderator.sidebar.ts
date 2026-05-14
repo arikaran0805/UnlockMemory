@@ -13,6 +13,11 @@ import {
   Activity,
   Award,
   MessageCircle,
+  GraduationCap,
+  Tags,
+  Image,
+  MessageSquarePlus,
+  Gavel,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
@@ -29,6 +34,8 @@ const contentSection: SidebarSection = {
   title: "Content",
   items: [
     { icon: BookOpen, label: "My Content", path: "/moderator/content" },
+    { icon: GraduationCap, label: "Courses", path: "/moderator/courses" },
+    { icon: Tags, label: "Tags", path: "/moderator/tags" },
   ],
 };
 
@@ -37,12 +44,22 @@ const reviewSection: SidebarSection = {
   title: "Review",
   items: [
     { icon: ClipboardList, label: "Review Queue", path: "/moderator/review" },
+    { icon: Gavel, label: "Reports", path: "/moderator/reports" },
     { icon: Award, label: "Certificates", path: "/moderator/certificates" },
     { icon: MessageSquare, label: "Comments", path: "/moderator/comments" },
   ],
 };
 
-// Section 4: Messaging
+// Section 4: Moderation
+const moderationSection: SidebarSection = {
+  title: "Moderation",
+  items: [
+    { icon: Image, label: "Media Library", path: "/moderator/media" },
+    { icon: MessageSquarePlus, label: "Annotations", path: "/moderator/annotations" },
+  ],
+};
+
+// Section 5: Messaging
 const messagingSection: SidebarSection = {
   title: "Messaging",
   items: [
@@ -50,7 +67,7 @@ const messagingSection: SidebarSection = {
   ],
 };
 
-// Section 5: Activity
+// Section 6: Activity
 const activitySection: SidebarSection = {
   title: "Activity",
   items: [
@@ -63,6 +80,7 @@ export const moderatorSidebarConfig: SidebarConfig = {
     overviewSection,
     contentSection,
     reviewSection,
+    moderationSection,
     messagingSection,
     activitySection,
   ],
