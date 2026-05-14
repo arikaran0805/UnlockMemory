@@ -50,11 +50,20 @@ const AdminTags = () => {
     name: "",
     slug: "",
   });
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [scopedCourseIds, setScopedCourseIds] = useState<string[]>([]);
+  const [accessChecked, setAccessChecked] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
-    fetchTags();
   }, []);
+
+  useEffect(() => {
+    if (accessChecked) {
+      fetchTags();
+    }
+  }, [accessChecked]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -64,20 +73,15 @@ const AdminTags = () => {
   const checkAdminAccess = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.user) {
-        navigate("/auth");
-        return;
-      }
+      if (!session?.user) { navigate("/auth"); return; }
 
       const { data: rolesData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .in("role", ["admin", "moderator"]);
+        .in("role", ["admin", "moderator", "senior_moderator"]);
 
       if (roleError) throw roleError;
-
       if (!rolesData || rolesData.length === 0) {
         toast({
           title: "Access Denied",
@@ -85,7 +89,30 @@ const AdminTags = () => {
           variant: "destructive",
         });
         navigate("/");
+        return;
       }
+
+      const roles = rolesData.map((r) => r.role);
+      const adminUser = roles.includes("admin");
+      const assignedRole = roles.includes("senior_moderator")
+        ? "senior_moderator"
+        : roles.includes("moderator")
+        ? "moderator"
+        : null;
+
+      setIsAdminUser(adminUser);
+      setCurrentUserId(session.user.id);
+
+      if (!adminUser && assignedRole) {
+        const { data: assignmentData } = await supabase
+          .from("course_assignments")
+          .select("course_id")
+          .eq("user_id", session.user.id)
+          .eq("role", assignedRole);
+        setScopedCourseIds((assignmentData || []).map((r: any) => r.course_id));
+      }
+
+      setAccessChecked(true);
     } catch (error: any) {
       console.error("Error checking access:", error);
       navigate("/");
@@ -95,38 +122,54 @@ const AdminTags = () => {
   const fetchTags = async () => {
     try {
       setLoading(true);
-      
-      // Fetch tags with post count
-      const { data: tagsData, error: tagsError } = await supabase
-        .from("tags")
-        .select("*")
-        .order("name");
 
+      // Build the set of tag IDs used on posts in assigned courses (for non-admins)
+      let scopedTagIds: string[] = [];
+      if (!isAdminUser && scopedCourseIds.length > 0) {
+        const { data: coursePosts } = await supabase
+          .from("posts")
+          .select("id")
+          .in("category_id", scopedCourseIds);
+        const coursePostIds = (coursePosts || []).map((p: any) => p.id);
+        if (coursePostIds.length > 0) {
+          const { data: postTagData } = await supabase
+            .from("post_tags")
+            .select("tag_id")
+            .in("post_id", coursePostIds);
+          scopedTagIds = [...new Set((postTagData || []).map((r: any) => r.tag_id))];
+        }
+      }
+
+      let query = supabase.from("tags").select("*").order("name");
+
+      if (!isAdminUser) {
+        if (!currentUserId) { setTags([]); setLoading(false); return; }
+        if (scopedTagIds.length > 0) {
+          query = query.or(
+            `author_id.eq.${currentUserId},id.in.(${scopedTagIds.join(",")})`
+          );
+        } else {
+          query = query.eq("author_id", currentUserId);
+        }
+      }
+
+      const { data: tagsData, error: tagsError } = await query;
       if (tagsError) throw tagsError;
 
-      // Fetch post counts for each tag
       const tagsWithCounts = await Promise.all(
         (tagsData || []).map(async (tag) => {
           const { count } = await supabase
             .from("post_tags")
             .select("*", { count: "exact", head: true })
             .eq("tag_id", tag.id);
-
-          return {
-            ...tag,
-            post_count: count || 0,
-          };
+          return { ...tag, post_count: count || 0 };
         })
       );
 
       setTags(tagsWithCounts);
     } catch (error: any) {
       console.error("Error fetching tags:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load tags",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load tags", variant: "destructive" });
     } finally {
       setLoading(false);
     }
