@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useRoleScope } from "@/hooks/useRoleScope";
+import { useAuth } from "@/hooks/useAuth";
 
 import { ContentStatusBadge, ContentStatus } from "@/components/ContentStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -71,17 +72,26 @@ const AdminApprovals = () => {
 
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const location = useLocation();
+  const { userId } = useAuth();
+  const { isAdmin, isModerator, isLoading: roleLoading } = useUserRole();
   const { role: userRole, courseIds, loading: scopeLoading } = useRoleScope();
   const isSuperMod = userRole === "super_moderator";
   const isSeniorMod = userRole === "senior_moderator";
-  const canApprove = isAdmin || isSuperMod || isSeniorMod;
+  const canApprove = isAdmin || isSuperMod || isSeniorMod || isModerator;
+
+  const getRoleBasePath = () => {
+    if (location.pathname.startsWith("/moderator")) return "/moderator";
+    if (location.pathname.startsWith("/senior-moderator")) return "/senior-moderator";
+    if (location.pathname.startsWith("/super-moderator")) return "/super-moderator";
+    return "/admin";
+  };
 
   useEffect(() => {
     if (roleLoading || scopeLoading) return;
     if (!canApprove) {
       toast({ title: "Access Denied", variant: "destructive" });
-      navigate("/admin");
+      navigate(getRoleBasePath());
       return;
     }
     fetchAllPending();
@@ -118,11 +128,23 @@ const AdminApprovals = () => {
         .eq("status", "pending")
         .order("updated_at", { ascending: false });
 
-      if (!isAdmin && courseIds.length > 0) {
-        query = query.in("category_id", courseIds);
-      } else if (!isAdmin && courseIds.length === 0) {
-        setPendingPosts([]);
-        return;
+      if (!isAdmin) {
+        if (isSeniorMod) {
+          // Show pending posts submitted by moderators assigned to the same courses
+          if (courseIds.length === 0) { setPendingPosts([]); return; }
+          const { data: modData } = await supabase
+            .from("course_assignments")
+            .select("user_id")
+            .in("course_id", courseIds)
+            .eq("role", "moderator");
+          const moderatorIds = [...new Set((modData || []).map((r: any) => r.user_id))];
+          if (moderatorIds.length === 0) { setPendingPosts([]); return; }
+          query = query.in("author_id", moderatorIds).in("category_id", courseIds);
+        } else {
+          // Moderator: only own submitted posts
+          if (!userId) { setPendingPosts([]); return; }
+          query = query.eq("author_id", userId);
+        }
       }
 
       const { data, error } = await query;
@@ -151,11 +173,19 @@ const AdminApprovals = () => {
         .eq("status", "pending")
         .order("updated_at", { ascending: false });
 
-      if (!isAdmin && courseIds.length > 0) {
-        query = query.in("id", courseIds);
-      } else if (!isAdmin && courseIds.length === 0) {
-        setPendingCourses([]);
-        return;
+      if (!isAdmin) {
+        if (isSeniorMod) {
+          if (courseIds.length > 0) {
+            query = query.in("id", courseIds);
+          } else {
+            setPendingCourses([]);
+            return;
+          }
+        } else {
+          // Moderator: only own submitted courses
+          if (!userId) { setPendingCourses([]); return; }
+          query = query.eq("author_id", userId);
+        }
       }
 
       const { data, error } = await query;
@@ -367,8 +397,11 @@ const AdminApprovals = () => {
 
   const getItemName = (item: PendingItem) => item.title || item.name || "Untitled";
   const getAuthorName = (item: PendingItem) => item.author?.full_name || item.author?.email || "Unknown";
-  const getPublishedContentPath = (contentType: string) =>
-    contentType === "course" ? "/admin/courses" : "/admin/posts";
+  const getPublishedContentPath = (contentType: string) => {
+    const base = getRoleBasePath();
+    if (base === "/admin") return contentType === "course" ? "/admin/courses" : "/admin/posts";
+    return base + "/content";
+  };
 
   const renderContentTable = (items: PendingItem[], contentType: string, icon: React.ReactNode) => (
     <Card>
