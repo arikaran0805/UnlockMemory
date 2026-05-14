@@ -75,9 +75,9 @@ const AdminAnnotations = () => {
 
   useEffect(() => {
     if (currentUserId !== null) {
-      fetchAnnotations();
+      fetchAnnotations(isAdminUser, currentUserId);
     }
-  }, [currentUserId, statusFilter]);
+  }, [currentUserId, statusFilter, isAdminUser]);
 
   const checkAccess = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -106,7 +106,7 @@ const AdminAnnotations = () => {
     // fetchAnnotations() removed — the useEffect below handles it
   };
 
-  const fetchAnnotations = async () => {
+  const fetchAnnotations = async (adminUser: boolean = isAdminUser, userId: string | null = currentUserId) => {
     let query = supabase
       .from("post_annotations")
       .select(`
@@ -124,11 +124,11 @@ const AdminAnnotations = () => {
       `)
       .order("created_at", { ascending: false });
 
-    if (!isAdminUser && currentUserId) {
+    if (!adminUser && userId) {
       const { data: ownPosts } = await supabase
         .from("posts")
         .select("id")
-        .eq("author_id", currentUserId);
+        .eq("author_id", userId);
       const ownPostIds = (ownPosts || []).map((p: any) => p.id);
       if (ownPostIds.length > 0) {
         query = query.in("post_id", ownPostIds);
