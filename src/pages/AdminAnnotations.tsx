@@ -64,6 +64,8 @@ const AdminAnnotations = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -72,10 +74,10 @@ const AdminAnnotations = () => {
   }, []);
 
   useEffect(() => {
-    if (!loading) {
+    if (currentUserId !== null) {
       fetchAnnotations();
     }
-  }, [statusFilter]);
+  }, [currentUserId, statusFilter]);
 
   const checkAccess = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -88,7 +90,7 @@ const AdminAnnotations = () => {
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id)
-      .in("role", ["admin", "moderator"]);
+      .in("role", ["admin", "moderator", "senior_moderator"]);
 
     if (!rolesData || rolesData.length === 0) {
       toast({ title: "Access Denied", variant: "destructive" });
@@ -96,8 +98,12 @@ const AdminAnnotations = () => {
       return;
     }
 
+    const roles = rolesData.map((r: any) => r.role);
+    const adminUser = roles.includes("admin");
+    setIsAdminUser(adminUser);
+    setCurrentUserId(session.user.id);
     setLoading(false);
-    fetchAnnotations();
+    // fetchAnnotations() removed — the useEffect below handles it
   };
 
   const fetchAnnotations = async () => {
@@ -117,6 +123,20 @@ const AdminAnnotations = () => {
         author:profiles!post_annotations_author_id_fkey(full_name, email)
       `)
       .order("created_at", { ascending: false });
+
+    if (!isAdminUser && currentUserId) {
+      const { data: ownPosts } = await supabase
+        .from("posts")
+        .select("id")
+        .eq("author_id", currentUserId);
+      const ownPostIds = (ownPosts || []).map((p: any) => p.id);
+      if (ownPostIds.length > 0) {
+        query = query.in("post_id", ownPostIds);
+      } else {
+        setAnnotations([]);
+        return;
+      }
+    }
 
     if (statusFilter !== "all") {
       query = query.eq("status", statusFilter);
