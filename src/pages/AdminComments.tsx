@@ -129,21 +129,13 @@ const AdminComments = () => {
         .order("created_at", { ascending: false });
 
       if (!userIsAdmin) {
-        // Scope comments to assigned courses via post's category_id
-        if (courseIds.length > 0) {
-          // Get post IDs in scope first, then filter comments
-          const { data: scopedPosts } = await supabase
-            .from("posts")
-            .select("id")
-            .in("category_id", courseIds);
-          const scopedPostIds = (scopedPosts || []).map((p) => p.id);
-          if (scopedPostIds.length > 0) {
-            query = query.in("post_id", scopedPostIds);
-          } else {
-            setComments([]);
-            setLoading(false);
-            return;
-          }
+        const { data: ownPosts } = await supabase
+          .from("posts")
+          .select("id")
+          .eq("author_id", userId);
+        const ownPostIds = (ownPosts || []).map((p) => p.id);
+        if (ownPostIds.length > 0) {
+          query = query.in("post_id", ownPostIds);
         } else {
           setComments([]);
           setLoading(false);
