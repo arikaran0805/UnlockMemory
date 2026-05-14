@@ -68,7 +68,7 @@ const AdminMedia = () => {
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id)
-      .in("role", ["admin", "moderator"]);
+      .in("role", ["admin", "moderator", "senior_moderator"]);
 
     if (!roleData || roleData.length === 0) {
       toast({ title: "Access Denied", variant: "destructive" });
@@ -77,10 +77,12 @@ const AdminMedia = () => {
     }
 
     const roles = roleData.map(r => r.role);
-    const moderatorOnly = roles.includes("moderator") && !roles.includes("admin");
-    setIsModerator(moderatorOnly);
+    const ownUploadsOnly =
+      (roles.includes("moderator") || roles.includes("senior_moderator")) &&
+      !roles.includes("admin");
+    setIsModerator(ownUploadsOnly);
 
-    fetchMedia(session.user.id, moderatorOnly);
+    fetchMedia(session.user.id, ownUploadsOnly);
   };
 
   const fetchMedia = async (currentUserId: string, moderatorOnly: boolean) => {
