@@ -13,6 +13,12 @@ import ModeratorCertificates from "@/pages/ModeratorCertificates";
 import ModeratorMessageRequests from "@/pages/ModeratorMessageRequests";
 import ConversationDetail from "@/pages/ConversationDetail";
 import StaffDoubts from "@/pages/StaffDoubts";
+import AdminCoursesPanel from "@/pages/AdminCoursesPanel";
+import AdminCourseEditor from "@/pages/AdminCourseEditor";
+import AdminMedia from "@/pages/AdminMedia";
+import AdminAnnotations from "@/pages/AdminAnnotations";
+import AdminTags from "@/pages/AdminTags";
+import AdminReports from "@/pages/AdminReports";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -34,6 +40,13 @@ const ModeratorRoutes = () => {
           <Route path="review" element={<AdminApprovals />} />
           <Route path="certificates" element={<ModeratorCertificates />} />
           <Route path="comments" element={<AdminComments />} />
+          <Route path="courses" element={<AdminCoursesPanel />} />
+          <Route path="courses/new" element={<AdminCourseEditor />} />
+          <Route path="courses/:id" element={<AdminCourseEditor />} />
+          <Route path="media" element={<AdminMedia />} />
+          <Route path="annotations" element={<AdminAnnotations />} />
+          <Route path="tags" element={<AdminTags />} />
+          <Route path="reports" element={<AdminReports />} />
           <Route path="activity" element={<AdminModeratorActivity />} />
           <Route path="message-requests" element={<ModeratorMessageRequests />} />
           <Route path="message-requests/:id" element={<ConversationDetail />} />
