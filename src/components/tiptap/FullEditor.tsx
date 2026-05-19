@@ -295,7 +295,7 @@ export const FullEditor = forwardRef<FullEditorRef, FullEditorProps>(({
         </ResizablePanelGroup>
       ) : viewMode === 'preview' ? (
         <div 
-          className="min-h-[300px] p-4 tiptap-content bg-muted/30"
+          className="flex-1 overflow-y-auto p-4 tiptap-content bg-muted/30"
           dangerouslySetInnerHTML={{ __html: previewHTML || '<p class="text-muted-foreground italic">Nothing to preview...</p>' }}
         />
       ) : (
