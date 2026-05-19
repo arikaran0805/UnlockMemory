@@ -40,7 +40,6 @@ const DynamicPage = ({ slug, fallbackTitle, fallbackContent, seo }: DynamicPageP
         .from("pages")
         .select("title, content, updated_at")
         .eq("slug", slug)
-        .eq("status", "published")
         .maybeSingle();
 
       setPage(data ?? null);
