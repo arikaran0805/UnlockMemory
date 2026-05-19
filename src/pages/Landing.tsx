@@ -767,17 +767,13 @@ export default function Landing() {
           <CourseCardsSection />
 
           {/* ── Ad: after courses section ────────────────────────────────────── */}
-          <div className="w-full h-[300px] mb-8 rounded-xl overflow-hidden">
-            <AdPlacement placement="landing-after-courses" className="w-full h-full" />
-          </div>
+          <AdPlacement placement="landing-after-courses" className="w-full h-[300px] mb-8 rounded-xl overflow-hidden" />
 
           {/* ── Career Paths ─────────────────────────────────────────────────── */}
           <CareerCardsSection />
 
           {/* ── Ad: after careers section ────────────────────────────────────── */}
-          <div className="w-full h-[300px] mb-8 rounded-xl overflow-hidden">
-            <AdPlacement placement="landing-after-careers" className="w-full h-full" />
-          </div>
+          <AdPlacement placement="landing-after-careers" className="w-full h-[300px] mb-8 rounded-xl overflow-hidden" />
         </div>
 
         {/* ── CTA Card ─────────────────────────────────────────────────────── */}
