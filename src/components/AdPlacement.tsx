@@ -111,7 +111,7 @@ export const AdPlacement = ({ placement, className = "" }: AdPlacementProps) => 
           <img
             src={ad.image_url}
             alt=""
-            className="w-full h-auto block"
+            className="w-full h-full object-cover block"
             loading="lazy"
           />
         ) : (
