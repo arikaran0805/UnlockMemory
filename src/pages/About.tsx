@@ -84,9 +84,14 @@ const About = () => {
         <section className="bg-background">
           <div className="max-w-5xl mx-auto px-4 py-28">
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-16 items-start">
-              {/* Stat */}
+              {/* Stat — inline styles override .content-renderer-article p specificity */}
               <div>
-                <p className="text-8xl font-bold text-primary leading-none">70%</p>
+                <div
+                  className="font-bold leading-none"
+                  style={{ fontSize: "6rem", color: "hsl(var(--primary))" }}
+                >
+                  70%
+                </div>
                 <p className="mt-3">of information is forgotten within 24 hours</p>
                 <p className="mt-2 italic text-[15px]">— Hermann Ebbinghaus, 1885</p>
               </div>
