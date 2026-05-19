@@ -67,6 +67,7 @@ const buildBreadcrumbs = (
     settings:         "Settings",
     "promo-codes":    "Promo Codes",
     pages:            "Pages",
+    "contact-submissions": "Contact Submissions",
     content:          "My Content",
     review:           "Review Queue",
     certificates:     "Certificates",
@@ -109,6 +110,12 @@ const buildBreadcrumbs = (
     return [root, { label: "Courses", path: `${p}/courses` }, { label: "New Course" }];
   if (new RegExp(`^${p}/courses/`).test(pathname))
     return [root, { label: "Courses", path: `${p}/courses` }, { label: "Edit Course" }];
+
+  // ── Pages editor ─────────────────────────────────────────────────────────
+  if (pathname === `${p}/pages/new`)
+    return [root, { label: "Pages", path: `${p}/pages` }, { label: "New Page" }];
+  if (new RegExp(`^${p}/pages/[^/]+$`).test(pathname))
+    return [root, { label: "Pages", path: `${p}/pages` }, { label: "Edit Page" }];
 
   // ── Admin-only: Monetization ──────────────────────────────────────────────
   if (pathname === `${p}/monetization/new`)

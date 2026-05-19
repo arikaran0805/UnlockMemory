@@ -127,12 +127,14 @@ const AdminContactSubmissions = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <AdminBreadcrumbHeader
-        items={[{ label: "Contact Submissions" }]}
-        title="Contact Submissions"
-        description="Messages submitted via the Contact page"
-      />
+    <div className="flex flex-col gap-0">
+      <AdminBreadcrumbHeader />
+
+      <div className="space-y-6 p-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Contact Submissions</h1>
+          <p className="text-muted-foreground">Messages submitted via the Contact page</p>
+        </div>
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -226,6 +228,8 @@ const AdminContactSubmissions = () => {
           </TableBody>
         </Table>
       </div>
+
+      </div>{/* end space-y-6 */}
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={open => !open && setSelected(null)}>
