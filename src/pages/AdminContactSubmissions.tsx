@@ -126,7 +126,7 @@ const AdminContactSubmissions = () => {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Contact Submissions</h1>
           <p className="text-muted-foreground">Messages submitted via the Contact page</p>
