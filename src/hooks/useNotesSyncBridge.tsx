@@ -39,7 +39,7 @@ interface UseNotesSyncBridgeOptions {
   courseId: string | undefined;
   userId: string | undefined;
   source: 'quick-notes' | 'deep-notes';
-  onRemoteUpdate?: (content: string, updatedAt: string) => void;
+  onRemoteUpdate?: (content: string, updatedAt: string, noteId?: string) => void;
   onNoteCreated?: (noteId: string, lessonId: string) => void;
   onNoteDeleted?: (noteId: string) => void;
 }
@@ -150,7 +150,7 @@ export function useNotesSyncBridge({
             if (remoteTime > localTime) {
               // Remote is newer, apply it
               console.debug('[NotesSyncBridge] Applying remote update for noteId:', message.noteId);
-              onRemoteUpdateRef.current?.(message.content || '', message.updatedAt);
+              onRemoteUpdateRef.current?.(message.content || '', message.updatedAt, message.noteId);
               // Update our local timestamp to reflect we now have this content
               localTimestampRef.current = message.updatedAt;
             } else {

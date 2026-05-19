@@ -50,7 +50,7 @@ export function useLessonNotes({ lessonId, courseId, userId }: UseLessonNotesOpt
   }, [content]);
 
   // Handle remote updates from other tabs (Deep Notes)
-  const handleRemoteUpdate = useCallback((remoteContent: string, updatedAt: string) => {
+  const handleRemoteUpdate = useCallback((remoteContent: string, updatedAt: string, _forNoteId?: string) => {
     // CRITICAL: Ignore if we're still loading to prevent race conditions
     if (initialLoadRef.current) return;
 

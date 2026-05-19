@@ -50,17 +50,26 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
    * This prevents saving stale content to a newly selected note
    */
   const contentForNoteIdRef = useRef<string | null>(null);
-  
+
   /**
    * FIX: Flag to prevent saves during note transition
    */
   const isTransitioningRef = useRef(false);
+
+  /**
+   * FIX: Mirror of editContent as a ref, updated synchronously every render.
+   * Allows the auto-save effect to detect stale debouncedContent — i.e. the
+   * debounce fired for a value the editor has already moved past (note switch).
+   * Mirrors the contentRef pattern used in useLessonNotes.
+   */
+  const editContentRef = useRef<string>("");
 
   // Sync refs on every render (no useEffect delay).
   // CRITICAL: Must be synchronous so that BroadcastChannel message handlers
   // and other async callbacks always see the latest values without a render-lag.
   selectedNoteIdRef.current = selectedNoteId;
   isLoadingRef.current = isLoading;
+  editContentRef.current = editContent;
 
   /**
    * CRITICAL: Hard reset all autosave refs when selectedNoteId changes.
@@ -86,14 +95,25 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
 
   // Handle remote updates from other tabs (Quick Notes)
   // SAFETY: Includes timestamp validation to prevent older content overwriting newer
-  const handleRemoteUpdate = useCallback((remoteContent: string, updatedAt: string) => {
+  const handleRemoteUpdate = useCallback((remoteContent: string, updatedAt: string, forNoteId?: string) => {
     if (isLoadingRef.current) return;
+
+    // FIX: Discard remote updates that arrive during a note transition.
+    // Between selectNote() being called and React re-rendering, noteIdRef in the
+    // sync bridge is still stale and may match the OLD note. If an update for the
+    // old note arrives in this window it would call setEditContent() with the wrong
+    // content for the new note, starting a 1-second save race.
+    if (isTransitioningRef.current) return;
 
     // Capture BOTH refs at the moment the broadcast arrives.
     // If the user has already switched notes, noteIdRef will have diverged
     // from selectedNoteIdRef — in that case we must NOT apply the update.
     const arrivedForNoteId = selectedNoteIdRef.current;
     if (!arrivedForNoteId) return;
+
+    // FIX: Defense-in-depth — if caller passed the noteId that triggered this
+    // update, make sure it still matches the currently selected note.
+    if (forNoteId && forNoteId !== arrivedForNoteId) return;
 
     isRemoteUpdateRef.current = true;
     setEditContent(remoteContent);
@@ -299,7 +319,15 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
       console.debug('[useCourseNotes] Skipping save during note transition');
       return;
     }
-    
+
+    // FIX: Stale-debounce guard — mirrors useLessonNotes' contentRef check.
+    // debouncedContent lags 1 second behind editContent. When the user switches
+    // notes, editContent updates immediately but debouncedContent still holds the
+    // previous note's value. If that stale value slips past all other guards it
+    // would overwrite the new note. Bail out whenever debouncedContent hasn't
+    // caught up with the live editor content yet.
+    if (debouncedContent !== editContentRef.current) return;
+
     // FIX: Validate that the debounced content belongs to the current note
     // This prevents saving stale content when user switches notes rapidly
     if (contentForNoteIdRef.current !== selectedNoteId) {
@@ -309,7 +337,7 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
       });
       return;
     }
-    
+
     // Skip if content hasn't changed from last save
     if (debouncedContent === lastSavedContentRef.current) return;
     
@@ -502,15 +530,20 @@ export function useCourseNotes({ courseId, userId }: UseCourseNotesOptions) {
       
       if (selectedNoteId === noteId) {
         if (remaining.length > 0) {
+          // FIX: treat auto-select after delete the same as a manual note switch —
+          // set the transition flag so the debounce from the deleted note can't
+          // fire a stale save into the next note.
+          isTransitioningRef.current = true;
           setSelectedNoteId(remaining[0].id);
           setEditContent(remaining[0].content);
           lastSavedContentRef.current = remaining[0].content;
-          contentForNoteIdRef.current = remaining[0].id; // FIX: Track content ownership
+          contentForNoteIdRef.current = remaining[0].id;
+          setTimeout(() => { isTransitioningRef.current = false; }, 100);
         } else {
           setSelectedNoteId(null);
           setEditContent("");
           lastSavedContentRef.current = "";
-          contentForNoteIdRef.current = null; // FIX: Clear content ownership
+          contentForNoteIdRef.current = null;
         }
       }
       
