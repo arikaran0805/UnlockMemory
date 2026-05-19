@@ -8,6 +8,7 @@ import { useLandingCourses } from "@/hooks/useLandingCourses";
 import { useLandingCareers } from "@/hooks/useLandingCareers";
 import PublicCourseCard from "@/components/PublicCourseCard";
 import PublicCareerCard from "@/components/PublicCareerCard";
+import { AdPlacement } from "@/components/AdPlacement";
 
 
 
@@ -765,8 +766,14 @@ export default function Landing() {
           {/* ── Courses ──────────────────────────────────────────────────────── */}
           <CourseCardsSection />
 
+          {/* ── Ad: after courses section ────────────────────────────────────── */}
+          <AdPlacement placement="landing-after-courses" className="w-full rounded-xl mb-8" />
+
           {/* ── Career Paths ─────────────────────────────────────────────────── */}
           <CareerCardsSection />
+
+          {/* ── Ad: after careers section ────────────────────────────────────── */}
+          <AdPlacement placement="landing-after-careers" className="w-full rounded-xl mb-8" />
         </div>
 
         {/* ── CTA Card ─────────────────────────────────────────────────────── */}

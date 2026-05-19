@@ -37,9 +37,11 @@ import { format, isPast, isFuture } from "date-fns";
 
 /* ─── constants ─── */
 const PLACEMENTS = [
-  { value: "courses-banner", label: "All Courses Page Banner" },
-  { value: "careers-banner", label: "All Careers Page Banner" },
-  { value: "tags-banner",    label: "Tag Detail Page Banner" },
+  { value: "courses-banner",        label: "All Courses Page Banner" },
+  { value: "careers-banner",        label: "All Careers Page Banner" },
+  { value: "tags-banner",           label: "Tag Detail Page Banner" },
+  { value: "landing-after-courses", label: "Landing Page: After Courses Section" },
+  { value: "landing-after-careers", label: "Landing Page: After Careers Section" },
 ];
 
 const AD_LABELS = [
