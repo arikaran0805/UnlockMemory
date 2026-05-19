@@ -78,12 +78,16 @@ const ContentRenderer = ({
   // Check for corrupted/partial TipTap JSON that should be suppressed
   const isCorruptedJson = useMemo(() => {
     if (!htmlContent) return false;
+    // Valid TipTap JSON is never corrupted — compact (single-line) JSON like
+    // {"type":"doc","content":[...]} would otherwise hit the heuristics below
+    // because they contain the substrings "doc","content" without a newline.
+    if (isTipTapJSON(htmlContent)) return false;
     const trimmed = htmlContent.trim();
     // Detect corrupted JSON fragments like `"doc","content":[...]`
     // Only flag if the ENTIRE content looks like a broken JSON fragment
     // (not when JSON appears as a suffix after valid chat/text content)
     return (
-      trimmed.includes('"doc","content"') && !trimmed.includes('\n') ||
+      (trimmed.includes('"doc","content"') && !trimmed.startsWith('{') && !trimmed.includes('\n')) ||
       (trimmed.includes('"type":"paragraph"') && !trimmed.startsWith('{') && !trimmed.includes('\n')) ||
       (trimmed.includes('"type":"doc"') && !trimmed.startsWith('{') && !trimmed.includes('\n'))
     );
