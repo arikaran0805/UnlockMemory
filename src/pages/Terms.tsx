@@ -2,7 +2,7 @@ import DynamicPage from "@/components/DynamicPage";
 
 const Terms = () => (
   <DynamicPage
-    slug="terms"
+    slug="terms-of-service"
     fallbackTitle="Terms of Service"
     seo={{
       title: "Terms of Service - Legal Agreement",

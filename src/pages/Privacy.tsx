@@ -2,7 +2,7 @@ import DynamicPage from "@/components/DynamicPage";
 
 const Privacy = () => (
   <DynamicPage
-    slug="privacy"
+    slug="privacy-policy"
     fallbackTitle="Privacy Policy"
     seo={{
       title: "Privacy Policy - How We Protect Your Data",
