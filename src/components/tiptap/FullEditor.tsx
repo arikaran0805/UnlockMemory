@@ -232,7 +232,7 @@ export const FullEditor = forwardRef<FullEditorRef, FullEditorProps>(({
   }
 
   return (
-    <div className={cn('tiptap-editor border border-border rounded-lg overflow-hidden bg-background', className)}>
+    <div className={cn('tiptap-editor border border-border rounded-lg overflow-hidden bg-background flex flex-col', className)}>
       {/* Header with view mode and autosave status */}
       {!annotationMode && (
         <div className="flex items-center justify-between p-2 border-b border-border bg-muted/30">
@@ -299,7 +299,9 @@ export const FullEditor = forwardRef<FullEditorRef, FullEditorProps>(({
           dangerouslySetInnerHTML={{ __html: previewHTML || '<p class="text-muted-foreground italic">Nothing to preview...</p>' }}
         />
       ) : (
-        <EditorContent editor={editor} />
+        <div className="flex-1 overflow-y-auto">
+          <EditorContent editor={editor} />
+        </div>
       )}
 
       {/* Annotation tooltip - renders via portal */}
