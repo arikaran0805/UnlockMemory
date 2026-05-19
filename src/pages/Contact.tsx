@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Loader2, Twitter, Linkedin } from "lucide-react";
+import { CheckCircle2, Loader2, Linkedin } from "lucide-react";
 import Layout from "@/components/Layout";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
@@ -122,13 +122,16 @@ const Contact = () => {
           {/* Bottom — social */}
           <div className="mt-auto pt-14 flex items-center gap-4">
             <a
-              href="https://twitter.com/unlockmemory"
+              href="https://x.com/unlockmemory"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Twitter"
+              aria-label="X (formerly Twitter)"
               className="text-primary-foreground/40 hover:text-primary-foreground/80 transition-colors"
             >
-              <Twitter className="w-5 h-5" />
+              {/* X (formerly Twitter) brand mark */}
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
             </a>
             <a
               href="https://linkedin.com/company/unlockmemory"

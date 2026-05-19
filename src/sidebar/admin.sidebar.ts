@@ -29,6 +29,7 @@ import {
   Key,
   Webhook,
   ScrollText,
+  Mail,
 } from "lucide-react";
 import type { SidebarConfig, SidebarSection } from "./types";
 
@@ -47,6 +48,7 @@ const workflowSection: SidebarSection = {
     { icon: ClipboardCheck, label: "Approval Queue", path: "/admin/approvals" },
     { icon: Trash2, label: "Delete Requests", path: "/admin/delete-requests" },
     { icon: Flag, label: "Reports", path: "/admin/reports" },
+    { icon: Mail, label: "Contact Submissions", path: "/admin/contact-submissions" },
   ],
 };
 

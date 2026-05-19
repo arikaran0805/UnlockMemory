@@ -7,6 +7,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminPosts from "@/pages/AdminPosts";
 import AdminPostEditor from "@/pages/AdminPostEditor";
 import AdminPages from "@/pages/AdminPages";
+import AdminPageEditor from "@/pages/AdminPageEditor";
 import AdminCoursesPanel from "@/pages/AdminCoursesPanel";
 import AdminCourseEditor from "@/pages/AdminCourseEditor";
 import AdminDifficultyLevels from "@/pages/AdminDifficultyLevels";
@@ -45,6 +46,7 @@ import AdminAnnouncementBarEditor from "@/pages/admin/AdminAnnouncementBarEditor
 import AdminApiKeys from "@/pages/admin/AdminApiKeys";
 import AdminWebhooks from "@/pages/admin/AdminWebhooks";
 import AdminDevLogs from "@/pages/admin/AdminDevLogs";
+import AdminContactSubmissions from "@/pages/AdminContactSubmissions";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -67,6 +69,8 @@ const AdminRoutes = () => {
           <Route path="posts/edit/:id" element={<AdminPostEditor />} />
           <Route path="posts/:id/versions" element={<AdminPostVersions />} />
           <Route path="pages" element={<AdminPages />} />
+          <Route path="pages/new" element={<AdminPageEditor />} />
+          <Route path="pages/:id" element={<AdminPageEditor />} />
           <Route path="courses" element={<AdminCoursesPanel />} />
           <Route path="difficulty-levels" element={<AdminDifficultyLevels />} />
           <Route path="courses/new" element={<AdminCourseEditor />} />
@@ -103,6 +107,7 @@ const AdminRoutes = () => {
           <Route path="activity" element={<AdminModeratorActivity />} />
           <Route path="activity-log" element={<AdminPlatformActivityLog />} />
           <Route path="reports" element={<AdminReports />} />
+          <Route path="contact-submissions" element={<AdminContactSubmissions />} />
           <Route path="seo" element={<Navigate to="/admin/settings" replace />} />
 
           <Route path="promo-codes" element={<AdminPromoCodes />} />
