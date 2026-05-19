@@ -58,8 +58,10 @@ export const AdPlacement = ({ placement, className = "" }: AdPlacementProps) => 
       .eq("placement", placement)
       .eq("is_active", true)
       .order("priority", { ascending: false })
-      .then(({ data }) => {
-        if (cancelled || !data) return;
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[AdPlacement] query error:', placement, error); return; }
+        if (!data) return;
         const active = data.find((a: Ad) => isScheduleActive(a)) ?? null;
         setAd(active);
         setImgLoaded(false);
@@ -96,26 +98,37 @@ export const AdPlacement = ({ placement, className = "" }: AdPlacementProps) => 
 
   // Image ad
   if (ad.image_url) {
-    const inner = (
+    // If image definitively failed and there's no redirect, hide entirely
+    if (imgError && !ad.redirect_url) return null;
+
+    // Use natural image dimensions (h-auto) so the banner is always visible
+    // regardless of whether a parent height is set.
+    const imgEl = (
       <>
-        {/* Hidden img — we use it to detect load/error, then show via CSS */}
-        <img
-          src={ad.image_url}
-          alt=""
-          className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0 absolute inset-0"}`}
-          loading="lazy"
-          onLoad={() => setImgLoaded(true)}
-          onError={() => setImgError(true)}
-        />
-        {/* Placeholder shown while loading or on error */}
-        {!imgLoaded && (
-          <div className="w-full h-full bg-muted/30" />
+        {imgLoaded ? (
+          <img
+            src={ad.image_url}
+            alt=""
+            className="w-full h-auto block"
+            loading="lazy"
+          />
+        ) : (
+          <>
+            {/* Invisible preload — triggers onLoad/onError */}
+            <img
+              src={ad.image_url}
+              alt=""
+              className="w-0 h-0 absolute opacity-0 pointer-events-none"
+              loading="lazy"
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+            {/* Skeleton placeholder while loading */}
+            <div className="w-full bg-muted/30 animate-pulse" style={{ aspectRatio: "728/90" }} />
+          </>
         )}
       </>
     );
-
-    // If image definitively failed and there's no redirect, hide entirely
-    if (imgError && !ad.redirect_url) return null;
 
     return (
       <div
@@ -128,12 +141,12 @@ export const AdPlacement = ({ placement, className = "" }: AdPlacementProps) => 
             href={ad.redirect_url}
             target="_blank"
             rel="noopener noreferrer sponsored nofollow"
-            className="block w-full h-full"
+            className="block w-full"
           >
-            {inner}
+            {imgEl}
           </a>
         ) : (
-          inner
+          imgEl
         )}
       </div>
     );
