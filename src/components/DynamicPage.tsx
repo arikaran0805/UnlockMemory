@@ -62,7 +62,6 @@ const DynamicPage = ({ slug, fallbackTitle, fallbackContent, seo }: DynamicPageP
         </div>
       ) : page ? (
         <div className="mx-auto w-full max-w-[720px] px-4 py-16">
-          <h1 className="text-4xl font-bold mb-10 text-foreground">{page.title}</h1>
           <ContentRenderer htmlContent={page.content} variant="article" />
           <p className="mt-12 text-sm text-muted-foreground border-t border-border pt-6">
             Last updated:{" "}
