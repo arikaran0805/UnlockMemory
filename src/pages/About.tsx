@@ -77,27 +77,25 @@ const About = () => {
         </div>
       </section>
 
-      {/* ── 2. Problem / Answer ──────────────────────────────────────── */}
-      <section className="bg-background">
-        <div className="max-w-5xl mx-auto px-4 py-28">
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-16 items-start">
-            {/* Stat */}
-            <div>
-              <p className="text-8xl font-bold text-primary leading-none">70%</p>
-              <p className="text-lg text-foreground mt-3">
-                of information is forgotten within 24 hours
-              </p>
-              <p className="text-sm text-muted-foreground mt-2 italic">
-                — Hermann Ebbinghaus, 1885
-              </p>
-            </div>
+      {/* Sections 2–5 share the same Georgia serif typography as the privacy/terms pages */}
+      <div className="content-renderer-article">
 
-            {/* Narrative */}
-            <div>
-              <p className="text-xs font-semibold text-primary tracking-widest uppercase mb-5">
-                Our Answer
-              </p>
-              <div className="space-y-4 text-base text-muted-foreground leading-relaxed">
+        {/* ── 2. Problem / Answer ────────────────────────────────────── */}
+        <section className="bg-background">
+          <div className="max-w-5xl mx-auto px-4 py-28">
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-16 items-start">
+              {/* Stat */}
+              <div>
+                <p className="text-8xl font-bold text-primary leading-none">70%</p>
+                <p className="mt-3">of information is forgotten within 24 hours</p>
+                <p className="mt-2 italic text-[15px]">— Hermann Ebbinghaus, 1885</p>
+              </div>
+
+              {/* Narrative */}
+              <div>
+                <p className="text-xs font-semibold text-primary tracking-widest uppercase mb-5" style={{ fontFamily: "inherit" }}>
+                  Our Answer
+                </p>
                 <p>
                   Forgetting isn't a personal failure — it's how brains work by default.
                   Without reinforcement, most of what you read today will be gone tomorrow.
@@ -115,64 +113,59 @@ const About = () => {
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── 3. How We're Different ───────────────────────────────────── */}
-      <section className="bg-muted/40">
-        <div className="max-w-5xl mx-auto px-4 py-24">
-          <h2 className="text-3xl font-bold text-foreground text-center mb-12">
-            Not just a course platform.
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {FEATURES.map(({ icon: Icon, title, description }) => (
-              <div
-                key={title}
-                className="bg-background rounded-2xl p-8 shadow-card border border-border/50"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-primary" />
+        {/* ── 3. How We're Different ─────────────────────────────────── */}
+        <section className="bg-muted/40">
+          <div className="max-w-5xl mx-auto px-4 py-24">
+            <h2 className="text-center mb-12">Not just a course platform.</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {FEATURES.map(({ icon: Icon, title, description }) => (
+                <div
+                  key={title}
+                  className="bg-background rounded-2xl p-8 shadow-card border border-border/50"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <h3 className="mt-5 mb-2">{title}</h3>
+                  <p className="mt-0">{description}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mt-5 mb-2">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── 4. Values ────────────────────────────────────────────────── */}
-      <section className="bg-background">
-        <div className="max-w-5xl mx-auto px-4 py-24">
-          <h2 className="text-3xl font-bold text-foreground mb-12">What we stand for</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {VALUES.map(({ title, description }) => (
-              <div
-                key={title}
-                className="rounded-2xl p-7 border-l-4 border-primary bg-muted/30"
-              >
-                <h3 className="text-base font-semibold text-foreground mb-2">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-              </div>
-            ))}
+        {/* ── 4. Values ──────────────────────────────────────────────── */}
+        <section className="bg-background">
+          <div className="max-w-5xl mx-auto px-4 py-24">
+            <h2 className="mb-12">What we stand for</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {VALUES.map(({ title, description }) => (
+                <div
+                  key={title}
+                  className="rounded-2xl p-7 border-l-4 border-primary bg-muted/30"
+                >
+                  <h3 className="mt-0 mb-2">{title}</h3>
+                  <p className="mt-0">{description}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── 5. CTA Strip ─────────────────────────────────────────────── */}
-      <section className="bg-primary/5">
-        <div className="max-w-lg mx-auto px-4 py-20 text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-3">
-            Ready to learn something that sticks?
-          </h2>
-          <p className="text-base text-muted-foreground mb-8">
-            Join thousands of learners building lasting knowledge.
-          </p>
-          <Button size="lg" asChild>
-            <Link to="/courses">Start Learning →</Link>
-          </Button>
-        </div>
-      </section>
+        {/* ── 5. CTA Strip ───────────────────────────────────────────── */}
+        <section className="bg-primary/5">
+          <div className="max-w-lg mx-auto px-4 py-20 text-center">
+            <h2 className="mb-3">Ready to learn something that sticks?</h2>
+            <p className="mb-8">Join thousands of learners building lasting knowledge.</p>
+            <Button size="lg" asChild>
+              <Link to="/courses">Start Learning →</Link>
+            </Button>
+          </div>
+        </section>
+
+      </div>
     </Layout>
   );
 };
