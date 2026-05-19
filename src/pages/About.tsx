@@ -164,7 +164,7 @@ const About = () => {
           <div className="max-w-lg mx-auto px-4 py-20 text-center">
             <h2 className="mb-3">Ready to learn something that sticks?</h2>
             <p className="mb-8">Join thousands of learners building lasting knowledge.</p>
-            <Button size="lg" asChild style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+            <Button size="lg" asChild style={{ fontFamily: "system-ui, -apple-system, sans-serif", color: "white" }}>
               <Link to="/courses">Explore Courses</Link>
             </Button>
           </div>
