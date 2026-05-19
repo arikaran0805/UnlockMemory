@@ -63,7 +63,7 @@ const About = () => {
       />
 
       {/* ── 1. Hero ───────────────────────────────────────────────────── */}
-      <section className="bg-gradient-primary min-h-[65vh] flex items-center justify-center px-4 py-20">
+      <section className="bg-primary min-h-[65vh] flex items-center justify-center px-4 py-20">
         <div className="max-w-2xl mx-auto text-center">
           <p className="text-primary-foreground/60 text-xs font-semibold tracking-widest uppercase mb-6">
             About UnlockMemory

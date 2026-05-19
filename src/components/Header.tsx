@@ -102,7 +102,7 @@ const Header = ({
   });
 
   const isProfilePage = location.pathname === "/profile";
-  const hideOnPages = ["/choose-plan", "/careers", "/plan", "/checkout"].includes(location.pathname);
+  const hideOnPages = ["/choose-plan", "/careers", "/plan", "/checkout", "/about", "/privacy", "/terms", "/contact"].includes(location.pathname);
   const showCourseSecondaryHeaderDefault = !hideOnPages && !isProfilePage;
 
   const showCourseSecondaryHeader =
