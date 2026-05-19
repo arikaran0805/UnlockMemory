@@ -28,7 +28,6 @@ import {
 import { Loader2, Mail, RefreshCw, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import AdminBreadcrumbHeader from "@/components/AdminBreadcrumbHeader";
 
 interface ContactSubmission {
   id: string;
@@ -127,10 +126,7 @@ const AdminContactSubmissions = () => {
   }
 
   return (
-    <div className="flex flex-col gap-0">
-      <AdminBreadcrumbHeader />
-
-      <div className="space-y-6 p-8">
+    <div className="space-y-6 p-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Contact Submissions</h1>
           <p className="text-muted-foreground">Messages submitted via the Contact page</p>
@@ -228,8 +224,6 @@ const AdminContactSubmissions = () => {
           </TableBody>
         </Table>
       </div>
-
-      </div>{/* end space-y-6 */}
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={open => !open && setSelected(null)}>
