@@ -60,9 +60,11 @@ export const AdPlacement = ({ placement, className = "" }: AdPlacementProps) => 
       .order("priority", { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) { console.error('[AdPlacement] query error:', placement, error); return; }
-        if (!data) return;
+        if (error) { console.error('[AdPlacement] DB error', placement, error); return; }
+        console.log(`[AdPlacement] "${placement}" → ${data?.length ?? 0} row(s)`, data);
+        if (!data?.length) return;
         const active = data.find((a: Ad) => isScheduleActive(a)) ?? null;
+        console.log(`[AdPlacement] "${placement}" → active:`, active ?? 'none (schedule blocked)');
         setAd(active);
         setImgLoaded(false);
         setImgError(false);
