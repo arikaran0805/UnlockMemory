@@ -154,12 +154,14 @@ async function resolveProfiles(ids: string[]): Promise<CourseMentor[]> {
     }
   });
 
-  return (profilesRes.data || []).map((p) => ({
-    user_id: p.id,
-    full_name: p.full_name || "Mentor",
-    avatar_url: p.avatar_url || null,
-    role_label: roleLabels[roleMap.get(p.id) || ""] || "Instructor",
-  }));
+  return (profilesRes.data || [])
+    .filter((p) => roleMap.get(p.id) !== "super_moderator")
+    .map((p) => ({
+      user_id: p.id,
+      full_name: p.full_name || "Mentor",
+      avatar_url: p.avatar_url || null,
+      role_label: roleLabels[roleMap.get(p.id) || ""] || "Instructor",
+    }));
 }
 
 // ─── main component ───────────────────────────────────────────────────────────
@@ -272,7 +274,7 @@ export function CourseMentorListContent({
         .from("user_roles")
         .select("user_id, role")
         .in("user_id", ids)
-        .in("role", ["moderator", "senior_moderator", "super_moderator"]);
+        .in("role", ["moderator", "senior_moderator"]);
 
       const validIds = new Set(roles?.map((r) => r.user_id) || []);
       const roleMap = new Map<string, string>();
