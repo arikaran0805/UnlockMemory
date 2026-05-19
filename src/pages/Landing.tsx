@@ -767,7 +767,7 @@ export default function Landing() {
           <CourseCardsSection />
 
           {/* ── Ad: after courses section ────────────────────────────────────── */}
-          <div className="w-full h-[400px] mb-8 rounded-xl overflow-hidden">
+          <div className="w-full h-[320px] mb-8 rounded-xl overflow-hidden">
             <AdPlacement placement="landing-after-courses" className="w-full h-full" />
           </div>
 
@@ -775,7 +775,7 @@ export default function Landing() {
           <CareerCardsSection />
 
           {/* ── Ad: after careers section ────────────────────────────────────── */}
-          <div className="w-full h-[400px] mb-8 rounded-xl overflow-hidden">
+          <div className="w-full h-[320px] mb-8 rounded-xl overflow-hidden">
             <AdPlacement placement="landing-after-careers" className="w-full h-full" />
           </div>
         </div>
